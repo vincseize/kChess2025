@@ -109,13 +109,12 @@ class ChessGameMoveHandler {
         // Créer l'objet pièce
         const newPiece = {
             type: promotedPieceType,
-            color: selectedPiece.piece.color,
-            symbol: this.getPieceSymbol(promotedPieceType, selectedPiece.piece.color)
+            color: selectedPiece.piece.color
         };
         
         toSquare.piece = newPiece;
         
-        // Créer l'élément pièce manuellement
+        // Créer l'élément pièce avec image
         toSquare.element.innerHTML = '';
         const newPieceElement = this.createPieceElement(newPiece);
         toSquare.element.appendChild(newPieceElement);
@@ -159,37 +158,31 @@ class ChessGameMoveHandler {
         this.game.updateUI();
     }
 
-    // Méthode pour créer un élément pièce
+    // Méthode pour créer un élément pièce AVEC IMAGE
     createPieceElement(piece) {
         const pieceElement = document.createElement('div');
         pieceElement.className = `chess-piece ${piece.color}`;
-        pieceElement.textContent = piece.symbol;
+        
+        const prefix = piece.color === 'white' ? 'w' : 'b';
+        const pieceCodes = {
+            'king': 'K',
+            'queen': 'Q',
+            'rook': 'R',
+            'bishop': 'B',
+            'knight': 'N',
+            'pawn': 'P'
+        };
+        
+        const img = document.createElement('img');
+        img.src = `img/chesspieces/wikipedia/${prefix}${pieceCodes[piece.type]}.png`;
+        img.alt = `${piece.type} ${piece.color}`;
+        img.className = 'chess-piece-img';
+        
+        pieceElement.appendChild(img);
         pieceElement.setAttribute('data-piece', piece.type);
         pieceElement.setAttribute('data-color', piece.color);
+        
         return pieceElement;
-    }
-
-    // Méthode utilitaire pour les symboles de pièces
-    getPieceSymbol(pieceType, color) {
-        const symbols = {
-            white: {
-                queen: '♕',
-                rook: '♖', 
-                bishop: '♗',
-                knight: '♘',
-                pawn: '♙',
-                king: '♔'
-            },
-            black: {
-                queen: '♛',
-                rook: '♜',
-                bishop: '♝', 
-                knight: '♞',
-                pawn: '♟',
-                king: '♚'
-            }
-        };
-        return symbols[color]?.[pieceType] || '♕';
     }
 
     undoPromotionMove(fromSquare, toSquare, pieceElement, selectedPiece) {

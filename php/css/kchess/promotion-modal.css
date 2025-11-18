@@ -1,4 +1,4 @@
-/* promotion-modal.css - Version améliorée avec Bootstrap */
+/* promotion-modal.css - Version SANS bouton annuler */
 .promotion-modal {
     position: fixed;
     top: 0;
@@ -45,7 +45,7 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .promotion-option {
@@ -62,6 +62,12 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+/* Style par défaut (NON sélectionné) - PLUS FONCÉ */
+.promotion-option {
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+}
+
 .promotion-option:hover {
     border-color: rgba(255, 255, 255, 0.8);
     background: rgba(255, 255, 255, 0.2);
@@ -73,15 +79,36 @@
     transform: translateY(-2px);
 }
 
+/* Style pour l'option SÉLECTIONNÉE - PLUS CLAIR */
+.promotion-option.selected {
+    border-color: #4a90e2 !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+}
+
 .promotion-option .chess-piece {
     font-size: 3rem;
     margin-bottom: 0.75rem;
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
     transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.promotion-option .chess-piece-img {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
 }
 
 .promotion-option:hover .chess-piece {
     transform: scale(1.1);
+}
+
+.promotion-option.selected .chess-piece {
+    transform: scale(1.15);
 }
 
 .promotion-option span {
@@ -91,24 +118,30 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-/* Bouton annuler stylisé */
-.promotion-cancel {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+/* Actions de promotion - UN SEUL BOUTON */
+.promotion-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+#promotionConfirm {
+    min-width: 200px;
+    padding: 0.75rem 2rem;
+    border: 2px solid rgba(40, 167, 69, 0.6);
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(40, 167, 69, 0.2);
     color: white;
     font-weight: 600;
-    cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
 }
 
-.promotion-cancel:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.6);
+#promotionConfirm:hover {
+    background: rgba(40, 167, 69, 0.4);
+    border-color: rgba(40, 167, 69, 0.9);
     transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
 }
 
 /* Animations */
@@ -142,8 +175,14 @@
         font-size: 1.3rem;
     }
     
+    .promotion-content p {
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+    }
+    
     .promotion-options {
         gap: 0.75rem;
+        margin-bottom: 1.5rem;
     }
     
     .promotion-option {
@@ -152,6 +191,16 @@
     
     .promotion-option .chess-piece {
         font-size: 2.5rem;
+    }
+    
+    .promotion-option .chess-piece-img {
+        width: 40px;
+        height: 40px;
+    }
+    
+    #promotionConfirm {
+        min-width: 180px;
+        padding: 0.75rem 1.5rem;
     }
 }
 
@@ -163,13 +212,29 @@
     
     .promotion-option {
         padding: 1rem 0.5rem;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 1rem;
     }
     
     .promotion-option .chess-piece {
         font-size: 2rem;
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+    
+    .promotion-option .chess-piece-img {
+        width: 35px;
+        height: 35px;
     }
     
     .promotion-option span {
+        font-size: 0.9rem;
+    }
+    
+    #promotionConfirm {
+        min-width: 160px;
+        padding: 0.6rem 1.2rem;
         font-size: 0.9rem;
     }
 }

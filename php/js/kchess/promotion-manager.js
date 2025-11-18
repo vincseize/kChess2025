@@ -1,4 +1,4 @@
-// promotion-manager.js - Gestion de la promotion des pions
+// promotion-manager.js - Gestion de la promotion des pions (version avec sélection SANS bouton annuler)
 class PromotionManager {
     constructor(game) {
         this.game = game;
@@ -19,6 +19,9 @@ class PromotionManager {
     showPromotionModal(color, callback) {
         const modal = document.createElement('div');
         modal.className = 'promotion-modal';
+        
+        let selectedPiece = 'queen'; // Sélection par défaut
+        
         modal.innerHTML = `
             <div class="promotion-overlay">
                 <div class="promotion-content">
@@ -26,45 +29,59 @@ class PromotionManager {
                     <p>Choisissez une pièce pour promouvoir votre pion</p>
                     
                     <div class="promotion-options">
-                        <div class="promotion-option" data-piece="queen">
-                            <div class="chess-piece ${color}">♛</div>
+                        <div class="promotion-option ${selectedPiece === 'queen' ? 'selected' : ''}" data-piece="queen">
+                            <div class="chess-piece ${color}">
+                                <img src="img/chesspieces/wikipedia/${color === 'white' ? 'w' : 'b'}Q.png" alt="Dame" class="chess-piece-img">
+                            </div>
                             <span>Dame</span>
                         </div>
-                        <div class="promotion-option" data-piece="rook">
-                            <div class="chess-piece ${color}">♜</div>
+                        <div class="promotion-option ${selectedPiece === 'rook' ? 'selected' : ''}" data-piece="rook">
+                            <div class="chess-piece ${color}">
+                                <img src="img/chesspieces/wikipedia/${color === 'white' ? 'w' : 'b'}R.png" alt="Tour" class="chess-piece-img">
+                            </div>
                             <span>Tour</span>
                         </div>
-                        <div class="promotion-option" data-piece="bishop">
-                            <div class="chess-piece ${color}">♝</div>
+                        <div class="promotion-option ${selectedPiece === 'bishop' ? 'selected' : ''}" data-piece="bishop">
+                            <div class="chess-piece ${color}">
+                                <img src="img/chesspieces/wikipedia/${color === 'white' ? 'w' : 'b'}B.png" alt="Fou" class="chess-piece-img">
+                            </div>
                             <span>Fou</span>
                         </div>
-                        <div class="promotion-option" data-piece="knight">
-                            <div class="chess-piece ${color}">♞</div>
+                        <div class="promotion-option ${selectedPiece === 'knight' ? 'selected' : ''}" data-piece="knight">
+                            <div class="chess-piece ${color}">
+                                <img src="img/chesspieces/wikipedia/${color === 'white' ? 'w' : 'b'}N.png" alt="Cavalier" class="chess-piece-img">
+                            </div>
                             <span>Cavalier</span>
                         </div>
                     </div>
                     
-                    <button class="promotion-cancel">
-                        <i class="bi bi-x-circle me-2"></i>Annuler
-                    </button>
+                    <div class="promotion-actions mt-3">
+                        <button class="btn btn-success" id="promotionConfirm">
+                            <i class="bi bi-check-circle me-1"></i>Valider la sélection
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
         
         document.body.appendChild(modal);
         
-        // Gestion des clics
-        modal.querySelectorAll('.promotion-option').forEach(option => {
+        // Gestion de la sélection des pièces
+        const options = modal.querySelectorAll('.promotion-option');
+        options.forEach(option => {
             option.addEventListener('click', () => {
-                const piece = option.dataset.piece;
-                modal.remove();
-                callback(piece);
+                // Retirer la sélection précédente
+                options.forEach(opt => opt.classList.remove('selected'));
+                // Ajouter la sélection
+                option.classList.add('selected');
+                selectedPiece = option.dataset.piece;
             });
         });
         
-        modal.querySelector('.promotion-cancel').addEventListener('click', () => {
+        // Bouton Valider
+        modal.querySelector('#promotionConfirm').addEventListener('click', () => {
             modal.remove();
-            callback(null);
+            callback(selectedPiece);
         });
         
         // Fermer en cliquant à l'extérieur
@@ -73,6 +90,11 @@ class PromotionManager {
                 modal.remove();
                 callback(null);
             }
+        });
+        
+        // Empêcher la fermeture en cliquant à l'intérieur
+        modal.querySelector('.promotion-overlay').addEventListener('click', (e) => {
+            e.stopPropagation();
         });
     }
 }
