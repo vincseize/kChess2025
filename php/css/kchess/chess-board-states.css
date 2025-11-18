@@ -85,3 +85,60 @@
         opacity: 0.4;
     }
 }
+
+/* CORRECTIONS SPÉCIFIQUES POUR MOBILE */
+@media (max-width: 768px) {
+    .chess-square.possible-move::before {
+        /* GARANTIR le centrage sur mobile */
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+    }
+    
+    .chess-square.possible-capture::before {
+        /* GARANTIR le centrage sur mobile */
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+    }
+    
+    .chess-square.possible-en-passant::before {
+        /* GARANTIR le centrage sur mobile */
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        animation: pulse-en-passant-mobile 1.5s infinite;
+    }
+    
+    @keyframes pulse-en-passant-mobile {
+        0% { 
+            border-color: #ff6b35; 
+            transform: translate(-50%, -50%) scale(1) !important;
+            opacity: 0.4;
+        }
+        50% { 
+            border-color: #ff8c5a; 
+            transform: translate(-50%, -50%) scale(1.05) !important;
+            opacity: 0.6;
+        }
+        100% { 
+            border-color: #ff6b35; 
+            transform: translate(-50%, -50%) scale(1) !important;
+            opacity: 0.4;
+        }
+    }
+}
+
+/* CORRECTIONS SPÉCIFIQUES POUR TRÈS PETITS ÉCRANS */
+@media (max-width: 480px) {
+    .chess-square.possible-move::before {
+        width: 20%; /* Légèrement plus petit sur très petits écrans */
+        height: 20%;
+    }
+    
+    .chess-square.possible-capture::before,
+    .chess-square.possible-en-passant::before {
+        width: 80%; /* Légèrement plus petit sur très petits écrans */
+        height: 80%;
+    }
+}
