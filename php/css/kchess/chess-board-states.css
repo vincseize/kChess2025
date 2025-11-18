@@ -17,7 +17,7 @@
     background-color: rgba(255, 107, 53, 0.15) !important; /* 15% d'opacité */
 }
 
-/* Indicateur de mouvement normal - PLUS TRANSPARENT */
+/* Indicateur de mouvement normal - CORRECTION DU CENTRAGE */
 .chess-square.possible-move::before {
     content: "";
     position: absolute;
@@ -27,9 +27,13 @@
     border-radius: 50%;
     opacity: 0.3;
     z-index: 2;
+    /* CENTRAGE ABSOLU */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
-/* Indicateur de prise normale - PLUS TRANSPARENT */
+/* Indicateur de prise normale - CORRECTION DU CENTRAGE */
 .chess-square.possible-capture::before {
     content: "";
     position: absolute;
@@ -40,9 +44,13 @@
     opacity: 0.4;
     z-index: 2;
     box-sizing: border-box;
+    /* CENTRAGE ABSOLU */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
-/* Indicateur de prise en passant - PLUS TRANSPARENT */
+/* Indicateur de prise en passant - CORRECTION DU CENTRAGE */
 .chess-square.possible-en-passant::before {
     content: "";
     position: absolute;
@@ -53,23 +61,27 @@
     opacity: 0.4;
     z-index: 2;
     box-sizing: border-box;
+    /* CENTRAGE ABSOLU */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     animation: pulse-en-passant 1.5s infinite;
 }
 
 @keyframes pulse-en-passant {
     0% { 
         border-color: #ff6b35; 
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(1);
         opacity: 0.4;
     }
     50% { 
         border-color: #ff8c5a; 
-        transform: scale(1.05);
+        transform: translate(-50%, -50%) scale(1.05);
         opacity: 0.6;
     }
     100% { 
         border-color: #ff6b35; 
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(1);
         opacity: 0.4;
     }
 }
