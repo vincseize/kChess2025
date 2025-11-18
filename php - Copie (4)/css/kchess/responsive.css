@@ -1,0 +1,112 @@
+/* responsive.css - Media queries et responsive design */
+
+/* Desktop large */
+@media (min-width: 1200px) {
+    .chess-board {
+        max-width: 550px;
+    }
+    
+    .chess-square {
+        font-size: 2.2rem;
+    }
+    
+    .game-info-container {
+        min-height: 650px;
+    }
+}
+
+/* Tablettes */
+@media (max-width: 1199px) and (min-width: 992px) {
+    .chess-board {
+        max-width: 100%;
+    }
+    
+    .game-info-container {
+        min-height: 550px;
+    }
+}
+
+/* Tablettes et petits écrans */
+@media (max-width: 991px) {
+    .col-lg-7, .col-lg-5 {
+        margin-bottom: 2rem;
+    }
+    
+    .chess-container {
+        min-height: 450px;
+    }
+    
+    .game-info-container {
+        min-height: auto;
+    }
+}
+
+/* Mobiles */
+@media (max-width: 768px) {
+    .chess-board {
+        max-width: 100%;
+        min-height: 300px;
+    }
+    
+    .chess-square {
+        font-size: 1.2rem;
+    }
+    
+    /* Navigation responsive */
+    .chess-controls-top {
+        display: none;
+    }
+    
+    .chess-controls-mobile {
+        display: block;
+    }
+    
+    .chess-board-container {
+        margin: 20px auto 0 auto;
+    }
+    
+    /* Ajustement des cartes sur mobile */
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .move-item {
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* Petits mobiles */
+@media (max-width: 576px) {
+    .chess-board {
+        min-height: 250px;
+    }
+    
+    .chess-square {
+        font-size: 1rem;
+    }
+    
+    .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    .chess-container {
+        padding: 1rem !important;
+    }
+}
+
+/* Orientation paysage sur mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    .chess-board {
+        max-width: 60vh;
+        min-height: 60vh;
+    }
+    
+    .chess-container {
+        min-height: 70vh;
+    }
+    
+    .game-info-container {
+        min-height: 70vh;
+    }
+}

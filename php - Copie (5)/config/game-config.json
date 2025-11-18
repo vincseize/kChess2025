@@ -1,0 +1,19 @@
+{
+    "app_name": "CharlyChess",
+    "version": "0.5.0",
+    "author": "Karlova",
+    "default_theme": "classic",
+    "features": {
+        "flip_board": true,
+        "move_history": true,
+        "move_validation": true,
+        "responsive": true
+    },
+    "colors": {
+        "square_white": "#F0D9B5",
+        "square_black": "#B58863",
+        "selected": "#aec6cf",
+        "move_indicator": "#32CD32",
+        "capture_indicator": "#ff4444"
+    }
+}

@@ -1,0 +1,290 @@
+/* core.css - Styles de base et layout général */
+
+html, body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+footer {
+    flex-shrink: 0;
+}
+
+
+:root {
+    --chess-brown-dark: #8B4513;
+    --chess-brown-light: #DEB887;
+    --chess-square-white: #F0D9B5;
+    --chess-square-black: #B58863;
+    --chess-selected: #aec6cf;
+    --chess-move-indicator: #32CD32;
+    --chess-capture-indicator: #ff4444;
+}
+
+/* Reset et base */
+.chess-container {
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    height: 100%;
+}
+
+/* Layout général */
+.game-info-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* core.css - Échiquier plus grand */
+.chess-board-container {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* padding: 10px; */ /* SUPPRIMER cette ligne */
+    position: relative; /* AJOUTER cette ligne */
+}
+
+.chess-board {
+    width: 100%;
+    max-width: 600px;
+    aspect-ratio: 1 / 1;
+    border: 3px solid var(--chess-brown-dark);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Hauteurs responsives */
+@media (min-width: 1200px) {
+    .chess-container {
+        min-height: 600px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .chess-board {
+        max-width: 700px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .chess-board {
+        max-width: 800px;
+    }
+}
+
+/* Pour les écrans moyens */
+@media (max-width: 768px) {
+    .chess-board {
+        max-width: 500px;
+    }
+}
+
+/* Pour les petits écrans */
+@media (max-width: 576px) {
+    .chess-board {
+        max-width: 400px;
+    }
+}
+
+/* Cartes et composants UI */
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 8px;
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    font-weight: 600;
+    border-radius: 8px 8px 0 0 !important;
+    padding: 0.5rem 0.75rem;
+}
+
+.card-body {
+    padding: 0.75rem;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+/* Boutons personnalisés */
+.btn-outline-primary {
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+.btn-outline-primary:hover {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Historique des coups */
+.move-history {
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 0 0 8px 8px;
+}
+
+.move-item {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+    font-family: 'Courier New', monospace;
+    transition: background-color 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.move-item:hover {
+    background-color: #f8f9fa;
+}
+
+.move-item:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.move-item:last-child {
+    border-bottom: none;
+}
+
+/* Indicateurs de statut */
+.status-check {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+.status-checkmate {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.status-stalemate {
+    color: #6c757d;
+    font-weight: bold;
+}
+
+/* Loading state */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Indicateur de device */
+#mobileIcon, #tabletIcon, #desktopIcon {
+    font-size: 1.2rem;
+}
+
+/* Progress bars améliorées */
+.progress {
+    background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    border-radius: 10px;
+}
+
+/* Contrôles du jeu */
+.chess-controls-top {
+    display: none; /* Caché car maintenant dans la colonne de droite */
+}
+
+.chess-controls-mobile {
+    display: none; /* Caché car maintenant dans la colonne de droite */
+}
+
+/* Styles pour les pièces d'échecs (à compléter plus tard) */
+.chess-square {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chess-square.white {
+    background-color: var(--chess-square-white);
+}
+
+.chess-square.black {
+    background-color: var(--chess-square-black);
+}
+
+.chess-square.selected {
+    background-color: var(--chess-selected);
+}
+
+.chess-square.valid-move::before {
+    content: "";
+    position: absolute;
+    width: 20%;
+    height: 20%;
+    background-color: var(--chess-move-indicator);
+    border-radius: 50%;
+    opacity: 0.7;
+}
+
+.chess-square.valid-capture::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid var(--chess-capture-indicator);
+    border-radius: 50%;
+    opacity: 0.7;
+    box-sizing: border-box;
+}
+
+/* Améliorations responsive */
+@media (max-width: 768px) {
+    .chess-square {
+        font-size: 1.5rem;
+    }
+    
+    .card-body {
+        padding: 0.5rem;
+    }
+    
+    .move-item {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Animation pour les mouvements */
+@keyframes piece-move {
+    from {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.piece-moving {
+    animation: piece-move 0.3s ease;
+}

@@ -1,0 +1,164 @@
+/* chess-board.css - Styles de l'échiquier et des cases avec coordonnées intégrées */
+.chess-board-container {
+    position: relative;
+    display: inline-block;
+    margin: 20px auto 0 auto;
+}
+
+.chess-board {
+    width: 100%;
+    max-width: 500px;
+    aspect-ratio: 1 / 1;
+    border: 3px solid var(--chess-brown-dark);
+    background: var(--chess-brown-light);
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    position: relative;
+}
+
+.chess-square {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    /* PIÈCES PLUS GROSSES */
+    font-size: clamp(2rem, 5vw, 3rem);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chess-square.white {
+    background-color: var(--chess-square-white);
+}
+
+.chess-square.black {
+    background-color: var(--chess-square-black);
+}
+
+/* Coordonnées dans les cases */
+.chess-square::after {
+    content: attr(data-coordinate);
+    position: absolute;
+    font-size: 0.7rem;
+    font-weight: 600;
+    pointer-events: none;
+    color: rgba(0, 0, 0, 0.6);
+    z-index: 1;
+}
+
+/* Pour les cases noires, on inverse les couleurs des coordonnées */
+.chess-square.black::after {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ===== COORDONNÉES HORIZONTALES (lettres a-h) ===== */
+
+/* TOUJOURS en bas à droite (peu importe le flip) */
+.chess-square[data-coordinate-h="true"]::after {
+    bottom: 2px;
+    right: 3px;
+}
+
+/* ===== COORDONNÉES VERTICALES (chiffres 1-8) ===== */
+
+/* TOUJOURS en haut à gauche (peu importe le flip) */
+.chess-square[data-coordinate-v="true"]::after {
+    top: 2px;
+    left: 3px;
+}
+
+/* États des cases */
+.chess-square.selected {
+    background-color: var(--chess-selected) !important;
+    /* SUPPRIMER box-shadow */
+}
+
+.chess-square.possible-move {
+    background-color: inherit !important;
+}
+
+.chess-square.possible-capture {
+    background-color: inherit !important;
+}
+
+/* Indicateurs de mouvement */
+.chess-square.possible-move::before {
+    content: "";
+    position: absolute;
+    width: 25%;
+    height: 25%;
+    background-color: var(--chess-move-indicator);
+    border-radius: 50%;
+    opacity: 0.6;
+    z-index: 2;
+}
+
+.chess-square.possible-capture::before {
+    content: "";
+    position: absolute;
+    width: 85%;
+    height: 85%;
+    border: 3px solid var(--chess-capture-indicator);
+    border-radius: 50%;
+    opacity: 0.7;
+    z-index: 2;
+}
+
+/* Interactions */
+.chess-square:hover {
+    filter: brightness(1.05);
+}
+
+.chess-square, .chess-piece {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Ajustements responsive pour les coordonnées */
+@media (max-width: 768px) {
+    .chess-square::after {
+        font-size: 0.6rem;
+    }
+    
+    .chess-square[data-coordinate-h="true"]::after {
+        bottom: 1px;
+        right: 2px;
+    }
+    
+    .chess-square[data-coordinate-v="true"]::after {
+        top: 1px;
+        left: 2px;
+    }
+}
+
+@media (max-width: 576px) {
+    .chess-square::after {
+        font-size: 0.5rem;
+    }
+    
+    .chess-square[data-coordinate-h="true"]::after {
+        bottom: 1px;
+        right: 1px;
+    }
+    
+    .chess-square[data-coordinate-v="true"]::after {
+        top: 1px;
+        left: 1px;
+    }
+}
+
+/* Animation pour les mouvements */
+@keyframes piece-move {
+    from {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.piece-moving {
+    animation: piece-move 0.3s ease;
+}

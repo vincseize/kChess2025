@@ -1,0 +1,65 @@
+/* chess-board-accessibility.css - Accessibilité */
+.chess-square:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+}
+
+.chess-piece:focus {
+    outline: 2px solid #ffd700;
+    outline-offset: 1px;
+}
+
+/* Haut contraste */
+@media (prefers-contrast: high) {
+    .chess-square.white {
+        background-color: #ffffff;
+    }
+    
+    .chess-square.black {
+        background-color: #000000;
+    }
+    
+    .chess-square[data-coordinate-h="true"]::after,
+    .chess-square[data-coordinate-v="true"]::before {
+        color: #000000;
+        font-weight: 800;
+    }
+    
+    .chess-square.black[data-coordinate-h="true"]::after,
+    .chess-square.black[data-coordinate-v="true"]::before {
+        color: #ffffff;
+    }
+    
+    .chess-square.possible-move::before {
+        background-color: #00ff00;
+        opacity: 0.8;
+    }
+    
+    .chess-square.possible-capture::before {
+        border-color: #ff0000;
+        opacity: 0.9;
+    }
+    
+    .chess-square.possible-en-passant::before {
+        border-color: #ff5500;
+        opacity: 0.9;
+    }
+}
+
+/* Réduction des animations */
+@media (prefers-reduced-motion: reduce) {
+    .chess-square,
+    .chess-piece {
+        transition: none;
+    }
+    
+    .piece-moving,
+    .piece-captured-en-passant {
+        animation: none;
+    }
+    
+    .chess-square.possible-en-passant::before {
+        animation: none;
+        border-color: #ff6b35;
+    }
+}

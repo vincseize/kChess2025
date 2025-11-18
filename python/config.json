@@ -1,0 +1,48 @@
+{
+    "VERSION": "0.3",
+    "TITLE": "Bienvenue dans mon jeu chess game", 
+    "BOARD_SIZE": 8,
+    "SQUARE_SIZE": 60,
+    "LIGHT_COLOR": "#EEEED2",
+    "DARK_COLOR": "#769656",
+    "FONT_PIECE": {"FAMILY": "Arial", "SIZE": 32},
+    "FONT_COORDS": {"FAMILY": "Arial", "SIZE": 12, "WEIGHT": "bold"},
+    "PIECE_SYMBOLS": {
+        "wp": "♙",
+        "wr": "♖",
+        "wn": "♘",
+        "wb": "♗",
+        "wq": "♕",
+        "wk": "♔",
+        "bp": "♟",
+        "br": "♜",
+        "bn": "♞",
+        "bb": "♝",
+        "bq": "♛",
+        "bk": "♚"
+    },
+    "FEN_SYMBOLS": {
+        "wp": "P",
+        "wr": "R",
+        "wn": "N",
+        "wb": "B",
+        "wq": "Q",
+        "wk": "K",
+        "bp": "p",
+        "br": "r",
+        "bn": "n",
+        "bb": "b",
+        "bq": "q",
+        "bk": "k"
+    },
+    "START_POSITION": [
+        ["br", "bn", "bb", "bq", "bk", "bb", "bn", "br"],
+        ["bp", "bp", "bp", "bp", "bp", "bp", "bp", "bp"],
+        ["", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", ""],
+        ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
+        ["wr", "wn", "wb", "wq", "wk", "wb", "wn", "wr"]
+    ]
+}
