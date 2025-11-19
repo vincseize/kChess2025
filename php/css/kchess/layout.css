@@ -36,3 +36,125 @@ footer {
     display: flex;
     flex-direction: column;
 }
+
+/* Correction position badges joueurs */
+.chess-container .position-absolute.top-0.start-0 {
+    top: 10px !important;
+    left: 10px !important;
+}
+
+.chess-container .position-absolute.bottom-0.start-0 {
+    bottom: 10px !important;
+    left: 10px !important;
+}
+
+/* Réduction taille du board sur desktop */
+@media (min-width: 768px) {
+    .chess-board {
+        max-width: 550px !important;
+        border-width: 2px !important;
+    }
+}
+
+/* Ajustement pour très grands écrans */
+@media (min-width: 1400px) {
+    .chess-board {
+        max-width: 650px !important;
+    }
+}
+
+@media (min-width: 1600px) {
+    .chess-board {
+        max-width: 750px !important;
+    }
+}
+
+/* Améliorations mobiles */
+@media (max-width: 767.98px) {
+    .menu-container .card-body {
+        padding: 1rem !important;
+    }
+    
+    /* Espacement amélioré sur mobile */
+    .d-grid.gap-2 {
+        gap: 0.75rem !important;
+    }
+    
+    /* MENU TOUJOURS OUVERT SUR MOBILE - RÉTABLI */
+    #menuContent {
+        display: block !important;
+    }
+    
+    /* CACHER le bouton toggle sur mobile puisque le menu est toujours ouvert */
+    .btn[data-bs-toggle="collapse"] {
+        display: none !important;
+    }
+    
+    /* Taille des boutons sur mobile */
+    .btn-sm {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        min-height: 44px; /* Taille minimale pour le touch */
+    }
+    
+    /* Réduction padding container chess */
+    .chess-container {
+        padding: 0.5rem !important;
+    }
+    
+    /* Ajustement badges sur mobile */
+    .chess-container .badge {
+        font-size: 0.7rem;
+        padding: 0.4rem 0.6rem;
+    }
+    
+    /* Améliorer le touch sur mobile */
+    .btn {
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+    }
+    
+    /* Style pour les boutons d'actions rapides sur mobile */
+    .d-md-none .btn {
+        border-width: 2px;
+    }
+}
+
+/* Très petits écrans */
+@media (max-width: 480px) {
+    .chess-board {
+        max-width: 100%;
+    }
+    
+    .badge {
+        font-size: 0.65rem;
+        padding: 0.3rem 0.5rem;
+    }
+    
+    .chess-container .position-absolute.top-0.start-0,
+    .chess-container .position-absolute.bottom-0.start-0 {
+        margin: 5px !important;
+    }
+    
+    /* Ajustement supplémentaire pour très petits écrans */
+    .menu-container .card-body {
+        padding: 0.75rem !important;
+    }
+    
+    .btn-sm {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.85rem;
+        min-height: 42px;
+    }
+    
+    /* Réduire l'espacement sur très petits écrans */
+    .d-grid.gap-2 {
+        gap: 0.5rem !important;
+    }
+    
+    /* Ajuster la taille des textes */
+    .btn-sm {
+        font-size: 0.8rem;
+    }
+}

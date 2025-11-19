@@ -4,6 +4,16 @@
 const DEBUG_MODE = false;
 
 document.addEventListener("DOMContentLoaded", function() {
+
+
+    // Gérer les deux boutons "Nouvelle Partie"
+    document.getElementById('newGame')?.addEventListener('click', () => game.newGame());
+    document.getElementById('newGameMobile')?.addEventListener('click', () => game.newGame());
+    
+    // Gérer les deux boutons "Tourner"
+    document.getElementById('flipBoard')?.addEventListener('click', () => game.flipBoard());
+    document.getElementById('flipBoardMobile')?.addEventListener('click', () => game.flipBoard());
+
     // Déplacer ces fonctions utilitaires en haut
     function getScreenOrientation() {
         if (screen.orientation) {

@@ -6,19 +6,19 @@
 
 /* Cases possibles avec couleur de fond semi-transparente */
 .chess-square.possible-move {
-    background-color: rgba(50, 205, 50, 0.15) !important; /* 15% d'opacité */
+    background-color: rgba(50, 205, 50, 0.15) !important;
 }
 
 .chess-square.possible-capture {
-    background-color: rgba(255, 68, 68, 0.15) !important; /* 15% d'opacité */
+    background-color: rgba(255, 68, 68, 0.15) !important;
 }
 
 .chess-square.possible-en-passant {
-    background-color: rgba(255, 107, 53, 0.15) !important; /* 15% d'opacité */
+    background-color: rgba(255, 107, 53, 0.15) !important;
 }
 
-/* Indicateur de mouvement normal - CORRECTION DU CENTRAGE */
-.chess-square.possible-move::before {
+/* INDICATEURS UNIFIÉS AVEC SÉLECTEURS SPÉCIFIQUES */
+#chessBoard .chess-square.possible-move::before {
     content: "";
     position: absolute;
     width: 25%;
@@ -27,14 +27,13 @@
     border-radius: 50%;
     opacity: 0.3;
     z-index: 2;
-    /* CENTRAGE ABSOLU */
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    /* CENTRAGE FORCÉ */
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
 }
 
-/* Indicateur de prise normale - CORRECTION DU CENTRAGE */
-.chess-square.possible-capture::before {
+#chessBoard .chess-square.possible-capture::before {
     content: "";
     position: absolute;
     width: 85%;
@@ -44,14 +43,13 @@
     opacity: 0.4;
     z-index: 2;
     box-sizing: border-box;
-    /* CENTRAGE ABSOLU */
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    /* CENTRAGE FORCÉ */
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
 }
 
-/* Indicateur de prise en passant - CORRECTION DU CENTRAGE */
-.chess-square.possible-en-passant::before {
+#chessBoard .chess-square.possible-en-passant::before {
     content: "";
     position: absolute;
     width: 85%;
@@ -61,52 +59,51 @@
     opacity: 0.4;
     z-index: 2;
     box-sizing: border-box;
-    /* CENTRAGE ABSOLU */
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    /* CENTRAGE FORCÉ */
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
     animation: pulse-en-passant 1.5s infinite;
 }
 
 @keyframes pulse-en-passant {
     0% { 
         border-color: #ff6b35; 
-        transform: translate(-50%, -50%) scale(1);
+        transform: translate(-50%, -50%) scale(1) !important;
         opacity: 0.4;
     }
     50% { 
         border-color: #ff8c5a; 
-        transform: translate(-50%, -50%) scale(1.05);
+        transform: translate(-50%, -50%) scale(1.05) !important;
         opacity: 0.6;
     }
     100% { 
         border-color: #ff6b35; 
-        transform: translate(-50%, -50%) scale(1);
+        transform: translate(-50%, -50%) scale(1) !important;
         opacity: 0.4;
     }
 }
 
-/* CORRECTIONS SPÉCIFIQUES POUR MOBILE */
+/* SUPPRIMER LES DOUBLONS - CES STYLES SONT DÉJÀ DANS LES SÉLECTEURS CI-DESSUS */
+
+/* CORRECTIONS SPÉCIFIQUES POUR MOBILE - VERSION RENFORCÉE */
 @media (max-width: 768px) {
-    .chess-square.possible-move::before {
-        /* GARANTIR le centrage sur mobile */
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
+    #chessBoard .chess-square.possible-move::before {
+        width: 20%;
+        height: 20%;
+        /* Le centrage est déjà forcé par !important */
     }
     
-    .chess-square.possible-capture::before {
-        /* GARANTIR le centrage sur mobile */
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
+    #chessBoard .chess-square.possible-capture::before {
+        width: 80%;
+        height: 80%;
+        /* Le centrage est déjà forcé par !important */
     }
     
-    .chess-square.possible-en-passant::before {
-        /* GARANTIR le centrage sur mobile */
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
+    #chessBoard .chess-square.possible-en-passant::before {
+        width: 80%;
+        height: 80%;
+        /* Le centrage est déjà forcé par !important */
         animation: pulse-en-passant-mobile 1.5s infinite;
     }
     
@@ -131,14 +128,14 @@
 
 /* CORRECTIONS SPÉCIFIQUES POUR TRÈS PETITS ÉCRANS */
 @media (max-width: 480px) {
-    .chess-square.possible-move::before {
-        width: 20%; /* Légèrement plus petit sur très petits écrans */
-        height: 20%;
+    #chessBoard .chess-square.possible-move::before {
+        width: 18%;
+        height: 18%;
     }
     
-    .chess-square.possible-capture::before,
-    .chess-square.possible-en-passant::before {
-        width: 80%; /* Légèrement plus petit sur très petits écrans */
-        height: 80%;
+    #chessBoard .chess-square.possible-capture::before,
+    #chessBoard .chess-square.possible-en-passant::before {
+        width: 75%;
+        height: 75%;
     }
 }

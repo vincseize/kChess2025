@@ -47,3 +47,15 @@
     transition: background-color 0.2s ease;
     font-size: 0.875rem;
 }
+
+.move-item:hover {
+    background-color: #f8f9fa;
+}
+
+.move-item:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.move-item:last-child {
+    border-bottom: none;
+}

@@ -1,5 +1,6 @@
 <?php
 // header.php
+$version = time(); // ou $config['version'] si vous voulez une version stable
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -14,25 +15,18 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/bootstrap-icons.css">
 
-    <!-- CSS Chess réorganisé - NOUVELLE STRUCTURE -->
-    <!-- Variables et base -->
-    <link href="css/kchess/variables.css" rel="stylesheet">
-    <link href="css/kchess/layout.css" rel="stylesheet">
-    
-    <!-- Composants UI -->
-    <link href="css/kchess/components.css" rel="stylesheet">
-    <link href="css/kchess/utilities.css" rel="stylesheet">
-    
-    <!-- Échiquier et pièces -->
-    <link href="css/kchess/chess-board-base.css" rel="stylesheet">
-    <link href="css/kchess/chess-board-coordinates.css" rel="stylesheet">
-    <link href="css/kchess/chess-board-states.css" rel="stylesheet">
-    <link href="css/kchess/chess-board-pieces.css" rel="stylesheet">
-    <link href="css/kchess/chess-board-animations.css" rel="stylesheet">
-    <link href="css/kchess/chess-board-special.css" rel="stylesheet">
-    <link href="css/kchess/chess-pieces.css" rel="stylesheet">
-    
-    <!-- Responsive et modals -->
-    <link href="css/kchess/responsive.css" rel="stylesheet">
-    <link href="css/kchess/promotion-modal.css" rel="stylesheet">
+    <!-- CSS Chess réorganisé - AVEC VERSION POUR CACHE -->
+    <link href="css/kchess/variables.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/layout.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/components.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/utilities.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/chess-board-base.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/chess-board-coordinates.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/chess-board-states.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/chess-board-pieces.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/chess-board-animations.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/chess-board-special.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/chess-pieces.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/responsive.css?version=<?php echo $version; ?>" rel="stylesheet">
+    <link href="css/kchess/promotion-modal.css?version=<?php echo $version; ?>" rel="stylesheet">
 </head>

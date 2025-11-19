@@ -9,47 +9,26 @@
             <div class="menu-container h-100">
                 <!-- Menu latéral -->
                 <div class="card h-100">
-                    <div class="card-header bg-secondary text-white py-2">
-                        <h4 class="h6 mb-0 text-center">
-                            <i class="bi bi-list me-1"></i>
-                            Menu
-                        </h4>
-                    </div>
                     <div class="card-body p-2">
-                        <!-- Bouton collapse pour mobile -->
-                        <button class="btn btn-outline-primary btn-sm w-100 d-md-none mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#menuContent">
-                            <i class="bi bi-chevron-down me-1"></i> Menu
-                        </button>
-                        
-                        <!-- Contenu du menu -->
-                        <div id="menuContent" class="collapse d-md-block">
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-outline-primary btn-sm text-start">
-                                    <i class="bi bi-person me-1"></i> Profil
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm text-start">
-                                    <i class="bi bi-gear me-1"></i> Paramètres
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm text-start">
-                                    <i class="bi bi-trophy me-1"></i> Classement
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm text-start">
-                                    <i class="bi bi-clock-history me-1"></i> Historique
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm text-start">
-                                    <i class="bi bi-info-circle me-1"></i> Aide
-                                </button>
-                            </div>
-                            
-                            <hr class="my-3">
-                            
-                            <!-- Section rapide -->
-                            <div class="small text-muted mb-2">Actions rapides</div>
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-success btn-sm" id="newGame">
+                        <!-- ACTIONS RAPIDES - TOUJOURS VISIBLES SUR MOBILE -->
+                        <div class="d-grid gap-2 mb-3 d-md-none">
+                            <button class="btn btn-success btn-sm new-game-btn" id="newGameMobile">
+                                <i class="bi bi-plus-circle me-1"></i> Nouvelle Partie
+                            </button>
+                            <button class="btn btn-outline-dark btn-sm flip-board-btn" id="flipBoardMobile">
+                                <i class="bi bi-arrow-repeat me-1"></i> Tourner
+                            </button>
+                        </div>
+
+                        <!-- Contenu du menu - SECTION RAPIDE SEULEMENT -->
+                        <div id="menuContent" class="d-md-block">
+                            <!-- Section rapide - VISIBLE UNIQUEMENT SUR DESKTOP -->
+                            <div class="small text-muted mb-2 d-none d-md-block">Actions rapides</div>
+                            <div class="d-grid gap-2 d-none d-md-block">
+                                <button class="btn btn-success btn-sm new-game-btn" id="newGame">
                                     <i class="bi bi-plus-circle me-1"></i> Nouvelle Partie
                                 </button>
-                                <button class="btn btn-outline-dark btn-sm" id="flipBoard">
+                                <button class="btn btn-outline-dark btn-sm flip-board-btn" id="flipBoard">
                                     <i class="bi bi-arrow-repeat me-1"></i> Tourner
                                 </button>
                             </div>
@@ -60,7 +39,7 @@
         </div>
 
         <!-- Colonne du milieu - Échiquier (légèrement réduite) -->
-        <div class="col-xxl-7 col-xl-6 col-lg-6 col-md-8 col-12">
+        <div class="col-xxl-8 col-xl-6 col-lg-6 col-md-8 col-12">
             <div class="chess-container bg-light rounded-3 p-2 h-100 position-relative">
                 <!-- Label JOUEUR ORDINATEUR en haut à gauche -->
                 <div class="position-absolute top-0 start-0 m-2">
@@ -85,7 +64,7 @@
         </div>
 
         <!-- Colonne de droite - Informations de jeu (simplifiée) -->
-        <div class="col-xxl-3 col-xl-3 col-lg-3 col-12">
+        <div class="col-xxl-2 col-xl-3 col-lg-3 col-12">
             <div class="game-info-container h-100 d-flex flex-column">
                 
                 <!-- Statut de la partie -->

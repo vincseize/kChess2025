@@ -26,41 +26,26 @@
         </div>
     </footer>
 
-<!-- Scripts -->
-<!-- <script src="js/kchess/pieces.js"></script>
-<script src="js/kchess/game-state.js"></script>
-<script src="js/kchess/chess-board.js"></script>
-<script src="js/kchess/move-validator.js"></script>
-<script src="js/kchess/promotion-manager.js"></script> -->
-
-<!-- Game Core -->
-<!-- <script src="js/kchess/chess-game-core.js"></script>
-<script src="js/kchess/chess-game-move-handler.js"></script>
-<script src="js/kchess/chess-game-ui.js"></script>
-
-<script src="js/kchess/chess-events.js"></script> -->
-
-<!-- Scripts -->
-<script src="js/kchess/pieces.js"></script>
-<script src="js/kchess/game-state.js"></script>
-<script src="js/kchess/chess-board.js"></script>
+<!-- Scripts avec version pour cache -->
+<script src="js/kchess/pieces.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/game-state.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/chess-board.js?version=<?php echo $version; ?>"></script>
 
 <!-- Validateurs de mouvements (splités) -->
-<script src="js/kchess/move-validator-pawn.js"></script>
-<script src="js/kchess/move-validator-knight.js"></script>
-<script src="js/kchess/move-validator-bishop.js"></script>
-<script src="js/kchess/move-validator-rook.js"></script>
-<script src="js/kchess/move-validator-queen.js"></script>
-<script src="js/kchess/move-validator-king.js"></script>
-<script src="js/kchess/move-validator.js"></script> <!-- Doit être chargé en dernier -->
+<script src="js/kchess/move-validator-pawn.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/move-validator-knight.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/move-validator-bishop.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/move-validator-rook.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/move-validator-queen.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/move-validator-king.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/move-validator.js?version=<?php echo $version; ?>"></script> <!-- Doit être chargé en dernier -->
 
 <!-- Game Core -->
-<script src="js/kchess/promotion-manager.js"></script>
-<script src="js/kchess/chess-game-core.js"></script>
-<script src="js/kchess/chess-game-move-handler.js"></script>
-<script src="js/kchess/chess-game-ui.js"></script>
-<script src="js/kchess/chess-events.js"></script>
-
+<script src="js/kchess/promotion-manager.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/chess-game-core.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/chess-game-move-handler.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/chess-game-ui.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/chess-events.js?version=<?php echo $version; ?>"></script>
 
 </body>
 </html>
