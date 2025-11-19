@@ -43,7 +43,7 @@ class MoveValidator {
                 row: move.to.row + direction,
                 col: move.to.col
             };
-            console.log(`🎯 Cible en passant définie: [${this.enPassantTarget.row},${this.enPassantTarget.col}]`);
+            // console.log(`🎯 Cible en passant définie: [${this.enPassantTarget.row},${this.enPassantTarget.col}]`);
         } else {
             this.enPassantTarget = null;
         }
@@ -53,7 +53,7 @@ class MoveValidator {
         if (move.type === 'en-passant' && move.capturedPawn) {
             const capturedSquare = this.board.getSquare(move.capturedPawn.row, move.capturedPawn.col);
             if (capturedSquare && capturedSquare.piece) {
-                console.log(`🎯 Prise en passant exécutée sur [${move.capturedPawn.row},${move.capturedPawn.col}]`);
+                // console.log(`🎯 Prise en passant exécutée sur [${move.capturedPawn.row},${move.capturedPawn.col}]`);
                 capturedSquare.piece = null;
                 capturedSquare.element.innerHTML = '';
             }

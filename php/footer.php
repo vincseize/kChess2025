@@ -26,18 +26,24 @@
         </div>
     </footer>
 
-<!-- Scripts avec version pour cache -->
+<!-- Scripts -->
 <script src="js/kchess/pieces.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/game-state.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/chess-board.js?version=<?php echo $version; ?>"></script>
 
-<!-- Validateurs de mouvements (splités) -->
+<script src="js/kchess/fen-generator.js?version=<?php echo $version; ?>"></script>
+
+<!-- Check Chess -->
+<script src="js/kchess/checkChess.js?version=<?php echo $version; ?>"></script>
+
+<!-- Validateurs de mouvements -->
 <script src="js/kchess/move-validator-pawn.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/move-validator-knight.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/move-validator-bishop.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/move-validator-rook.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/move-validator-queen.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/move-validator-king.js?version=<?php echo $version; ?>"></script>
+
 <script src="js/kchess/move-validator.js?version=<?php echo $version; ?>"></script> <!-- Doit être chargé en dernier -->
 
 <!-- Game Core -->
@@ -46,6 +52,8 @@
 <script src="js/kchess/chess-game-move-handler.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/chess-game-ui.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/chess-events.js?version=<?php echo $version; ?>"></script>
+
+
 
 </body>
 </html>
