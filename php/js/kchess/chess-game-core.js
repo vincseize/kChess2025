@@ -186,6 +186,7 @@ class ChessGame {
         this.gameState.resetGame();
         this.clearSelection();
         this.loadInitialPosition();
+        this.ui.resetTimers(); // ← AJOUT ICI
         this.updateUI();
     }
 

@@ -2,6 +2,11 @@
 class ChessGameUI {
     constructor(game) {
         this.game = game;
+        this.whiteTime = 0; // Temps en secondes pour les blancs
+        this.blackTime = 0; // Temps en secondes pour les noirs
+        this.gameStartTime = null;
+        this.timerInterval = null;
+        this.currentPlayerTimer = null;
     }
 
     setupEventListeners() {
@@ -24,17 +29,90 @@ class ChessGameUI {
         this.updateGameStatus();
         this.updateMoveHistory();
         this.updateMoveCount();
+        this.updatePlayerTimes();
     }
 
     updateGameStatus() {
-        const statusElement = document.getElementById('gameStatus');
         const playerElement = document.getElementById('currentPlayer');
         
-        if (statusElement && playerElement) {
-            playerElement.textContent = `Aux ${this.game.gameState.currentPlayer === 'white' ? 'blancs' : 'noirs'} de jouer`;
-            statusElement.textContent = 'En cours';
-            statusElement.className = 'h5 text-success';
+        if (playerElement) {
+            const currentPlayer = this.game.gameState.currentPlayer;
+            const playerText = currentPlayer === 'white' ? 'Aux blancs de jouer' : 'Aux noirs de jouer';
+            const playerClass = currentPlayer === 'white' ? 'text-white bg-dark rounded px-2' : 'text-dark bg-warning rounded px-2';
+            
+            playerElement.textContent = playerText;
+            playerElement.className = `small mb-2 ${playerClass}`;
+            
+            // Démarrer/arrêter les timers
+            this.handlePlayerTimer(currentPlayer);
         }
+    }
+
+    // NOUVELLE MÉTHODE : Gérer les timers des joueurs
+    handlePlayerTimer(currentPlayer) {
+        if (this.currentPlayerTimer !== currentPlayer) {
+            // Arrêter le timer précédent
+            this.stopPlayerTimer();
+            
+            // Démarrer le nouveau timer
+            this.currentPlayerTimer = currentPlayer;
+            this.startPlayerTimer();
+        }
+    }
+
+    // NOUVELLE MÉTHODE : Démarrer le timer du joueur actuel
+    startPlayerTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+        }
+        
+        this.timerInterval = setInterval(() => {
+            if (this.currentPlayerTimer === 'white') {
+                this.whiteTime++;
+            } else {
+                this.blackTime++;
+            }
+            this.updatePlayerTimes();
+        }, 1000);
+    }
+
+    // NOUVELLE MÉTHODE : Arrêter le timer
+    stopPlayerTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+    }
+
+    // NOUVELLE MÉTHODE : Mettre à jour l'affichage des temps
+    updatePlayerTimes() {
+        const whiteTimeElement = document.getElementById('whiteTime');
+        const blackTimeElement = document.getElementById('blackTime');
+        
+        if (whiteTimeElement) {
+            whiteTimeElement.textContent = this.formatTime(this.whiteTime);
+            // Mettre en évidence le joueur actif
+            if (this.currentPlayerTimer === 'white') {
+                whiteTimeElement.className = 'text-success fw-bold';
+                blackTimeElement.className = 'text-primary';
+            }
+        }
+        
+        if (blackTimeElement) {
+            blackTimeElement.textContent = this.formatTime(this.blackTime);
+            // Mettre en évidence le joueur actif
+            if (this.currentPlayerTimer === 'black') {
+                blackTimeElement.className = 'text-success fw-bold';
+                whiteTimeElement.className = 'text-primary';
+            }
+        }
+    }
+
+    // NOUVELLE MÉTHODE : Formater le temps (secondes -> MM:SS)
+    formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
 
     updateMoveCount() {
@@ -81,27 +159,28 @@ class ChessGameUI {
         historyElement.scrollTop = historyElement.scrollHeight;
     }
 
-    // NOUVELLE MÉTHODE : Copier le FEN dans le presse-papier
+    // NOUVELLE MÉTHODE : Réinitialiser les timers pour une nouvelle partie
+    resetTimers() {
+        this.stopPlayerTimer();
+        this.whiteTime = 0;
+        this.blackTime = 0;
+        this.currentPlayerTimer = 'white';
+        this.updatePlayerTimes();
+        this.startPlayerTimer();
+    }
+
+    // Copier le FEN dans le presse-papier
     async copyFENToClipboard() {
         try {
             const currentFEN = FENGenerator.generateFEN(this.game.gameState, this.game.board);
-            
-            // Utiliser l'API Clipboard moderne
             await navigator.clipboard.writeText(currentFEN);
-            
-            // Afficher une confirmation
             this.showCopyFeedback('✅ FEN copié !', 'copyFEN');
-            
             console.log('📋 FEN copié:', currentFEN);
-            
         } catch (err) {
-            // Fallback pour les navigateurs plus anciens
-            console.error('Erreur clipboard moderne, fallback:', err);
             this.copyFENFallback();
         }
     }
 
-    // Fallback pour la copie FEN
     copyFENFallback() {
         const currentFEN = FENGenerator.generateFEN(this.game.gameState, this.game.board);
         const textArea = document.createElement('textarea');
@@ -110,32 +189,21 @@ class ChessGameUI {
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        
         this.showCopyFeedback('✅ FEN copié (fallback) !', 'copyFEN');
-        console.log('📋 FEN copié (fallback):', currentFEN);
     }
 
     // Copier le PGN dans le presse-papier
     async copyPGNToClipboard() {
         try {
             const pgn = this.game.gameState.getFullPGN();
-            
-            // Utiliser l'API Clipboard moderne
             await navigator.clipboard.writeText(pgn);
-            
-            // Afficher une confirmation
             this.showCopyFeedback('✅ PGN copié !', 'copyPGN');
-            
             console.log('📋 PGN copié:', pgn);
-            
         } catch (err) {
-            // Fallback pour les navigateurs plus anciens
-            console.error('Erreur clipboard moderne, fallback:', err);
             this.copyPGNFallback();
         }
     }
 
-    // Fallback pour la copie PGN
     copyPGNFallback() {
         const pgn = this.game.gameState.getFullPGN();
         const textArea = document.createElement('textarea');
@@ -144,9 +212,7 @@ class ChessGameUI {
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        
         this.showCopyFeedback('✅ PGN copié (fallback) !', 'copyPGN');
-        console.log('📋 PGN copié (fallback):', pgn);
     }
 
     // Afficher un feedback visuel
@@ -172,7 +238,6 @@ class ChessGameUI {
             copyButton.classList.add(originalClass);
         }, 1500);
     }
-    
 }
 
 window.ChessGameUI = ChessGameUI;

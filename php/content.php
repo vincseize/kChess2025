@@ -77,18 +77,24 @@
                     </div>
                     <div class="card-body p-2">
                         <div class="game-status text-center">
-                            <!-- <div class="h6 text-success mb-1" id="gameStatus">En cours</div> -->
+                            <!-- Statut dynamique du joueur actuel -->
                             <div class="small text-muted mb-2" id="currentPlayer">Aux blancs de jouer</div>
                             
                             <div class="row text-center small g-1">
                                 <div class="col-6">
-                                    <div class="fw-bold">Coups</div>
-                                    <div id="moveCount" class="text-primary">0</div>
+                                    <div class="fw-bold">Temps Blancs</div>
+                                    <div id="whiteTime" class="text-primary">00:00</div>
                                 </div>
                                 <div class="col-6">
-                                    <div class="fw-bold">Temps</div>
-                                    <div id="gameTime" class="text-primary">00:00</div>
+                                    <div class="fw-bold">Temps Noirs</div>
+                                    <div id="blackTime" class="text-primary">00:00</div>
                                 </div>
+                            </div>
+                            
+                            <!-- Compteur de coups -->
+                            <div class="mt-2 pt-2 border-top">
+                                <div class="fw-bold">Coups joués</div>
+                                <div id="moveCount" class="text-primary h5">0</div>
                             </div>
                         </div>
                     </div>
