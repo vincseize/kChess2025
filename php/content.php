@@ -77,7 +77,7 @@
                     </div>
                     <div class="card-body p-2">
                         <div class="game-status text-center">
-                            <div class="h6 text-success mb-1" id="gameStatus">En cours</div>
+                            <!-- <div class="h6 text-success mb-1" id="gameStatus">En cours</div> -->
                             <div class="small text-muted mb-2" id="currentPlayer">Aux blancs de jouer</div>
                             
                             <div class="row text-center small g-1">
@@ -99,11 +99,16 @@
                     <div class="card-header bg-warning text-dark py-2 d-flex justify-content-between align-items-center">
                         <h4 class="h6 mb-0">
                             <i class="bi bi-clock-history me-1"></i>
-                            Historique
+                            Coups
                         </h4>
-                        <button class="btn btn-sm btn-outline-secondary p-1" id="clearHistory" title="Effacer l'historique">
-                            <i class="bi bi-trash"></i>
-                        </button>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-dark text-white p-1 px-2" id="copyPGN" title="Copier le PGN">
+                                PGN
+                            </button>
+                            <button class="btn btn-sm btn-secondary text-white p-1 px-2" id="copyFEN" title="Copier le FEN">
+                                FEN
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body p-0">
                         <div id="moveHistory" class="move-history" style="max-height: 300px;">
@@ -113,6 +118,7 @@
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>

@@ -5,6 +5,7 @@ class GameState {
         this.moveHistory = [];
         this.gameActive = true;
         this.boardFlipped = false;
+        this.gameStartTime = new Date();
     }
 
     recordMove(fromRow, fromCol, toRow, toCol, pieceInfo, promotion = null) {
@@ -23,7 +24,7 @@ class GameState {
         }
         
         // VÉRIFIER SI LE COUP MET EN ÉCHEC (APRÈS le coup)
-        const isCheck = this.checkIfMoveCausesCheck(toRow, toCol, pieceInfo);
+        const isCheck = this.checkIfMoveCausesCheck();
         if (isCheck) {
             notation += '+';
             console.log('➕ Ajout du "+" pour échec');
@@ -38,7 +39,8 @@ class GameState {
             piece: pieceInfo.type,
             color: pieceInfo.color,
             promotion: promotion,
-            isCheck: isCheck
+            isCheck: isCheck,
+            timestamp: new Date()
         };
         
         this.moveHistory.push(move);
@@ -51,17 +53,15 @@ class GameState {
     }
 
     // MÉTHODE CORRIGÉE : Vérifier l'échec APRÈS le coup
-    checkIfMoveCausesCheck(toRow, toCol, pieceInfo) {
+    checkIfMoveCausesCheck() {
         try {
             // Utiliser le FEN actuel (qui inclut déjà le coup joué)
             const currentFEN = FENGenerator.generateFEN(this, window.chessGame.board);
-            console.log('🎯 FEN pour vérification échec:', currentFEN);
             
             const engine = new ChessEngine(currentFEN);
             const opponentColor = this.currentPlayer === 'white' ? 'b' : 'w';
             const isCheck = engine.isKingInCheck(opponentColor);
             
-            console.log('🔍 Vérification échec pour', opponentColor + ':', isCheck);
             return isCheck;
             
         } catch (error) {
@@ -85,7 +85,7 @@ class GameState {
         return `${pieceSymbol}${fromFile}${fromRank}-${toFile}${toRank}`;
     }
 
-    // NOUVELLE MÉTHODE : Symboles des pièces
+    // Symboles des pièces
     getPieceSymbol(pieceType) {
         const symbols = {
             'king': 'K',
@@ -107,13 +107,13 @@ class GameState {
         return symbols[promotionType] || 'Q';
     }
 
-    // NOUVELLE MÉTHODE : Log du PGN complet
+    // Log du PGN complet
     logPGN() {
         const pgn = this.getPGN();
         console.log('📜 PGN COMPLET:', pgn);
     }
 
-    // MÉTHODE AMÉLIORÉE : Obtenir l'historique au format PGN
+    // Obtenir l'historique au format PGN
     getPGN() {
         let pgn = '';
         let movePairs = [];
@@ -135,12 +135,12 @@ class GameState {
         return pgn;
     }
 
-    // NOUVELLE MÉTHODE : Obtenir le PGN avec en-tête
+    // Obtenir le PGN avec en-tête
     getFullPGN() {
         const headers = [
             '[Event "Partie d\'échecs"]',
             '[Site "KChess"]',
-            '[Date "' + new Date().toISOString().split('T')[0] + '"]',
+            `[Date "${new Date().toISOString().split('T')[0]}"]`,
             '[Round "1"]',
             '[White "Joueur Blanc"]',
             '[Black "Joueur Noir"]',
@@ -153,6 +153,22 @@ class GameState {
         return headers + moves + ' *';
     }
 
+    // Obtenir le PGN formaté pour affichage
+    getFormattedPGN() {
+        const pgn = this.getPGN();
+        const movePairs = pgn.split(' ');
+        let formatted = '';
+        
+        for (let i = 0; i < movePairs.length; i++) {
+            if (i > 0 && i % 3 === 0) {
+                formatted += '\n';
+            }
+            formatted += movePairs[i] + ' ';
+        }
+        
+        return formatted.trim();
+    }
+
     switchPlayer() {
         this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
         return this.currentPlayer;
@@ -163,20 +179,28 @@ class GameState {
         this.moveHistory = [];
         this.gameActive = true;
         this.boardFlipped = false;
+        this.gameStartTime = new Date();
         console.log('🔄 PGN réinitialisé');
     }
 
     getGameStatus() {
+        const gameDuration = Math.floor((new Date() - this.gameStartTime) / 1000);
+        const minutes = Math.floor(gameDuration / 60);
+        const seconds = gameDuration % 60;
+        const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
         return {
             currentPlayer: this.currentPlayer,
             moveCount: this.moveHistory.length,
             isActive: this.gameActive,
             isFlipped: this.boardFlipped,
-            pgn: this.getPGN() // ← Ajout du PGN dans le statut
+            pgn: this.getPGN(),
+            gameTime: formattedTime,
+            startTime: this.gameStartTime
         };
     }
 
-    // NOUVELLE MÉTHODE : Obtenir l'historique formaté pour l'affichage
+    // Obtenir l'historique formaté pour l'affichage
     getFormattedMoveHistory() {
         return this.moveHistory.map(move => ({
             number: move.number,
@@ -185,11 +209,39 @@ class GameState {
             piece: move.piece,
             from: `${String.fromCharCode(97 + move.from.col)}${8 - move.from.row}`,
             to: `${String.fromCharCode(97 + move.to.col)}${8 - move.to.row}`,
-            isCheck: move.isCheck || false
+            isCheck: move.isCheck || false,
+            timestamp: move.timestamp
         }));
     }
 
-    // NOUVELLE MÉTHODE : Exporter le PGN
+    // Calculer le temps écoulé depuis le début de la partie
+    getGameDuration() {
+        const now = new Date();
+        const diff = Math.floor((now - this.gameStartTime) / 1000); // en secondes
+        const minutes = Math.floor(diff / 60);
+        const seconds = diff % 60;
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Calculer le temps entre deux coups
+    getMoveTime(moveIndex) {
+        if (moveIndex === 0) {
+            const firstMoveTime = this.moveHistory[0].timestamp;
+            const diff = Math.floor((firstMoveTime - this.gameStartTime) / 1000);
+            return `${diff}s`;
+        }
+        
+        if (moveIndex > 0 && moveIndex < this.moveHistory.length) {
+            const currentMove = this.moveHistory[moveIndex].timestamp;
+            const previousMove = this.moveHistory[moveIndex - 1].timestamp;
+            const diff = Math.floor((currentMove - previousMove) / 1000);
+            return `${diff}s`;
+        }
+        
+        return '0s';
+    }
+
+    // Exporter le PGN (téléchargement)
     exportPGN() {
         const pgn = this.getFullPGN();
         console.log('💾 PGN à exporter:', pgn);
@@ -204,6 +256,80 @@ class GameState {
         URL.revokeObjectURL(url);
         
         return pgn;
+    }
+
+    // Vérifier si la partie est terminée (pour échec et mat futur)
+    checkGameOver() {
+        // À implémenter plus tard pour l'échec et mat
+        return {
+            isOver: false,
+            result: null,
+            reason: null
+        };
+    }
+
+    // Statistiques de la partie
+    getGameStats() {
+        const whiteMoves = this.moveHistory.filter(move => move.player === 'white');
+        const blackMoves = this.moveHistory.filter(move => move.player === 'black');
+        
+        return {
+            totalMoves: this.moveHistory.length,
+            whiteMoves: whiteMoves.length,
+            blackMoves: blackMoves.length,
+            checks: this.moveHistory.filter(move => move.isCheck).length,
+            promotions: this.moveHistory.filter(move => move.promotion).length,
+            gameDuration: this.getGameDuration(),
+            currentPlayer: this.currentPlayer
+        };
+    }
+
+    // Sauvegarder l'état de la partie
+    saveGame() {
+        const gameData = {
+            currentPlayer: this.currentPlayer,
+            moveHistory: this.moveHistory,
+            gameActive: this.gameActive,
+            boardFlipped: this.boardFlipped,
+            gameStartTime: this.gameStartTime,
+            pgn: this.getFullPGN(),
+            saveTime: new Date()
+        };
+        
+        localStorage.setItem('chessGameSave', JSON.stringify(gameData));
+        console.log('💾 Partie sauvegardée');
+        return gameData;
+    }
+
+    // Charger une partie sauvegardée
+    loadGame() {
+        try {
+            const savedData = localStorage.getItem('chessGameSave');
+            if (savedData) {
+                const gameData = JSON.parse(savedData);
+                
+                this.currentPlayer = gameData.currentPlayer;
+                this.moveHistory = gameData.moveHistory.map(move => ({
+                    ...move,
+                    timestamp: new Date(move.timestamp)
+                }));
+                this.gameActive = gameData.gameActive;
+                this.boardFlipped = gameData.boardFlipped;
+                this.gameStartTime = new Date(gameData.gameStartTime);
+                
+                console.log('📂 Partie chargée:', gameData);
+                return true;
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement:', error);
+        }
+        return false;
+    }
+
+    // Effacer la sauvegarde
+    clearSave() {
+        localStorage.removeItem('chessGameSave');
+        console.log('🗑️ Sauvegarde effacée');
     }
 }
 
