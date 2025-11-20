@@ -11,6 +11,21 @@ $version = time(); // ou $config['version'] si vous voulez une version stable
     
     <link rel="icon" href="img/favicon.png">
 
+    <!-- PWA Meta Tags Essentiels -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KChess">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#764ba2">
+
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="img/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="img/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="img/icon-180x180.png">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+
     <!-- Bootstrap 5 -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/bootstrap-icons.css">

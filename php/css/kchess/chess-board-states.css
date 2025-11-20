@@ -84,26 +84,90 @@
     }
 }
 
-/* SUPPRIMER LES DOUBLONS - CES STYLES SONT DÉJÀ DANS LES SÉLECTEURS CI-DESSUS */
+/* SURBRILLANCE DU ROI EN ÉCHEC */
+#chessBoard .chess-square.king-in-check {
+    background: radial-gradient(circle, rgba(255, 68, 68, 0.3) 0%, rgba(255, 0, 0, 0.2) 50%, transparent 100%) !important;
+    box-shadow: inset 0 0 0 3px rgba(255, 0, 0, 0.8) !important;
+    animation: pulse-check 1.5s infinite alternate;
+}
+
+/* Animation pulsante pour l'échec */
+@keyframes pulse-check {
+    from {
+        box-shadow: inset 0 0 0 3px rgba(255, 0, 0, 0.6);
+        background: radial-gradient(circle, rgba(255, 68, 68, 0.25) 0%, rgba(255, 0, 0, 0.15) 50%, transparent 100%) !important;
+    }
+    to {
+        box-shadow: inset 0 0 0 3px rgba(255, 0, 0, 0.9);
+        background: radial-gradient(circle, rgba(255, 68, 68, 0.4) 0%, rgba(255, 0, 0, 0.3) 50%, transparent 100%) !important;
+    }
+}
+
+/* Style pour les notifications d'échec */
+.chess-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    z-index: 10000;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideIn 0.3s ease-out;
+    backdrop-filter: blur(10px);
+    border: 2px solid;
+}
+
+.chess-notification-warning {
+    background: rgba(255, 235, 59, 0.95);
+    color: #000;
+    border-color: #ffc107;
+}
+
+.chess-notification-info {
+    background: rgba(33, 150, 243, 0.95);
+    color: #fff;
+    border-color: #2196f3;
+}
+
+/* Animations pour les notifications */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
 
 /* CORRECTIONS SPÉCIFIQUES POUR MOBILE - VERSION RENFORCÉE */
 @media (max-width: 768px) {
     #chessBoard .chess-square.possible-move::before {
         width: 20%;
         height: 20%;
-        /* Le centrage est déjà forcé par !important */
     }
     
     #chessBoard .chess-square.possible-capture::before {
         width: 80%;
         height: 80%;
-        /* Le centrage est déjà forcé par !important */
     }
     
     #chessBoard .chess-square.possible-en-passant::before {
         width: 80%;
         height: 80%;
-        /* Le centrage est déjà forcé par !important */
         animation: pulse-en-passant-mobile 1.5s infinite;
     }
     
@@ -124,6 +188,30 @@
             opacity: 0.4;
         }
     }
+    
+    /* Surbrillance échec mobile */
+    #chessBoard .chess-square.king-in-check {
+        box-shadow: inset 0 0 0 4px rgba(255, 0, 0, 0.9) !important;
+        animation: pulse-check-mobile 1.2s infinite alternate;
+    }
+    
+    @keyframes pulse-check-mobile {
+        from {
+            box-shadow: inset 0 0 0 4px rgba(255, 0, 0, 0.7);
+        }
+        to {
+            box-shadow: inset 0 0 0 4px rgba(255, 0, 0, 1);
+        }
+    }
+    
+    /* Notifications mobiles */
+    .chess-notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        font-size: 14px;
+        padding: 12px 15px;
+    }
 }
 
 /* CORRECTIONS SPÉCIFIQUES POUR TRÈS PETITS ÉCRANS */
@@ -137,5 +225,17 @@
     #chessBoard .chess-square.possible-en-passant::before {
         width: 75%;
         height: 75%;
+    }
+    
+    #chessBoard .chess-square.king-in-check {
+        box-shadow: inset 0 0 0 3px rgba(255, 0, 0, 0.9) !important;
+    }
+    
+    .chess-notification {
+        top: 5px;
+        right: 5px;
+        left: 5px;
+        font-size: 13px;
+        padding: 10px 12px;
     }
 }

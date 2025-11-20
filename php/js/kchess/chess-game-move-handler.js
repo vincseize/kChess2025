@@ -98,11 +98,6 @@ class ChessGameMoveHandler {
             );
             return;
         }
-
-        // Vérifier si échecs après le mouvement
-        // const fen = '7r/3pkpp1/p1bRpn1p/2p5/N3P3/1P3P2/P1P1B1PP/3R2K1 w - - 3 19';
-        // const game = new ChessEngine(fen);
-        // const isKingInCheck = game.isCheck();
         
         // Générer le FEN actuel du plateau
         const currentFEN = FENGenerator.generateFEN(this.game.gameState, this.game.board);
