@@ -28,7 +28,6 @@ class ChessGameUI {
     updateUI() {
         this.updateGameStatus();
         this.updateMoveHistory();
-        // this.updateMoveCount();
         this.updatePlayerTimes();
     }
 
@@ -94,7 +93,7 @@ class ChessGameUI {
             // Mettre en évidence le joueur actif
             if (this.currentPlayerTimer === 'white') {
                 whiteTimeElement.className = 'text-success fw-bold';
-                blackTimeElement.className = 'text-primary';
+                if (blackTimeElement) blackTimeElement.className = 'text-primary';
             }
         }
         
@@ -103,7 +102,7 @@ class ChessGameUI {
             // Mettre en évidence le joueur actif
             if (this.currentPlayerTimer === 'black') {
                 blackTimeElement.className = 'text-success fw-bold';
-                whiteTimeElement.className = 'text-primary';
+                if (whiteTimeElement) whiteTimeElement.className = 'text-primary';
             }
         }
     }
@@ -115,56 +114,40 @@ class ChessGameUI {
         return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
 
-    // updateMoveCount() {
-    //     const moveCountElement = document.getElementById('moveCount');
-    //     if (moveCountElement) {
-    //         moveCountElement.textContent = this.game.gameState.moveHistory.length;
-    //     }
-    // }
-
-updateMoveHistory() {
-    const historyElement = document.getElementById('moveHistory');
-    if (!historyElement) return;
-    
-    historyElement.innerHTML = '';
-    const moves = this.game.gameState.moveHistory;
-    
-    for (let i = 0; i < moves.length; i += 2) {
-        const moveItem = document.createElement('div');
-        moveItem.className = 'move-item d-flex justify-content-between align-items-center p-2 border-bottom';
+    updateMoveHistory() {
+        const historyElement = document.getElementById('moveHistory');
+        if (!historyElement) return;
         
-        const whiteMove = moves[i];
-        const blackMove = moves[i + 1];
+        historyElement.innerHTML = '';
+        const moves = this.game.gameState.moveHistory;
         
-        let moveText = `<span class="fw-bold">${whiteMove.number}.</span> ${whiteMove.notation}`;
-        
-        // CORRECTION : Supprimer l'indicateur d'échec rouge
-        // if (whiteMove.isCheck || (blackMove && blackMove.isCheck)) {
-        //    moveText += ' <span class="text-danger">+</span>';
-        // }
-        
-        if (blackMove) {
-            moveText += ` ${blackMove.notation}`;
-            // CORRECTION : Supprimer aussi pour les noirs
-            // if (blackMove.isCheck) {
-            //    moveText += ' <span class="text-danger">+</span>';
-            // }
+        for (let i = 0; i < moves.length; i += 2) {
+            const moveItem = document.createElement('div');
+            moveItem.className = 'move-item d-flex justify-content-between align-items-center p-2 border-bottom';
+            
+            const whiteMove = moves[i];
+            const blackMove = moves[i + 1];
+            
+            let moveText = `<span class="fw-bold">${whiteMove.number}.</span> ${whiteMove.notation}`;
+            
+            if (blackMove) {
+                moveText += ` ${blackMove.notation}`;
+            }
+            
+            moveItem.innerHTML = `
+                <span>${moveText}</span>
+                <small class="text-muted">${this.game.gameState.getMoveTime(i)}</small>
+            `;
+            historyElement.appendChild(moveItem);
         }
         
-        moveItem.innerHTML = `
-            <span>${moveText}</span>
-            <small class="text-muted">${this.game.gameState.getMoveTime(i)}</small>
-        `;
-        historyElement.appendChild(moveItem);
+        if (moves.length === 0) {
+            historyElement.innerHTML = '<div class="text-center text-muted small p-3">Aucun coup joué</div>';
+        }
+        
+        // Faire défiler vers le bas pour voir le dernier coup
+        historyElement.scrollTop = historyElement.scrollHeight;
     }
-    
-    if (moves.length === 0) {
-        historyElement.innerHTML = '<div class="text-center text-muted small p-3">Aucun coup joué</div>';
-    }
-    
-    // Faire défiler vers le bas pour voir le dernier coup
-    historyElement.scrollTop = historyElement.scrollHeight;
-}
 
     // NOUVELLE MÉTHODE : Réinitialiser les timers pour une nouvelle partie
     resetTimers() {
@@ -222,7 +205,7 @@ updateMoveHistory() {
         this.showCopyFeedback('✅ PGN copié (fallback) !', 'copyPGN');
     }
 
-    // Afficher un feedback visuel
+    // Afficher un feedback visuel pour la copie
     showCopyFeedback(message, buttonId) {
         const copyButton = document.getElementById(buttonId);
         if (!copyButton) return;
@@ -245,6 +228,108 @@ updateMoveHistory() {
             copyButton.classList.add(originalClass);
         }, 1500);
     }
+
+    // Afficher l'écran de fin de partie
+    showGameOver(winner) {
+        const statusElement = document.getElementById('gameStatus');
+        const playerElement = document.getElementById('currentPlayer');
+        
+        if (statusElement && playerElement) {
+            statusElement.textContent = 'Partie terminée';
+            statusElement.className = 'h5 text-danger';
+            playerElement.textContent = `🎉 Victoire des ${winner === 'white' ? 'blancs' : 'noirs'} !`;
+            playerElement.className = 'small mb-2 text-success fw-bold';
+        }
+        
+        // Afficher une notification de victoire
+        this.showNotification(`🎉 Les ${winner === 'white' ? 'blancs' : 'noirs'} remportent la partie !`, 'success');
+        
+        // Arrêter les timers
+        this.stopPlayerTimer();
+    }
+
+    // Afficher une notification UI
+    showNotification(message, type = 'info') {
+        console.log('🔔 UI Notification:', message);
+        
+        // Éviter les doublons de notifications
+        const existingNotifications = document.querySelectorAll('.chess-ui-notification');
+        existingNotifications.forEach(notif => notif.remove());
+
+        // Créer une notification temporaire
+        const notification = document.createElement('div');
+        notification.className = `chess-ui-notification chess-ui-notification-${type}`;
+        notification.innerHTML = message;
+        
+        // Style de base pour les notifications UI
+        notification.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: ${type === 'success' ? 'rgba(25, 135, 84, 0.95)' : 
+                         type === 'warning' ? 'rgba(255, 193, 7, 0.95)' : 
+                         'rgba(33, 37, 41, 0.95)'};
+            color: ${type === 'warning' ? '#000' : 'white'};
+            padding: 20px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            z-index: 10001;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            text-align: center;
+            animation: fadeIn 0.3s ease-out;
+        `;
+
+        document.body.appendChild(notification);
+
+        // Supprimer après 5 secondes
+        setTimeout(() => {
+            notification.style.animation = 'fadeOut 0.3s ease-in';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 5000);
+    }
+
+    // Initialiser les animations CSS pour les notifications
+    initNotificationStyles() {
+        if (document.getElementById('chess-ui-notification-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'chess-ui-notification-styles';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { 
+                    opacity: 0; 
+                    transform: translate(-50%, -60%); 
+                }
+                to { 
+                    opacity: 1; 
+                    transform: translate(-50%, -50%); 
+                }
+            }
+            
+            @keyframes fadeOut {
+                from { 
+                    opacity: 1; 
+                    transform: translate(-50%, -50%); 
+                }
+                to { 
+                    opacity: 0; 
+                    transform: translate(-50%, -40%); 
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
 }
+
+// Initialiser les styles de notification quand la classe est chargée
+document.addEventListener('DOMContentLoaded', function() {
+    // Les styles seront initialisés quand ChessGameUI sera instancié
+});
 
 window.ChessGameUI = ChessGameUI;

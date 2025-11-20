@@ -1,4 +1,4 @@
-// checkChess.js - Moteur de vérification d'échec
+// checkChess.js - Moteur de vérification d'échec simple
 class ChessEngine {
     constructor(fen) {
         this.board = this.parseFEN(fen);
@@ -96,7 +96,7 @@ class ChessEngine {
         return false;
     }
 
-    // NOUVELLE MÉTHODE : Vérifie l'échec pour une couleur spécifique
+    // Vérifie l'échec pour une couleur spécifique
     isKingInCheck(color) {
         const kingPos = this.findKing(color);
         if (!kingPos) return false;
@@ -118,13 +118,10 @@ class ChessEngine {
         return rowDiff <= 1 && colDiff <= 1 && !(rowDiff === 0 && colDiff === 0);
     }
 
-    // Garde l'ancienne méthode pour la compatibilité
+    // Compatibilité
     isCheck() {
         return this.isKingInCheck(this.turn);
     }
 }
-
-
-
 
 window.ChessEngine = ChessEngine;

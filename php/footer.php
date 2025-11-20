@@ -32,8 +32,11 @@
 <script src="js/kchess/chess-board.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/fen-generator.js?version=<?php echo $version; ?>"></script>
 
-<!-- Check Chess DOIT être chargé AVANT chess-game-core -->
+<!-- Check Chess - BASE -->
 <script src="js/kchess/checkChess.js?version=<?php echo $version; ?>"></script>
+
+<!-- Check Chess Mat - AVANCÉ (hérite de checkChess) -->
+<script src="js/kchess/checkChessMat.js?version=<?php echo $version; ?>"></script>
 
 <!-- Validateurs de mouvements -->
 <script src="js/kchess/move-validator-pawn.js?version=<?php echo $version; ?>"></script>
@@ -50,6 +53,7 @@
 <script src="js/kchess/chess-game-move-handler.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/chess-game-ui.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/chess-events.js?version=<?php echo $version; ?>"></script>
+
 
 
 </body>

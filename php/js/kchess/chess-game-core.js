@@ -8,7 +8,7 @@ class ChessGame {
         
         this.selectedPiece = null;
         this.possibleMoves = [];
-        this.lastCheckAlert = null; // ← AJOUT ICI
+        this.lastCheckAlert = null; 
         
         // Initialiser les modules
         this.moveHandler = new ChessGameMoveHandler(this);
@@ -21,8 +21,8 @@ class ChessGame {
     init() {
         this.loadInitialPosition();
         this.ui.setupEventListeners();
+        this.ui.initNotificationStyles();
         this.ui.updateUI();
-        console.log('✅ Jeu d\'échecs initialisé avec promotion');
     }
 
     // Méthodes déléguées
@@ -50,23 +50,56 @@ class ChessGame {
     updateCheckDisplay() {
         // Retirer les anciennes surbrillances d'échec
         this.board.squares.forEach(square => {
-            square.element.classList.remove('king-in-check');
+            square.element.classList.remove('king-in-check', 'checkmate');
         });
 
         // Générer le FEN actuel
         const currentFEN = FENGenerator.generateFEN(this.gameState, this.board);
+        const engine = new ChessMateEngine(currentFEN);
         console.log('🔍 Vérification échec avec FEN:', currentFEN);
         
-        const engine = new ChessEngine(currentFEN);
-        
-        // Vérifier l'échec pour les DEUX camps
+        // Vérifier l'échec et mat pour les DEUX camps
+        const whiteCheckmate = engine.isCheckmate('w');
+        const blackCheckmate = engine.isCheckmate('b');
         const whiteInCheck = engine.isKingInCheck('w');
         const blackInCheck = engine.isKingInCheck('b');
         
         console.log('🔍 Échec roi blanc (w):', whiteInCheck);
         console.log('🔍 Échec roi noir (b):', blackInCheck);
+        console.log('🔍 Échec et mat blanc:', whiteCheckmate);
+        console.log('🔍 Échec et mat noir:', blackCheckmate);
 
-        // Surligner le roi blanc si en échec
+        // Échec et mat BLANC
+        if (whiteCheckmate) {
+            const kingPos = this.findKingPosition('white');
+            console.log('💀 ROI BLANC ÉCHEC ET MAT trouvé à:', kingPos);
+            if (kingPos) {
+                const kingSquare = this.board.getSquare(kingPos.row, kingPos.col);
+                if (kingSquare) {
+                    kingSquare.element.classList.add('checkmate');
+                    this.showCheckmateAlert('white');
+                    this.endGame('black'); // Les noirs gagnent
+                }
+            }
+            return; // On arrête ici, la partie est finie
+        }
+        
+        // Échec et mat NOIR
+        if (blackCheckmate) {
+            const kingPos = this.findKingPosition('black');
+            console.log('💀 ROI NOIR ÉCHEC ET MAT trouvé à:', kingPos);
+            if (kingPos) {
+                const kingSquare = this.board.getSquare(kingPos.row, kingPos.col);
+                if (kingSquare) {
+                    kingSquare.element.classList.add('checkmate');
+                    this.showCheckmateAlert('black');
+                    this.endGame('white'); // Les blancs gagnent
+                }
+            }
+            return; // On arrête ici, la partie est finie
+        }
+
+        // Échec simple (seulement si pas mat)
         if (whiteInCheck) {
             const kingPos = this.findKingPosition('white');
             console.log('🚨 ROI BLANC EN ÉCHEC trouvé à:', kingPos);
@@ -79,7 +112,6 @@ class ChessGame {
             }
         }
 
-        // Surligner le roi noir si en échec
         if (blackInCheck) {
             const kingPos = this.findKingPosition('black');
             console.log('🚨 ROI NOIR EN ÉCHEC trouvé à:', kingPos);
@@ -90,6 +122,38 @@ class ChessGame {
                     this.showCheckAlert('black');
                 }
             }
+        }
+    }
+
+    // NOUVELLE MÉTHODE : Afficher l'alerte d'échec et mat
+    showCheckmateAlert(kingColor) {
+        // Éviter les alertes en double
+        if (this.lastCheckAlert === kingColor + '-mate') return;
+        
+        this.lastCheckAlert = kingColor + '-mate';
+        
+        const winner = kingColor === 'white' ? 'noirs' : 'blancs';
+        this.showNotification(`Échec et mat ! Roi ${kingColor === 'white' ? 'blanc' : 'noir'} mat. Les ${winner} gagnent !`, 'danger');
+        console.log(`💀 ÉCHEC ET MAT ! Roi ${kingColor} mat - Victoire des ${winner}`);
+        
+        // Réinitialiser après un délai
+        setTimeout(() => {
+            this.lastCheckAlert = null;
+        }, 5000);
+    }
+
+    endGame(winner) {
+        this.gameState.gameActive = false;
+        console.log(`🏆 Partie terminée ! Vainqueur : ${winner}`);
+        
+        // Arrêter les timers via l'UI
+        if (this.ui && this.ui.stopPlayerTimer) {
+            this.ui.stopPlayerTimer();
+        }
+        
+        // Mettre à jour l'UI pour montrer le résultat
+        if (this.ui && this.ui.showGameOver) {
+            this.ui.showGameOver(winner);
         }
     }
 
