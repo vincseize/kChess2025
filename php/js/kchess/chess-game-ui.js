@@ -28,7 +28,7 @@ class ChessGameUI {
     updateUI() {
         this.updateGameStatus();
         this.updateMoveHistory();
-        this.updateMoveCount();
+        // this.updateMoveCount();
         this.updatePlayerTimes();
     }
 
@@ -115,12 +115,12 @@ class ChessGameUI {
         return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
 
-    updateMoveCount() {
-        const moveCountElement = document.getElementById('moveCount');
-        if (moveCountElement) {
-            moveCountElement.textContent = this.game.gameState.moveHistory.length;
-        }
-    }
+    // updateMoveCount() {
+    //     const moveCountElement = document.getElementById('moveCount');
+    //     if (moveCountElement) {
+    //         moveCountElement.textContent = this.game.gameState.moveHistory.length;
+    //     }
+    // }
 
     updateMoveHistory() {
         const historyElement = document.getElementById('moveHistory');

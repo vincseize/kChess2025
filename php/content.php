@@ -69,12 +69,12 @@
                 
                 <!-- Statut de la partie -->
                 <div class="card mb-3 flex-grow-0">
-                    <div class="card-header bg-info text-white py-2">
+                    <!-- <div class="card-header bg-info text-white py-2">
                         <h4 class="h6 mb-0 text-center">
                             <i class="bi bi-info-circle me-1"></i>
                             Statut
                         </h4>
-                    </div>
+                    </div> -->
                     <div class="card-body p-2">
                         <div class="game-status text-center">
                             <!-- Statut dynamique du joueur actuel -->
@@ -89,12 +89,6 @@
                                     <div class="fw-bold">Temps Noirs</div>
                                     <div id="blackTime" class="text-primary">00:00</div>
                                 </div>
-                            </div>
-                            
-                            <!-- Compteur de coups -->
-                            <div class="mt-2 pt-2 border-top">
-                                <div class="fw-bold">Coups joués</div>
-                                <div id="moveCount" class="text-primary h5">0</div>
                             </div>
                         </div>
                     </div>
