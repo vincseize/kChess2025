@@ -122,42 +122,49 @@ class ChessGameUI {
     //     }
     // }
 
-    updateMoveHistory() {
-        const historyElement = document.getElementById('moveHistory');
-        if (!historyElement) return;
+updateMoveHistory() {
+    const historyElement = document.getElementById('moveHistory');
+    if (!historyElement) return;
+    
+    historyElement.innerHTML = '';
+    const moves = this.game.gameState.moveHistory;
+    
+    for (let i = 0; i < moves.length; i += 2) {
+        const moveItem = document.createElement('div');
+        moveItem.className = 'move-item d-flex justify-content-between align-items-center p-2 border-bottom';
         
-        historyElement.innerHTML = '';
-        const moves = this.game.gameState.moveHistory;
+        const whiteMove = moves[i];
+        const blackMove = moves[i + 1];
         
-        for (let i = 0; i < moves.length; i += 2) {
-            const moveItem = document.createElement('div');
-            moveItem.className = 'move-item d-flex justify-content-between align-items-center p-2 border-bottom';
-            
-            const whiteMove = moves[i];
-            const blackMove = moves[i + 1];
-            
-            let moveText = `<span class="fw-bold">${whiteMove.number}.</span> ${whiteMove.notation}`;
-            if (blackMove) moveText += ` ${blackMove.notation}`;
-            
-            // Ajouter un indicateur d'échec
-            if (whiteMove.isCheck || (blackMove && blackMove.isCheck)) {
-                moveText += ' <span class="text-danger">+</span>';
-            }
-            
-            moveItem.innerHTML = `
-                <span>${moveText}</span>
-                <small class="text-muted">${this.game.gameState.getMoveTime(i)}</small>
-            `;
-            historyElement.appendChild(moveItem);
+        let moveText = `<span class="fw-bold">${whiteMove.number}.</span> ${whiteMove.notation}`;
+        
+        // CORRECTION : Supprimer l'indicateur d'échec rouge
+        // if (whiteMove.isCheck || (blackMove && blackMove.isCheck)) {
+        //    moveText += ' <span class="text-danger">+</span>';
+        // }
+        
+        if (blackMove) {
+            moveText += ` ${blackMove.notation}`;
+            // CORRECTION : Supprimer aussi pour les noirs
+            // if (blackMove.isCheck) {
+            //    moveText += ' <span class="text-danger">+</span>';
+            // }
         }
         
-        if (moves.length === 0) {
-            historyElement.innerHTML = '<div class="text-center text-muted small p-3">Aucun coup joué</div>';
-        }
-        
-        // Faire défiler vers le bas pour voir le dernier coup
-        historyElement.scrollTop = historyElement.scrollHeight;
+        moveItem.innerHTML = `
+            <span>${moveText}</span>
+            <small class="text-muted">${this.game.gameState.getMoveTime(i)}</small>
+        `;
+        historyElement.appendChild(moveItem);
     }
+    
+    if (moves.length === 0) {
+        historyElement.innerHTML = '<div class="text-center text-muted small p-3">Aucun coup joué</div>';
+    }
+    
+    // Faire défiler vers le bas pour voir le dernier coup
+    historyElement.scrollTop = historyElement.scrollHeight;
+}
 
     // NOUVELLE MÉTHODE : Réinitialiser les timers pour une nouvelle partie
     resetTimers() {

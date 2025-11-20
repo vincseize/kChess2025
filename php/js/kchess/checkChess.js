@@ -97,18 +97,34 @@ class ChessEngine {
     }
 
     // NOUVELLE MÉTHODE : Vérifie l'échec pour une couleur spécifique
-isKingInCheck(color) {
-    const kingPos = this.findKing(color);
-    if (!kingPos) return false;
-    
-    const attackerColor = color === 'w' ? 'b' : 'w';
-    return this.isSquareAttacked(kingPos.row, kingPos.col, attackerColor);
-}
+    isKingInCheck(color) {
+        const kingPos = this.findKing(color);
+        if (!kingPos) return false;
+        
+        const attackerColor = color === 'w' ? 'b' : 'w';
+        return this.isSquareAttacked(kingPos.row, kingPos.col, attackerColor);
+    }
+
+    areKingsAdjacent() {
+        const whiteKing = this.findKing('w');
+        const blackKing = this.findKing('b');
+        
+        if (!whiteKing || !blackKing) return false;
+        
+        const rowDiff = Math.abs(whiteKing.row - blackKing.row);
+        const colDiff = Math.abs(whiteKing.col - blackKing.col);
+        
+        // Les rois sont adjacents s'ils sont à 1 case de distance
+        return rowDiff <= 1 && colDiff <= 1 && !(rowDiff === 0 && colDiff === 0);
+    }
 
     // Garde l'ancienne méthode pour la compatibilité
     isCheck() {
         return this.isKingInCheck(this.turn);
     }
 }
+
+
+
 
 window.ChessEngine = ChessEngine;
