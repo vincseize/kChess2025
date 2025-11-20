@@ -23,7 +23,7 @@
                         <!-- Contenu du menu - SECTION RAPIDE SEULEMENT -->
                         <div id="menuContent" class="d-md-block">
                             <!-- Section rapide - VISIBLE UNIQUEMENT SUR DESKTOP -->
-                            <div class="small text-muted mb-2 d-none d-md-block">Actions rapides</div>
+                            <!-- <div class="small text-muted mb-2 d-none d-md-block">Actions rapides</div> -->
                             <div class="d-grid gap-2 d-none d-md-block">
                                 <button class="btn btn-success btn-sm new-game-btn" id="newGame">
                                     <i class="bi bi-plus-circle me-1"></i> Nouvelle Partie
