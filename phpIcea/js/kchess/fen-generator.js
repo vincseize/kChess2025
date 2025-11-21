@@ -1,4 +1,4 @@
-// fen-generator.js - CORRIGÉ
+// fen-generator.js
 class FENGenerator {
     static generateFEN(gameState, board) {
         // 1. Partie position des pièces
@@ -32,13 +32,15 @@ class FENGenerator {
             }
         }
         
-        // CORRECTION : Tour actuel - blanc = 'w', noir = 'b'
-        fen += gameState.currentPlayer === 'white' ? ' w' : ' b';
+        // 2. Tour actuel
+        fen += gameState.currentPlayer === 'white' ? ' b' : ' w';
         
-        // 3. Droits de roque
+        // 3. Droits de roque - À AMÉLIORER
+        // Pour l'instant, on met toujours KQkq si c'est la position initiale
+        // ou après quelques coups simples
         fen += ' KQkq';
         
-        // 4. Case en passant
+        // 4. Case en passant (pour l'instant on met '-')
         fen += ' -';
         
         // 5. Nombre de coups pour la règle des 50 coups
@@ -47,7 +49,6 @@ class FENGenerator {
         // 6. Numéro du coup
         fen += ' ' + (Math.floor(gameState.moveHistory.length / 2) + 1);
         
-        console.log('🔍 FEN généré:', fen); // Pour debug
         return fen;
     }
     
@@ -79,46 +80,6 @@ class FENGenerator {
         // Vérifier si les pièces sont dans leur position initiale
         // À implémenter plus tard
         return false;
-    }
-
-    // NOUVELLE MÉTHODE : Générer FEN pour simulation (utilisée par KingMoveValidator)
-    static generateFENForSimulation(board, currentPlayer) {
-        let fen = '';
-        
-        // Partie position des pièces
-        for (let row = 0; row < 8; row++) {
-            let emptyCount = 0;
-            
-            for (let col = 0; col < 8; col++) {
-                const square = board.getSquare(row, col);
-                
-                if (!square || !square.piece) {
-                    emptyCount++;
-                } else {
-                    if (emptyCount > 0) {
-                        fen += emptyCount;
-                        emptyCount = 0;
-                    }
-                    
-                    const pieceChar = this.getPieceChar(square.piece);
-                    fen += pieceChar;
-                }
-            }
-            
-            if (emptyCount > 0) {
-                fen += emptyCount;
-            }
-            
-            if (row < 7) {
-                fen += '/';
-            }
-        }
-        
-        // Pour la simulation, on utilise le joueur actuel directement
-        fen += currentPlayer === 'white' ? ' w' : ' b';
-        fen += ' KQkq - 0 1';
-        
-        return fen;
     }
 }
 

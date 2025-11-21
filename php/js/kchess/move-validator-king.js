@@ -1,4 +1,4 @@
-// move-validator-king.js - Validateur des mouvements de roi
+// move-validator-king.js - Validateur des mouvements de roi COMPLET
 class KingMoveValidator {
     constructor(board, gameState) {
         this.board = board;
@@ -12,6 +12,9 @@ class KingMoveValidator {
             [1, 1], [1, -1], [-1, 1], [-1, -1]
         ];
 
+        const kingColor = piece.color;
+        console.log(`♔ Calcul des mouvements du roi ${kingColor} en [${row},${col}]`);
+        
         directions.forEach(([rowDir, colDir]) => {
             const newRow = row + rowDir;
             const newCol = col + colDir;
@@ -20,63 +23,87 @@ class KingMoveValidator {
                 const targetPiece = this.board.getPiece(newRow, newCol);
                 
                 // Vérifier que la case n'est pas occupée par une pièce de même couleur
-                if (!targetPiece || targetPiece.color !== piece.color) {
+                if (!targetPiece || targetPiece.color !== kingColor) {
                     // VÉRIFICATION CRITIQUE : Le roi ne peut pas se mettre en échec
-                    if (!this.wouldBeInCheck(piece.color, row, col, newRow, newCol)) {
+                    if (!this.wouldBeInCheck(kingColor, row, col, newRow, newCol)) {
                         // VÉRIFICATION CRITIQUE : Les rois ne peuvent pas être adjacents
-                        if (!this.wouldBeAdjacentToOpponentKing(piece.color, newRow, newCol)) {
+                        if (!this.wouldBeAdjacentToOpponentKing(kingColor, newRow, newCol)) {
+                            const moveType = targetPiece ? 'capture' : 'move';
                             moves.push({ 
                                 row: newRow, 
                                 col: newCol, 
-                                type: targetPiece ? 'capture' : 'move' 
+                                type: moveType 
                             });
+                            console.log(`✅ Mouvement valide: [${newRow},${newCol}] (${moveType})`);
+                        } else {
+                            console.log(`❌ Rois adjacents: [${newRow},${newCol}]`);
                         }
+                    } else {
+                        console.log(`❌ Case attaquée: [${newRow},${newCol}]`);
                     }
+                } else {
+                    console.log(`❌ Pièce alliée: [${newRow},${newCol}]`);
                 }
             }
         });
 
+        console.log(`♔ Mouvements valides pour le roi ${kingColor}:`, moves.length);
         return moves;
     }
 
-    // NOUVELLE MÉTHODE : Vérifier si le mouvement mettrait le roi en échec
+    // Vérifier si le mouvement mettrait le roi en échec
     wouldBeInCheck(kingColor, fromRow, fromCol, toRow, toCol) {
-        // Créer une simulation temporaire du plateau
-        const tempBoard = this.createTempBoard();
-        
-        // Déplacer le roi temporairement
-        tempBoard[toRow][toCol] = tempBoard[fromRow][fromCol];
-        tempBoard[fromRow][fromCol] = null;
-        
-        // Générer un FEN temporaire
-        const tempFEN = this.generateTempFEN(tempBoard, kingColor);
-        
-        // Vérifier l'échec
-        const engine = new ChessEngine(tempFEN);
-        return engine.isKingInCheck(kingColor === 'white' ? 'w' : 'b');
+        try {
+            // Créer une simulation temporaire du plateau
+            const tempBoard = this.createTempBoard();
+            
+            // Déplacer le roi temporairement
+            const kingPiece = tempBoard[fromRow][fromCol];
+            tempBoard[toRow][toCol] = kingPiece;
+            tempBoard[fromRow][fromCol] = null;
+            
+            // Générer un FEN temporaire
+            const tempFEN = this.generateTempFEN(tempBoard, kingColor);
+            
+            console.log('🔍 FEN de simulation:', tempFEN);
+            
+            // Vérifier l'échec
+            const engine = new ChessEngine(tempFEN);
+            const isInCheck = engine.isKingInCheck(kingColor === 'white' ? 'w' : 'b');
+            
+            console.log(`🔍 Simulation [${fromRow},${fromCol}]->[${toRow},${toCol}]: échec = ${isInCheck}`);
+            return isInCheck;
+            
+        } catch (error) {
+            console.error('Erreur dans wouldBeInCheck:', error);
+            return true; // En cas d'erreur, on considère que c'est dangereux
+        }
     }
 
-    // NOUVELLE MÉTHODE : Vérifier si le roi serait adjacent à l'autre roi
+    // Vérifier si le roi serait adjacent à l'autre roi
     wouldBeAdjacentToOpponentKing(kingColor, newRow, newCol) {
         const opponentColor = kingColor === 'white' ? 'black' : 'white';
         const opponentKingPos = this.findKingPosition(opponentColor);
         
-        if (!opponentKingPos) return false;
+        if (!opponentKingPos) {
+            console.log(`❌ Roi adverse ${opponentColor} non trouvé`);
+            return false;
+        }
         
-        // Vérifier toutes les cases adjacentes autour de la nouvelle position
-        const directions = [
-            [1, 0], [-1, 0], [0, 1], [0, -1],
-            [1, 1], [1, -1], [-1, 1], [-1, -1]
-        ];
+        // Méthode optimisée : calculer la distance
+        const rowDiff = Math.abs(newRow - opponentKingPos.row);
+        const colDiff = Math.abs(newCol - opponentKingPos.col);
         
-        return directions.some(([dr, dc]) => {
-            const adjacentRow = newRow + dr;
-            const adjacentCol = newCol + dc;
-            return adjacentRow === opponentKingPos.row && adjacentCol === opponentKingPos.col;
-        });
+        const areAdjacent = rowDiff <= 1 && colDiff <= 1;
+        
+        if (areAdjacent) {
+            console.log(`⚠️ Rois adjacents: roi ${kingColor} [${newRow},${newCol}] vs roi ${opponentColor} [${opponentKingPos.row},${opponentKingPos.col}]`);
+        }
+        
+        return areAdjacent;
     }
 
-    // NOUVELLE MÉTHODE : Trouver la position du roi adverse
+    // Trouver la position du roi adverse
     findKingPosition(color) {
         const kingType = 'king';
         for (let row = 0; row < 8; row++) {
@@ -89,10 +116,11 @@ class KingMoveValidator {
                 }
             }
         }
+        console.warn(`❌ Roi ${color} non trouvé !`);
         return null;
     }
 
-    // NOUVELLE MÉTHODE : Créer une copie temporaire du plateau
+    // Créer une copie temporaire du plateau
     createTempBoard() {
         const tempBoard = Array(8).fill().map(() => Array(8).fill(null));
         
@@ -100,22 +128,35 @@ class KingMoveValidator {
             for (let col = 0; col < 8; col++) {
                 const square = this.board.getSquare(row, col);
                 if (square && square.piece) {
-                    tempBoard[row][col] = this.convertPieceToFEN(square.piece);
+                    // Copier l'objet pièce complet
+                    tempBoard[row][col] = { 
+                        type: square.piece.type,
+                        color: square.piece.color
+                    };
                 }
             }
         }
         return tempBoard;
     }
 
-    // NOUVELLE MÉTHODE : Convertir une pièce en notation FEN
+    // Convertir une pièce en notation FEN
     convertPieceToFEN(piece) {
         if (!piece) return null;
         
-        const pieceCode = piece.type === 'knight' ? 'n' : piece.type[0];
+        const pieceMap = {
+            'king': 'k',
+            'queen': 'q',
+            'rook': 'r', 
+            'bishop': 'b',
+            'knight': 'n',
+            'pawn': 'p'
+        };
+        
+        const pieceCode = pieceMap[piece.type] || '?';
         return piece.color === 'white' ? pieceCode.toUpperCase() : pieceCode;
     }
 
-    // NOUVELLE MÉTHODE : Générer un FEN temporaire
+    // Générer un FEN temporaire
     generateTempFEN(tempBoard, currentPlayer) {
         let fen = '';
         
@@ -126,14 +167,14 @@ class KingMoveValidator {
             for (let col = 0; col < 8; col++) {
                 const piece = tempBoard[row][col];
                 
-                if (piece === null) {
+                if (!piece) {
                     emptyCount++;
                 } else {
                     if (emptyCount > 0) {
                         fen += emptyCount;
                         emptyCount = 0;
                     }
-                    fen += piece;
+                    fen += this.convertPieceToFEN(piece);
                 }
             }
             
@@ -146,9 +187,9 @@ class KingMoveValidator {
             }
         }
         
-        // Ajouter les autres informations FEN
-        const currentPlayerFEN = currentPlayer === 'white' ? 'w' : 'b';
-        fen += ` ${currentPlayerFEN} KQkq - 0 1`;
+        // CORRECTION CRITIQUE : Après le mouvement du roi, c'est à l'adversaire de jouer
+        const nextPlayer = currentPlayer === 'white' ? 'b' : 'w';
+        fen += ` ${nextPlayer} KQkq - 0 1`;
         
         return fen;
     }

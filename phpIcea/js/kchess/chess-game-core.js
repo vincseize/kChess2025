@@ -182,7 +182,7 @@ class ChessGame {
         
         this.lastCheckAlert = kingColor;
         
-        this.showNotification(`Roi ${kingColor === 'white' ? 'blanc' : 'noir'} ECHEC`);
+        this.showNotification(`Échec ! Roi ${kingColor === 'white' ? 'blanc' : 'noir'} menacé`, 'warning');
         console.log(`🚨 ÉCHEC ! Roi ${kingColor} en danger`);
         
         // Réinitialiser après un délai pour permettre de nouvelles alertes
