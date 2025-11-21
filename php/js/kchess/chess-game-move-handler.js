@@ -1,4 +1,4 @@
-// chess-game-move-handler.js - Gestion des mouvements et sélections
+// chess-game-move-handler.js - Gestion des mouvements et sélections AVEC ROQUE
 class ChessGameMoveHandler {
     constructor(game) {
         this.game = game;
@@ -57,6 +57,14 @@ class ChessGameMoveHandler {
         
         const move = this.game.possibleMoves.find(m => m.row === toRow && m.col === toCol);
         
+        // Gestion du ROQUE
+        if (move && move.special === 'castle') {
+            console.log(`🏰 Exécution d'un roque: ${move.type}`);
+            this.executeCastle(move, selectedPiece.piece, selectedPiece.row, selectedPiece.col);
+            this.finalizeCastleMove(move, selectedPiece);
+            return;
+        }
+
         // Gestion de la prise en passant
         if (move && move.type === 'en-passant') {
             console.log('🎯 Exécution d\'une prise en passant');
@@ -71,7 +79,7 @@ class ChessGameMoveHandler {
             return;
         }
 
-        // Déplacer la pièce
+        // Déplacer la pièce normalement
         toSquare.element.innerHTML = '';
         toSquare.element.appendChild(pieceElement);
         toSquare.piece = selectedPiece.piece;
@@ -107,6 +115,75 @@ class ChessGameMoveHandler {
         console.log('🔍 Échec après déplacement:', isKingInCheck);
 
         this.finalizeNormalMove(toRow, toCol, move, selectedPiece);
+    }
+
+    // EXÉCUTION DU ROQUE
+    executeCastle(move, king, fromRow, fromCol) {
+        const color = king.color;
+        const row = color === 'white' ? 7 : 0;
+        
+        console.log(`🏰 Roque ${move.type} pour ${color} sur rangée ${row}`);
+
+        if (move.type === 'castle-kingside') {
+            // Déplacer le roi de e1 à g1 (ou e8 à g8)
+            this.movePiece(fromRow, fromCol, row, 6);
+            
+            // Déplacer la tour de h1 à f1 (ou h8 à f8)
+            this.movePiece(row, 7, row, 5);
+            
+        } else if (move.type === 'castle-queenside') {
+            // Déplacer le roi de e1 à c1 (ou e8 à c8)
+            this.movePiece(fromRow, fromCol, row, 2);
+            
+            // Déplacer la tour de a1 à d1 (ou a8 à d8)
+            this.movePiece(row, 0, row, 3);
+        }
+        
+        console.log(`🏰 Roque ${move.type} exécuté avec succès`);
+    }
+
+    // Méthode utilitaire pour déplacer une pièce
+    movePiece(fromRow, fromCol, toRow, toCol) {
+        const fromSquare = this.game.board.getSquare(fromRow, fromCol);
+        const toSquare = this.game.board.getSquare(toRow, toCol);
+        
+        if (!fromSquare || !toSquare || !fromSquare.piece) {
+            console.error('❌ Impossible de déplacer la pièce pour le roque');
+            return;
+        }
+
+        const pieceElement = fromSquare.element.querySelector('.chess-piece');
+        if (!pieceElement) return;
+
+        toSquare.element.innerHTML = '';
+        toSquare.element.appendChild(pieceElement);
+        toSquare.piece = fromSquare.piece;
+        fromSquare.piece = null;
+    }
+
+    // FINALISATION DU ROQUE
+    finalizeCastleMove(move, selectedPiece) {
+        console.log(`🏰 Finalisation du roque ${move.type}`);
+        
+        this.game.gameState.recordMove(
+            selectedPiece.row, 
+            selectedPiece.col, 
+            move.row, 
+            move.col,
+            selectedPiece.piece,
+            null,
+            move.type // Spécifier que c'est un roque
+        );
+
+        // Marquer que le roi a bougé (pour empêcher les futurs roques)
+        this.game.gameState.castlingRights[selectedPiece.piece.color] = {
+            kingside: false,
+            queenside: false
+        };
+
+        this.game.gameState.switchPlayer();
+        this.game.clearSelection();
+        this.game.updateUI();
     }
 
     finalizeMoveAfterPromotion(toRow, toCol, promotedPieceType, move, selectedPiece) {
@@ -152,6 +229,9 @@ class ChessGameMoveHandler {
             );
         }
 
+        // Mettre à jour les droits de roque si le roi ou une tour bouge
+        this.updateCastlingRights(selectedPiece, toRow, toCol);
+
         this.game.gameState.recordMove(
             selectedPiece.row, 
             selectedPiece.col, 
@@ -163,6 +243,38 @@ class ChessGameMoveHandler {
         this.game.gameState.switchPlayer();
         this.game.clearSelection();
         this.game.updateUI();
+    }
+
+    // Mettre à jour les droits de roque
+    updateCastlingRights(selectedPiece, toRow, toCol) {
+        const piece = selectedPiece.piece;
+        const color = piece.color;
+
+        // Si le roi bouge, perdre tous les droits de roque
+        if (piece.type === 'king') {
+            this.game.gameState.castlingRights[color] = {
+                kingside: false,
+                queenside: false
+            };
+            console.log(`♔ Roi ${color} a bougé - roques désactivés`);
+        }
+
+        // Si une tour bouge, perdre le droit de roque de ce côté
+        if (piece.type === 'rook') {
+            const startRow = color === 'white' ? 7 : 0;
+            
+            // Tour côté roi (colonne 7)
+            if (selectedPiece.col === 7 && selectedPiece.row === startRow) {
+                this.game.gameState.castlingRights[color].kingside = false;
+                console.log(`🏰 Tour côté roi ${color} a bougé - roque côté roi désactivé`);
+            }
+            
+            // Tour côté dame (colonne 0)
+            if (selectedPiece.col === 0 && selectedPiece.row === startRow) {
+                this.game.gameState.castlingRights[color].queenside = false;
+                console.log(`🏰 Tour côté dame ${color} a bougé - roque côté dame désactivé`);
+            }
+        }
     }
 
     // Méthode pour créer un élément pièce AVEC IMAGE
@@ -205,13 +317,15 @@ class ChessGameMoveHandler {
 
     highlightPossibleMoves() {
         this.game.board.squares.forEach(square => {
-            square.element.classList.remove('possible-move', 'possible-capture', 'possible-en-passant');
+            square.element.classList.remove('possible-move', 'possible-capture', 'possible-en-passant', 'possible-castle');
         });
         
         this.game.possibleMoves.forEach(move => {
             const square = this.game.board.getSquare(move.row, move.col);
             if (square) {
-                if (move.type === 'en-passant') {
+                if (move.special === 'castle') {
+                    square.element.classList.add('possible-castle');
+                } else if (move.type === 'en-passant') {
                     square.element.classList.add('possible-en-passant');
                 } else if (move.type === 'capture') {
                     square.element.classList.add('possible-capture');
@@ -224,7 +338,7 @@ class ChessGameMoveHandler {
 
     clearSelection() {
         this.game.board.squares.forEach(square => {
-            square.element.classList.remove('selected', 'possible-move', 'possible-capture', 'possible-en-passant');
+            square.element.classList.remove('selected', 'possible-move', 'possible-capture', 'possible-en-passant', 'possible-castle');
         });
         this.game.selectedPiece = null;
         this.game.possibleMoves = [];
