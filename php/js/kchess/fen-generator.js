@@ -65,6 +65,7 @@ class FENGenerator {
             const quickValid = window.ChessFenPosition.quickCheck(fen);
             if (!quickValid) {
                 console.error('🚨 FEN invalide (quick check):', fen);
+                alert
                 return false;
             }
         }
@@ -75,6 +76,7 @@ class FENGenerator {
             const fullValid = window.ChessFenPosition.isValid(fen);
             if (!fullValid) {
                 console.error('🚨 FEN invalide (validation complète):', fen);
+                alert('FEN invalide détecté ! Voir console pour détails.');
                 return false;
             }
         }
