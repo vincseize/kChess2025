@@ -26,6 +26,9 @@ class ChessGameMoveHandler {
             this.game.selectedPiece = { row, col, piece: square.piece };
             this.game.possibleMoves = this.game.moveValidator.getPossibleMoves(square.piece, row, col);
             this.game.highlightPossibleMoves();
+            
+            console.log(`🎯 Pièce sélectionnée: ${square.piece.type} ${square.piece.color} en [${row},${col}]`);
+            console.log(`🎯 Mouvements possibles:`, this.game.possibleMoves);
         }
     }
 
@@ -38,7 +41,10 @@ class ChessGameMoveHandler {
             this.executeMove(toRow, toCol);
         } else {
             this.game.clearSelection();
-            this.handlePieceSelection(toRow, toCol, toSquare);
+            // Resélectionner si on clique sur une autre pièce de la même couleur
+            if (toSquare.piece && toSquare.piece.color === this.game.gameState.currentPlayer) {
+                this.handlePieceSelection(toRow, toCol, toSquare);
+            }
         }
     }
 
@@ -57,6 +63,8 @@ class ChessGameMoveHandler {
         
         const move = this.game.possibleMoves.find(m => m.row === toRow && m.col === toCol);
         
+        console.log(`🚀 Exécution du mouvement:`, move);
+
         // Gestion du ROQUE
         if (move && move.special === 'castle') {
             console.log(`🏰 Exécution d'un roque: ${move.type}`);
@@ -107,13 +115,6 @@ class ChessGameMoveHandler {
             return;
         }
         
-        // Générer le FEN actuel du plateau
-        const currentFEN = FENGenerator.generateFEN(this.game.gameState, this.game.board);
-        console.log('🔍 FEN généré:', currentFEN);
-        const game = new ChessEngine(currentFEN);
-        const isKingInCheck = game.isCheck();
-        console.log('🔍 Échec après déplacement:', isKingInCheck);
-
         this.finalizeNormalMove(toRow, toCol, move, selectedPiece);
     }
 
@@ -159,6 +160,8 @@ class ChessGameMoveHandler {
         toSquare.element.appendChild(pieceElement);
         toSquare.piece = fromSquare.piece;
         fromSquare.piece = null;
+        
+        console.log(`➡️ Pièce déplacée de [${fromRow},${fromCol}] vers [${toRow},${toCol}]`);
     }
 
     // FINALISATION DU ROQUE
@@ -263,13 +266,13 @@ class ChessGameMoveHandler {
         if (piece.type === 'rook') {
             const startRow = color === 'white' ? 7 : 0;
             
-            // Tour côté roi (colonne 7)
+            // Tour côté roi (colonne 7/h)
             if (selectedPiece.col === 7 && selectedPiece.row === startRow) {
                 this.game.gameState.castlingRights[color].kingside = false;
                 console.log(`🏰 Tour côté roi ${color} a bougé - roque côté roi désactivé`);
             }
             
-            // Tour côté dame (colonne 0)
+            // Tour côté dame (colonne 0/a)
             if (selectedPiece.col === 0 && selectedPiece.row === startRow) {
                 this.game.gameState.castlingRights[color].queenside = false;
                 console.log(`🏰 Tour côté dame ${color} a bougé - roque côté dame désactivé`);
@@ -316,15 +319,23 @@ class ChessGameMoveHandler {
     }
 
     highlightPossibleMoves() {
+        // Réinitialiser tous les styles
         this.game.board.squares.forEach(square => {
-            square.element.classList.remove('possible-move', 'possible-capture', 'possible-en-passant', 'possible-castle');
+            square.element.classList.remove(
+                'possible-move', 
+                'possible-capture', 
+                'possible-en-passant', 
+                'possible-castle'
+            );
         });
         
+        // Appliquer les styles selon le type de mouvement
         this.game.possibleMoves.forEach(move => {
             const square = this.game.board.getSquare(move.row, move.col);
             if (square) {
                 if (move.special === 'castle') {
                     square.element.classList.add('possible-castle');
+                    console.log(`🏰 Case de roque highlightée: [${move.row},${move.col}]`);
                 } else if (move.type === 'en-passant') {
                     square.element.classList.add('possible-en-passant');
                 } else if (move.type === 'capture') {
@@ -334,14 +345,24 @@ class ChessGameMoveHandler {
                 }
             }
         });
+        
+        console.log(`🎯 ${this.game.possibleMoves.length} mouvements highlightés`);
     }
 
     clearSelection() {
         this.game.board.squares.forEach(square => {
-            square.element.classList.remove('selected', 'possible-move', 'possible-capture', 'possible-en-passant', 'possible-castle');
+            square.element.classList.remove(
+                'selected', 
+                'possible-move', 
+                'possible-capture', 
+                'possible-en-passant', 
+                'possible-castle'
+            );
         });
         this.game.selectedPiece = null;
         this.game.possibleMoves = [];
+        
+        console.log('🧹 Sélection effacée');
     }
 }
 
