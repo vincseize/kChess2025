@@ -1,4 +1,4 @@
-// fen-generator.js - CORRIGÉ
+// fen-generator.js - CORRIGÉ avec validation simple
 class FENGenerator {
     static generateFEN(gameState, board) {
         // 1. Partie position des pièces
@@ -47,8 +47,40 @@ class FENGenerator {
         // 6. Numéro du coup
         fen += ' ' + (Math.floor(gameState.moveHistory.length / 2) + 1);
         
-        console.log('🔍 FEN généré:', fen); // Pour debug
+        console.log('🔍 FEN généré:', fen);
+        
+        // ✅ VALIDATION SIMPLE
+        this.validateFEN(fen);
+        
         return fen;
+    }
+    
+    /**
+     * VALIDATION SIMPLE DU FEN
+     */
+    static validateFEN(fen) {
+        // 1. Quick check d'abord
+        console.log('🔍 Quick Validation FEN en cours...');
+        if (window.ChessFenPosition && window.ChessFenPosition.quickCheck) {
+            const quickValid = window.ChessFenPosition.quickCheck(fen);
+            if (!quickValid) {
+                console.error('🚨 FEN invalide (quick check):', fen);
+                return false;
+            }
+        }
+        
+        // 2. Validation complète ensuite
+        console.log('🔍 Full Validation FEN en cours...');
+        if (window.ChessFenPosition && window.ChessFenPosition.isValid) {
+            const fullValid = window.ChessFenPosition.isValid(fen);
+            if (!fullValid) {
+                console.error('🚨 FEN invalide (validation complète):', fen);
+                return false;
+            }
+        }
+        
+        console.log('✅ FEN validé avec succès');
+        return true;
     }
     
     static getPieceChar(piece) {
@@ -76,16 +108,13 @@ class FENGenerator {
     
     // Méthode pour détecter si c'est la position initiale
     static isInitialPosition(board) {
-        // Vérifier si les pièces sont dans leur position initiale
-        // À implémenter plus tard
         return false;
     }
 
-    // NOUVELLE MÉTHODE : Générer FEN pour simulation (utilisée par KingMoveValidator)
+    // Générer FEN pour simulation
     static generateFENForSimulation(board, currentPlayer) {
         let fen = '';
         
-        // Partie position des pièces
         for (let row = 0; row < 8; row++) {
             let emptyCount = 0;
             
@@ -114,9 +143,11 @@ class FENGenerator {
             }
         }
         
-        // Pour la simulation, on utilise le joueur actuel directement
         fen += currentPlayer === 'white' ? ' w' : ' b';
         fen += ' KQkq - 0 1';
+        
+        // ✅ VALIDATION POUR SIMULATION AUSSI
+        this.validateFEN(fen);
         
         return fen;
     }

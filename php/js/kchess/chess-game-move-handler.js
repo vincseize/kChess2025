@@ -221,6 +221,7 @@ class ChessGameMoveHandler {
     }
 
     finalizeNormalMove(toRow, toCol, move, selectedPiece) {
+        console.log('✅ Mouvement normal finalisé');
         if (move) {
             this.game.moveValidator.updateEnPassantTarget(
                 { 

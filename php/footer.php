@@ -30,6 +30,7 @@
 <script src="js/kchess/pieces.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/game-state.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/chess-board.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/checkFenPosition.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/fen-generator.js?version=<?php echo $version; ?>"></script>
 
 <!-- Check Chess - BASE -->
