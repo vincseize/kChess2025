@@ -56,14 +56,7 @@
 
 <script>
 
-// const testFEN = "rnbq1bnr/pppp1ppp/4k3/4p3/4PK2/8/PPPP1PPP/RNBQ1BNR b KQkq - 0 4";
-// const engine = new ChessEngine(testFEN);
-
-// // Test complet
-// engine.displayBoard();
-// engine.checkSpecificPositions();
-// engine.debugSquareAttacked(4, 5, 'b'); // Case f4 attaquée par les noirs?
-// engine.isKingInCheck('w'); // Roi blanc en échec?
+console.clear();
 
 </script>
 

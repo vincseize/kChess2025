@@ -44,14 +44,14 @@
                 <!-- Label JOUEUR ORDINATEUR en haut à gauche -->
                 <div class="position-absolute top-0 start-0 m-2">
                     <span class="badge bg-dark text-white p-2">
-                        <i class="bi bi-cpu me-1"></i> JOUEUR ORDINATEUR
+                        <i class="bi bi-cpu me-1"></i> Human black
                     </span>
                 </div>
                 
                 <!-- Label MOI en bas à gauche -->
                 <div class="position-absolute bottom-0 start-0 m-2">
                     <span class="badge bg-primary text-white p-2">
-                        <i class="bi bi-person me-1"></i> MOI
+                        <i class="bi bi-person me-1"></i> Human White
                     </span>
                 </div>
                 
