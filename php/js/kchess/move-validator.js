@@ -8,10 +8,10 @@ class MoveValidator {
         // Initialisation des validateurs spécialisés
         this.pieceValidators = {
             'pawn': new PawnMoveValidator(this.board, this.gameState),
-            'knight': new KnightMoveValidator(this.board, this.gameState), // ← AJOUT gameState
+            'knight': new KnightMoveValidator(this.board, this.gameState),
             'bishop': new BishopMoveValidator(this.board, this.gameState),
-            'rook': new RookMoveValidator(this.board),
-            'queen': new QueenMoveValidator(this.board),
+            'rook': new RookMoveValidator(this.board, this.gameState),
+            'queen': new QueenMoveValidator(this.board, this.gameState),
             'king': new KingMoveValidator(this.board, this.gameState)
         };
     }
