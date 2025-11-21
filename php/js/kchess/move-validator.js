@@ -1,4 +1,4 @@
-// move-validator.js - Coordinateur principal des validateurs
+// move-validator.js - Coordinateur principal des validateurs CORRIGÉ
 class MoveValidator {
     constructor(board, gameState) {
         this.board = board;
@@ -9,7 +9,7 @@ class MoveValidator {
         this.pieceValidators = {
             'pawn': new PawnMoveValidator(this.board, this.gameState),
             'knight': new KnightMoveValidator(this.board),
-            'bishop': new BishopMoveValidator(this.board),
+            'bishop': new BishopMoveValidator(this.board, this.gameState), // ← AJOUT gameState
             'rook': new RookMoveValidator(this.board),
             'queen': new QueenMoveValidator(this.board),
             'king': new KingMoveValidator(this.board, this.gameState)
@@ -43,7 +43,6 @@ class MoveValidator {
                 row: move.to.row + direction,
                 col: move.to.col
             };
-            // console.log(`🎯 Cible en passant définie: [${this.enPassantTarget.row},${this.enPassantTarget.col}]`);
         } else {
             this.enPassantTarget = null;
         }
@@ -53,7 +52,6 @@ class MoveValidator {
         if (move.type === 'en-passant' && move.capturedPawn) {
             const capturedSquare = this.board.getSquare(move.capturedPawn.row, move.capturedPawn.col);
             if (capturedSquare && capturedSquare.piece) {
-                // console.log(`🎯 Prise en passant exécutée sur [${move.capturedPawn.row},${move.capturedPawn.col}]`);
                 capturedSquare.piece = null;
                 capturedSquare.element.innerHTML = '';
             }
