@@ -1,36 +1,13 @@
 <?php
 // footer.php
 ?>
-    <!-- Footer -->
-    <footer class="bg-dark py-3 mt-auto">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="text-white-50"><?php echo htmlspecialchars($config['app_name']); ?> v<?php echo htmlspecialchars($config['version']); ?></span>
-                        <div class="d-flex gap-2">
-                            <i class="bi bi-phone text-white-50" id="mobileIcon" style="display: none;"></i>
-                            <i class="bi bi-tablet text-white-50" id="tabletIcon" style="display: none;"></i>
-                            <i class="bi bi-laptop text-white-50" id="desktopIcon"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <small class="text-white-50">
-                        Dev. <?php echo htmlspecialchars($config['author']); ?>
-                        <?php echo htmlspecialchars($config['author2']); ?> | 
-                        &copy; LRDS 2024-<?php echo date('Y'); ?>
-                    </small>
-                </div>
-            </div>
-        </div>
-    </footer>
+
 
 <!-- Scripts -->
 <script src="js/kchess/pieces.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/game-state.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/chess-board.js?version=<?php echo $version; ?>"></script>
-<script src="js/kchess/checkFenPosition.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/checkFenPostion.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/fen-generator.js?version=<?php echo $version; ?>"></script>
 
 <!-- Check Chess - BASE -->

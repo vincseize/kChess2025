@@ -1,5 +1,10 @@
 <?php
 // header.php
+
+// Charger la configuration JSON
+$config = json_decode(file_get_contents('config/game-config.json'), true);
+
+
 $version = time(); // ou $config['version'] si vous voulez une version stable
 ?>
 <!DOCTYPE html>

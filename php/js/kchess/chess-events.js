@@ -14,86 +14,96 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ Jeu d\'échecs chargé avec succès');
 
     // CORRECTIONS SPÉCIFIQUES POUR MOBILE
-    function setupMobileEvents() {
-        console.log('📱 Configuration des événements mobiles...');
-        
-        // Méthode robuste pour les boutons mobiles
-        const mobileButtons = [
-            { id: 'newGameMobile', action: 'newGame' },
-            { id: 'flipBoardMobile', action: 'flipBoard' }
-        ];
-        
-        mobileButtons.forEach(button => {
-            const element = document.getElementById(button.id);
-            if (element) {
-                console.log(`✅ Configuration de ${button.id}`);
-                
-                // Nettoyer les anciens événements
-                element.replaceWith(element.cloneNode(true));
-                const freshElement = document.getElementById(button.id);
-                
-                // Ajouter plusieurs types d'événements pour mobile
-                ['click', 'touchend'].forEach(eventType => {
-                    freshElement.addEventListener(eventType, function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.stopImmediatePropagation();
-                        
-                        console.log(`📱 ${eventType} sur ${button.id}`);
-                        
-                        // Vibration mobile si disponible
-                        if (navigator.vibrate) {
-                            navigator.vibrate(10);
-                        }
-                        
-                        // Exécuter l'action
-                        if (window.chessGame && window.chessGame[button.action]) {
-                            console.log(`🚀 Exécution de ${button.action}()`);
-                            window.chessGame[button.action]();
-                        } else {
-                            console.error(`❌ ${button.action} non disponible`);
-                        }
-                    }, { passive: false });
-                });
-                
-                // Style pour s'assurer que le bouton est cliquable
-                freshElement.style.cursor = 'pointer';
-                freshElement.style.touchAction = 'manipulation';
-                freshElement.style.userSelect = 'none';
-                freshElement.setAttribute('data-mobile-bound', 'true');
-                
-                console.log(`✅ ${button.id} configuré avec succès`);
-            } else {
-                console.warn(`⚠️ ${button.id} non trouvé`);
-            }
-        });
-    }
+// CORRECTIONS SPÉCIFIQUES POUR MOBILE
+function setupMobileEvents() {
+    console.log('📱 Configuration des événements mobiles...');
+    
+    // Méthode robuste pour les boutons mobiles
+    const mobileButtons = [
+        { id: 'newGameMobile', action: 'redirectToIndex' }, // CHANGÉ ICI
+        { id: 'flipBoardMobile', action: 'flipBoard' }
+    ];
+    
+    mobileButtons.forEach(button => {
+        const element = document.getElementById(button.id);
+        if (element) {
+            console.log(`✅ Configuration de ${button.id}`);
+            
+            // Nettoyer les anciens événements
+            element.replaceWith(element.cloneNode(true));
+            const freshElement = document.getElementById(button.id);
+            
+            // Ajouter plusieurs types d'événements pour mobile
+            ['click', 'touchend'].forEach(eventType => {
+                freshElement.addEventListener(eventType, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    
+                    console.log(`📱 ${eventType} sur ${button.id}`);
+                    
+                    // Vibration mobile si disponible
+                    if (navigator.vibrate) {
+                        navigator.vibrate(10);
+                    }
+                    
+                    // Exécuter l'action
+                    if (button.action === 'redirectToIndex') {
+                        // Redirection simple vers index.php
+                        console.log('🔄 Redirection vers index.php');
+                        window.location.href = 'index.php';
+                    } else if (window.chessGame && window.chessGame[button.action]) {
+                        console.log(`🚀 Exécution de ${button.action}()`);
+                        window.chessGame[button.action]();
+                    } else {
+                        console.error(`❌ ${button.action} non disponible`);
+                    }
+                }, { passive: false });
+            });
+            
+            // Style pour s'assurer que le bouton est cliquable
+            freshElement.style.cursor = 'pointer';
+            freshElement.style.touchAction = 'manipulation';
+            freshElement.style.userSelect = 'none';
+            freshElement.setAttribute('data-mobile-bound', 'true');
+            
+            console.log(`✅ ${button.id} configuré avec succès`);
+        } else {
+            console.warn(`⚠️ ${button.id} non trouvé`);
+        }
+    });
+}
 
     // Événements pour desktop (conservés pour compatibilité)
-    function setupDesktopEvents() {
-        console.log('🖥️ Configuration des événements desktop...');
-        
-        const desktopButtons = [
-            { selector: '#newGame', action: 'newGame' },
-            { selector: '#flipBoard', action: 'flipBoard' },
-            { selector: '.new-game-btn', action: 'newGame' },
-            { selector: '.flip-board-btn', action: 'flipBoard' }
-        ];
-        
-        desktopButtons.forEach(button => {
-            const elements = document.querySelectorAll(button.selector);
-            elements.forEach(element => {
-                element.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    console.log(`🖥️ Click sur ${button.selector}`);
-                    
-                    if (window.chessGame && window.chessGame[button.action]) {
-                        window.chessGame[button.action]();
-                    }
-                });
+// Événements pour desktop (conservés pour compatibilité)
+function setupDesktopEvents() {
+    console.log('🖥️ Configuration des événements desktop...');
+    
+    const desktopButtons = [
+        { selector: '#newGame', action: 'redirectToIndex' }, // CHANGÉ ICI
+        { selector: '#flipBoard', action: 'flipBoard' },
+        { selector: '.new-game-btn', action: 'redirectToIndex' }, // CHANGÉ ICI
+        { selector: '.flip-board-btn', action: 'flipBoard' }
+    ];
+    
+    desktopButtons.forEach(button => {
+        const elements = document.querySelectorAll(button.selector);
+        elements.forEach(element => {
+            element.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log(`🖥️ Click sur ${button.selector}`);
+                
+                if (button.action === 'redirectToIndex') {
+                    // Redirection simple vers index.php
+                    console.log('🔄 Redirection vers index.php');
+                    window.location.href = 'index.php';
+                } else if (window.chessGame && window.chessGame[button.action]) {
+                    window.chessGame[button.action]();
+                }
             });
         });
-    }
+    });
+}
 
     // Initialisation des événements
     setupMobileEvents();
@@ -115,11 +125,12 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Fonction de fallback forcé pour mobile
+// Fonction de fallback forcé pour mobile
 function forceMobileSetup() {
     console.log('🔄 Setup forcé des boutons mobiles...');
     
     const mobileButtons = [
-        { id: 'newGameMobile', action: 'newGame' },
+        { id: 'newGameMobile', action: 'redirectToIndex' }, // CHANGÉ ICI
         { id: 'flipBoardMobile', action: 'flipBoard' }
     ];
     
@@ -132,7 +143,12 @@ function forceMobileSetup() {
                 e?.stopPropagation();
                 console.log(`📱 FORCÉ: ${button.id} cliqué`);
                 
-                if (window.chessGame && window.chessGame[button.action]) {
+                if (button.action === 'redirectToIndex') {
+                    // Redirection simple vers index.php
+                    console.log('🔄 FORCÉ: Redirection vers index.php');
+                    window.location.href = 'index.php';
+                    return false;
+                } else if (window.chessGame && window.chessGame[button.action]) {
                     console.log(`🚀 FORCÉ: Exécution de ${button.action}()`);
                     window.chessGame[button.action]();
                     return false;
@@ -145,7 +161,12 @@ function forceMobileSetup() {
                 e?.stopPropagation();
                 console.log(`📱 FORCÉ: ${button.id} touché`);
                 
-                if (window.chessGame && window.chessGame[button.action]) {
+                if (button.action === 'redirectToIndex') {
+                    // Redirection simple vers index.php
+                    console.log('🔄 FORCÉ: Redirection vers index.php');
+                    window.location.href = 'index.php';
+                    return false;
+                } else if (window.chessGame && window.chessGame[button.action]) {
                     window.chessGame[button.action]();
                     return false;
                 }
