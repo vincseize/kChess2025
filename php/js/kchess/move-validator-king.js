@@ -1,4 +1,4 @@
-// move-validator-king.js - Validateur des mouvements de roi AVEC ROQUE
+// move-validator-king.js - CORRIGÉ avec gestion correcte des roques
 class KingMoveValidator {
     constructor(board, gameState) {
         this.board = board;
@@ -38,12 +38,39 @@ class KingMoveValidator {
             }
         });
 
-        // Ajouter les roques
-        const castleMoves = this.getCastleMoves(piece, row, col);
-        moves.push(...castleMoves);
+        // DEBUG: Logs détaillés pour le roque
+        console.log(`🔍 DEBUG ROQUE ${kingColor}:`);
+        console.log(`🔍 - Position actuelle: [${row},${col}]`);
+        
+        const isOnStartingSquare = this.isKingOnStartingSquare(kingColor, row, col);
+        console.log(`🔍 - Sur case départ: ${isOnStartingSquare}`);
+        
+        const hasMovedInGameState = this.hasKingMoved(kingColor);
+        console.log(`🔍 - A bougé (gameState): ${hasMovedInGameState}`);
+        
+        const canCastle = isOnStartingSquare && !hasMovedInGameState;
+        console.log(`🔍 ROQUE POSSIBLE: ${canCastle} (départ=${isOnStartingSquare}, pasBougé=${!hasMovedInGameState})`);
+        
+        if (canCastle) {
+            const castleMoves = this.getCastleMoves(piece, row, col);
+            moves.push(...castleMoves);
+            console.log(`🔍 - ${castleMoves.length} mouvements de roque ajoutés`);
+        } else {
+            console.log(`🔍 - Roque refusé pour ${kingColor}`);
+        }
 
         console.log(`♔ Mouvements valides pour le roi ${kingColor}:`, moves.length);
         return moves;
+    }
+
+    // Vérifier si le roi est sur sa case de départ
+    isKingOnStartingSquare(color, currentRow, currentCol) {
+        const startingRow = color === 'white' ? 7 : 0;
+        const startingCol = 4;
+        
+        const isOnStart = currentRow === startingRow && currentCol === startingCol;
+        console.log(`🔍 isKingOnStartingSquare(${color}): [${currentRow},${currentCol}] vs [${startingRow},${startingCol}] = ${isOnStart}`);
+        return isOnStart;
     }
 
     // Roques possibles
@@ -51,15 +78,11 @@ class KingMoveValidator {
         const moves = [];
         const color = king.color;
         
+        console.log(`🔍 getCastleMoves pour ${color}`);
+        
         // Le roi ne doit pas être en échec
         if (this.isKingInCheck(color)) {
             console.log(`♔❌ Roque impossible: roi ${color} en échec`);
-            return moves;
-        }
-
-        // Vérifier si le roi n'a pas encore bougé
-        if (this.hasKingMoved(color)) {
-            console.log(`♔❌ Roque impossible: roi ${color} a déjà bougé`);
             return moves;
         }
 
@@ -80,9 +103,39 @@ class KingMoveValidator {
         return moves;
     }
 
+    // Vérifier via gameState si le roi a bougé
+    hasKingMoved(color) {
+        console.log(`🔍 hasKingMoved(${color}) - gameState:`, this.gameState);
+        
+        // Priorité à gameState s'il existe et est initialisé
+        if (this.gameState && this.gameState.hasKingMoved) {
+            const hasMoved = this.gameState.hasKingMoved[color];
+            console.log(`🔍 - gameState.hasKingMoved[${color}] = ${hasMoved}`);
+            return hasMoved === true;
+        }
+        
+        // Si gameState n'est pas disponible, utiliser un fallback sécurisé
+        console.log(`🔍 - gameState non disponible, utilisation du fallback`);
+        return this.hasKingMovedFallback(color);
+    }
+
+    // Fallback sécurisé pour vérifier si le roi a bougé
+    hasKingMovedFallback(color) {
+        const startRow = color === 'white' ? 7 : 0;
+        const startCol = 4;
+        
+        const king = this.board.getPiece(startRow, startCol);
+        const isOnStartSquare = king && king.type === 'king' && king.color === color;
+        
+        console.log(`🔍 hasKingMovedFallback(${color}): roi sur [${startRow},${startCol}] = ${isOnStartSquare}`);
+        return !isOnStartSquare;
+    }
+
     // Vérifier le roque côté roi
     canCastleKingside(color) {
         const row = color === 'white' ? 7 : 0;
+        
+        console.log(`🔍 canCastleKingside(${color})`);
         
         // Vérifier si la tour côté roi n'a pas bougé
         if (this.hasRookMoved(color, 'kingside')) {
@@ -102,12 +155,15 @@ class KingMoveValidator {
             return false;
         }
 
+        console.log(`🔍 canCastleKingside(${color}) = TRUE`);
         return true;
     }
 
     // Vérifier le roque côté dame
     canCastleQueenside(color) {
         const row = color === 'white' ? 7 : 0;
+        
+        console.log(`🔍 canCastleQueenside(${color})`);
         
         // Vérifier si la tour côté dame n'a pas bougé
         if (this.hasRookMoved(color, 'queenside')) {
@@ -127,6 +183,7 @@ class KingMoveValidator {
             return false;
         }
 
+        console.log(`🔍 canCastleQueenside(${color}) = TRUE`);
         return true;
     }
 
@@ -136,12 +193,17 @@ class KingMoveValidator {
         
         if (side === 'kingside') {
             // Cases f et g doivent être vides
-            return !this.board.getPiece(row, 5) && !this.board.getPiece(row, 6);
+            const fEmpty = !this.board.getPiece(row, 5);
+            const gEmpty = !this.board.getPiece(row, 6);
+            console.log(`🔍 areCastleSquaresEmpty(${color}, ${side}): f=${fEmpty}, g=${gEmpty}`);
+            return fEmpty && gEmpty;
         } else {
             // Cases b, c, d doivent être vides
-            return !this.board.getPiece(row, 1) && 
-                   !this.board.getPiece(row, 2) && 
-                   !this.board.getPiece(row, 3);
+            const bEmpty = !this.board.getPiece(row, 1);
+            const cEmpty = !this.board.getPiece(row, 2);
+            const dEmpty = !this.board.getPiece(row, 3);
+            console.log(`🔍 areCastleSquaresEmpty(${color}, ${side}): b=${bEmpty}, c=${cEmpty}, d=${dEmpty}`);
+            return bEmpty && cEmpty && dEmpty;
         }
     }
 
@@ -169,6 +231,29 @@ class KingMoveValidator {
         }
     }
 
+    // Vérifier si une tour a bougé
+    hasRookMoved(color, side) {
+        const row = color === 'white' ? 7 : 0;
+        const rookCol = side === 'kingside' ? 7 : 0;
+        
+        console.log(`🔍 hasRookMoved(${color}, ${side})`);
+        
+        // Vérifier via gameState d'abord
+        if (this.gameState && this.gameState.hasRookMoved && this.gameState.hasRookMoved[color]) {
+            const rookState = this.gameState.hasRookMoved[color];
+            const hasMoved = side === 'kingside' ? rookState.kingside : rookState.queenside;
+            console.log(`🔍 - gameState: ${hasMoved}`);
+            if (hasMoved) return true;
+        }
+        
+        // Fallback: vérifier si la tour est présente
+        const rook = this.board.getPiece(row, rookCol);
+        const isRookPresent = rook && rook.type === 'rook' && rook.color === color;
+        
+        console.log(`🔍 - fallback: tour présente = ${isRookPresent}`);
+        return !isRookPresent;
+    }
+
     // Créer un mouvement de roque
     createCastleMove(color, side) {
         const row = color === 'white' ? 7 : 0;
@@ -190,44 +275,32 @@ class KingMoveValidator {
         }
     }
 
-    // Vérifier si le roi a bougé
-    hasKingMoved(color) {
-        // À implémenter avec l'historique des mouvements
-        // Pour l'instant, on suppose que non si le roi est sur sa case de départ
-        const startRow = color === 'white' ? 7 : 0;
-        const startCol = 4;
-        
-        const king = this.board.getPiece(startRow, startCol);
-        return !king || king.type !== 'king' || king.color !== color;
-    }
-
-    // Vérifier si une tour a bougé
-    hasRookMoved(color, side) {
-        const row = color === 'white' ? 7 : 0;
-        const rookCol = side === 'kingside' ? 7 : 0;
-        
-        const rook = this.board.getPiece(row, rookCol);
-        return !rook || rook.type !== 'rook' || rook.color !== color;
-    }
-
     // Vérifier si une case est attaquée
     isSquareAttacked(row, col, attackerColor) {
-        const tempBoard = this.createTempBoard();
-        const tempFEN = this.generateTempFEN(tempBoard, attackerColor === 'white' ? 'black' : 'white');
-        const engine = new ChessEngine(tempFEN);
-        return engine.isSquareAttacked(row, col, attackerColor === 'white' ? 'w' : 'b');
+        try {
+            const tempBoard = this.createTempBoard();
+            const tempFEN = this.generateTempFEN(tempBoard, attackerColor === 'white' ? 'black' : 'white');
+            const engine = new ChessEngine(tempFEN);
+            return engine.isSquareAttacked(row, col, attackerColor === 'white' ? 'w' : 'b');
+        } catch (error) {
+            console.error('Erreur dans isSquareAttacked:', error);
+            return true; // En cas d'erreur, considérer comme attaqué pour sécurité
+        }
     }
 
     // Vérifier si le roi est en échec
     isKingInCheck(color) {
-        const tempBoard = this.createTempBoard();
-        const tempFEN = this.generateTempFEN(tempBoard, color);
-        const engine = new ChessEngine(tempFEN);
-        return engine.isKingInCheck(color === 'white' ? 'w' : 'b');
+        try {
+            const tempBoard = this.createTempBoard();
+            const tempFEN = this.generateTempFEN(tempBoard, color);
+            const engine = new ChessEngine(tempFEN);
+            return engine.isKingInCheck(color === 'white' ? 'w' : 'b');
+        } catch (error) {
+            console.error('Erreur dans isKingInCheck:', error);
+            return true; // En cas d'erreur, considérer comme en échec pour sécurité
+        }
     }
 
-    // === MÉTHODES EXISTANTES (gardées telles quelles) ===
-    
     wouldBeInCheck(kingColor, fromRow, fromCol, toRow, toCol) {
         try {
             const tempBoard = this.createTempBoard();

@@ -65,6 +65,9 @@ class ChessGameMoveHandler {
         
         console.log(`🚀 Exécution du mouvement:`, move);
 
+        // CORRECTION: Mise à jour gameState AVANT le mouvement
+        this.updateGameStateForMove(selectedPiece.piece, selectedPiece.row, selectedPiece.col, toRow, toCol);
+
         // Gestion du ROQUE
         if (move && move.special === 'castle') {
             console.log(`🏰 Exécution d'un roque: ${move.type}`);
@@ -116,6 +119,54 @@ class ChessGameMoveHandler {
         }
         
         this.finalizeNormalMove(toRow, toCol, move, selectedPiece);
+    }
+
+    // NOUVELLE MÉTHODE: Mise à jour de gameState pour les mouvements
+    updateGameStateForMove(piece, fromRow, fromCol, toRow, toCol) {
+        console.log(`🔧 Mise à jour gameState pour ${piece.type} ${piece.color}`);
+        
+        // Initialiser gameState si nécessaire
+        if (!this.game.gameState.hasKingMoved) {
+            this.game.gameState.hasKingMoved = { white: false, black: false };
+            console.log(`🔧 Initialisation de hasKingMoved`);
+        }
+        
+        if (!this.game.gameState.hasRookMoved) {
+            this.game.gameState.hasRookMoved = {
+                white: { kingside: false, queenside: false },
+                black: { kingside: false, queenside: false }
+            };
+            console.log(`🔧 Initialisation de hasRookMoved`);
+        }
+
+        // Marquer le roi comme ayant bougé
+        if (piece.type === 'king') {
+            console.log(`♔ Mise à jour gameState: roi ${piece.color} a bougé de [${fromRow},${fromCol}] vers [${toRow},${toCol}]`);
+            this.game.gameState.hasKingMoved[piece.color] = true;
+            
+            // Debug
+            console.log(`♔ gameState.hasKingMoved après mouvement:`, this.game.gameState.hasKingMoved);
+        }
+        
+        // Marquer les tours comme ayant bougé
+        if (piece.type === 'rook') {
+            console.log(`♜ Mise à jour gameState: tour ${piece.color} a bougé de [${fromRow},${fromCol}]`);
+            
+            const rookState = this.game.gameState.hasRookMoved[piece.color];
+            
+            // Vérifier si c'est la tour côté roi (colonne 7)
+            if (fromCol === 7) {
+                rookState.kingside = true;
+                console.log(`♜ Tour côté roi ${piece.color} marquée comme ayant bougé`);
+            } 
+            // Vérifier si c'est la tour côté dame (colonne 0)
+            else if (fromCol === 0) {
+                rookState.queenside = true;
+                console.log(`♜ Tour côté dame ${piece.color} marquée comme ayant bougé`);
+            }
+            
+            console.log(`♜ gameState.hasRookMoved après mouvement:`, this.game.gameState.hasRookMoved);
+        }
     }
 
     // EXÉCUTION DU ROQUE
@@ -178,11 +229,12 @@ class ChessGameMoveHandler {
             move.type // Spécifier que c'est un roque
         );
 
-        // Marquer que le roi a bougé (pour empêcher les futurs roques)
-        this.game.gameState.castlingRights[selectedPiece.piece.color] = {
-            kingside: false,
-            queenside: false
-        };
+        // CORRECTION: Marquer explicitement que le roi a bougé
+        if (!this.game.gameState.hasKingMoved) {
+            this.game.gameState.hasKingMoved = { white: false, black: false };
+        }
+        this.game.gameState.hasKingMoved[selectedPiece.piece.color] = true;
+        console.log(`♔ Roi ${selectedPiece.piece.color} a bougé - roques désactivés`);
 
         this.game.gameState.switchPlayer();
         this.game.clearSelection();
@@ -233,7 +285,8 @@ class ChessGameMoveHandler {
             );
         }
 
-        // Mettre à jour les droits de roque si le roi ou une tour bouge
+        // CORRECTION: La mise à jour des droits de roque se fait maintenant dans updateGameStateForMove
+        // Cette méthode est conservée pour la compatibilité
         this.updateCastlingRights(selectedPiece, toRow, toCol);
 
         this.game.gameState.recordMove(
@@ -249,13 +302,19 @@ class ChessGameMoveHandler {
         this.game.updateUI();
     }
 
-    // Mettre à jour les droits de roque
+    // Mettre à jour les droits de roque (méthode existante conservée)
     updateCastlingRights(selectedPiece, toRow, toCol) {
         const piece = selectedPiece.piece;
         const color = piece.color;
 
         // Si le roi bouge, perdre tous les droits de roque
         if (piece.type === 'king') {
+            if (!this.game.gameState.castlingRights[color]) {
+                this.game.gameState.castlingRights[color] = {
+                    kingside: false,
+                    queenside: false
+                };
+            }
             this.game.gameState.castlingRights[color] = {
                 kingside: false,
                 queenside: false
@@ -269,12 +328,24 @@ class ChessGameMoveHandler {
             
             // Tour côté roi (colonne 7/h)
             if (selectedPiece.col === 7 && selectedPiece.row === startRow) {
+                if (!this.game.gameState.castlingRights[color]) {
+                    this.game.gameState.castlingRights[color] = {
+                        kingside: true,
+                        queenside: true
+                    };
+                }
                 this.game.gameState.castlingRights[color].kingside = false;
                 console.log(`🏰 Tour côté roi ${color} a bougé - roque côté roi désactivé`);
             }
             
             // Tour côté dame (colonne 0/a)
             if (selectedPiece.col === 0 && selectedPiece.row === startRow) {
+                if (!this.game.gameState.castlingRights[color]) {
+                    this.game.gameState.castlingRights[color] = {
+                        kingside: true,
+                        queenside: true
+                    };
+                }
                 this.game.gameState.castlingRights[color].queenside = false;
                 console.log(`🏰 Tour côté dame ${color} a bougé - roque côté dame désactivé`);
             }
