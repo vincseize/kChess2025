@@ -1,7 +1,7 @@
 <?php
 // footer.php
 ?>
-
+<!-- footer.php -->
 <!-- Scripts CORE -->
 <script src="js/kchess/pieces.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/game-state.js?version=<?php echo $version; ?>"></script>
@@ -24,11 +24,11 @@
 <!-- Check Chess Mat - AVANCÉ (hérite de checkChess) -->
 <script src="js/kchess/checkChessMat.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/checkChessPat.js?version=<?php echo $version; ?>"></script>
-<script src="js/kchess/checkChessNulle.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/checkChessNulle.js?version=<?php echo $version; ?>"></script> <!-- DOIT ÊTRE APRÈS checkChess.js -->
 
 <!-- Game Core -->
 <script src="js/kchess/promotion-manager.js?version=<?php echo $version; ?>"></script>
-<script src="js/kchess/chess-game-core.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/chess-game-core.js?version=<?php echo $version; ?>"></script> <!-- DOIT ÊTRE APRÈS checkChessNulle.js -->
 <script src="js/kchess/chess-game-move-handler.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/chess-game-ui.js?version=<?php echo $version; ?>"></script>
 

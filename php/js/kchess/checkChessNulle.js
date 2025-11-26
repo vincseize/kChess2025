@@ -127,22 +127,22 @@ class ChessNulleEngine extends ChessEngine {
     isDraw(halfMoveClock) {
         console.log(`🤝🔍 Vérification globale des conditions de nullité`);
         
-        // 1. Répétition triple
-        if (this.isThreefoldRepetition()) {
-            console.log(`🤝✅ Nullité par répétition triple`);
-            return { isDraw: true, reason: 'repetition' };
+        // 1. Matériel insuffisant - LE PLUS RAPIDE À VÉRIFIER
+        if (this.isInsufficientMaterial()) {
+            console.log(`🤝✅ Nullité par matériel insuffisant`);
+            return { isDraw: true, reason: 'insufficientMaterial' };
         }
         
-        // 2. Règle des 50 coups
+        // 2. Règle des 50 coups - SIMPLE COMPARATION
         if (this.isFiftyMoveRule(halfMoveClock)) {
             console.log(`🤝✅ Nullité par règle des 50 coups`);
             return { isDraw: true, reason: 'fiftyMoves' };
         }
         
-        // 3. Matériel insuffisant
-        if (this.isInsufficientMaterial()) {
-            console.log(`🤝✅ Nullité par matériel insuffisant`);
-            return { isDraw: true, reason: 'insufficientMaterial' };
+        // 3. Répétition triple - LE PLUS LOURD À CALCULER
+        if (this.isThreefoldRepetition()) {
+            console.log(`🤝✅ Nullité par répétition triple`);
+            return { isDraw: true, reason: 'repetition' };
         }
         
         console.log(`🤝❌ Aucune condition de nullité détectée`);
