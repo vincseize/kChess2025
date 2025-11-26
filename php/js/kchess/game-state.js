@@ -52,10 +52,11 @@ class GameState {
             piece: pieceInfo.type,
             color: pieceInfo.color,
             promotion: promotion,
-            specialMove: specialMove, // 'castle-kingside', 'castle-queenside', 'en-passant'
+            specialMove: specialMove,
             isCheck: isCheck,
             timestamp: new Date(),
-            castlingRights: JSON.parse(JSON.stringify(this.castlingRights)) // Sauvegarde des droits
+            castlingRights: JSON.parse(JSON.stringify(this.castlingRights)),
+            fen: FENGenerator.generateFEN(this, window.chessGame.board) // ← AJOUT ICI
         };
         
         this.moveHistory.push(move);

@@ -15,6 +15,8 @@
 
 <!-- Check Chess Mat - AVANCÉ (hérite de checkChess) -->
 <script src="js/kchess/checkChessMat.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/checkChessPat.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/checkChessNulle.js?version=<?php echo $version; ?>"></script>
 
 <!-- Validateurs de mouvements -->
 <script src="js/kchess/move-validator-pawn.js?version=<?php echo $version; ?>"></script>

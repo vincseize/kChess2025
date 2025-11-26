@@ -1,4 +1,4 @@
-// chess-game-core.js - Classe principale orchestratrice
+// chess-game-core.js - Classe principale orchestratrice AVEC TOUTES LES VÉRIFICATIONS
 class ChessGame {
     constructor() {
         this.pieceManager = new PieceManager();
@@ -31,7 +31,7 @@ class ChessGame {
     clearSelection = () => this.moveHandler.clearSelection();
     updateUI = () => {
         this.ui.updateUI();
-        this.updateCheckDisplay();
+        this.updateGameStatus();
     };
 
     loadInitialPosition() {
@@ -46,60 +46,124 @@ class ChessGame {
         });
     }
 
-    // NOUVELLE MÉTHODE : Vérifier et afficher les échecs POUR LES DEUX CAMPS
-    updateCheckDisplay() {
+    // NOUVELLE MÉTHODE : Vérifier TOUS les statuts de jeu
+    updateGameStatus() {
         // Retirer les anciennes surbrillances d'échec
         this.board.squares.forEach(square => {
-            square.element.classList.remove('king-in-check', 'checkmate');
+            square.element.classList.remove('king-in-check', 'checkmate', 'stalemate');
         });
 
         // Générer le FEN actuel
         const currentFEN = FENGenerator.generateFEN(this.gameState, this.board);
-        const engine = new ChessMateEngine(currentFEN);
-        console.log('🔍 Vérification échec avec FEN:', currentFEN);
+        console.log('🔍 Vérification statut jeu avec FEN:', currentFEN);
         
         // Vérifier l'échec et mat pour les DEUX camps
-        const whiteCheckmate = engine.isCheckmate('w');
-        const blackCheckmate = engine.isCheckmate('b');
-        const whiteInCheck = engine.isKingInCheck('w');
-        const blackInCheck = engine.isKingInCheck('b');
+        const mateEngine = new ChessMateEngine(currentFEN);
+        const whiteCheckmate = mateEngine.isCheckmate('w');
+        const blackCheckmate = mateEngine.isCheckmate('b');
         
-        console.log('🔍 Échec roi blanc (w):', whiteInCheck);
-        console.log('🔍 Échec roi noir (b):', blackInCheck);
+        // Vérifier le pat pour les DEUX camps
+        const patEngine = new ChessPatEngine(currentFEN);
+        const whiteStalemate = patEngine.isStalemate('w');
+        const blackStalemate = patEngine.isStalemate('b');
+        
+        // Vérifier les autres conditions de nullité
+        const nulleEngine = new ChessNulleEngine(currentFEN, this.gameState.moveHistory.map(m => m.fen));
+        const isDraw = nulleEngine.isDraw(this.gameState.halfMoveClock);
+        
         console.log('🔍 Échec et mat blanc:', whiteCheckmate);
         console.log('🔍 Échec et mat noir:', blackCheckmate);
+        console.log('🔍 Pat blanc:', whiteStalemate);
+        console.log('🔍 Pat noir:', blackStalemate);
+        console.log('🔍 Autres nullités:', isDraw);
 
-        // Échec et mat BLANC
+        // 1. Vérifier l'échec et mat (priorité)
         if (whiteCheckmate) {
-            const kingPos = this.findKingPosition('white');
-            console.log('💀 ROI BLANC ÉCHEC ET MAT trouvé à:', kingPos);
-            if (kingPos) {
-                const kingSquare = this.board.getSquare(kingPos.row, kingPos.col);
-                if (kingSquare) {
-                    kingSquare.element.classList.add('checkmate');
-                    this.showCheckmateAlert('white');
-                    this.endGame('black'); // Les noirs gagnent
-                }
-            }
-            return; // On arrête ici, la partie est finie
+            this.handleCheckmate('white');
+            return;
         }
         
-        // Échec et mat NOIR
         if (blackCheckmate) {
-            const kingPos = this.findKingPosition('black');
-            console.log('💀 ROI NOIR ÉCHEC ET MAT trouvé à:', kingPos);
-            if (kingPos) {
-                const kingSquare = this.board.getSquare(kingPos.row, kingPos.col);
-                if (kingSquare) {
-                    kingSquare.element.classList.add('checkmate');
-                    this.showCheckmateAlert('black');
-                    this.endGame('white'); // Les blancs gagnent
-                }
-            }
-            return; // On arrête ici, la partie est finie
+            this.handleCheckmate('black');
+            return;
         }
 
-        // Échec simple (seulement si pas mat)
+        // 2. Vérifier le pat
+        if (whiteStalemate) {
+            this.handleStalemate('white');
+            return;
+        }
+        
+        if (blackStalemate) {
+            this.handleStalemate('black');
+            return;
+        }
+
+        // 3. Vérifier les autres nullités
+        if (isDraw) {
+            this.handleDraw();
+            return;
+        }
+
+        // 4. Vérifier les échecs simples (seulement si pas mat/pat/nul)
+        this.updateCheckDisplay(currentFEN);
+    }
+
+    // Gérer l'échec et mat
+    handleCheckmate(kingColor) {
+        const kingPos = this.findKingPosition(kingColor);
+        console.log('💀 ÉCHEC ET MAT ! Roi', kingColor, 'trouvé à:', kingPos);
+        
+        if (kingPos) {
+            const kingSquare = this.board.getSquare(kingPos.row, kingPos.col);
+            if (kingSquare) {
+                kingSquare.element.classList.add('checkmate');
+            }
+        }
+        
+        const winner = kingColor === 'white' ? 'noirs' : 'blancs';
+        this.showNotification(`Échec et mat ! Roi ${kingColor === 'white' ? 'blanc' : 'noir'} mat. Les ${winner} gagnent !`, 'danger');
+        console.log(`💀 ÉCHEC ET MAT ! Victoire des ${winner}`);
+        
+        this.endGame(winner);
+    }
+
+    // Gérer le pat
+    handleStalemate(kingColor) {
+        const kingPos = this.findKingPosition(kingColor);
+        console.log('♟️ PAT ! Roi', kingColor, 'trouvé à:', kingPos);
+        
+        if (kingPos) {
+            const kingSquare = this.board.getSquare(kingPos.row, kingPos.col);
+            if (kingSquare) {
+                kingSquare.element.classList.add('stalemate');
+            }
+        }
+        
+        this.showNotification(`Pat ! Roi ${kingColor === 'white' ? 'blanc' : 'noir'} pat. Partie nulle.`, 'warning');
+        console.log(`♟️ PAT ! Partie nulle`);
+        
+        this.endGame('draw');
+    }
+
+    // Gérer les autres nullités
+    handleDraw() {
+        this.showNotification(`Partie nulle ! (Répétition triple, 50 coups ou matériel insuffisant)`, 'info');
+        console.log(`🤝 NULLITÉ ! Partie terminée`);
+        
+        this.endGame('draw');
+    }
+
+    // Mettre à jour l'affichage des échecs simples
+    updateCheckDisplay(currentFEN) {
+        const engine = new ChessEngine(currentFEN);
+        const whiteInCheck = engine.isKingInCheck('w');
+        const blackInCheck = engine.isKingInCheck('b');
+
+        console.log('🔍 Échec roi blanc:', whiteInCheck);
+        console.log('🔍 Échec roi noir:', blackInCheck);
+
+        // Échec simple BLANC
         if (whiteInCheck) {
             const kingPos = this.findKingPosition('white');
             console.log('🚨 ROI BLANC EN ÉCHEC trouvé à:', kingPos);
@@ -112,6 +176,7 @@ class ChessGame {
             }
         }
 
+        // Échec simple NOIR
         if (blackInCheck) {
             const kingPos = this.findKingPosition('black');
             console.log('🚨 ROI NOIR EN ÉCHEC trouvé à:', kingPos);
@@ -125,26 +190,33 @@ class ChessGame {
         }
     }
 
-    // NOUVELLE MÉTHODE : Afficher l'alerte d'échec et mat
-    showCheckmateAlert(kingColor) {
-        // Éviter les alertes en double
-        if (this.lastCheckAlert === kingColor + '-mate') return;
+    // NOUVELLE MÉTHODE : Afficher l'alerte d'échec
+    showCheckAlert(kingColor) {
+        // Éviter les alertes en double pour le même échec
+        if (this.lastCheckAlert === kingColor) return;
         
-        this.lastCheckAlert = kingColor + '-mate';
+        this.lastCheckAlert = kingColor;
         
-        const winner = kingColor === 'white' ? 'noirs' : 'blancs';
-        this.showNotification(`Échec et mat ! Roi ${kingColor === 'white' ? 'blanc' : 'noir'} mat. Les ${winner} gagnent !`, 'danger');
-        console.log(`💀 ÉCHEC ET MAT ! Roi ${kingColor} mat - Victoire des ${winner}`);
+        this.showNotification(`Roi ${kingColor === 'white' ? 'blanc' : 'noir'} ECHEC`);
+        console.log(`🚨 ÉCHEC ! Roi ${kingColor} en danger`);
         
-        // Réinitialiser après un délai
+        // Réinitialiser après un délai pour permettre de nouvelles alertes
         setTimeout(() => {
             this.lastCheckAlert = null;
-        }, 5000);
+        }, 2000);
     }
 
-    endGame(winner) {
+    endGame(result) {
         this.gameState.gameActive = false;
-        console.log(`🏆 Partie terminée ! Vainqueur : ${winner}`);
+        
+        let message = '';
+        if (result === 'draw') {
+            message = 'Partie nulle !';
+        } else {
+            message = `Partie terminée ! Vainqueur : ${result}`;
+        }
+        
+        console.log(`🏆 ${message}`);
         
         // Arrêter les timers via l'UI
         if (this.ui && this.ui.stopPlayerTimer) {
@@ -153,7 +225,7 @@ class ChessGame {
         
         // Mettre à jour l'UI pour montrer le résultat
         if (this.ui && this.ui.showGameOver) {
-            this.ui.showGameOver(winner);
+            this.ui.showGameOver(result);
         }
     }
 
@@ -175,22 +247,6 @@ class ChessGame {
         return null;
     }
 
-    // NOUVELLE MÉTHODE : Afficher l'alerte d'échec
-    showCheckAlert(kingColor) {
-        // Éviter les alertes en double pour le même échec
-        if (this.lastCheckAlert === kingColor) return;
-        
-        this.lastCheckAlert = kingColor;
-        
-        this.showNotification(`Roi ${kingColor === 'white' ? 'blanc' : 'noir'} ECHEC`);
-        console.log(`🚨 ÉCHEC ! Roi ${kingColor} en danger`);
-        
-        // Réinitialiser après un délai pour permettre de nouvelles alertes
-        setTimeout(() => {
-            this.lastCheckAlert = null;
-        }, 2000);
-    }
-
     // NOUVELLE MÉTHODE : Système de notification amélioré
     showNotification(message, type = 'info') {
         console.log('🔔 Tentative d\'affichage notification:', message);
@@ -207,7 +263,12 @@ class ChessGame {
         notification.className = `chess-notification chess-notification-${type}`;
         
         // Ajouter une icône selon le type
-        const icon = type === 'warning' ? '⚠️' : 'ℹ️';
+        const icons = {
+            'danger': '💀',
+            'warning': '♟️', 
+            'info': 'ℹ️'
+        };
+        const icon = icons[type] || 'ℹ️';
         notification.innerHTML = `${icon} ${message}`;
 
         console.log('📝 Ajout de la notification au DOM');
@@ -241,7 +302,7 @@ class ChessGame {
         });
         
         this.clearSelection();
-        this.updateCheckDisplay();
+        this.updateGameStatus(); // ← CHANGÉ ICI
         console.log('Flip du plateau - nouvel état:', this.gameState.boardFlipped);
     }
 
@@ -250,7 +311,7 @@ class ChessGame {
         this.gameState.resetGame();
         this.clearSelection();
         this.loadInitialPosition();
-        this.ui.resetTimers(); // ← AJOUT ICI
+        this.ui.resetTimers();
         this.updateUI();
     }
 

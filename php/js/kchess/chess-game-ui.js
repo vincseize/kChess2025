@@ -230,19 +230,29 @@ class ChessGameUI {
     }
 
     // Afficher l'écran de fin de partie
-    showGameOver(winner) {
+    showGameOver(result) {
         const statusElement = document.getElementById('gameStatus');
         const playerElement = document.getElementById('currentPlayer');
         
         if (statusElement && playerElement) {
             statusElement.textContent = 'Partie terminée';
             statusElement.className = 'h5 text-danger';
-            playerElement.textContent = `🎉 Victoire des ${winner === 'white' ? 'blancs' : 'noirs'} !`;
-            playerElement.className = 'small mb-2 text-success fw-bold';
+            
+            if (result === 'draw') {
+                playerElement.textContent = '🤝 Partie nulle !';
+                playerElement.className = 'small mb-2 text-warning fw-bold';
+            } else {
+                playerElement.textContent = `🎉 Victoire des ${result === 'white' ? 'blancs' : 'noirs'} !`;
+                playerElement.className = 'small mb-2 text-success fw-bold';
+            }
         }
         
-        // Afficher une notification de victoire
-        this.showNotification(`🎉 Les ${winner === 'white' ? 'blancs' : 'noirs'} remportent la partie !`, 'success');
+        // Afficher une notification appropriée
+        if (result === 'draw') {
+            this.showNotification('🤝 Partie nulle !', 'warning');
+        } else {
+            this.showNotification(`🎉 Les ${result === 'white' ? 'blancs' : 'noirs'} remportent la partie !`, 'success');
+        }
         
         // Arrêter les timers
         this.stopPlayerTimer();

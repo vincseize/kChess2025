@@ -1,6 +1,7 @@
 // checkChess.js - Moteur de vérification d'échec simple CORRIGÉ
 class ChessEngine {
     constructor(fen) {
+        this.fen = fen;
         this.board = this.parseFEN(fen);
         const parts = fen.split(' ');
         this.turn = parts[1]; // 'w' pour blanc, 'b' pour noir
