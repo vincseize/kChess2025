@@ -242,33 +242,45 @@ class ChessGameUI {
     }
 
     // Afficher l'écran de fin de partie - CORRIGÉ POUR LA NULLITÉ
-    showGameOver(result) {
-        const statusElement = document.getElementById('gameStatus');
-        const playerElement = document.getElementById('currentPlayer');
+showGameOver(result, reason = null) {
+    const statusElement = document.getElementById('gameStatus');
+    const playerElement = document.getElementById('currentPlayer');
+    
+    if (statusElement && playerElement) {
+        statusElement.textContent = 'Partie terminée';
+        statusElement.className = 'h5 text-danger';
         
-        if (statusElement && playerElement) {
-            statusElement.textContent = 'Partie terminée';
-            statusElement.className = 'h5 text-danger';
-            
-            if (result === 'draw') {
-                playerElement.textContent = '🤝 Partie nulle !';
-                playerElement.className = 'small mb-2 text-warning fw-bold';
-            } else {
-                playerElement.textContent = `🎉 Victoire des ${result === 'white' ? 'blancs' : 'noirs'} !`;
-                playerElement.className = 'small mb-2 text-success fw-bold';
-            }
-        }
-        
-        // Afficher une notification appropriée
         if (result === 'draw') {
-            this.showNotification('🤝 Partie nulle !', 'warning');
+            const drawMessages = {
+                'repetition': '🔄 Répétition triple',
+                'fiftyMoves': '🎯 50 coups sans capture',
+                'insufficientMaterial': '♜ Matériel insuffisant',
+                null: '🤝 Partie nulle'
+            };
+            playerElement.textContent = `${drawMessages[reason] || '🤝 Partie nulle'} !`;
+            playerElement.className = 'small mb-2 text-warning fw-bold';
         } else {
-            this.showNotification(`🎉 Les ${result === 'white' ? 'blancs' : 'noirs'} remportent la partie !`, 'success');
+            playerElement.textContent = `🎉 Victoire des ${result === 'white' ? 'blancs' : 'noirs'} !`;
+            playerElement.className = 'small mb-2 text-success fw-bold';
         }
-        
-        // Arrêter les timers
-        this.stopPlayerTimer();
     }
+    
+    // Afficher une notification appropriée
+    if (result === 'draw') {
+        const notificationMessages = {
+            'repetition': '🔄 Partie nulle par répétition triple de position',
+            'fiftyMoves': '🎯 Partie nulle par la règle des 50 coups',
+            'insufficientMaterial': '♜ Partie nulle par matériel insuffisant',
+            null: '🤝 Partie nulle'
+        };
+        this.showNotification(notificationMessages[reason] || '🤝 Partie nulle !', 'warning');
+    } else {
+        this.showNotification(`🎉 Les ${result === 'white' ? 'blancs' : 'noirs'} remportent la partie !`, 'success');
+    }
+    
+    // Arrêter les timers
+    this.stopPlayerTimer();
+}
 
     // Afficher une notification UI
     showNotification(message, type = 'info') {

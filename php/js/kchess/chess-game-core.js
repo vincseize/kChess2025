@@ -69,13 +69,13 @@ class ChessGame {
         
         // Vérifier les autres conditions de nullité
         const nulleEngine = new ChessNulleEngine(currentFEN, this.gameState.moveHistory.map(m => m.fen));
-        const isDraw = nulleEngine.isDraw(this.gameState.halfMoveClock);
+        const drawResult = nulleEngine.isDraw(this.gameState.halfMoveClock);
         
         console.log('🔍 Échec et mat blanc:', whiteCheckmate);
         console.log('🔍 Échec et mat noir:', blackCheckmate);
         console.log('🔍 Pat blanc:', whiteStalemate);
         console.log('🔍 Pat noir:', blackStalemate);
-        console.log('🔍 Autres nullités:', isDraw);
+        console.log('🔍 Autres nullités:', drawResult);
 
         // 1. Vérifier l'échec et mat (priorité)
         if (whiteCheckmate) {
@@ -99,9 +99,9 @@ class ChessGame {
             return;
         }
 
-        // 3. Vérifier les autres nullités
-        if (isDraw) {
-            this.handleDraw();
+        // 3. Vérifier les autres nullités - CORRIGÉ ICI
+        if (drawResult.isDraw) {
+            this.handleDraw(drawResult.reason);
             return;
         }
 
@@ -146,12 +146,18 @@ class ChessGame {
         this.endGame('draw');
     }
 
-    // Gérer les autres nullités
-    handleDraw() {
-        this.showNotification(`Partie nulle ! (Répétition triple, 50 coups ou matériel insuffisant)`, 'info');
-        console.log(`🤝 NULLITÉ ! Partie terminée`);
+    // Gérer les autres nullités - CORRIGÉ
+    handleDraw(reason) {
+        const currentFEN = FENGenerator.generateFEN(this.gameState, this.board);
+        const nulleEngine = new ChessNulleEngine(currentFEN, this.gameState.moveHistory.map(m => m.fen));
         
-        this.endGame('draw');
+        const message = nulleEngine.getDrawMessage(reason);
+        const description = nulleEngine.getDrawDescription(reason);
+        
+        this.showNotification(`${message} ${description}`, 'info');
+        console.log(`🤝 NULLITÉ ! ${message}`);
+        
+        this.endGame('draw', reason);
     }
 
     // Mettre à jour l'affichage des échecs simples
@@ -206,12 +212,19 @@ class ChessGame {
         }, 2000);
     }
 
-    endGame(result) {
+    // CORRIGÉ : Ajout du paramètre reason
+    endGame(result, reason = null) {
         this.gameState.gameActive = false;
         
         let message = '';
         if (result === 'draw') {
-            message = 'Partie nulle !';
+            const drawMessages = {
+                'repetition': 'Répétition triple',
+                'fiftyMoves': 'Règle des 50 coups', 
+                'insufficientMaterial': 'Matériel insuffisant',
+                null: 'Partie nulle'
+            };
+            message = `Partie nulle ! (${drawMessages[reason] || 'Égalité'})`;
         } else {
             message = `Partie terminée ! Vainqueur : ${result}`;
         }
@@ -225,7 +238,7 @@ class ChessGame {
         
         // Mettre à jour l'UI pour montrer le résultat
         if (this.ui && this.ui.showGameOver) {
-            this.ui.showGameOver(result);
+            this.ui.showGameOver(result, reason);
         }
     }
 

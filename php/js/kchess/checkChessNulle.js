@@ -123,30 +123,50 @@ class ChessNulleEngine extends ChessEngine {
         return parts.slice(0, 4).join(' ');
     }
 
-    // Vérifier toutes les conditions de nullité
+    // Vérifier toutes les conditions de nullité avec détection précise
     isDraw(halfMoveClock) {
         console.log(`🤝🔍 Vérification globale des conditions de nullité`);
         
         // 1. Répétition triple
         if (this.isThreefoldRepetition()) {
             console.log(`🤝✅ Nullité par répétition triple`);
-            return true;
+            return { isDraw: true, reason: 'repetition' };
         }
         
         // 2. Règle des 50 coups
         if (this.isFiftyMoveRule(halfMoveClock)) {
             console.log(`🤝✅ Nullité par règle des 50 coups`);
-            return true;
+            return { isDraw: true, reason: 'fiftyMoves' };
         }
         
         // 3. Matériel insuffisant
         if (this.isInsufficientMaterial()) {
             console.log(`🤝✅ Nullité par matériel insuffisant`);
-            return true;
+            return { isDraw: true, reason: 'insufficientMaterial' };
         }
         
         console.log(`🤝❌ Aucune condition de nullité détectée`);
-        return false;
+        return { isDraw: false, reason: null };
+    }
+
+    // NOUVELLE MÉTHODE : Obtenir le message détaillé pour la nullité
+    getDrawMessage(reason) {
+        const messages = {
+            'repetition': 'Partie nulle par répétition triple de position !',
+            'fiftyMoves': 'Partie nulle par la règle des 50 coups !',
+            'insufficientMaterial': 'Partie nulle par matériel insuffisant !'
+        };
+        return messages[reason] || 'Partie nulle !';
+    }
+
+    // NOUVELLE MÉTHODE : Obtenir la description détaillée
+    getDrawDescription(reason) {
+        const descriptions = {
+            'repetition': 'La même position s\'est répétée trois fois avec le même joueur ayant le trait.',
+            'fiftyMoves': '50 coups complets (100 demi-coups) se sont écoulés sans capture ni mouvement de pion.',
+            'insufficientMaterial': 'Aucun des deux joueurs ne dispose du matériel suffisant pour donner un échec et mat.'
+        };
+        return descriptions[reason] || 'La partie est déclarée nulle.';
     }
 }
 
