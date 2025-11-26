@@ -20,9 +20,55 @@ class ChessGame {
     
     init() {
         this.loadInitialPosition();
+        
+        // Appliquer la configuration depuis les paramètres URL
+        this.applyUrlParamsConfiguration();
+        
         this.ui.setupEventListeners();
         this.ui.initNotificationStyles();
         this.ui.updateUI();
+    }
+
+    // Appliquer la configuration depuis les paramètres URL
+    applyUrlParamsConfiguration() {
+        const urlParams = this.getUrlParams();
+        console.log('Paramètres URL détectés:', urlParams);
+        
+        // Configuration du flip basée sur le paramètre color
+        if (urlParams.color === 'black' && !this.gameState.boardFlipped) {
+            console.log('Configuration URL: color=black, application du flip automatique');
+            this.applyAutoFlip();
+        } else if (urlParams.color === 'white' && this.gameState.boardFlipped) {
+            console.log('Configuration URL: color=white, désactivation du flip');
+            this.applyAutoFlip();
+        }
+        
+        // Stocker les autres paramètres si nécessaire
+        if (urlParams.mode) {
+            console.log('Mode de jeu:', urlParams.mode);
+            this.gameMode = urlParams.mode;
+        }
+    }
+
+    // Appliquer un flip automatique sans sauvegarde/restauration
+    applyAutoFlip() {
+        console.log('Application du flip automatique');
+        this.gameState.boardFlipped = !this.gameState.boardFlipped;
+        this.board.createBoard();
+        this.loadInitialPosition();
+        this.clearSelection();
+    }
+
+    // Méthode pour récupérer les paramètres URL
+    getUrlParams() {
+        const params = {};
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        for (let [key, value] of urlParams.entries()) {
+            params[key] = value;
+        }
+        
+        return params;
     }
 
     // Méthodes déléguées
@@ -324,6 +370,10 @@ class ChessGame {
         this.gameState.resetGame();
         this.clearSelection();
         this.loadInitialPosition();
+        
+        // Réappliquer la configuration URL pour le flip
+        this.applyUrlParamsConfiguration();
+        
         this.ui.resetTimers();
         this.updateUI();
     }
