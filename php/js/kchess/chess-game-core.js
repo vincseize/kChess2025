@@ -121,9 +121,9 @@ class ChessGame {
             }
         }
         
-        const winner = kingColor === 'white' ? 'noirs' : 'blancs';
-        this.showNotification(`Échec et mat ! Roi ${kingColor === 'white' ? 'blanc' : 'noir'} mat. Les ${winner} gagnent !`, 'danger');
-        console.log(`💀 ÉCHEC ET MAT ! Victoire des ${winner}`);
+        const winner = kingColor === 'white' ? 'black' : 'white';
+        this.showNotification(`Échec et mat ! Roi ${kingColor === 'white' ? 'blanc' : 'noir'} mat. Les ${winner === 'white' ? 'blancs' : 'noirs'} gagnent !`, 'danger');
+        console.log(`💀 ÉCHEC ET MAT ! Victoire des ${winner === 'white' ? 'blancs' : 'noirs'}`);
         
         this.endGame(winner);
     }
@@ -302,7 +302,7 @@ class ChessGame {
         });
         
         this.clearSelection();
-        this.updateGameStatus(); // ← CHANGÉ ICI
+        this.updateGameStatus();
         console.log('Flip du plateau - nouvel état:', this.gameState.boardFlipped);
     }
 
@@ -321,4 +321,22 @@ class ChessGame {
     }
 }
 
+// S'assurer que ChessGame est disponible globalement
 window.ChessGame = ChessGame;
+
+// Auto-initialisation avec gestion d'erreur
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Initialisation ChessGame...');
+    try {
+        if (!window.chessGame && typeof ChessGame !== 'undefined') {
+            window.chessGame = new ChessGame();
+            console.log('✅ ChessGame initialisé avec succès');
+        } else if (window.chessGame) {
+            console.log('ℹ️ ChessGame déjà initialisé');
+        } else {
+            console.warn('⚠️ ChessGame non disponible pour l\'initialisation');
+        }
+    } catch (error) {
+        console.error('❌ Erreur initialisation ChessGame:', error);
+    }
+});

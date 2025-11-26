@@ -10,11 +10,21 @@ class ChessGameUI {
     }
 
     setupEventListeners() {
-        document.getElementById('newGame')?.addEventListener('click', () => this.game.newGame());
-        document.getElementById('flipBoard')?.addEventListener('click', () => this.game.flipBoard());
+        // Boutons desktop
+        document.getElementById('newGame')?.addEventListener('click', () => {
+            console.log('🔄 Nouvelle partie (desktop)');
+            this.game.newGame();
+        });
+        
+        document.getElementById('flipBoard')?.addEventListener('click', () => {
+            console.log('🔄 Flip board (desktop)');
+            this.game.flipBoard();
+        });
+        
         document.getElementById('copyFEN')?.addEventListener('click', () => this.copyFENToClipboard());
         document.getElementById('copyPGN')?.addEventListener('click', () => this.copyPGNToClipboard());
         
+        // Événements du plateau
         document.getElementById('chessBoard')?.addEventListener('click', (e) => {
             const square = e.target.closest('.chess-square');
             if (square) {
@@ -23,6 +33,8 @@ class ChessGameUI {
                 this.game.moveHandler.handleSquareClick(displayRow, displayCol);
             }
         });
+
+        console.log('✅ Événements UI configurés');
     }
 
     updateUI() {
@@ -229,7 +241,7 @@ class ChessGameUI {
         }, 1500);
     }
 
-    // Afficher l'écran de fin de partie
+    // Afficher l'écran de fin de partie - CORRIGÉ POUR LA NULLITÉ
     showGameOver(result) {
         const statusElement = document.getElementById('gameStatus');
         const playerElement = document.getElementById('currentPlayer');
@@ -337,9 +349,7 @@ class ChessGameUI {
     }
 }
 
-// Initialiser les styles de notification quand la classe est chargée
-document.addEventListener('DOMContentLoaded', function() {
-    // Les styles seront initialisés quand ChessGameUI sera instancié
-});
-
-window.ChessGameUI = ChessGameUI;
+// Déclaration globale
+if (typeof window.ChessGameUI === 'undefined') {
+    window.ChessGameUI = ChessGameUI;
+}

@@ -10,100 +10,120 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('flipBoardMobile:', mobileFlipBoard);
     
     // Initialisation du jeu
-    window.chessGame = new ChessGame();
-    console.log('✅ Jeu d\'échecs chargé avec succès');
+    try {
+        if (typeof ChessGame !== 'undefined') {
+            window.chessGame = new ChessGame();
+            console.log('✅ Jeu d\'échecs chargé avec succès');
+        } else {
+            console.error('❌ ChessGame non défini, chargement différé');
+            // Retry après un délai
+            setTimeout(() => {
+                if (typeof ChessGame !== 'undefined') {
+                    window.chessGame = new ChessGame();
+                    console.log('✅ Jeu d\'échecs chargé avec délai');
+                }
+            }, 500);
+        }
+    } catch (error) {
+        console.error('❌ Erreur initialisation ChessGame:', error);
+    }
 
     // CORRECTIONS SPÉCIFIQUES POUR MOBILE
-// CORRECTIONS SPÉCIFIQUES POUR MOBILE
-function setupMobileEvents() {
-    console.log('📱 Configuration des événements mobiles...');
-    
-    // Méthode robuste pour les boutons mobiles
-    const mobileButtons = [
-        { id: 'newGameMobile', action: 'redirectToIndex' }, // CHANGÉ ICI
-        { id: 'flipBoardMobile', action: 'flipBoard' }
-    ];
-    
-    mobileButtons.forEach(button => {
-        const element = document.getElementById(button.id);
-        if (element) {
-            console.log(`✅ Configuration de ${button.id}`);
-            
-            // Nettoyer les anciens événements
-            element.replaceWith(element.cloneNode(true));
-            const freshElement = document.getElementById(button.id);
-            
-            // Ajouter plusieurs types d'événements pour mobile
-            ['click', 'touchend'].forEach(eventType => {
-                freshElement.addEventListener(eventType, function(e) {
+    function setupMobileEvents() {
+        console.log('📱 Configuration des événements mobiles...');
+        
+        // Méthode robuste pour les boutons mobiles
+        const mobileButtons = [
+            { id: 'newGameMobile', action: 'redirectToIndex' },
+            { id: 'flipBoardMobile', action: 'flipBoard' }
+        ];
+        
+        mobileButtons.forEach(button => {
+            const element = document.getElementById(button.id);
+            if (element) {
+                console.log(`✅ Configuration de ${button.id}`);
+                
+                // Nettoyer les anciens événements
+                element.replaceWith(element.cloneNode(true));
+                const freshElement = document.getElementById(button.id);
+                
+                // Ajouter plusieurs types d'événements pour mobile
+                ['click', 'touchend'].forEach(eventType => {
+                    freshElement.addEventListener(eventType, function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        
+                        console.log(`📱 ${eventType} sur ${button.id}`);
+                        
+                        // Vibration mobile si disponible
+                        if (navigator.vibrate) {
+                            navigator.vibrate(10);
+                        }
+                        
+                        // Exécuter l'action
+                        if (button.action === 'redirectToIndex') {
+                            // Redirection simple vers index.php
+                            console.log('🔄 Redirection vers index.php');
+                            window.location.href = 'index.php';
+                        } else if (window.chessGame && window.chessGame[button.action]) {
+                            console.log(`🚀 Exécution de ${button.action}()`);
+                            window.chessGame[button.action]();
+                        } else {
+                            console.error(`❌ ${button.action} non disponible`);
+                            // Fallback pour flipBoard
+                            if (button.action === 'flipBoard') {
+                                alert('Flip board non disponible. Rechargement de la page...');
+                                window.location.reload();
+                            }
+                        }
+                    }, { passive: false });
+                });
+                
+                // Style pour s'assurer que le bouton est cliquable
+                freshElement.style.cursor = 'pointer';
+                freshElement.style.touchAction = 'manipulation';
+                freshElement.style.userSelect = 'none';
+                freshElement.setAttribute('data-mobile-bound', 'true');
+                
+                console.log(`✅ ${button.id} configuré avec succès`);
+            } else {
+                console.warn(`⚠️ ${button.id} non trouvé`);
+            }
+        });
+    }
+
+    // Événements pour desktop (conservés pour compatibilité)
+    function setupDesktopEvents() {
+        console.log('🖥️ Configuration des événements desktop...');
+        
+        const desktopButtons = [
+            { selector: '#newGame', action: 'redirectToIndex' },
+            { selector: '#flipBoard', action: 'flipBoard' },
+            { selector: '.new-game-btn', action: 'redirectToIndex' },
+            { selector: '.flip-board-btn', action: 'flipBoard' }
+        ];
+        
+        desktopButtons.forEach(button => {
+            const elements = document.querySelectorAll(button.selector);
+            elements.forEach(element => {
+                element.addEventListener('click', function(e) {
                     e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
+                    console.log(`🖥️ Click sur ${button.selector}`);
                     
-                    console.log(`📱 ${eventType} sur ${button.id}`);
-                    
-                    // Vibration mobile si disponible
-                    if (navigator.vibrate) {
-                        navigator.vibrate(10);
-                    }
-                    
-                    // Exécuter l'action
                     if (button.action === 'redirectToIndex') {
                         // Redirection simple vers index.php
                         console.log('🔄 Redirection vers index.php');
                         window.location.href = 'index.php';
                     } else if (window.chessGame && window.chessGame[button.action]) {
-                        console.log(`🚀 Exécution de ${button.action}()`);
                         window.chessGame[button.action]();
                     } else {
                         console.error(`❌ ${button.action} non disponible`);
                     }
-                }, { passive: false });
-            });
-            
-            // Style pour s'assurer que le bouton est cliquable
-            freshElement.style.cursor = 'pointer';
-            freshElement.style.touchAction = 'manipulation';
-            freshElement.style.userSelect = 'none';
-            freshElement.setAttribute('data-mobile-bound', 'true');
-            
-            console.log(`✅ ${button.id} configuré avec succès`);
-        } else {
-            console.warn(`⚠️ ${button.id} non trouvé`);
-        }
-    });
-}
-
-    // Événements pour desktop (conservés pour compatibilité)
-// Événements pour desktop (conservés pour compatibilité)
-function setupDesktopEvents() {
-    console.log('🖥️ Configuration des événements desktop...');
-    
-    const desktopButtons = [
-        { selector: '#newGame', action: 'redirectToIndex' }, // CHANGÉ ICI
-        { selector: '#flipBoard', action: 'flipBoard' },
-        { selector: '.new-game-btn', action: 'redirectToIndex' }, // CHANGÉ ICI
-        { selector: '.flip-board-btn', action: 'flipBoard' }
-    ];
-    
-    desktopButtons.forEach(button => {
-        const elements = document.querySelectorAll(button.selector);
-        elements.forEach(element => {
-            element.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log(`🖥️ Click sur ${button.selector}`);
-                
-                if (button.action === 'redirectToIndex') {
-                    // Redirection simple vers index.php
-                    console.log('🔄 Redirection vers index.php');
-                    window.location.href = 'index.php';
-                } else if (window.chessGame && window.chessGame[button.action]) {
-                    window.chessGame[button.action]();
-                }
+                });
             });
         });
-    });
-}
+    }
 
     // Initialisation des événements
     setupMobileEvents();
@@ -125,12 +145,11 @@ function setupDesktopEvents() {
 });
 
 // Fonction de fallback forcé pour mobile
-// Fonction de fallback forcé pour mobile
 function forceMobileSetup() {
     console.log('🔄 Setup forcé des boutons mobiles...');
     
     const mobileButtons = [
-        { id: 'newGameMobile', action: 'redirectToIndex' }, // CHANGÉ ICI
+        { id: 'newGameMobile', action: 'redirectToIndex' },
         { id: 'flipBoardMobile', action: 'flipBoard' }
     ];
     
@@ -152,6 +171,9 @@ function forceMobileSetup() {
                     console.log(`🚀 FORCÉ: Exécution de ${button.action}()`);
                     window.chessGame[button.action]();
                     return false;
+                } else {
+                    console.error(`❌ FORCÉ: ${button.action} non disponible`);
+                    return false;
                 }
             };
             
@@ -168,6 +190,9 @@ function forceMobileSetup() {
                     return false;
                 } else if (window.chessGame && window.chessGame[button.action]) {
                     window.chessGame[button.action]();
+                    return false;
+                } else {
+                    console.error(`❌ FORCÉ: ${button.action} non disponible`);
                     return false;
                 }
             };
@@ -187,6 +212,10 @@ setTimeout(() => {
     console.log('chessGame:', window.chessGame);
     console.log('newGame:', window.chessGame?.newGame);
     console.log('flipBoard:', window.chessGame?.flipBoard);
+    
+    // Vérification finale des boutons
+    const finalCheck = document.querySelectorAll('[id*="Mobile"]');
+    console.log('🔍 Boutons mobiles finaux:', finalCheck);
 }, 1000);
 
 // Fonction de débogage manuel
@@ -225,6 +254,28 @@ window.testMobileActions = function() {
         }, 1000);
     } else {
         console.error('❌ chessGame non disponible');
+        
+        // Test de redirection
+        console.log('🔄 Test redirection...');
+        window.location.href = 'index.php';
+    }
+};
+
+// Fonction de redirection manuelle
+window.redirectToIndex = function() {
+    console.log('🔄 Redirection manuelle vers index.php');
+    window.location.href = 'index.php';
+};
+
+// Fonction de flip manuel
+window.manualFlipBoard = function() {
+    console.log('🔄 Flip manuel du plateau');
+    if (window.chessGame && window.chessGame.flipBoard) {
+        window.chessGame.flipBoard();
+    } else {
+        console.error('❌ Flip non disponible');
+        alert('Flip board non disponible. Rechargement...');
+        window.location.reload();
     }
 };
 
@@ -255,3 +306,22 @@ observer.observe(document.body, {
 });
 
 console.log('👀 Observateur de boutons mobiles activé');
+
+// Gestion des erreurs globales
+window.addEventListener('error', function(e) {
+    console.error('🚨 ERREUR GLOBALE:', e.error);
+    console.error('Fichier:', e.filename);
+    console.error('Ligne:', e.lineno);
+});
+
+// Export pour compatibilité
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        forceMobileSetup,
+        debugMobileButtons,
+        testMobileActions,
+        redirectToIndex,
+        manualFlipBoard,
+        isMobile
+    };
+}
