@@ -92,6 +92,57 @@ class ChessGame {
         });
     }
 
+    // NOUVELLE MÉTHODE : Mettre à jour le compteur des 50 coups
+    updateHalfMoveClock(fromPiece, toPiece, toSquare) {
+        // Réinitialiser à 0 si :
+        // 1. Une pièce est capturée
+        // 2. Un pion est déplacé
+        if (toPiece || fromPiece.type === 'pawn') {
+            this.gameState.halfMoveClock = 0;
+            console.log(`🔄 HalfMoveClock réinitialisé à 0 (${toPiece ? 'capture' : 'mouvement pion'})`);
+        } else {
+            // Sinon incrémenter le compteur
+            this.gameState.halfMoveClock++;
+            console.log(`📈 HalfMoveClock incrémenté: ${this.gameState.halfMoveClock}`);
+        }
+    }
+
+    // MODIFIER cette méthode pour réinitialiser le halfMoveClock
+    movePiece(fromSquare, toSquare, promotionType = null) {
+        const fromPiece = fromSquare.piece;
+        const toPiece = toSquare.piece;
+        
+        // Sauvegarder l'état avant le mouvement
+        const previousFEN = FENGenerator.generateFEN(this.gameState, this.board);
+        
+        // Déplacer la pièce
+        this.board.movePiece(fromSquare, toSquare);
+        
+        // Gérer la promotion
+        if (promotionType) {
+            this.promotionManager.promotePawn(toSquare, promotionType);
+        }
+        
+        // Mettre à jour le compteur des 50 coups
+        this.updateHalfMoveClock(fromPiece, toPiece, toSquare);
+        
+        // Sauvegarder le mouvement dans l'historique
+        this.gameState.moveHistory.push({
+            from: { row: fromSquare.row, col: fromSquare.col },
+            to: { row: toSquare.row, col: toSquare.col },
+            piece: fromPiece.type,
+            color: fromPiece.color,
+            captured: toPiece ? toPiece.type : null,
+            fen: previousFEN
+        });
+        
+        // Changer le tour
+        this.gameState.currentTurn = this.gameState.currentTurn === 'white' ? 'black' : 'white';
+        
+        this.clearSelection();
+        this.updateGameStatus();
+    }
+
     // NOUVELLE MÉTHODE : Vérifier TOUS les statuts de jeu
     updateGameStatus() {
         // Retirer les anciennes surbrillances d'échec
@@ -122,6 +173,7 @@ class ChessGame {
         console.log('🔍 Pat blanc:', whiteStalemate);
         console.log('🔍 Pat noir:', blackStalemate);
         console.log('🔍 Autres nullités:', drawResult);
+        console.log('🔍 HalfMoveClock actuel:', this.gameState.halfMoveClock);
 
         // 1. Vérifier l'échec et mat (priorité)
         if (whiteCheckmate) {
