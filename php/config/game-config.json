@@ -1,12 +1,12 @@
 {
     "app_name": "CharlyChess",
-    "version": "0.8",
+    "version": "0.9",
     "author": "Karlova",
     "author2": "von Vincseize",
     "default_theme": "classic",
     "features": {
         "flip_board": true,
-        "move_history": true,
+        "move_history": true,   
         "move_validation": true,
         "responsive": true
     },

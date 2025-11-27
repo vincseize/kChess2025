@@ -1,4 +1,4 @@
-// chess-game-core.js - Classe principale orchestratrice AVEC TOUTES LES VÉRIFICATIONS
+// chess-game-core.js - Classe principale orchestratrice AVEC TOUTES LES VÉRIFICATIONS ET BOT
 class ChessGame {
     constructor() {
         this.pieceManager = new PieceManager();
@@ -15,6 +15,14 @@ class ChessGame {
         this.ui = new ChessGameUI(this);
         this.promotionManager = new PromotionManager(this);
         
+        // NOUVEAU: Gestion du bot
+        this.bot = null;
+        this.botLevel = 0; // 0 = désactivé, 1 = Level_0, etc.
+        this.isBotThinking = false;
+        this.botColor = 'black'; // Le bot joue les noirs par défaut
+        
+        console.log('♟️ ChessGame initialized with bot support');
+        
         this.init();
     }
     
@@ -29,6 +37,125 @@ class ChessGame {
         this.ui.updateUI();
     }
 
+    // NOUVELLE MÉTHODE: Activer/désactiver le bot
+    setBotLevel(level, color = 'black') {
+        this.botLevel = level;
+        this.botColor = color;
+        
+        if (level === 0) {
+            this.bot = null;
+            console.log('🤖 Bot désactivé');
+        } else if (level === 1) {
+            this.bot = new Level_0();
+            console.log(`🤖 Bot Level 0 activé (joue les ${color})`);
+        }
+        // Ajouter d'autres niveaux plus tard
+        
+        // Si le bot doit jouer immédiatement
+        if (this.isBotTurn()) {
+            console.log('🤖 C\'est au tour du bot de jouer, déclenchement automatique...');
+            this.playBotMove();
+        }
+        
+        return this.bot;
+    }
+
+    // NOUVELLE MÉTHODE: Vérifier si c'est au bot de jouer
+    isBotTurn() {
+        return this.bot && 
+               this.botLevel > 0 && 
+               !this.isBotThinking && 
+               this.gameState.gameActive &&
+               this.gameState.currentPlayer === this.botColor;
+    }
+
+    // NOUVELLE MÉTHODE: Faire jouer le bot
+    async playBotMove() {
+        if (!this.isBotTurn() || this.isBotThinking) {
+            console.log('🚫 Bot cannot play now - not its turn or thinking');
+            return;
+        }
+        
+        this.isBotThinking = true;
+        console.log('🤖 Bot thinking...');
+        
+        try {
+            // Petit délai pour que ce soit naturel (500ms - 1.5s)
+            const thinkTime = 500 + Math.random() * 1000;
+            await new Promise(resolve => setTimeout(resolve, thinkTime));
+            
+            const currentFEN = FENGenerator.generateFEN(this.gameState, this.board);
+            const botMove = this.bot.getMove(currentFEN);
+            
+            if (botMove) {
+                console.log('🤖 Bot playing move:', botMove);
+                
+                // Utiliser le système existant pour jouer le coup
+                const success = this.moveHandler.handleMove(
+                    botMove.fromRow, 
+                    botMove.fromCol, 
+                    botMove.toRow, 
+                    botMove.toCol
+                );
+                
+                if (success) {
+                    console.log('✅ Bot move executed successfully');
+                } else {
+                    console.error('❌ Bot move failed - move was invalid');
+                    // Réessayer avec un autre coup
+                    await this.retryBotMove(currentFEN);
+                }
+            } else {
+                console.error('❌ Bot returned no move');
+            }
+            
+        } catch (error) {
+            console.error('❌ Bot error:', error);
+        } finally {
+            this.isBotThinking = false;
+            
+            // Vérifier à nouveau si le bot doit jouer (cas de promotion)
+            if (this.isBotTurn()) {
+                console.log('🤖 Bot should play again (promotion?)');
+                setTimeout(() => this.playBotMove(), 100);
+            }
+        }
+    }
+
+    // NOUVELLE MÉTHODE: Réessayer un coup du bot
+    async retryBotMove(currentFEN) {
+        console.log('🔄 Bot retrying with different move...');
+        
+        try {
+            // Obtenir tous les coups possibles
+            const allMoves = this.bot.getAllValidMoves();
+            console.log(`🔄 ${allMoves.length} moves available for retry`);
+            
+            if (allMoves.length > 0) {
+                // Choisir un coup différent au hasard
+                const randomIndex = Math.floor(Math.random() * allMoves.length);
+                const retryMove = allMoves[randomIndex];
+                
+                console.log('🤖 Bot retry move:', retryMove);
+                
+                const success = this.moveHandler.handleMove(
+                    retryMove.from.row, 
+                    retryMove.from.col, 
+                    retryMove.to.row, 
+                    retryMove.to.col
+                );
+                
+                if (success) {
+                    console.log('✅ Bot retry move successful');
+                } else {
+                    console.error('❌ Bot retry move also failed');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Bot retry error:', error);
+        }
+    }
+
     // Appliquer la configuration depuis les paramètres URL
     applyUrlParamsConfiguration() {
         const urlParams = this.getUrlParams();
@@ -41,6 +168,12 @@ class ChessGame {
         } else if (urlParams.color === 'white' && this.gameState.boardFlipped) {
             console.log('Configuration URL: color=white, désactivation du flip');
             this.applyAutoFlip();
+        }
+        
+        // Configuration du bot depuis les paramètres URL
+        if (urlParams.bot === '1' || urlParams.bot === 'true') {
+            console.log('Configuration URL: bot activé');
+            this.setBotLevel(1, urlParams.botColor || 'black');
         }
         
         // Stocker les autres paramètres si nécessaire
@@ -143,7 +276,7 @@ class ChessGame {
         this.updateGameStatus();
     }
 
-    // NOUVELLE MÉTHODE : Vérifier TOUS les statuts de jeu
+    // MODIFIER LA MÉTHODE : Vérifier TOUS les statuts de jeu + Bot
     updateGameStatus() {
         // Retirer les anciennes surbrillances d'échec
         this.board.squares.forEach(square => {
@@ -205,6 +338,12 @@ class ChessGame {
 
         // 4. Vérifier les échecs simples (seulement si pas mat/pat/nul)
         this.updateCheckDisplay(currentFEN);
+
+        // 5. NOUVEAU: Vérifier si c'est au bot de jouer
+        if (this.isBotTurn()) {
+            console.log('🤖 C\'est au tour du bot de jouer');
+            this.playBotMove();
+        }
     }
 
     // Gérer l'échec et mat
@@ -338,6 +477,9 @@ class ChessGame {
         if (this.ui && this.ui.showGameOver) {
             this.ui.showGameOver(result, reason);
         }
+        
+        // Désactiver le bot
+        this.isBotThinking = false;
     }
 
     // NOUVELLE MÉTHODE : Trouver la position du roi
@@ -426,6 +568,12 @@ class ChessGame {
         // Réappliquer la configuration URL pour le flip
         this.applyUrlParamsConfiguration();
         
+        // Réactiver le bot si il était activé
+        if (this.botLevel > 0) {
+            console.log('🤖 Réactivation du bot pour la nouvelle partie');
+            this.setBotLevel(this.botLevel, this.botColor);
+        }
+        
         this.ui.resetTimers();
         this.updateUI();
     }
@@ -433,6 +581,30 @@ class ChessGame {
     clearMoveHistory() {
         this.gameState.moveHistory = [];
         this.ui.updateMoveHistory();
+    }
+
+    // NOUVELLE MÉTHODE: Obtenir le statut du bot
+    getBotStatus() {
+        return {
+            active: this.botLevel > 0,
+            level: this.botLevel,
+            color: this.botColor,
+            thinking: this.isBotThinking,
+            name: this.bot ? this.bot.name : 'Aucun'
+        };
+    }
+
+    // NOUVELLE MÉTHODE: Changer la couleur du bot
+    setBotColor(color) {
+        if (color !== this.botColor) {
+            this.botColor = color;
+            console.log(`🤖 Bot color changed to: ${color}`);
+            
+            // Si c'est maintenant au bot de jouer
+            if (this.isBotTurn()) {
+                this.playBotMove();
+            }
+        }
     }
 }
 
@@ -446,6 +618,42 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!window.chessGame && typeof ChessGame !== 'undefined') {
             window.chessGame = new ChessGame();
             console.log('✅ ChessGame initialisé avec succès');
+            
+            // Ajouter des boutons de test pour le bot
+            setTimeout(() => {
+                if (typeof addBotTestButtons === 'undefined') {
+                    window.addBotTestButtons = function() {
+                        const testDiv = document.createElement('div');
+                        testDiv.style.position = 'fixed';
+                        testDiv.style.top = '10px';
+                        testDiv.style.right = '10px';
+                        testDiv.style.zIndex = '1000';
+                        testDiv.style.background = 'white';
+                        testDiv.style.padding = '10px';
+                        testDiv.style.border = '2px solid black';
+                        testDiv.style.fontSize = '12px';
+                        
+                        testDiv.innerHTML = `
+                            <strong>🤖 Test Bot</strong><br>
+                            <button onclick="window.chessGame.setBotLevel(1)">Activer Bot</button>
+                            <button onclick="window.chessGame.setBotLevel(0)">Désactiver</button>
+                            <button onclick="window.chessGame.setBotColor('white')">Bot Blanc</button>
+                            <button onclick="window.chessGame.setBotColor('black')">Bot Noir</button>
+                            <button onclick="window.chessGame.playBotMove()">Forcer Coup</button>
+                            <button onclick="console.log('Statut:', window.chessGame.getBotStatus())">Statut</button>
+                        `;
+                        
+                        document.body.appendChild(testDiv);
+                        console.log('🎛️ Boutons de test bot ajoutés');
+                    };
+                    
+                    // Ajouter automatiquement les boutons de test en développement
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        window.addBotTestButtons();
+                    }
+                }
+            }, 1000);
+            
         } else if (window.chessGame) {
             console.log('ℹ️ ChessGame déjà initialisé');
         } else {

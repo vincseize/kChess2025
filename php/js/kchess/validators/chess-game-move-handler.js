@@ -422,6 +422,9 @@ class ChessGameMoveHandler {
     }
 
     clearSelection() {
+
+        // console.clear();
+
         this.game.board.squares.forEach(square => {
             square.element.classList.remove(
                 'selected', 
