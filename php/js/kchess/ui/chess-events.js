@@ -135,10 +135,10 @@ function newGame() {
 }
 
 // Fallback simple après délai
-setTimeout(() => {
-    console.debug('🔧 Vérification finale...');
-    setupMobileButtons();
-}, 2000);
+// setTimeout(() => {
+//     console.debug('🔧 Vérification finale...');
+//     setupMobileButtons();
+// }, 2000);
 
 // Export pour debug
 window.debugChess = {
