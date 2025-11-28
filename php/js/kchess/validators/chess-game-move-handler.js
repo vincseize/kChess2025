@@ -121,6 +121,40 @@ class ChessGameMoveHandler {
         this.finalizeNormalMove(toRow, toCol, move, selectedPiece);
     }
 
+executeDirectMove(fromRow, fromCol, toRow, toCol) {
+    if (!this.game.gameState.gameActive || this.isPromoting) {
+        console.log('🚫 Jeu non actif ou promotion en cours');
+        return false;
+    }
+    
+    const fromSquare = this.game.board.getSquare(fromRow, fromCol);
+    const toSquare = this.game.board.getSquare(toRow, toCol);
+    
+    if (!fromSquare || !toSquare || !fromSquare.piece) {
+        console.log('❌ Cases ou pièce non valides');
+        return false;
+    }
+    
+    // Vérifier si le mouvement est valide
+    const possibleMoves = this.game.moveValidator.getPossibleMoves(fromSquare.piece, fromRow, fromCol);
+    const isValidMove = possibleMoves.some(move => move.row === toRow && move.col === toCol);
+    
+    if (!isValidMove) {
+        console.log('❌ Mouvement non valide');
+        return false;
+    }
+    
+    console.log(`✅ Mouvement direct valide: [${fromRow},${fromCol}] -> [${toRow},${toCol}]`);
+    
+    // Sélectionner la pièce et exécuter le mouvement
+    this.game.selectedPiece = { row: fromRow, col: fromCol, piece: fromSquare.piece };
+    this.game.possibleMoves = possibleMoves;
+    
+    // Exécuter le mouvement
+    this.executeMove(toRow, toCol);
+    return true;
+}
+
     // NOUVELLE MÉTHODE: Mise à jour de gameState pour les mouvements
     updateGameStateForMove(piece, fromRow, fromCol, toRow, toCol) {
         console.log(`🔧 Mise à jour gameState pour ${piece.type} ${piece.color}`);
