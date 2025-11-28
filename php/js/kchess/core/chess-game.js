@@ -17,9 +17,16 @@ class ChessGame {
     init() {
         this.loadInitialPosition();
         this.applyUrlParamsConfiguration();
-        this.core.ui.setupEventListeners();
-        this.core.ui.initNotificationStyles();
-        this.core.ui.updateUI();
+        
+        // CORRECTION : Ne pas appeler initNotificationStyles() car elle est gérée automatiquement
+        // par ChessStyleManager dans le constructeur de ChessGameUI
+        if (this.core.ui && typeof this.core.ui.setupEventListeners === 'function') {
+            this.core.ui.setupEventListeners();
+        }
+        
+        if (this.core.ui && typeof this.core.ui.updateUI === 'function') {
+            this.core.ui.updateUI();
+        }
     }
 
     // Méthodes déléguées vers le core
@@ -123,10 +130,9 @@ class ChessGame {
         return this.core.playBotMove();
     }
     
-handleMove(fromRow, fromCol, toRow, toCol) {
-    return this.core.handleMove(fromRow, fromCol, toRow, toCol);
-}
-
+    handleMove(fromRow, fromCol, toRow, toCol) {
+        return this.core.handleMove(fromRow, fromCol, toRow, toCol);
+    }
 
     // Méthodes utilitaires pour le debug
     getGameState() {

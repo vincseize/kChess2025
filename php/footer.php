@@ -44,8 +44,13 @@
 <!-- Classe principale -->
 <script src="js/kchess/core/chess-game.js?version=<?php echo $version; ?>"></script>
 
-<!-- UI -->
-<script src="js/kchess/ui/chess-game-ui.js?version=<?php echo $version; ?>"></script>
+<!-- UI MODULAIRE -->
+<script src="js/kchess/ui/chess-game-ui-styles.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/ui/chess-game-ui-timer.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/ui/chess-game-ui-modals.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/ui/chess-game-ui-move-history.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/ui/chess-game-ui-clipboard.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/ui/chess-game-ui-core.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/ui/chess-events.js?version=<?php echo $version; ?>"></script>
 
 <!-- Interface de test bot (développement seulement) -->

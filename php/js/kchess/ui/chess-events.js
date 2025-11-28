@@ -45,11 +45,39 @@ function setupEventListeners() {
     setupDesktopButtons();
 }
 
+// FONCTION HELPER POUR NOUVELLE PARTIE (compatible avec les deux architectures)
+function confirmNewGame() {
+    if (window.chessGame) {
+        // Nouvelle architecture modulaire
+        if (window.chessGame.core && window.chessGame.core.ui && window.chessGame.core.ui.modalManager) {
+            return window.chessGame.core.ui.modalManager.confirmNewGame();
+        }
+        // Ancienne architecture
+        else if (window.chessGame.core && window.chessGame.core.ui && typeof window.chessGame.core.ui.confirmNewGame === 'function') {
+            return window.chessGame.core.ui.confirmNewGame();
+        }
+        // Fallback
+        else {
+            console.error('❌ Aucune méthode confirmNewGame disponible');
+            redirectToIndex();
+        }
+    } else {
+        console.error('❌ Jeu non initialisé');
+        redirectToIndex();
+    }
+}
+
 // Configuration des boutons mobiles SIMPLIFIÉE
 function setupMobileButtons() {
     const mobileButtons = [
-        { id: 'newGameMobile', action: () => redirectToIndex() },
-        { id: 'flipBoardMobile', action: () => flipBoard() }
+        { 
+            id: 'newGameMobile', 
+            action: () => confirmNewGame() // UTILISATION DE LA FONCTION HELPER
+        },
+        { 
+            id: 'flipBoardMobile', 
+            action: () => flipBoard()
+        }
     ];
     
     mobileButtons.forEach(button => {
@@ -89,16 +117,33 @@ function setupMobileButtons() {
 // Configuration des boutons desktop
 function setupDesktopButtons() {
     const desktopButtons = [
-        { selector: '#newGame', action: () => redirectToIndex() },
-        { selector: '#flipBoard', action: () => flipBoard() },
-        { selector: '.new-game-btn:not(#newGameMobile)', action: () => redirectToIndex() },
-        { selector: '.flip-board-btn:not(#flipBoardMobile)', action: () => flipBoard() }
+        { 
+            selector: '#newGame', 
+            action: () => confirmNewGame() // UTILISATION DE LA FONCTION HELPER
+        },
+        { 
+            selector: '#flipBoard', 
+            action: () => flipBoard()
+        },
+        { 
+            selector: '.new-game-btn:not(#newGameMobile)', 
+            action: () => confirmNewGame() // UTILISATION DE LA FONCTION HELPER
+        },
+        { 
+            selector: '.flip-board-btn:not(#flipBoardMobile)', 
+            action: () => flipBoard()
+        }
     ];
     
     desktopButtons.forEach(button => {
         const elements = document.querySelectorAll(button.selector);
         elements.forEach(element => {
-            element.addEventListener('click', function(e) {
+            // Nettoyer les anciens événements
+            const newElement = element.cloneNode(true);
+            element.parentNode.replaceChild(newElement, element);
+            
+            // Nouvel événement
+            newElement.addEventListener('click', function(e) {
                 e.preventDefault();
                 console.log(`🖥️ Click sur ${button.selector}`);
                 button.action();
@@ -134,17 +179,13 @@ function newGame() {
     }
 }
 
-// Fallback simple après délai
-// setTimeout(() => {
-//     console.debug('🔧 Vérification finale...');
-//     setupMobileButtons();
-// }, 2000);
-
 // Export pour debug
 window.debugChess = {
     game: () => window.chessGame,
     botStatus: () => window.chessGame?.getBotStatus?.(),
     forceBot: (level = 1, color = 'black') => window.chessGame?.setBotLevel?.(level, color),
     testFlip: () => flipBoard(),
-    testNewGame: () => newGame()
+    testNewGame: () => newGame(),
+    // CORRECTION : Utiliser la fonction helper
+    testConfirmation: () => confirmNewGame()
 };

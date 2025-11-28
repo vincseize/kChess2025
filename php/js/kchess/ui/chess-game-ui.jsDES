@@ -1,0 +1,745 @@
+// chess-game-ui.js - Gestion de l'interface utilisateur AMÉLIORÉE
+class ChessGameUI {
+    constructor(game) {
+        this.game = game;
+        this.whiteTime = 0; // Temps en secondes pour les blancs
+        this.blackTime = 0; // Temps en secondes pour les noirs
+        this.gameStartTime = null;
+        this.timerInterval = null;
+        this.currentPlayerTimer = null;
+        this.isTimerRunning = false;
+
+        // Démarrer le timer après un court délai
+        setTimeout(() => {
+            this.startTimer();
+        }, 1000);
+
+        // Initialiser les styles
+        this.initNotificationStyles();
+        this.initMoveHistoryStyles();
+    }
+
+    setupEventListeners() {
+        // Boutons desktop avec confirmation
+        document.getElementById('newGame')?.addEventListener('click', () => {
+            this.confirmNewGame();
+        });
+        
+        document.getElementById('flipBoard')?.addEventListener('click', () => {
+            console.log('🔄 Flip board (desktop)');
+            this.game.flipBoard();
+        });
+        
+        document.getElementById('copyFEN')?.addEventListener('click', () => this.copyFENToClipboard());
+        document.getElementById('copyPGN')?.addEventListener('click', () => this.copyPGNToClipboard());
+        
+        // Boutons mobiles avec confirmation
+        document.getElementById('newGameMobile')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.confirmNewGame();
+        });
+        
+        document.getElementById('flipBoardMobile')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔄 Flip board (mobile)');
+            this.game.flipBoard();
+        });
+        
+        // Événements du plateau
+        document.getElementById('chessBoard')?.addEventListener('click', (e) => {
+            const square = e.target.closest('.chess-square');
+            if (square) {
+                const displayRow = parseInt(square.dataset.displayRow);
+                const displayCol = parseInt(square.dataset.displayCol);
+                this.game.moveHandler.handleSquareClick(displayRow, displayCol);
+            }
+        });
+
+        // Événements tactiles pour mobile
+        document.getElementById('chessBoard')?.addEventListener('touchstart', (e) => {
+            const square = e.target.closest('.chess-square');
+            if (square) {
+                e.preventDefault();
+                const displayRow = parseInt(square.dataset.displayRow);
+                const displayCol = parseInt(square.dataset.displayCol);
+                this.game.moveHandler.handleSquareClick(displayRow, displayCol);
+            }
+        }, { passive: false });
+    }
+
+    // Confirmation pour nouvelle partie
+    confirmNewGame() {
+        console.log('🔄 Demande de nouvelle partie');
+        
+        // Arrêter le timer temporairement
+        this.stopTimer();
+        
+        // Créer une modal de confirmation
+        if (this.createConfirmationModal()) {
+            return;
+        }
+        
+        // Fallback : confirmation native
+        const isConfirmed = confirm('Êtes-vous sûr de vouloir commencer une nouvelle partie ?\n\nLa partie en cours sera perdue.');
+        
+        if (isConfirmed) {
+            console.log('✅ Confirmation - Nouvelle partie');
+            this.executeNewGame();
+        } else {
+            console.log('❌ Annulation - Reprise de la partie');
+            this.resumeTimer();
+        }
+    }
+
+    // Créer une modal de confirmation stylée
+    createConfirmationModal() {
+        // Vérifier si une modal existe déjà
+        if (document.getElementById('chessConfirmationModal')) {
+            return true;
+        }
+        
+        try {
+            const modal = document.createElement('div');
+            modal.id = 'chessConfirmationModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                font-family: Arial, sans-serif;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 30px;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    text-align: center;
+                    max-width: 400px;
+                    width: 90%;
+                ">
+                    <h3 style="margin: 0 0 15px 0; color: #333;">Nouvelle partie</h3>
+                    <p style="margin: 0 0 25px 0; color: #666; line-height: 1.5;">
+                        Êtes-vous sûr de vouloir commencer une nouvelle partie ?<br>
+                        <strong>La partie en cours sera perdue.</strong>
+                    </p>
+                    <div style="display: flex; gap: 15px; justify-content: center;">
+                        <button id="confirmNewGame" style="
+                            padding: 12px 25px;
+                            background: #dc3545;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 16px;
+                            font-weight: bold;
+                            transition: background 0.3s;
+                        " onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">Nouvelle Partie</button>
+                        <button id="cancelNewGame" style="
+                            padding: 12px 25px;
+                            background: #6c757d;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 16px;
+                            transition: background 0.3s;
+                        " onmouseover="this.style.background='#5a6268'" onmouseout="this.style.background='#6c757d'">Annuler</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Événements des boutons
+            document.getElementById('confirmNewGame').addEventListener('click', () => {
+                console.log('✅ Confirmation modal - Nouvelle partie');
+                this.removeConfirmationModal();
+                this.executeNewGame();
+            });
+            
+            document.getElementById('cancelNewGame').addEventListener('click', () => {
+                console.log('❌ Annulation modal - Reprise de la partie');
+                this.removeConfirmationModal();
+                this.resumeTimer();
+            });
+            
+            // Fermer en cliquant à l'extérieur
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    console.log('❌ Fermeture modal - Reprise de la partie');
+                    this.removeConfirmationModal();
+                    this.resumeTimer();
+                }
+            });
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Erreur création modal:', error);
+            return false;
+        }
+    }
+
+    removeConfirmationModal() {
+        const modal = document.getElementById('chessConfirmationModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    // Exécuter la nouvelle partie
+    executeNewGame() {
+        console.log('🎮 Début de nouvelle partie - Redirection vers index.php');
+        
+        // Arrêter définitivement l'ancien timer
+        this.stopTimer();
+        
+        // Redirection vers index.php pour nouvelle configuration
+        setTimeout(() => {
+            window.location.href = 'index.php';
+        }, 500);
+    }
+
+    // Gestion améliorée des timers
+    startTimer() {
+        if (this.timerInterval) {
+            this.stopTimer();
+        }
+        
+        // Vérifier que le jeu est actif
+        if (!this.game.gameState.gameActive) {
+            console.log('⏱️ Timer non démarré - jeu non actif');
+            return;
+        }
+        
+        this.gameStartTime = Date.now();
+        this.isTimerRunning = true;
+        
+        this.timerInterval = setInterval(() => {
+            if (!this.game.gameState.gameActive) {
+                this.stopTimer();
+                return;
+            }
+            
+            // Incrémenter le temps du joueur actuel
+            if (this.game.gameState.currentPlayer === 'white') {
+                this.whiteTime++;
+            } else {
+                this.blackTime++;
+            }
+            
+            this.updateTimerDisplay();
+            
+        }, 1000);
+        
+        console.log('⏱️ Timer démarré - Jeu actif');
+    }
+
+    stopTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+        this.isTimerRunning = false;
+        console.log('⏱️ Timer arrêté');
+    }
+
+    resumeTimer() {
+        if (this.game.gameState.gameActive && !this.isTimerRunning) {
+            this.startTimer();
+            console.log('⏱️ Timer repris');
+        }
+    }
+
+    resetTimers() {
+        this.stopTimer();
+        this.whiteTime = 0;
+        this.blackTime = 0;
+        this.updateTimerDisplay();
+        console.log('⏱️ Timers réinitialisés');
+    }
+
+    updateTimerDisplay() {
+        // CORRECTION : Utiliser les bons IDs (whiteTime et blackTime au lieu de whiteTimer et blackTimer)
+        const whiteTimerElement = document.getElementById('whiteTime');
+        const blackTimerElement = document.getElementById('blackTime');
+        
+        if (whiteTimerElement) {
+            whiteTimerElement.textContent = this.formatTime(this.whiteTime);
+            // Style pour le joueur actif
+            if (this.game.gameState.currentPlayer === 'white') {
+                whiteTimerElement.style.fontWeight = 'bold';
+                whiteTimerElement.style.color = '#28a745';
+            } else {
+                whiteTimerElement.style.fontWeight = 'normal';
+                whiteTimerElement.style.color = '';
+            }
+        } else {
+            console.log('⏱️ Élément whiteTime non trouvé');
+        }
+        
+        if (blackTimerElement) {
+            blackTimerElement.textContent = this.formatTime(this.blackTime);
+            // Style pour le joueur actif
+            if (this.game.gameState.currentPlayer === 'black') {
+                blackTimerElement.style.fontWeight = 'bold';
+                blackTimerElement.style.color = '#28a745';
+            } else {
+                blackTimerElement.style.fontWeight = 'normal';
+                blackTimerElement.style.color = '';
+            }
+        } else {
+            console.log('⏱️ Élément blackTime non trouvé');
+        }
+    }
+
+    formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    showNotification(message, type = 'info') {
+        console.log(`📢 ${type.toUpperCase()}: ${message}`);
+        
+        // Utiliser le système de notification du gameStatusManager si disponible
+        if (this.game.gameStatusManager && this.game.gameStatusManager.showNotification) {
+            this.game.gameStatusManager.showNotification(message, type);
+        } else {
+            // Fallback simple
+            alert(`${type.toUpperCase()}: ${message}`);
+        }
+    }
+
+    // Copier FEN dans le presse-papier
+    copyFENToClipboard() {
+        try {
+            const fen = FENGenerator.generateFEN(this.game.gameState, this.game.board);
+            navigator.clipboard.writeText(fen).then(() => {
+                this.showNotification('FEN copié dans le presse-papier !', 'success');
+            }).catch(err => {
+                console.error('Erreur copie FEN:', err);
+                this.showNotification('Erreur lors de la copie du FEN', 'error');
+            });
+        } catch (error) {
+            console.error('Erreur génération FEN:', error);
+            this.showNotification('Erreur génération FEN', 'error');
+        }
+    }
+
+    // Copier PGN dans le presse-papier
+    copyPGNToClipboard() {
+        try {
+            const pgn = this.game.gameState.getPGN();
+            navigator.clipboard.writeText(pgn).then(() => {
+                this.showNotification('PGN copié dans le presse-papier !', 'success');
+            }).catch(err => {
+                console.error('Erreur copie PGN:', err);
+                this.showNotification('Erreur lors de la copie du PGN', 'error');
+            });
+        } catch (error) {
+            console.error('Erreur génération PGN:', error);
+            this.showNotification('Erreur génération PGN', 'error');
+        }
+    }
+
+    // Initialiser les styles de notification
+    initNotificationStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .chess-notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                z-index: 1000;
+                animation: slideIn 0.3s ease-out;
+                max-width: 300px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+            
+            .chess-notification.success {
+                background: #28a745;
+            }
+            
+            .chess-notification.error {
+                background: #dc3545;
+            }
+            
+            .chess-notification.info {
+                background: #17a2b8;
+            }
+            
+            .chess-notification.warning {
+                background: #ffc107;
+                color: #212529;
+            }
+            
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Initialiser les styles pour l'historique des coups
+    initMoveHistoryStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .move-history-container {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 14px;
+                line-height: 1.4;
+                max-height: 400px;
+                overflow-y: auto;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                background: #fafafa;
+            }
+            
+            .move-row {
+                display: flex;
+                align-items: center;
+                padding: 8px 12px;
+                border-bottom: 1px solid #e8e8e8;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                min-height: 36px;
+            }
+            
+            .move-row:hover {
+                background-color: #f0f8ff;
+            }
+            
+            .move-row.selected {
+                background-color: #007bff !important;
+                color: white !important;
+            }
+            
+            .move-row:last-child {
+                border-bottom: none;
+            }
+            
+            .move-number {
+                color: #666;
+                font-weight: 600;
+                min-width: 28px;
+                margin-right: 8px;
+                font-size: 13px;
+            }
+            
+            .move-pair {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex: 1;
+            }
+            
+            .move-separator {
+                width: 1px;
+                height: 20px;
+                background: #e0e0e0;
+                margin: 0 8px;
+            }
+            
+            .white-move {
+                color: #2c3e50;
+                font-weight: 600;
+                min-width: 50px;
+            }
+            
+            .black-move {
+                color: #7f8c8d;
+                font-weight: 600;
+                min-width: 50px;
+            }
+            
+            .move-row.selected .white-move,
+            .move-row.selected .black-move,
+            .move-row.selected .move-number {
+                color: white !important;
+            }
+            
+            /* Style compact pour mobile */
+            @media (max-width: 768px) {
+                .move-history-container {
+                    font-size: 13px;
+                    max-height: 300px;
+                }
+                
+                .move-row {
+                    padding: 6px 8px;
+                    min-height: 32px;
+                }
+                
+                .move-number {
+                    min-width: 24px;
+                    margin-right: 6px;
+                }
+                
+                .white-move,
+                .black-move {
+                    min-width: 45px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Mettre à jour l'UI complète
+    updateUI() {
+        this.updateTimerDisplay();
+        this.updateMoveHistory();
+        this.updateGameStatus();
+    }
+
+    // MÉTHODE AMÉLIORÉE POUR L'HISTORIQUE DES COUPS
+// MÉTHODE AMÉLIORÉE POUR L'HISTORIQUE DES COUPS - 1 paire par ligne
+updateMoveHistory() {
+    const moveHistoryElement = document.getElementById('moveHistory');
+    if (!moveHistoryElement) return;
+    
+    const moves = this.game.gameState.moveHistory;
+    moveHistoryElement.innerHTML = '';
+    
+    // Appliquer le style container
+    moveHistoryElement.className = 'move-history-container';
+    
+    // Grouper par paires de coups (2 coups par ligne)
+    for (let i = 0; i < moves.length; i += 2) {
+        const moveRowElement = document.createElement('div');
+        moveRowElement.className = 'move-row';
+        
+        // Ajouter un événement de clic pour sélection
+        moveRowElement.addEventListener('click', () => {
+            this.selectMoveRow(moveRowElement, i);
+        });
+        
+        let moveHTML = '';
+        
+        // Numéro de coup
+        const moveNumber = Math.floor(i / 2) + 1;
+        
+        // Paire de coups (blanc + noir)
+        const whiteMove = moves[i];
+        const blackMove = moves[i + 1];
+        
+        moveHTML += `<span class="move-number">${moveNumber}.</span>`;
+        
+        // Coup blanc
+        if (whiteMove) {
+            moveHTML += `<span class="white-move">${this.getMoveNotation(whiteMove)}</span>`;
+        }
+        
+        // Coup noir
+        if (blackMove) {
+            moveHTML += `<span class="black-move">${this.getMoveNotation(blackMove)}</span>`;
+        }
+        
+        moveRowElement.innerHTML = moveHTML;
+        moveHistoryElement.appendChild(moveRowElement);
+    }
+    
+    // Si aucun coup
+    if (moves.length === 0) {
+        moveHistoryElement.innerHTML = '<div class="text-center text-muted small p-3">Aucun coup joué</div>';
+    }
+    
+    // Scroll vers le bas pour voir les derniers coups
+    moveHistoryElement.scrollTop = moveHistoryElement.scrollHeight;
+}
+
+// Initialiser les styles pour l'historique des coups
+initMoveHistoryStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .move-history-container {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        
+        .move-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e8e8e8;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 36px;
+        }
+        
+        .move-row:hover {
+            background-color: #f0f8ff;
+        }
+        
+        .move-row.selected {
+            background-color: #007bff !important;
+            color: white !important;
+        }
+        
+        .move-row:last-child {
+            border-bottom: none;
+        }
+        
+        .move-number {
+            color: #666;
+            font-weight: 600;
+            min-width: 28px;
+            margin-right: 8px;
+            font-size: 13px;
+        }
+        
+        .white-move {
+            color: #2c3e50;
+            font-weight: 600;
+            min-width: 80px;
+            margin-right: 8px;
+        }
+        
+        .black-move {
+            color: #7f8c8d;
+            font-weight: 600;
+            min-width: 80px;
+        }
+        
+        .move-row.selected .white-move,
+        .move-row.selected .black-move,
+        .move-row.selected .move-number {
+            color: white !important;
+        }
+        
+        /* Style compact pour mobile */
+        @media (max-width: 768px) {
+            .move-history-container {
+                font-size: 13px;
+                max-height: 300px;
+            }
+            
+            .move-row {
+                padding: 6px 8px;
+                min-height: 32px;
+            }
+            
+            .move-number {
+                min-width: 24px;
+                margin-right: 6px;
+            }
+            
+            .white-move,
+            .black-move {
+                min-width: 70px;
+                margin-right: 6px;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+    // Méthode pour sélectionner une ligne
+    selectMoveRow(rowElement, startIndex) {
+        // Retirer la sélection précédente
+        document.querySelectorAll('.move-row').forEach(row => {
+            row.classList.remove('selected');
+        });
+        
+        // Ajouter la sélection
+        rowElement.classList.add('selected');
+        
+        console.log('📋 Ligne sélectionnée, coups:', startIndex, 'à', startIndex + 3);
+        
+        // Ici vous pouvez ajouter la logique pour :
+        // - Charger la position à ce coup
+        // - Afficher des détails
+        // - Copier les coups, etc.
+    }
+
+    // Méthodes helpers pour la notation des coups
+    getMoveNotation(move) {
+        if (move.notation) return move.notation;
+        
+        const pieceSymbol = this.getPieceSymbol(move.piece);
+        const toSquare = this.coordinatesToAlgebraic(move.to.row, move.to.col);
+        
+        let notation = '';
+        
+        if (move.piece.toLowerCase() === 'pawn') {
+            notation = move.captured ? 
+                `${this.coordinatesToAlgebraic(move.from.row, move.from.col).charAt(0)}x${toSquare}` : 
+                toSquare;
+        } else {
+            notation = move.captured ? 
+                `${pieceSymbol}x${toSquare}` : 
+                `${pieceSymbol}${toSquare}`;
+        }
+        
+        // Gestion du roque
+        if (move.piece.toLowerCase() === 'king') {
+            if (move.to.col - move.from.col === 2) {
+                notation = 'O-O'; // Petit roque
+            } else if (move.to.col - move.from.col === -2) {
+                notation = 'O-O-O'; // Grand roque
+            }
+        }
+        
+        return notation;
+    }
+
+    coordinatesToAlgebraic(row, col) {
+        const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+        return files[col] + ranks[row];
+    }
+
+    getPieceSymbol(pieceType) {
+        const symbols = {
+            'king': 'K', 
+            'queen': 'Q', 
+            'rook': 'R', 
+            'bishop': 'B', 
+            'knight': 'N', 
+            'pawn': ''
+        };
+        return symbols[pieceType.toLowerCase()] || '';
+    }
+
+    updateGameStatus() {
+        const statusElement = document.getElementById('gameStatus');
+        if (!statusElement) return;
+        
+        let statusText = '';
+        let statusClass = '';
+        
+        if (!this.game.gameState.gameActive) {
+            statusText = 'Partie terminée';
+            statusClass = 'game-ended';
+        } else {
+            statusText = `Tour: ${this.game.gameState.currentPlayer === 'white' ? 'Blancs' : 'Noirs'}`;
+            statusClass = `turn-${this.game.gameState.currentPlayer}`;
+        }
+        
+        statusElement.textContent = statusText;
+        statusElement.className = `game-status ${statusClass}`;
+    }
+}
+
+window.ChessGameUI = ChessGameUI;
