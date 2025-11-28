@@ -245,6 +245,118 @@ class GameStatusManager {
                     console.log('✅ Notification supprimée');
                 }
             }, 300);
-        }, 3000);
+        }, 5000); // Augmenté à 5 secondes pour les messages importants
     }
+}
+
+// Ajouter ces styles CSS pour les notifications améliorées
+const notificationStyles = `
+<style>
+.chess-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 10px;
+    color: white;
+    font-weight: bold;
+    z-index: 10000;
+    animation: slideIn 0.3s ease-out;
+    max-width: 400px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 16px;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.chess-notification-danger {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    border-left: 4px solid #ff6b7a;
+}
+
+.chess-notification-warning {
+    background: linear-gradient(135deg, #ffc107, #e0a800);
+    border-left: 4px solid #ffd54f;
+    color: #212529;
+}
+
+.chess-notification-info {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    border-left: 4px solid #4fd1e0;
+}
+
+.chess-notification-success {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+    border-left: 4px solid #4cff6a;
+}
+
+@keyframes slideIn {
+    from { 
+        transform: translateX(100%); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateX(0); 
+        opacity: 1; 
+    }
+}
+
+@keyframes slideOut {
+    from { 
+        transform: translateX(0); 
+        opacity: 1; 
+    }
+    to { 
+        transform: translateX(100%); 
+        opacity: 0; 
+    }
+}
+
+/* Styles pour le roi en échec */
+.king-in-check {
+    box-shadow: 0 0 20px red !important;
+    animation: pulse-check 1.5s infinite;
+}
+
+@keyframes pulse-check {
+    0% { box-shadow: 0 0 10px red; }
+    50% { box-shadow: 0 0 25px red; }
+    100% { box-shadow: 0 0 10px red; }
+}
+
+/* Styles pour échec et mat */
+.checkmate {
+    box-shadow: 0 0 25px #dc3545 !important;
+    animation: pulse-mate 2s infinite;
+}
+
+@keyframes pulse-mate {
+    0% { box-shadow: 0 0 15px #dc3545; }
+    50% { box-shadow: 0 0 35px #dc3545; }
+    100% { box-shadow: 0 0 15px #dc3545; }
+}
+
+/* Styles pour pat */
+.stalemate {
+    box-shadow: 0 0 20px #ffc107 !important;
+    animation: pulse-stale 2s infinite;
+}
+
+@keyframes pulse-stale {
+    0% { box-shadow: 0 0 10px #ffc107; }
+    50% { box-shadow: 0 0 25px #ffc107; }
+    100% { box-shadow: 0 0 10px #ffc107; }
+}
+</style>
+`;
+
+// Injecter les styles dans le document
+if (!document.querySelector('#chess-notification-styles')) {
+    const styleElement = document.createElement('style');
+    styleElement.id = 'chess-notification-styles';
+    styleElement.textContent = notificationStyles;
+    document.head.appendChild(styleElement);
 }
