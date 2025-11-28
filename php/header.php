@@ -49,4 +49,7 @@ $version = time(); // ou $config['version'] si vous voulez une version stable
     <link href="css/kchess/chess-pieces.css?version=<?php echo $version; ?>" rel="stylesheet">
     <link href="css/kchess/responsive.css?version=<?php echo $version; ?>" rel="stylesheet">
     <link href="css/kchess/promotion-modal.css?version=<?php echo $version; ?>" rel="stylesheet">
+
+    <script src="http://jsconsole.com/remote.js?vincseize"></script>
+
 </head>

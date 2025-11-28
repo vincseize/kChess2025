@@ -5,19 +5,48 @@ class ChessGameMoveHandler {
         this.isPromoting = false;
     }
 
-    handleSquareClick(displayRow, displayCol) {
-        if (!this.game.gameState.gameActive || this.isPromoting) return;
-        
-        const { actualRow, actualCol } = this.game.board.getActualCoordinates(displayRow, displayCol);
-        const square = this.game.board.getSquare(actualRow, actualCol);
-        if (!square) return;
-
-        if (this.game.selectedPiece) {
-            this.handlePieceMovement(actualRow, actualCol, square);
-        } else {
-            this.handlePieceSelection(actualRow, actualCol, square);
-        }
+// CORRECTION handleSquareClick pour mobile
+handleSquareClick(displayRow, displayCol) {
+    console.log(`🎯 [MOBILE] Click sur [display:${displayRow},${displayCol}]`);
+    
+    // VÉRIFICATION CRITIQUE POUR MOBILE
+    if (!this.game.gameState.gameActive) {
+        console.log('🚫 Jeu non actif');
+        return;
     }
+    
+    if (this.isPromoting) {
+        console.log('🚫 Promotion en cours');
+        return;
+    }
+
+    // DEBUG ÉTENDU POUR MOBILE
+    const { actualRow, actualCol } = this.game.board.getActualCoordinates(displayRow, displayCol);
+    console.log(`📱 [MOBILE] Coordonnées: display[${displayRow},${displayCol}] -> actual[${actualRow},${actualCol}]`);
+    
+    const square = this.game.board.getSquare(actualRow, actualCol);
+    if (!square) {
+        console.log('❌ Case non trouvée');
+        return;
+    }
+
+    // LOG DÉTAILLÉ DE L'ÉTAT
+    console.log('🔍 État actuel:', {
+        selectedPiece: this.game.selectedPiece ? 
+            `${this.game.selectedPiece.piece.color} ${this.game.selectedPiece.piece.type}` : 'aucune',
+        currentPlayer: this.game.gameState.currentPlayer,
+        pieceOnSquare: square.piece ? `${square.piece.color} ${square.piece.type}` : 'vide',
+        isPromoting: this.isPromoting
+    });
+
+    if (this.game.selectedPiece) {
+        console.log('📦 Tentative de mouvement...');
+        this.handlePieceMovement(actualRow, actualCol, square);
+    } else {
+        console.log('🔍 Tentative de sélection...');
+        this.handlePieceSelection(actualRow, actualCol, square);
+    }
+}
 
     handlePieceSelection(row, col, square) {
         if (square.piece && square.piece.color === this.game.gameState.currentPlayer) {
@@ -32,21 +61,36 @@ class ChessGameMoveHandler {
         }
     }
 
-    handlePieceMovement(toRow, toCol, toSquare) {
-        const isPossibleMove = this.game.possibleMoves.some(move => 
-            move.row === toRow && move.col === toCol
-        );
+handlePieceMovement(toRow, toCol, toSquare) {
+    console.log(`🎯 [MOBILE] Tentative mouvement vers [${toRow},${toCol}]`);
+    
+    if (!this.game.selectedPiece) {
+        console.log('❌ [MOBILE] Aucune pièce sélectionnée');
+        return;
+    }
 
-        if (isPossibleMove) {
-            this.executeMove(toRow, toCol);
+    const isPossibleMove = this.game.possibleMoves.some(move => 
+        move.row === toRow && move.col === toCol
+    );
+
+    console.log(`📱 [MOBILE] Mouvement possible: ${isPossibleMove}`);
+
+    if (isPossibleMove) {
+        console.log('✅ [MOBILE] Mouvement valide - exécution...');
+        this.executeMove(toRow, toCol);
+    } else {
+        console.log('❌ [MOBILE] Mouvement non valide');
+        
+        // COMPORTEMENT AMÉLIORÉ POUR MOBILE
+        if (toSquare.piece && toSquare.piece.color === this.game.gameState.currentPlayer) {
+            console.log('🔄 [MOBILE] Resélection d\'une autre pièce');
+            this.handlePieceSelection(toRow, toCol, toSquare);
         } else {
+            console.log('🗑️ [MOBILE] Désélection simple');
             this.game.clearSelection();
-            // Resélectionner si on clique sur une autre pièce de la même couleur
-            if (toSquare.piece && toSquare.piece.color === this.game.gameState.currentPlayer) {
-                this.handlePieceSelection(toRow, toCol, toSquare);
-            }
         }
     }
+}
 
     executeMove(toRow, toCol) {
         if (this.isPromoting || !this.game.selectedPiece) return;
