@@ -1,7 +1,8 @@
 {
   "name": "CharlyChess",
-  "short_name": "CharlyChess", 
+  "short_name": "CharlyChess",
   "description": "Jeu d'échecs en ligne",
+  "version": "0.31",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#667eea",
@@ -16,7 +17,7 @@
     },
     {
       "src": "img/icon-512x512.png",
-      "sizes": "512x512", 
+      "sizes": "512x512",
       "type": "image/png"
     }
   ]

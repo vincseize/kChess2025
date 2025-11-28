@@ -58,5 +58,7 @@
 <script src="js/kchess/bots/bot-test-interface.js?version=<?php echo $version; ?>"></script>
 <?php endif; ?>
 
+<script src="js/kchess/debug/device-logger.js?version=<?php echo $version; ?>"></script>
+
 </body>
 </html>
