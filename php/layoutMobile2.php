@@ -141,7 +141,7 @@ header {
 }
 
 /* Les autres tabs n'ont pas de scroll interne */
-#tab-nouvellePartie, #before, #next {
+#tab-nouvellePartie {
     overflow-y: visible;
 }
 
