@@ -49,7 +49,7 @@ body.dark {
 header {
     height:60px; 
     background:var(--color5); 
-    color:white; 
+    color:var(--color4); 
     display:flex; 
     justify-content:center; 
     align-items:center; 
@@ -64,12 +64,52 @@ header {
     flex-direction:column;
     min-height:0;
 }
+.section-joueurs, .middle-div {width:100%; display:flex; justify-content:center; align-items:center;}
 
-.section-top-board, .middle-div, .section-bottom-board {width:100%; display:flex; justify-content:center; align-items:center;}
-
-.section-top-board {
+.section-joueurs {
     background:var(--color2);
-    padding:10px 0;
+    padding:10px 15px;
+}
+
+.player-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px;
+}
+
+.player-name {
+    text-align: left;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: white;
+}
+
+.player-clock {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-size: 1.3rem;
+    font-weight: bold;
+    background: rgba(0,0,0,0.2);
+    padding: 5px 10px;
+    border-radius: 5px;
+    min-width: 80px;
+}
+
+.player-clock-black {
+    color: white;
+    background: black;
+}
+
+.player-clock-black {
+    color: white;
+    background: black;
+}
+
+.player-clock-white {
+    color: black;
+    background: white;
 }
 
 .middle-div {
@@ -89,14 +129,10 @@ header {
     justify-content:center; 
     align-items:center; 
     text-align:center; 
-    color:white; 
+    color:var(--color2); 
     font-weight:bold; 
     font-size:1.2rem; 
-    padding:10px;}
-
-.section-bottom-board {
-    background:var(--color2);
-    padding:10px 0;
+    padding:10px;
 }
 
 /* Tabs */
@@ -192,13 +228,23 @@ header {
 
     <div class="content-container">
 
-        <div class="section-top-board">Section du haut Joueur 1</div>
+        <div id="section-black" class="section-joueurs">
+            <div class="player-info">
+                <div class="player-name">Joueur 2 black</div>
+                <div class="player-clock player-clock-black">10:00</div>
+            </div>
+        </div>
 
         <div class="middle-div">
             <div id="gameContent" class="section-board">Zone de jeu (échecs)</div>
         </div>
 
-        <div class="section-bottom-board">Section du bas Joueur 2</div>
+        <div id="section-white" class="section-joueurs">
+            <div class="player-info">
+                <div class="player-name">Joueur 1 white</div>
+                <div class="player-clock player-clock-white">10:00</div>
+            </div>
+        </div>
 
 <!-- Tabs -->
 <div class="tabs">
