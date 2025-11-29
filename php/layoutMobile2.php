@@ -8,6 +8,15 @@
 * {margin:0;padding:0;box-sizing:border-box;}
 
 :root {
+    /* couleurs */ 
+    /* palette turquoise */ 
+    --color1:#6B949E;   
+    --color2:#447784;
+    --color3:#255C69;   
+    --color4:#0F434F;   
+    --color5:#012B35;
+
+    /* autres */   
     --color6:#dcdcdc;   
     --color7:#bcbcbc;   
     --color8:darkgray;
@@ -37,7 +46,17 @@ body.dark {
     min-height: 100vh; /* Assure que le layout prend toute la hauteur */
 }
 
-header {height:60px; background:#3498db; color:white; display:flex; justify-content:center; align-items:center; position:relative;}
+header {
+    height:60px; 
+    background:#3498db; 
+    color:white; 
+    display:flex; 
+    justify-content:center; 
+    align-items:center; 
+    position:relative;
+    font-size:1.5rem;
+    font-weight:bold;
+}
 
 .content-container {
     flex:1;
@@ -54,10 +73,43 @@ header {height:60px; background:#3498db; color:white; display:flex; justify-cont
 .player2-div {background:#bdc3c7; padding:10px 0;}
 
 /* Tabs */
-.tabs {display:flex; background:#ecf0f1; height:50px;}
-.tab {flex:1; display:flex; justify-content:center; align-items:center; background-color:var(--color6); cursor:pointer; gap:5px; user-select:none;}
+.tabs {
+    display:flex; 
+    background:#ecf0f1; 
+    height:60px; /* Un peu plus haut pour accommoder le texte sous l'icône */
+}
+
+.tab {
+    flex:1; 
+    display:flex; 
+    flex-direction: column; /* Changement important : colonne au lieu de ligne */
+    justify-content: center; 
+    align-items: center;
+    background-color:var(--color6); 
+    cursor:pointer; 
+    gap:2px; /* Espace entre icône et texte */
+    user-select:none;
+    padding: 5px;
+    text-align: center;
+}
+
 .tab:hover, .tab:active {background-color:var(--color7);}
 .tab.active {background-color:var(--color7); font-weight:bold;}
+
+.tab-icon {
+    font-size: 1.6rem; /* Taille des icônes */
+    line-height: 1;
+}
+
+.tab-text {
+    font-size: 0.6em;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.tab-textTourner {
+    opacity: 1;
+}
 
 /* Wrapper contenu tab */
 .tab-wrapper {
@@ -77,14 +129,14 @@ header {height:60px; background:#3498db; color:white; display:flex; justify-cont
 }
 
 /* Style spécifique pour la div Coups avec scroll interne */
-#Coups {
+.tab-coups {
     overflow-y: auto;  /* Scroll vertical uniquement pour cette div */
     height: 100%;
     max-height: 300px; /* Hauteur maximale pour forcer le scroll interne */
 }
 
 /* Les autres tabs n'ont pas de scroll interne */
-#Tab2, #before, #next {
+#tab-nouvellePartie, #before, #next {
     overflow-y: visible;
 }
 
@@ -103,8 +155,7 @@ header {height:60px; background:#3498db; color:white; display:flex; justify-cont
 <div class="game-layout">
 
     <header>
-        Header Principal
-        <button class="theme-button" onclick="toggleTheme()">🌙</button>
+        CharlyChess
     </header>
 
     <div class="content-container">
@@ -117,104 +168,81 @@ header {height:60px; background:#3498db; color:white; display:flex; justify-cont
 
         <div class="player2-div">Section du bas Joueur 2</div>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            <div class="tab active" onclick="changeTab('Coups')">♟️ Coups</div>
-            <div class="tab" onclick="changeTab('Tab2')">📄 Tab2</div>
-            <div class="tab" onclick="changeTab('before')">⚙️ <</div>
-            <div class="tab" onclick="changeTab('next')">⭐ ></div>
-        </div>
+<!-- Tabs -->
+<div class="tabs">
+
+    <div class="tab" onclick="changeTab('tab-nouvellePartie')">
+        <div class="tab-icon">➕</div>
+        <div class="tab-text">Nouvelle Partie</div>
+    </div>
+
+    <div class="tab active" onclick="changeTab('tab-coups')">
+        <div class="tab-icon">♟️</div>
+        <div class="tab-text">Coups</div>
+    </div>
+
+    <div class="tab" onclick="changeTab('tab-avant')">
+        <div class="tab-icon">⬅️</div>
+        <div class="tab-text">Précédent</div>
+    </div>
+    <div class="tab" onclick="changeTab('tab-suivant')">
+        <div class="tab-icon">➡️</div>
+        <div class="tab-text">Suivant</div>
+    </div>
+
+    <div class="tab" onclick="changeTab('tab-tourner')">
+        <div class="tab-icon">🔄</div>
+        <div class="tab-text tab-textTourner">Tourner</div>
+    </div>
+
+</div>
 
         <!-- Wrapper contenu -->
         <div class="tab-wrapper">
-            <div id="Coups" class="tabcontent" style="display:block;">
+            <div id="tab-nouvellePartie" class="tabcontent">
+                <h3>Nouvelle Partie</h3>
+                <p>Contenu de nouvelle partie</p>
+            </div>
+            <div id="tab-coups" class="tabcontent tab-coups" style="display:block;">
                 <h3>Coups</h3>
                 <p>Historique des coups…</p>
                 <!-- Beaucoup de contenu pour tester le scroll -->
-                <p>1. e4 e5</p>
-                <p>2. Cf3 Cc6</p>
-                <p>3. Fb5 a6</p>
-                <p>4. Fa4 Cf6</p>
-                <p>5. O-O Fe7</p>
-                <p>6. Te1 b5</p>
-                <p>7. Fb3 d6</p>
-                <p>8. c3 O-O</p>
-                <p>9. h3 Cb8</p>
-                <p>10. d4 Cbd7</p>
-                <p>11. Cbd2 Fb7</p>
-                <p>12. Fc2 Te8</p>
-                <p>13. Cf1 Ff8</p>
-                <p>14. Cg3 g6</p>
-                <p>15. Fg5 h6</p>
-                <p>16. Fd2 Fg7</p>
-                <p>17. a4 c5</p>
-                <p>18. dxc5 dxc5</p>
-                <p>19. axb5 axb5</p>
-                <p>20. Txa8 Fxa8</p>
-                <p>21. Da1 Da5</p>
-                <p>22. Dxa5 Cxa5</p>
-                <p>23. Fe3 Cc4</p>
-                <p>24. Fxc4 bxc4</p>
-                <p>25. Ce2 Fe6</p>
-                <p>26. Cfd4 Fd7</p>
-                <p>27. Cxc4 Cxc4</p>
-                <p>28. Fxc4 Fxc4</p>
-                <p>29. Cxc4 Tb8</p>
-                <p>30. b3 Tb4</p>
-                <p>31. Ce3 Tb5</p>
-                <p>32. Td1 Fe5</p>
-                <p>33. f4 Fc7</p>
-                <p>34. Td7 Fb6</p>
-                <p>35. Tb7 Txb7</p>
-                <p>36. Cxb7 Fxf2+</p>
-                <p>37. Rxf2 Rf8</p>
-                <p>38. Re3 Re7</p>
-                <p>39. Cd6 f6</p>
-                <p>40. g4 Rd7</p>
-                <p>41. Rf3 Rc6</p>
-                <p>42. Re4 Rd7</p>
-                <p>43. h4 Rc6</p>
-                <p>44. g5 hxg5</p>
-                <p>45. hxg5 fxg5</p>
-                <p>46. Cb7 Rd7</p>
-                <p>47. Cd8 Re8</p>
-                <p>48. Cc6 Rf7</p>
-                <p>49. Cxe5+ Rg7</p>
-                <p>50. Cc6 Rf6</p>
-                <p>51. e5+ Rf7</p>
-                <p>52. Cd4 g4</p>
-                <p>53. Rf4 g3</p>
-                <p>54. Rxg3 Re6</p>
-                <p>55. Rf4 Rd5</p>
-                <p>56. e6 Rxd4</p>
-                <p>57. e7 c4</p>
-                <p>58. e8=D c3</p>
-                <p>59. De4+ Rc5</p>
-                <p>60. Dxc3+ Rd5</p>
-                <p>61. Dd3+ Rc5</p>
-                <p>62. Re5 Rb4</p>
-                <p>63. Dd4+ Ra3</p>
-                <p>64. Db2+ Ra4</p>
-                <p>65. Db4# 1-0</p>
+                <p>1. e4 e5 2. Cf3 Cc6</p>
+    <p>3. Fb5 a6 4. Fa4 Cf6</p>
+    <p>5. O-O Fe7 6. Te1 b5</p>
+    <p>7. Fb3 d6 8. c3 O-O</p>
+    <p>9. h3 Cb8 10. d4 Cbd7</p>
+    <p>11. Cbd2 Fb7 12. Fc2 Te8</p>
+    <p>13. Cf1 Ff8 14. Cg3 g6</p>
+    <p>15. Fg5 h6 16. Fd2 Fg7</p>
+    <p>17. a4 c5 18. dxc5 dxc5</p>
+    <p>19. axb5 axb5 20. Txa8 Fxa8</p>
+    <p>21. Da1 Da5 22. Dxa5 Cxa5</p>
+    <p>23. Fe3 Cc4 24. Fxc4 bxc4</p>
+    <p>25. Ce2 Fe6 26. Cfd4 Fd7</p>
+    <p>27. Cxc4 Cxc4 28. Fxc4 Fxc4</p>
+    <p>29. Cxc4 Tb8 30. b3 Tb4</p>
+    <p>31. Ce3 Tb5 32. Td1 Fe5</p>
+    <p>33. f4 Fc7 34. Td7 Fb6</p>
             </div>
-            <div id="Tab2" class="tabcontent">
-                <h3>Tab 2</h3>
-                <p>Contenu du deuxième onglet</p>
-            </div>
-            <div id="before" class="tabcontent">
+
+            <div id="tab-avant" class="tabcontent">
                 <h3>Précédent</h3>
                 <p>Contenu précédent</p>
             </div>
-            <div id="next" class="tabcontent">
+            <div id="tab-suivant" class="tabcontent">
                 <h3>Suivant</h3>
                 <p>Contenu suivant</p>
+            </div>
+            <div id="tab-tourner" class="tabcontent">
+                <h3>Tourner</h3>
+                <p>Contenu tourner</p>
             </div>
         </div>
 
     <div id="footer" class="footer"></div>
 
     </div>
-
 
 </div>
 
@@ -224,15 +252,18 @@ function changeTab(tabId) {
     for(let c of contents) c.style.display="none";
     const tabs = document.getElementsByClassName("tab");
     for(let t of tabs) t.classList.remove("active");
-    const activeTab = document.querySelector(`.tab[onclick="changeTab('${tabId}')"]`);
+    
+    // Trouver l'onglet actif en cherchant celui qui a le bon onclick
+    const activeTab = Array.from(tabs).find(tab => 
+        tab.getAttribute('onclick') === `changeTab('${tabId}')`
+    );
     if(activeTab) activeTab.classList.add("active");
+    
     const selected = document.getElementById(tabId);
     if(selected) selected.style.display="block";
 }
 
-function toggleTheme() {
-    document.body.classList.toggle("dark");
-}
+
 </script>
 
 </body>
