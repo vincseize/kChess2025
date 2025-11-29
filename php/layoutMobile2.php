@@ -48,7 +48,7 @@ body.dark {
 
 header {
     height:60px; 
-    background:#3498db; 
+    background:var(--color5); 
     color:white; 
     display:flex; 
     justify-content:center; 
@@ -67,10 +67,37 @@ header {
 
 .section-top-board, .middle-div, .section-bottom-board {width:100%; display:flex; justify-content:center; align-items:center;}
 
-.section-top-board {background:#ecf0f1; padding:10px 0;}
-.middle-div {width:100%; height:0; padding-top:100%; background:#e74c3c; position:relative;}
-.middle-div-content {position:absolute; top:0; left:0; width:100%; height:100%; display:flex; justify-content:center; align-items:center; text-align:center; color:white; font-weight:bold; font-size:1.2rem; padding:10px;}
-.section-bottom-board {background:#bdc3c7; padding:10px 0;}
+.section-top-board {
+    background:var(--color2);
+    padding:10px 0;
+}
+
+.middle-div {
+    width:100%; 
+    height:0; 
+    padding-top:100%; 
+    background:var(--color1); 
+    position:relative;
+}
+
+.section-board {
+    position:absolute; 
+    top:0; left:0; 
+    width:100%; 
+    height:100%; 
+    display:flex; 
+    justify-content:center; 
+    align-items:center; 
+    text-align:center; 
+    color:white; 
+    font-weight:bold; 
+    font-size:1.2rem; 
+    padding:10px;}
+
+.section-bottom-board {
+    background:var(--color2);
+    padding:10px 0;
+}
 
 /* Tabs */
 .tabs {
@@ -149,10 +176,10 @@ header {
 .footer {
     height: 15px; 
     width:100%; 
-    background-color:var(--color8);
+    background-color:var(--color5);
     margin-top: auto; /* Pousse le footer vers le bas */
 }
-.theme-button {position:absolute; right:10px; top:10px; background:transparent; border:0; font-size:1.3rem; cursor:pointer; user-select:none;}
+
 </style>
 </head>
 <body>
@@ -168,7 +195,7 @@ header {
         <div class="section-top-board">Section du haut Joueur 1</div>
 
         <div class="middle-div">
-            <div id="gameContent" class="middle-div-content">Zone de jeu (échecs)</div>
+            <div id="gameContent" class="section-board">Zone de jeu (échecs)</div>
         </div>
 
         <div class="section-bottom-board">Section du bas Joueur 2</div>
