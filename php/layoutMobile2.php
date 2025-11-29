@@ -65,12 +65,12 @@ header {
     min-height:0;
 }
 
-.top-div, .middle-div, .player2-div {width:100%; display:flex; justify-content:center; align-items:center;}
+.section-top-board, .middle-div, .section-bottom-board {width:100%; display:flex; justify-content:center; align-items:center;}
 
-.top-div {background:#ecf0f1; padding:10px 0;}
+.section-top-board {background:#ecf0f1; padding:10px 0;}
 .middle-div {width:100%; height:0; padding-top:100%; background:#e74c3c; position:relative;}
 .middle-div-content {position:absolute; top:0; left:0; width:100%; height:100%; display:flex; justify-content:center; align-items:center; text-align:center; color:white; font-weight:bold; font-size:1.2rem; padding:10px;}
-.player2-div {background:#bdc3c7; padding:10px 0;}
+.section-bottom-board {background:#bdc3c7; padding:10px 0;}
 
 /* Tabs */
 .tabs {
@@ -80,7 +80,6 @@ header {
 }
 
 .tab {
-    flex:1; 
     display:flex; 
     flex-direction: column; /* Changement important : colonne au lieu de ligne */
     justify-content: center; 
@@ -91,6 +90,12 @@ header {
     user-select:none;
     padding: 5px;
     text-align: center;
+    flex: 1; /* Largeur égale par défaut */
+}
+
+/* Tab "Nouvelle Partie" plus large */
+.tab-nouvellePartie {
+    flex: 2; /* Prend 2 fois plus de place que les autres */
 }
 
 .tab:hover, .tab:active {background-color:var(--color7);}
@@ -160,18 +165,18 @@ header {
 
     <div class="content-container">
 
-        <div class="top-div">Section du haut Joueur 1</div>
+        <div class="section-top-board">Section du haut Joueur 1</div>
 
         <div class="middle-div">
             <div id="gameContent" class="middle-div-content">Zone de jeu (échecs)</div>
         </div>
 
-        <div class="player2-div">Section du bas Joueur 2</div>
+        <div class="section-bottom-board">Section du bas Joueur 2</div>
 
 <!-- Tabs -->
 <div class="tabs">
 
-    <div class="tab" onclick="changeTab('tab-nouvellePartie')">
+    <div class="tab tab-nouvellePartie" onclick="changeTab('tab-nouvellePartie')">
         <div class="tab-icon">➕</div>
         <div class="tab-text">Nouvelle Partie</div>
     </div>
@@ -262,8 +267,6 @@ function changeTab(tabId) {
     const selected = document.getElementById(tabId);
     if(selected) selected.style.display="block";
 }
-
-
 </script>
 
 </body>
