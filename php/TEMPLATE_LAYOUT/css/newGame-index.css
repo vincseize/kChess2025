@@ -1,4 +1,4 @@
-/* newGame-index.css - Styles corrigés pour mobile */
+/* newGame-index.css - Styles pour la page d'accueil nouvelle partie */
 
 body {
     height: 100vh;
@@ -33,16 +33,16 @@ header {
     z-index: 10;
 }
 
-/* Contenu principal - CORRECTION IMPORTANTE */
+/* Contenu principal */
 .main-content {
     flex: 1;
     display: flex;
     justify-content: center;
-    align-items: flex-start; /* Changé de center à flex-start */
+    align-items: flex-start;
     min-height: 0;
     padding: 20px;
     overflow-y: auto;
-    margin-top: 0; /* Assurer qu'il n'y a pas de marge en haut */
+    margin-top: 0;
 }
 
 .new-game-container {
@@ -52,38 +52,45 @@ header {
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.1);
     overflow: hidden;
-    margin-top: 0; /* Important pour mobile */
+    margin-top: 0;
 }
 
 .new-game-content {
-    padding: 1.5rem; /* Réduit le padding sur mobile */
+    padding: 1.5rem;
 }
 
 .new-game-title {
     text-align: center;
     color: var(--color5);
-    margin-bottom: 1.5rem; /* Réduit sur mobile */
-    font-size: 1.8rem; /* Taille réduite sur mobile */
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
     font-weight: bold;
 }
 
 /* Sections */
 .new-game-section {
-    margin-bottom: 1.5rem; /* Réduit sur mobile */
+    margin-bottom: 1.5rem;
 }
 
-/* Boutons de mode de jeu - Adaptation mobile */
+.section-title {
+    color: var(--color4);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+/* Boutons de mode de jeu */
 .new-game-buttons {
     display: flex;
     flex-direction: column;
-    gap: 0.8rem; /* Espacement réduit sur mobile */
+    gap: 0.8rem;
 }
 
 .game-mode-btn {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem; /* Padding réduit sur mobile */
+    padding: 1rem;
     border: 2px solid var(--color7);
     border-radius: 8px;
     background: white;
@@ -92,7 +99,77 @@ header {
     text-align: left;
 }
 
-/* Sélection de couleur - Adaptation mobile */
+.game-mode-btn:hover {
+    border-color: var(--color3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.game-mode-btn.active {
+    border-color: var(--color2);
+    background: linear-gradient(135deg, var(--color1) 0%, var(--color2) 100%);
+    color: white;
+    box-shadow: 0 4px 16px rgba(67, 119, 132, 0.3);
+    transform: translateY(-2px);
+}
+
+.mode-description {
+    flex: 1;
+}
+
+.mode-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--color5);
+}
+
+.mode-icon {
+    font-size: 1.4rem;
+    color: var(--color2);
+}
+
+.mode-details {
+    margin-left: 2.2rem;
+}
+
+.mode-difficulty {
+    font-size: 0.85rem;
+    color: var(--color4);
+    margin-bottom: 0.2rem;
+}
+
+/* Gestion du check-icon - CACHÉ par défaut, VISIBLE seulement quand actif */
+.game-mode-btn .bi-check-lg {
+    display: none; /* Caché par défaut */
+    font-size: 1.2rem;
+    color: white;
+    margin-left: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Afficher le check-icon seulement quand le bouton est actif */
+.game-mode-btn.active .bi-check-lg {
+    display: inline-block; /* Rendre visible */
+    opacity: 1; /* Animation d'apparition */
+}
+
+.game-mode-btn.active .mode-icon {
+    color: white !important;
+}
+
+.game-mode-btn.active .mode-header {
+    color: white;
+}
+
+.game-mode-btn.active .mode-difficulty {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Sélection de couleur */
 .color-selection {
     display: flex;
     justify-content: center;
@@ -100,7 +177,7 @@ header {
 
 .color-options {
     display: flex;
-    gap: 1rem; /* Espacement réduit sur mobile */
+    gap: 1rem;
     flex-wrap: wrap;
     justify-content: center;
 }
@@ -109,44 +186,81 @@ header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0.8rem; /* Padding réduit sur mobile */
+    padding: 0.8rem;
     border: 2px solid var(--color7);
     border-radius: 8px;
     background: white;
     cursor: pointer;
     transition: all 0.3s ease;
-    min-width: 90px; /* Largeur réduite sur mobile */
+    min-width: 90px;
+}
+
+.color-option:hover {
+    border-color: var(--color3);
+    transform: translateY(-2px);
+}
+
+.color-option.active {
+    border-color: var(--color2);
+    background: linear-gradient(135deg, var(--color1) 0%, var(--color2) 100%);
+    box-shadow: 0 4px 12px rgba(67, 119, 132, 0.2);
+    transform: translateY(-2px);
 }
 
 .color-piece {
-    width: 40px; /* Taille réduite sur mobile */
+    width: 40px;
     height: 40px;
     display: flex;
     justify-content: center;
     align-items: center;
     margin-bottom: 0.5rem;
-    font-size: 1.6rem; /* Taille réduite sur mobile */
+    font-size: 1.6rem;
+}
+
+.random-icon {
+    font-size: 1.8rem;
+    color: #9C27B0;
+}
+
+.color-label {
+    font-weight: 600;
+    color: var(--color5);
+}
+
+.color-option.active .color-label {
+    color: white;
+    font-weight: bold;
 }
 
 /* Bouton de démarrage */
 .start-game-section {
     text-align: center;
-    margin-top: 1.5rem; /* Marge réduite sur mobile */
+    margin-top: 1.5rem;
 }
 
 .start-game-btn {
     background: linear-gradient(135deg, var(--color2) 0%, var(--color3) 100%);
     color: white;
     border: none;
-    padding: 0.9rem 2rem; /* Padding réduit sur mobile */
+    padding: 0.9rem 2rem;
     border-radius: 8px;
-    font-size: 1rem; /* Taille réduite sur mobile */
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(67, 119, 132, 0.3);
-    width: 100%; /* Pleine largeur sur mobile */
-    max-width: 300px; /* Largeur maximale */
+    width: 100%;
+    max-width: 300px;
+}
+
+.start-game-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(67, 119, 132, 0.4);
+    background: linear-gradient(135deg, var(--color3) 0%, var(--color4) 100%);
+}
+
+.start-game-btn:active {
+    transform: translateY(0);
 }
 
 /* Footer */
@@ -164,26 +278,26 @@ header {
 }
 
 .footer-info {
-    font-size: 0.8rem; /* Taille réduite sur mobile */
+    font-size: 0.8rem;
     opacity: 0.8;
 }
 
 /* MEDIA QUERIES SPÉCIFIQUES POUR MOBILE */
 @media (max-width: 768px) {
     .main-content {
-        padding: 10px; /* Padding réduit */
-        align-items: flex-start; /* Alignement en haut */
-        overflow-y: auto; /* Permettre le scroll si nécessaire */
+        padding: 10px;
+        align-items: flex-start;
+        overflow-y: auto;
     }
     
     .new-game-container {
         margin-top: 0;
-        max-height: calc(100vh - 140px); /* Hauteur maximale calculée */
-        overflow-y: auto; /* Scroll interne si contenu trop long */
+        max-height: calc(100vh - 140px);
+        overflow-y: auto;
     }
     
     .new-game-content {
-        padding: 1rem; /* Padding encore plus réduit */
+        padding: 1rem;
     }
     
     .new-game-title {
@@ -196,15 +310,21 @@ header {
     }
     
     .mode-header {
-        font-size: 0.9rem; /* Texte plus petit */
+        font-size: 0.9rem;
     }
     
     .mode-icon {
-        font-size: 1.2rem; /* Icônes plus petites */
+        font-size: 1.2rem;
     }
     
     .mode-difficulty {
-        font-size: 0.75rem; /* Détails plus petits */
+        font-size: 0.75rem;
+    }
+    
+    /* Check-icon plus petit sur mobile */
+    .game-mode-btn .bi-check-lg {
+        font-size: 1rem;
+        margin-left: 8px;
     }
     
     .color-options {
@@ -231,7 +351,7 @@ header {
 /* Pour les très petits écrans */
 @media (max-width: 480px) {
     header {
-        height: 50px; /* Header plus petit */
+        height: 50px;
         font-size: 1.3rem;
     }
     
@@ -252,12 +372,12 @@ header {
     }
     
     .color-options {
-        flex-direction: row; /* Garder en ligne même sur petit écran */
-        justify-content: space-around; /* Répartir l'espace */
+        flex-direction: row;
+        justify-content: space-around;
     }
     
     .color-option {
-        flex: 1; /* Prendre l'espace disponible */
+        flex: 1;
         min-width: auto;
         margin: 0 2px;
     }
@@ -265,6 +385,12 @@ header {
     .start-game-btn {
         font-size: 0.85rem;
         padding: 0.7rem 1.2rem;
+    }
+    
+    /* Check-icon encore plus petit sur très petits écrans */
+    .game-mode-btn .bi-check-lg {
+        font-size: 0.9rem;
+        margin-left: 5px;
     }
 }
 
@@ -277,4 +403,49 @@ header {
     .new-game-content {
         padding: 0.5rem;
     }
+}
+
+/* Styles pour les icônes Bootstrap */
+.bi::before {
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+}
+
+.me-2 {
+    margin-right: 0.5rem;
+}
+
+/* Animation de fade in */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.new-game-container {
+    animation: fadeIn 0.6s ease-out;
+}
+
+/* Amélioration de l'accessibilité */
+.game-mode-btn:focus {
+    outline: 2px solid var(--color2);
+    outline-offset: 2px;
+}
+
+.color-option:focus {
+    outline: 2px solid var(--color2);
+    outline-offset: 2px;
+}
+
+.start-game-btn:focus {
+    outline: 2px solid var(--color5);
+    outline-offset: 2px;
 }

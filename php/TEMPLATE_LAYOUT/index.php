@@ -41,7 +41,7 @@ $version = '1.0';
             <!-- Contenu de sélection de nouvelle partie -->
             <div class="new-game-container">
                 <div class="new-game-content">
-                    <!-- <h1 class="new-game-title">Nouvelle Partie</h1> -->
+                    <h1 class="new-game-title">Nouvelle Partie</h1>
 
                     <!-- Sélection du mode de jeu -->
                     <div class="new-game-section">
@@ -54,7 +54,7 @@ $version = '1.0';
                                         <span>Humain vs Humain</span>
                                     </div>
                                 </div>
-                                <i class="bi bi-check-lg"></i>
+                                
                             </button>
 
                             <button class="game-mode-btn btn-level-0" data-mode="bot" data-level="0" data-profondeur="0">
@@ -68,7 +68,7 @@ $version = '1.0';
                                         <div class="mode-difficulty">Profondeur 0</div>
                                     </div>
                                 </div>
-                                <i class="bi bi-check-lg"></i>
+                                
                             </button>
 
                             <button class="game-mode-btn btn-level-1" data-mode="bot" data-level="1" data-profondeur="0">
@@ -82,8 +82,17 @@ $version = '1.0';
                                         <div class="mode-difficulty">Profondeur 0</div>
                                     </div>
                                 </div>
-                                <i class="bi bi-check-lg"></i>
+                                
                             </button>
+
+
+
+
+
+
+
+
+                            
                         </div>
                     </div>
 
