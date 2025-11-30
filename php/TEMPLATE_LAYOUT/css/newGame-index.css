@@ -43,6 +43,7 @@ header {
     padding: 20px;
     overflow-y: auto;
     margin-top: 0;
+    height: 100%; /* Ajouté */
 }
 
 .new-game-container {
@@ -53,10 +54,18 @@ header {
     box-shadow: 0 8px 32px rgba(0,0,0,0.1);
     overflow: hidden;
     margin-top: 0;
+    display: flex; /* Ajouté */
+    flex-direction: column; /* Ajouté */
+    min-height: 0; /* Ajouté */
+    height: auto; /* Changé */
 }
 
 .new-game-content {
     padding: 1.5rem;
+    flex: 1; /* Ajouté - Prend tout l'espace disponible */
+    display: flex; /* Ajouté */
+    flex-direction: column; /* Ajouté */
+    justify-content: space-between; /* Ajouté - Répartit l'espace */
 }
 
 .new-game-title {
@@ -286,18 +295,19 @@ header {
 @media (max-width: 768px) {
     .main-content {
         padding: 10px;
-        align-items: flex-start;
-        overflow-y: auto;
+        align-items: stretch; /* Changé de flex-start à stretch */
     }
     
     .new-game-container {
         margin-top: 0;
-        max-height: calc(100vh - 140px);
-        overflow-y: auto;
+        max-height: none; /* Supprimé la limitation de hauteur */
+        height: auto; /* Hauteur automatique */
+        min-height: min-content; /* Au moins le contenu */
     }
     
     .new-game-content {
         padding: 1rem;
+        flex: 1;
     }
     
     .new-game-title {
@@ -402,6 +412,20 @@ header {
     
     .new-game-content {
         padding: 0.5rem;
+    }
+}
+
+
+/* Correction hauteur spécifique */
+@media (min-height: 600px) {
+    .new-game-container {
+        min-height: 500px; /* Hauteur minimale sur grands écrans */
+    }
+}
+
+@media (min-height: 800px) {
+    .new-game-container {
+        min-height: 600px; /* Hauteur minimale sur très grands écrans */
     }
 }
 
