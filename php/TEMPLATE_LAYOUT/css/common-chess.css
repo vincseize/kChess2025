@@ -70,6 +70,13 @@ body.dark {
     background: white;
 }
 
+.player-clock-black {
+    color: white;
+    background: black;
+}
+
+
+
 /* Styles communs pour l'échiquier */
 .section-board {
     background: var(--color1);

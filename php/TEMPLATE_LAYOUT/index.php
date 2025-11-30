@@ -1,4 +1,6 @@
 <?php
+// index.php - Choix du template en fonction de l'appareil utilisé
+
 function isMobileDevice() {
     $userAgent = $_SERVER['HTTP_USER_AGENT'];
     $mobileKeywords = [

@@ -152,3 +152,116 @@ header {
     background-color: var(--color5);
     margin-top: auto;
 }
+
+/* Styles pour l'historique des coups */
+
+.coups-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color2);
+    color: white;
+    padding: 12px 15px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.coups-header-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.pgn, .fen {
+    padding: 4px 8px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: normal;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pgn {
+    color: var(--color1);
+    background: white;
+}
+
+.fen {
+    color: var(--color2);
+    background: white;
+}
+
+.pgn:hover, .fen:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.pgn:active, .fen:active {
+    transform: translateY(0);
+}
+
+/* templateChess-mobile.css - Pour aligner titre et boutons sur la même ligne */
+
+#tab-coups h3 {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--color7);
+}
+
+#tab-coups .pgn, 
+#tab-coups .fen {
+    padding: 6px 12px;
+    border: 1px solid;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+#tab-coups .pgn {
+    color: var(--color1);
+    background: white;
+    border-color: var(--color1);
+}
+
+#tab-coups .fen {
+    color: var(--color2);
+    background: white;
+    border-color: var(--color2);
+}
+
+#tab-coups .pgn:hover, 
+#tab-coups .fen:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+#tab-coups .pgn:active, 
+#tab-coups .fen:active {
+    transform: translateY(0);
+}
+
+/* Version pour écrans très petits */
+@media (max-width: 480px) {
+    #tab-coups h3 {
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    #tab-coups .pgn, 
+    #tab-coups .fen {
+        padding: 5px 8px;
+        font-size: 0.7rem;
+    }
+}

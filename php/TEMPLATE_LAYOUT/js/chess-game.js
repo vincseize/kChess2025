@@ -181,10 +181,46 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+
+    // Initialisation des événements PGN/FEN
+        initializePgnFenButtons();
+
+
 });
 
-// Gestion du mode sombre
-function toggleDarkMode() {
-    document.body.classList.toggle('dark');
-    console.log('Mode sombre:', document.body.classList.contains('dark'));
+
+// Fonctions PGN et FEN - EN DEHORS du DOMContentLoaded
+// Fonctions PGN et FEN - Doivent être GLOBALES
+function exportPGN() {
+    console.log('Export PGN');
+    // Logique d'export PGN
+    // alert('Export PGN - Fonctionnalité à implémenter');
+}
+
+function exportFEN() {
+    console.log('Export FEN');
+    // Logique d'export FEN
+    // alert('Export FEN - Fonctionnalité à implémenter');
+}
+
+// SUPPRIMER ces fonctions qui causent la confusion :
+// function pgn() { ... }
+// function fen() { ... }
+
+// Initialisation des boutons PGN/FEN
+function initializePgnFenButtons() {
+    const pgnButtons = document.querySelectorAll('.pgn');
+    const fenButtons = document.querySelectorAll('.fen');
+    
+    pgnButtons.forEach(btn => {
+        // Utiliser exportPGN directement
+        btn.addEventListener('click', exportPGN);
+    });
+    
+    fenButtons.forEach(btn => {
+        // Utiliser exportFEN directement
+        btn.addEventListener('click', exportFEN);
+    });
+    
+    console.log(`Boutons initialisés: ${pgnButtons.length} PGN, ${fenButtons.length} FEN`);
 }

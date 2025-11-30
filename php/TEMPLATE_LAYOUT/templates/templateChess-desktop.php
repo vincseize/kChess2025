@@ -57,7 +57,9 @@
             <div class="controls-col">
                 <div class="coups-section">
                     <div class="coups-header section-joueurs">
-                        Historique des coups
+                        Historique des coups 
+                        <span class="pgn">PGN</span>
+                        <span class="fen">FEN</span>
                     </div>
                     <div class="coups-content">
                         <div class="coups-list">

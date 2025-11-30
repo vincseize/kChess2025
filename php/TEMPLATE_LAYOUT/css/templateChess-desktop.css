@@ -163,13 +163,52 @@ header {
 }
 
 .coups-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     background: var(--color2);
     color: white;
-    padding: 12px;
+    padding: 12px 15px;
     text-align: center;
     font-weight: bold;
     font-size: 1rem;
     flex-shrink: 0;
+}
+
+.coups-header-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.pgn, .fen {
+    padding: 4px 8px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: normal;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pgn {
+    color: var(--color1);
+    background: white;
+}
+
+.fen {
+    color: var(--color2);
+    background: white;
+}
+
+.pgn:hover, .fen:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.pgn:active, .fen:active {
+    transform: translateY(0);
 }
 
 .coups-content {

@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="../css/all.min.css">
     <link rel="stylesheet" href="../css/common-chess.css">
     <link rel="stylesheet" href="../css/templateChess-mobile.css">
+
 </head>
 <body>
 
@@ -74,7 +75,12 @@
                 <button onclick="nouvellePartie()" style="padding: 10px; margin: 5px;">Démarrer</button>
             </div>
             <div id="tab-coups" class="tabcontent tab-coups" style="display:block;">
-                <h3>Historique des Coups</h3>
+                <h3>Historique des Coups
+                    <span class="pgn">PGN</span>
+                    <span class="fen">FEN</span>
+                </h3>
+                    <!-- <span class="pgn">PGN</span>
+                    <span class="fen">FEN</span> -->
                 <div class="coups-list">
                     <p>1. e4 e5</p>
                     <p>2. Cf3 Cc6</p>
