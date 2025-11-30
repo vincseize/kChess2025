@@ -1,10 +1,33 @@
 // chess-game.js - JavaScript commun pour desktop et mobile
 
 // Fonctions de jeu communes
+// function nouvellePartie() {
+//     console.log('Nouvelle Partie');
+//     // Logique commune pour démarrer une nouvelle partie
+//     updateGameStatus('Nouvelle partie démarrée');
+// }
+
 function nouvellePartie() {
     console.log('Nouvelle Partie');
-    // Logique commune pour démarrer une nouvelle partie
-    updateGameStatus('Nouvelle partie démarrée');
+    
+    // Demander confirmation à l'utilisateur
+    const userConfirmed = confirm('Êtes-vous sûr de vouloir démarrer une nouvelle partie ?\n\nLa partie en cours sera perdue.');
+    
+    if (userConfirmed) {
+        console.log('Utilisateur a confirmé - Redirection vers index.php');
+        
+        // Mettre à jour le statut avant redirection
+        updateGameStatus('Redirection vers nouvelle partie');
+        
+        // Redirection après un court délai pour laisser le temps à l'UI de se mettre à jour
+        setTimeout(() => {
+            window.location.href = '../index.php';
+        }, 500);
+        
+    } else {
+        console.log('Utilisateur a annulé - Reste sur la page actuelle');
+        updateGameStatus('Nouvelle partie annulée');
+    }
 }
 
 function firstMove() {

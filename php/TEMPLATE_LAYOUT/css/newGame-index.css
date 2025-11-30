@@ -1,0 +1,280 @@
+/* newGame-index.css - Styles corrigés pour mobile */
+
+body {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color6);
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+/* Layout général */
+.game-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100vh;
+    overflow: hidden;
+}
+
+header {
+    height: 60px;
+    background: var(--color5);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+}
+
+/* Contenu principal - CORRECTION IMPORTANTE */
+.main-content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Changé de center à flex-start */
+    min-height: 0;
+    padding: 20px;
+    overflow-y: auto;
+    margin-top: 0; /* Assurer qu'il n'y a pas de marge en haut */
+}
+
+.new-game-container {
+    width: 100%;
+    max-width: 800px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin-top: 0; /* Important pour mobile */
+}
+
+.new-game-content {
+    padding: 1.5rem; /* Réduit le padding sur mobile */
+}
+
+.new-game-title {
+    text-align: center;
+    color: var(--color5);
+    margin-bottom: 1.5rem; /* Réduit sur mobile */
+    font-size: 1.8rem; /* Taille réduite sur mobile */
+    font-weight: bold;
+}
+
+/* Sections */
+.new-game-section {
+    margin-bottom: 1.5rem; /* Réduit sur mobile */
+}
+
+/* Boutons de mode de jeu - Adaptation mobile */
+.new-game-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem; /* Espacement réduit sur mobile */
+}
+
+.game-mode-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem; /* Padding réduit sur mobile */
+    border: 2px solid var(--color7);
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+/* Sélection de couleur - Adaptation mobile */
+.color-selection {
+    display: flex;
+    justify-content: center;
+}
+
+.color-options {
+    display: flex;
+    gap: 1rem; /* Espacement réduit sur mobile */
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.color-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.8rem; /* Padding réduit sur mobile */
+    border: 2px solid var(--color7);
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 90px; /* Largeur réduite sur mobile */
+}
+
+.color-piece {
+    width: 40px; /* Taille réduite sur mobile */
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 1.6rem; /* Taille réduite sur mobile */
+}
+
+/* Bouton de démarrage */
+.start-game-section {
+    text-align: center;
+    margin-top: 1.5rem; /* Marge réduite sur mobile */
+}
+
+.start-game-btn {
+    background: linear-gradient(135deg, var(--color2) 0%, var(--color3) 100%);
+    color: white;
+    border: none;
+    padding: 0.9rem 2rem; /* Padding réduit sur mobile */
+    border-radius: 8px;
+    font-size: 1rem; /* Taille réduite sur mobile */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(67, 119, 132, 0.3);
+    width: 100%; /* Pleine largeur sur mobile */
+    max-width: 300px; /* Largeur maximale */
+}
+
+/* Footer */
+.main-footer {
+    background: var(--color5);
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.footer-content {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.footer-info {
+    font-size: 0.8rem; /* Taille réduite sur mobile */
+    opacity: 0.8;
+}
+
+/* MEDIA QUERIES SPÉCIFIQUES POUR MOBILE */
+@media (max-width: 768px) {
+    .main-content {
+        padding: 10px; /* Padding réduit */
+        align-items: flex-start; /* Alignement en haut */
+        overflow-y: auto; /* Permettre le scroll si nécessaire */
+    }
+    
+    .new-game-container {
+        margin-top: 0;
+        max-height: calc(100vh - 140px); /* Hauteur maximale calculée */
+        overflow-y: auto; /* Scroll interne si contenu trop long */
+    }
+    
+    .new-game-content {
+        padding: 1rem; /* Padding encore plus réduit */
+    }
+    
+    .new-game-title {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .game-mode-btn {
+        padding: 0.8rem;
+    }
+    
+    .mode-header {
+        font-size: 0.9rem; /* Texte plus petit */
+    }
+    
+    .mode-icon {
+        font-size: 1.2rem; /* Icônes plus petites */
+    }
+    
+    .mode-difficulty {
+        font-size: 0.75rem; /* Détails plus petits */
+    }
+    
+    .color-options {
+        gap: 0.8rem;
+    }
+    
+    .color-option {
+        min-width: 80px;
+        padding: 0.6rem;
+    }
+    
+    .color-piece {
+        width: 35px;
+        height: 35px;
+        font-size: 1.4rem;
+    }
+    
+    .start-game-btn {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Pour les très petits écrans */
+@media (max-width: 480px) {
+    header {
+        height: 50px; /* Header plus petit */
+        font-size: 1.3rem;
+    }
+    
+    .main-content {
+        padding: 5px;
+    }
+    
+    .new-game-content {
+        padding: 0.8rem;
+    }
+    
+    .new-game-buttons {
+        gap: 0.6rem;
+    }
+    
+    .game-mode-btn {
+        padding: 0.7rem;
+    }
+    
+    .color-options {
+        flex-direction: row; /* Garder en ligne même sur petit écran */
+        justify-content: space-around; /* Répartir l'espace */
+    }
+    
+    .color-option {
+        flex: 1; /* Prendre l'espace disponible */
+        min-width: auto;
+        margin: 0 2px;
+    }
+    
+    .start-game-btn {
+        font-size: 0.85rem;
+        padding: 0.7rem 1.2rem;
+    }
+}
+
+/* Correction spécifique pour éviter le chevauchement */
+@media (max-height: 700px) {
+    .new-game-container {
+        max-height: calc(100vh - 120px);
+    }
+    
+    .new-game-content {
+        padding: 0.5rem;
+    }
+}
