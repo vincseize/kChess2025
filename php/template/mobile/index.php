@@ -1,55 +1,32 @@
 <?php
-// templateChess.php    
+// templateChess-mobile.php
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CharlyChess</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-* {margin:0;padding:0;box-sizing:border-box;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CharlyChess</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+    * {margin:0;padding:0;box-sizing:border-box;}
 
-:root {
-    /* couleurs */ 
-    /* palette turquoise */ 
-    --color1:#6B949E;   
-    --color2:#447784;
-    --color3:#255C69;   
-    --color4:#0F434F;   
-    --color5:#012B35;
+    :root {
+        /* couleurs */ 
+        /* palette turquoise */ 
+        --color1:#6B949E;   
+        --color2:#447784;
+        --color3:#255C69;   
+        --color4:#0F434F;   
+        --color5:#012B35;
 
-    /* autres */   
-    --color6:#dcdcdc;   
-    --color7:#bcbcbc;   
-    --color8:darkgray;
-}
-</style>
-
-<script>
-// Détection du device et chargement du CSS approprié
-function loadDeviceCSS() {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
-    
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    
-    if (isMobile) {
-        link.href = 'templateChess-mobile.css';
-        document.body.classList.add('mobile');
-    } else {
-        link.href = 'templateChess-desktop.css';
-        document.body.classList.add('desktop');
+        /* autres */   
+        --color6:#dcdcdc;   
+        --color7:#bcbcbc;   
+        --color8:darkgray;
     }
-    
-    document.head.appendChild(link);
-}
-
-// Charger le CSS au démarrage
-document.addEventListener('DOMContentLoaded', loadDeviceCSS);
-</script>
-
+    </style>
+    <link rel="stylesheet" href="templateChess-mobile.css">
 </head>
 <body>
 
@@ -79,9 +56,8 @@ document.addEventListener('DOMContentLoaded', loadDeviceCSS);
             </div>
         </div>
 
-        <!-- Tabs -->
+        <!-- Tabs en bas -->
         <div class="tabs">
-
             <div class="tab tab-nouvellePartie" onclick="changeTab('tab-nouvellePartie')">
                 <div class="tab-icon"><i class="fas fa-plus text-color2"></i></div>
                 <div class="tab-text">Nouvelle Partie</div>
@@ -105,7 +81,6 @@ document.addEventListener('DOMContentLoaded', loadDeviceCSS);
                 <div class="tab-icon"><i class="fas fa-sync-alt text-color2"></i></div>
                 <div class="tab-text tab-textTourner">Tourner</div>
             </div>
-
         </div>
 
         <!-- Wrapper contenu -->
@@ -117,24 +92,23 @@ document.addEventListener('DOMContentLoaded', loadDeviceCSS);
             <div id="tab-coups" class="tabcontent tab-coups" style="display:block;">
                 <h3>Coups</h3>
                 <p>Historique des coups…</p>
-                <!-- Beaucoup de contenu pour tester le scroll -->
                 <p>1. e4 e5 2. Cf3 Cc6</p>
-    <p>3. Fb5 a6 4. Fa4 Cf6</p>
-    <p>5. O-O Fe7 6. Te1 b5</p>
-    <p>7. Fb3 d6 8. c3 O-O</p>
-    <p>9. h3 Cb8 10. d4 Cbd7</p>
-    <p>11. Cbd2 Fb7 12. Fc2 Te8</p>
-    <p>13. Cf1 Ff8 14. Cg3 g6</p>
-    <p>15. Fg5 h6 16. Fd2 Fg7</p>
-    <p>17. a4 c5 18. dxc5 dxc5</p>
-    <p>19. axb5 axb5 20. Txa8 Fxa8</p>
-    <p>21. Da1 Da5 22. Dxa5 Cxa5</p>
-    <p>23. Fe3 Cc4 24. Fxc4 bxc4</p>
-    <p>25. Ce2 Fe6 26. Cfd4 Fd7</p>
-    <p>27. Cxc4 Cxc4 28. Fxc4 Fxc4</p>
-    <p>29. Cxc4 Tb8 30. b3 Tb4</p>
-    <p>31. Ce3 Tb5 32. Td1 Fe5</p>
-    <p>33. f4 Fc7 34. Td7 Fb6</p>
+                <p>3. Fb5 a6 4. Fa4 Cf6</p>
+                <p>5. O-O Fe7 6. Te1 b5</p>
+                <p>7. Fb3 d6 8. c3 O-O</p>
+                <p>9. h3 Cb8 10. d4 Cbd7</p>
+                <p>11. Cbd2 Fb7 12. Fc2 Te8</p>
+                <p>13. Cf1 Ff8 14. Cg3 g6</p>
+                <p>15. Fg5 h6 16. Fd2 Fg7</p>
+                <p>17. a4 c5 18. dxc5 dxc5</p>
+                <p>19. axb5 axb5 20. Txa8 Fxa8</p>
+                <p>21. Da1 Da5 22. Dxa5 Cxa5</p>
+                <p>23. Fe3 Cc4 24. Fxc4 bxc4</p>
+                <p>25. Ce2 Fe6 26. Cfd4 Fd7</p>
+                <p>27. Cxc4 Cxc4 28. Fxc4 Fxc4</p>
+                <p>29. Cxc4 Tb8 30. b3 Tb4</p>
+                <p>31. Ce3 Tb5 32. Td1 Fe5</p>
+                <p>33. f4 Fc7 34. Td7 Fb6</p>
             </div>
 
             <div id="tab-avant" class="tabcontent">
@@ -151,7 +125,7 @@ document.addEventListener('DOMContentLoaded', loadDeviceCSS);
             </div>
         </div>
 
-    <div id="footer" class="footer"></div>
+        <div id="footer" class="footer"></div>
 
     </div>
 
@@ -164,7 +138,6 @@ function changeTab(tabId) {
     const tabs = document.getElementsByClassName("tab");
     for(let t of tabs) t.classList.remove("active");
     
-    // Trouver l'onglet actif en cherchant celui qui a le bon onclick
     const activeTab = Array.from(tabs).find(tab => 
         tab.getAttribute('onclick') === `changeTab('${tabId}')`
     );
@@ -173,17 +146,6 @@ function changeTab(tabId) {
     const selected = document.getElementById(tabId);
     if(selected) selected.style.display="block";
 }
-
-// Recharger le CSS si la fenêtre est redimensionnée
-window.addEventListener('resize', function() {
-    // Supprimer l'ancien CSS
-    const oldCSS = document.querySelector('link[href*="templateChess-"]');
-    if (oldCSS) {
-        oldCSS.remove();
-    }
-    // Recharger le CSS approprié
-    loadDeviceCSS();
-});
 </script>
 
 </body>
