@@ -1,0 +1,62 @@
+// move-validator.js - Coordinateur principal des validateurs CORRIGÉ
+class MoveValidator {
+    constructor(board, gameState) {
+        this.board = board;
+        this.gameState = gameState;
+        this.enPassantTarget = null;
+        
+        // Initialisation des validateurs spécialisés
+        this.pieceValidators = {
+            'pawn': new PawnMoveValidator(this.board, this.gameState),
+            'knight': new KnightMoveValidator(this.board, this.gameState),
+            'bishop': new BishopMoveValidator(this.board, this.gameState),
+            'rook': new RookMoveValidator(this.board, this.gameState),
+            'queen': new QueenMoveValidator(this.board, this.gameState),
+            'king': new KingMoveValidator(this.board, this.gameState)
+        };
+    }
+
+    getPossibleMoves(piece, fromRow, fromCol) {
+        const validator = this.pieceValidators[piece.type];
+        if (validator) {
+            return validator.getPossibleMoves(piece, fromRow, fromCol);
+        }
+        return [];
+    }
+
+    isValidSquare(row, col) {
+        return row >= 0 && row < 8 && col >= 0 && col < 8;
+    }
+
+    isMoveValid(piece, fromRow, fromCol, toRow, toCol) {
+        const possibleMoves = this.getPossibleMoves(piece, fromRow, fromCol);
+        return possibleMoves.some(move => 
+            move.row === toRow && move.col === toCol
+        );
+    }
+
+    // Gestion de la prise en passant
+    updateEnPassantTarget(move, piece) {
+        if (piece.type === 'pawn' && move.isDoublePush) {
+            const direction = piece.color === 'white' ? -1 : 1;
+            this.enPassantTarget = {
+                row: move.to.row + direction,
+                col: move.to.col
+            };
+        } else {
+            this.enPassantTarget = null;
+        }
+    }
+
+    executeEnPassant(move) {
+        if (move.type === 'en-passant' && move.capturedPawn) {
+            const capturedSquare = this.board.getSquare(move.capturedPawn.row, move.capturedPawn.col);
+            if (capturedSquare && capturedSquare.piece) {
+                capturedSquare.piece = null;
+                capturedSquare.element.innerHTML = '';
+            }
+        }
+    }
+}
+
+window.MoveValidator = MoveValidator;
