@@ -143,7 +143,8 @@ $versionJson = $config['version'] ?? '1.0';
                     <small class="text-white-50">
                         Dev. <?php echo htmlspecialchars($config['author']); ?>
                         <?php echo htmlspecialchars($config['author2']); ?> | 
-                        &copy; LRDS 2024-<?php echo date('Y'); ?>
+                        &copy; LRDS 2024-<?php echo date('Y'); ?> |
+                        v<?php echo htmlspecialchars($config['version']); ?>
                     </small>
                 </div>
             </div>
