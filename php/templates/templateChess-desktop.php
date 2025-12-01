@@ -70,7 +70,7 @@ $config = json_decode(file_get_contents('../config/game-config.json'), true);
             
             <!-- Colonne Nouvelle Partie -->
             <div class="new-game-col">
-                <button class="new-game-btn" id="newGame" onclick="nouvellePartie()">
+                <button class="new-game-btn" id="newGame">
                     <div class="new-game-btn-icon"><i class="fas fa-plus text-color2"></i></div>
                     <div class="new-game-btn-text">Nouvelle Partie</div>
                 </button>

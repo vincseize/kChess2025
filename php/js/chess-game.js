@@ -40,28 +40,28 @@ function getPlayerType(mode, level) {
 // FONCTIONS DE JEU
 // =============================================
 
-function nouvellePartie() {
-    console.log('Nouvelle Partie');
+// function nouvellePartie() {
+//     console.log('Nouvelle Partie');
     
-    // Demander confirmation à l'utilisateur
-    const userConfirmed = confirm('Êtes-vous sûr de vouloir démarrer une nouvelle partie ?\n\nLa partie en cours sera perdue.');
+//     // Demander confirmation à l'utilisateur
+//     const userConfirmed = confirm('Êtes-vous sûr de vouloir démarrer une nouvelle partie ?\n\nLa partie en cours sera perdue.');
     
-    if (userConfirmed) {
-        console.log('Utilisateur a confirmé - Redirection vers index.php');
+//     if (userConfirmed) {
+//         console.log('Utilisateur a confirmé - Redirection vers index.php');
         
-        // Mettre à jour le statut avant redirection
-        updateGameStatus('Redirection vers nouvelle partie');
+//         // Mettre à jour le statut avant redirection
+//         updateGameStatus('Redirection vers nouvelle partie');
         
-        // Redirection après un court délai pour laisser le temps à l'UI de se mettre à jour
-        setTimeout(() => {
-            window.location.href = '../index.php';
-        }, 500);
+//         // Redirection après un court délai pour laisser le temps à l'UI de se mettre à jour
+//         setTimeout(() => {
+//             window.location.href = '../index.php';
+//         }, 500);
         
-    } else {
-        console.log('Utilisateur a annulé - Reste sur la page actuelle');
-        updateGameStatus('Nouvelle partie annulée');
-    }
-}
+//     } else {
+//         console.log('Utilisateur a annulé - Reste sur la page actuelle');
+//         updateGameStatus('Nouvelle partie annulée');
+//     }
+// }
 
 function firstMove() {
     console.log('Premier Coup');
@@ -152,7 +152,7 @@ function handleMobileTabAction(tabId) {
     if (isMobile()) {
         switch(tabId) {
             case 'tab-nouvellePartie':
-                nouvellePartie();
+                // nouvellePartie();
                 break;
             case 'tab-avant':
                 previousMove();

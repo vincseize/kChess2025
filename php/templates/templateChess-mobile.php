@@ -112,7 +112,7 @@
             <div id="tab-nouvellePartie" class="tabcontent">
                 <h3>Nouvelle Partie</h3>
                 <p>Options pour démarrer une nouvelle partie</p>
-                <button onclick="nouvellePartie()" style="padding: 10px; margin: 5px;">Démarrer</button>
+                <button style="padding: 10px; margin: 5px;">Démarrer</button>
             </div>
             <div id="tab-coups" class="tabcontent tab-coups" style="display:block;">
                 <h3>Historique des Coups
