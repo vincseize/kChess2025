@@ -71,11 +71,11 @@ function confirmNewGame() {
 function setupMobileButtons() {
     const mobileButtons = [
         { 
-            id: 'newGameMobile', 
+            id: 'newGame', 
             action: () => confirmNewGame() // UTILISATION DE LA FONCTION HELPER
         },
         { 
-            id: 'flipBoardMobile', 
+            id: 'flipBoard', 
             action: () => flipBoard()
         }
     ];
@@ -126,11 +126,11 @@ function setupDesktopButtons() {
             action: () => flipBoard()
         },
         { 
-            selector: '.new-game-btn:not(#newGameMobile)', 
+            selector: '.new-game-btn:not(#newGame)', 
             action: () => confirmNewGame() // UTILISATION DE LA FONCTION HELPER
         },
         { 
-            selector: '.flip-board-btn:not(#flipBoardMobile)', 
+            selector: '.flip-board-btn:not(#flipBoard)', 
             action: () => flipBoard()
         }
     ];
@@ -158,17 +158,58 @@ function redirectToIndex() {
     window.location.href = 'index.php';
 }
 
-function flipBoard() {
-    console.log('🔄 Flip du plateau');
-    if (window.chessGame && typeof window.chessGame.flipBoard === 'function') {
-        window.chessGame.flipBoard();
-    } else {
-        console.error('❌ flipBoard non disponible');
-        // Fallback simple
-        alert('Fonction non disponible. Rechargement...');
-        window.location.reload();
-    }
-}
+// function flipBoard() {
+//     console.log('🔄 Flip du plateau');
+//     if (window.chessGame && typeof window.chessGame.flipBoard === 'function') {
+//         window.chessGame.flipBoard();
+
+//     } else {
+//         console.error('❌ flipBoard non disponible');
+//         // Fallback simple
+//         alert('Fonction non disponible. Rechargement...');
+//         window.location.reload();
+//     }
+// }
+
+
+// function flipBoard() {
+//     console.log('🔄 Flip du plateau');
+    
+//     const sectionWhite = document.getElementById('section-white');
+//     const sectionBlack = document.getElementById('section-black');
+//     const chessboardContainer = document.querySelector('.chessboard-container');
+//     const chessboardCol = document.querySelector('.chessboard-col');
+    
+//     if (sectionWhite && sectionBlack && chessboardContainer && chessboardCol) {
+//         // Vérifier la position actuelle
+//         const currentOrder = Array.from(chessboardCol.children).map(child => child.id);
+//         console.log('Ordre actuel:', currentOrder);
+        
+//         // Intervertir simplement
+//         if (currentOrder[0] === 'section-black') {
+//             // Noir en haut → mettre Blanc en haut
+//             chessboardCol.innerHTML = '';
+//             chessboardCol.appendChild(sectionWhite);
+//             chessboardCol.appendChild(chessboardContainer);
+//             chessboardCol.appendChild(sectionBlack);
+//             console.log('✅ Nouvel ordre: Blanc en haut, Noir en bas');
+//         } else {
+//             // Blanc en haut → mettre Noir en haut
+//             chessboardCol.innerHTML = '';
+//             chessboardCol.appendChild(sectionBlack);
+//             chessboardCol.appendChild(chessboardContainer);
+//             chessboardCol.appendChild(sectionWhite);
+//             console.log('✅ Nouvel ordre: Noir en haut, Blanc en bas');
+//         }
+        
+//         updateGameStatus('Plateau tourné');
+        
+//     } else {
+//         console.error('❌ Éléments non trouvés pour le flip');
+//         fallbackFlip();
+//     }
+// }
+
 
 function newGame() {
     console.log('🔄 Nouvelle partie');
@@ -178,6 +219,86 @@ function newGame() {
         console.error('❌ newGame non disponible');
     }
 }
+
+
+
+
+// Variable pour suivre l'état du flip
+let isBoardFlipped = false;
+
+function flipBoard() {
+    console.log('🔄 Flip du plateau');
+    
+    // 1. Flip de l'échiquier (si disponible)
+    if (window.chessGame && typeof window.chessGame.flipBoard === 'function') {
+        window.chessGame.flipBoard();
+        console.log('✅ Échiquier flipé');
+    } else {
+        console.warn('⚠️ Flip échiquier non disponible');
+        // Fallback manuel pour l'échiquier si besoin
+        // manualChessboardFlip();
+    }
+    
+    // 2. Intervertir les sections joueurs
+    flipPlayerSections();
+    
+    // 3. Mettre à jour l'état
+    isBoardFlipped = !isBoardFlipped;
+    updateGameStatus(isBoardFlipped ? 'Plateau tourné (Noir en bas)' : 'Plateau normal (Blanc en bas)');
+}
+
+function flipPlayerSections() {
+    const sectionWhite = document.getElementById('section-white');
+    const sectionBlack = document.getElementById('section-black');
+    const chessboardContainer = document.querySelector('.chessboard-container');
+    const chessboardCol = document.querySelector('.chessboard-col');
+    
+    if (sectionWhite && sectionBlack && chessboardContainer && chessboardCol) {
+        const currentOrder = Array.from(chessboardCol.children).map(child => child.id);
+        console.log('Ordre actuel:', currentOrder);
+        
+        if (currentOrder[0] === 'section-black') {
+            // Noir en haut → mettre Blanc en haut
+            chessboardCol.innerHTML = '';
+            chessboardCol.appendChild(sectionWhite);
+            chessboardCol.appendChild(chessboardContainer);
+            chessboardCol.appendChild(sectionBlack);
+            console.log('✅ Nouvel ordre: Blanc en haut, Noir en bas');
+        } else {
+            // Blanc en haut → mettre Noir en haut
+            chessboardCol.innerHTML = '';
+            chessboardCol.appendChild(sectionBlack);
+            chessboardCol.appendChild(chessboardContainer);
+            chessboardCol.appendChild(sectionWhite);
+            console.log('✅ Nouvel ordre: Noir en haut, Blanc en bas');
+        }
+    } else {
+        console.error('❌ Éléments non trouvés pour le flip joueurs');
+    }
+}
+
+function manualChessboardFlip() {
+    // Fallback manuel pour l'échiquier si chessGame n'est pas disponible
+    const chessBoard = document.getElementById('chessBoard');
+    if (chessBoard) {
+        chessBoard.classList.toggle('flipped');
+        console.log('✅ Échiquier flipé manuellement');
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Export pour debug
 window.debugChess = {
