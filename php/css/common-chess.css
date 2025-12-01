@@ -163,3 +163,10 @@ body.dark {
     }
 }
 
+.color-option.selected {
+    outline: 2px solid var(--color3);
+    background: var(--color1);
+}
+.color-option:hover {
+    background: var(--color7);
+}

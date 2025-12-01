@@ -155,7 +155,7 @@ function setupDesktopButtons() {
 // Actions simples
 function redirectToIndex() {
     console.log('🔄 Redirection vers index.php');
-    window.location.href = 'index.php';
+    window.location.href = '../index.php';
 }
 
 // function flipBoard() {
