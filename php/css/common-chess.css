@@ -58,6 +58,7 @@ body.dark {
     border-radius: 4px;
     text-align: right;
     padding: 4px 8px;
+    min-width: 70px; /* Ajouté pour stabilité */
 }
 
 .player-clock-black {
@@ -70,12 +71,7 @@ body.dark {
     background: white;
 }
 
-.player-clock-black {
-    color: white;
-    background: black;
-}
-
-
+/* SUPPRIMER LA DÉCLARATION EN DOUBLE CI-DESSOUS */
 
 /* Styles communs pour l'échiquier */
 /* .section-board {
@@ -89,7 +85,6 @@ body.dark {
     border: 3px solid var(--color3);
     border-radius: 6px;
 } */
-
 
 /* Styles communs pour les boutons */
 .control-btn, .new-game-btn, .footer-btn {
@@ -159,7 +154,6 @@ body.dark {
     opacity: 0.6;         /* Optionnel : grise légèrement le bouton pour montrer qu'il est désactivé */
     cursor: default;      /* Le curseur reste normal */
 }
-
 
 /* Sur mobile */
 @media (max-width: 768px) {
