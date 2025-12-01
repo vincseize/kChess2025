@@ -151,7 +151,7 @@ $config = json_decode(file_get_contents('../config/game-config.json'), true);
                             <div class="control-btn-icon"><i class="fas fa-fast-forward text-color2"></i></div>
                             <div class="control-btn-text">Dernier</div>
                         </button>
-                        <button class="control-btn" onclickDES="flipBoard()" id="flipBoard">
+                        <button class="control-btn" id="flipBoard">
                             <div class="control-btn-icon"><i class="fas fa-sync-alt text-color2"></i></div>
                             <div class="control-btn-text">Tourner</div>
                         </button>

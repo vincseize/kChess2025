@@ -1,4 +1,4 @@
-// chess-game.js - JavaScript commun pour desktop et mobile
+// js/chess-game.js - JavaScript commun pour desktop et mobile
 
 // =============================================
 // FONCTIONS UTILITAIRES
@@ -161,7 +161,7 @@ function handleMobileTabAction(tabId) {
                 nextMove();
                 break;
             case 'tab-tourner':
-                // flipBoard();
+                flipBoard();
                 break;
             // 'tab-coups' ne déclenche pas d'action, juste l'affichage
         }
@@ -264,6 +264,7 @@ function updateHeaderLevel() {
 }
 
 // Fonction pour appliquer les paramètres de partie
+// Fonction pour appliquer les paramètres de partie
 function applyGameSettings() {
     const params = getUrlParams();
     console.log('🔧 Application des paramètres:', params);
@@ -275,9 +276,67 @@ function applyGameSettings() {
         console.log('🎮 Mode Humain vs Humain');
     }
     
-    // Appliquer la couleur sélectionnée
+    // Appliquer la couleur sélectionnée - SI NOIR, FLIP AUTOMATIQUE
     if (params.color === 'black') {
-        console.log('🔄 Échiquier orienté pour les Noirs');
+        console.log('🔄 Échiquier orienté pour les Noirs - Flip automatique');
+        applyInitialFlip();
+    }
+}
+
+// Fonction pour appliquer le flip initial basé sur les paramètres
+// chess-game.js
+// =============================================
+// FONCTIONS FLIP AMÉLIORÉES
+// =============================================
+
+// Fonction pour appliquer le flip initial basé sur les paramètres
+function applyAutoFlip() {
+    console.log("Application du flip automatique (flip interne ChessGameCore)");
+
+    // Vérifier toutes les 100ms si ChessGameCore est prêt
+    const interval = setInterval(() => {
+        if (window.chessGame?.core?.flipBoard) {
+            console.log("↪️ Flip interne trouvé → appel ChessGameCore.flipBoard()");
+            window.chessGame.core.flipBoard();
+            clearInterval(interval);
+
+            // Mettre à jour les sections joueurs après flip
+            flipPlayerSections();
+            isBoardFlipped = true;
+            updateGameStatus('Plateau tourné (Noir en bas)');
+        }
+    }, 1000);
+}
+
+
+
+
+// Fonction pour forcer un état de flip spécifique
+function setBoardFlipped(shouldBeFlipped) {
+    console.log(`🎯 Réglage flip: ${shouldBeFlipped ? 'flipé' : 'normal'}`);
+    
+    const currentState = isBoardFlipped;
+    
+    // Si l'état actuel ne correspond pas à l'état désiré, appliquer flip
+    if (currentState !== shouldBeFlipped) {
+        console.log(`🔄 État différent, application du flip...`);
+        flipBoard();
+    } else {
+        console.log(`✅ État déjà correct (${shouldBeFlipped ? 'flipé' : 'normal'})`);
+    }
+}
+
+// Fonction pour vérifier et appliquer l'état initial basé sur les paramètres
+function checkAndApplyInitialOrientation() {
+    const params = getUrlParams();
+    
+    // Si color=black, l'échiquier doit être flipé (Noirs en bas)
+    if (params.color === 'black') {
+        console.log('🎯 Orientation initiale: Noirs en bas (flip requis)');
+        setBoardFlipped(true);
+    } else {
+        console.log('🎯 Orientation initiale: Blancs en bas (normal)');
+        setBoardFlipped(false);
     }
 }
 
@@ -365,7 +424,25 @@ document.addEventListener('DOMContentLoaded', function() {
     updateHeaderLevel();
     
     // Appliquer les paramètres de jeu
-    applyGameSettings();
+// Fonction pour appliquer les paramètres de partie
+function applyGameSettings() {
+    const params = getUrlParams();
+    console.log('🔧 Application des paramètres:', params);
+    
+    // Logique pour configurer la partie selon les paramètres
+    if (params.mode === 'bot') {
+        console.log(`🎮 Mode Bot activé - Niveau: ${params.level}, Profondeur: ${params.profondeur}`);
+    } else {
+        console.log('🎮 Mode Humain vs Humain');
+    }
+    
+    // Appliquer la couleur sélectionnée - SI NOIR, FLIP AUTOMATIQUE
+    if (params.color === 'black') {
+        console.log('🔄 Échiquier orienté pour les Noirs - Flip automatique');
+        // Ne pas appeler flipBoard() ici car il faut attendre l'init
+        // L'appel se fera via checkAndApplyInitialOrientation()
+    }
+}
     
     // Initialisation des horloges
     updateClocks();
@@ -413,7 +490,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // =============================================
 
 // Ces fonctions doivent être globales pour être accessibles depuis le HTML
-window.nouvellePartie = nouvellePartie;
+// window.nouvellePartie = nouvellePartie;
 window.firstMove = firstMove;
 window.lastMove = lastMove;
 window.previousMove = previousMove;

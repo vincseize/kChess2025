@@ -1,4 +1,4 @@
-// chess-game-core.js - Classe principale orchestratrice MODULAIRE
+// core/chess-game-core.js - Classe principale orchestratrice MODULAIRE
 class ChessGameCore {
     constructor(board, gameState, moveValidator) {
         this.board = board;
@@ -132,24 +132,38 @@ handleMove(fromRow, fromCol, toRow, toCol) {
         this.gameStatusManager.showNotification(message, type);
     }
 
-    flipBoard() {
-        console.log('Flip du plateau - ancien état:', this.gameState.boardFlipped);
-        const currentPosition = this.board.saveCurrentPosition();
-        this.gameState.boardFlipped = !this.gameState.boardFlipped;
-        this.board.createBoard();
-        
-        Object.keys(currentPosition).forEach(key => {
-            const [row, col] = key.split('-').map(Number);
-            const square = this.board.getSquare(row, col);
-            if (square) {
-                this.board.placePiece(currentPosition[key], square);
-            }
-        });
-        
-        this.clearSelection();
-        this.gameStatusManager.updateGameStatus();
-        console.log('Flip du plateau - nouvel état:', this.gameState.boardFlipped);
-    }
+// chess-game-core.js - dans la classe ChessGameCore
+// Dans chess-game-core.js - méthode flipBoard()
+flipBoard() {
+    console.log('flipBoard de chess-game-core.js appelé');
+    console.log('Flip du plateau - ancien état:', this.gameState.boardFlipped);
+    
+    const currentPosition = this.board.saveCurrentPosition();
+    this.gameState.boardFlipped = !this.gameState.boardFlipped;
+    this.board.createBoard();
+    
+    Object.keys(currentPosition).forEach(key => {
+        const [row, col] = key.split('-').map(Number);
+        const square = this.board.getSquare(row, col);
+        if (square) {
+            this.board.placePiece(currentPosition[key], square);
+        }
+    });
+    
+    this.clearSelection();
+    this.gameStatusManager.updateGameStatus();
+    
+    console.log('Flip du plateau - nouvel état:', this.gameState.boardFlipped);
+    
+    // 🔥 SUPPRIMER OU COMMENTER CETTE PARTIE :
+    // setTimeout(() => {
+    //     if (typeof window.flipPlayerSections === 'function') {
+    //         window.flipPlayerSections();
+    //         console.log('✅ Sections joueurs également flipées');
+    //     }
+    // }, 50);
+}
+
 
     newGame() {
         console.log('Nouvelle partie');

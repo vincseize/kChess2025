@@ -1,4 +1,4 @@
-// chess-game.js - Classe principale qui orchestre tout
+// core/chess-game.js - Classe principale qui orchestre tout
 class ChessGame {
     constructor() {
         this.pieceManager = new PieceManager();
@@ -48,44 +48,90 @@ class ChessGame {
     }
 
     // Appliquer la configuration depuis les paramètres URL
-    applyUrlParamsConfiguration() {
-        const urlParams = this.getUrlParams();
-        console.log('Paramètres URL détectés:', urlParams);
+    // chess-game.js - dans la classe ChessGame
+applyUrlParamsConfiguration() {
+    const urlParams = this.getUrlParams();
+    console.log('Paramètres URL détectés:', urlParams);
+    
+    // --- GESTION DU FLIP AUTOMATIQUE ---
+    const wantsBlackStart = urlParams.color === 'black';
+    const wantsWhiteStart = urlParams.color === 'white';
+    
+    console.log(`🎯 Configuration couleur: ${urlParams.color}, Flip actuel: ${this.gameState.boardFlipped}`);
+    
+    // Appliquer le flip immédiatement si nécessaire
+    if (wantsBlackStart && !this.gameState.boardFlipped) {
+        console.log('🔀 Application du flip automatique pour color=black');
+        this.core.flipBoard(); // Flip l'échiquier via le core
         
-        // Configuration du flip basée sur le paramètre color
-        if (urlParams.color === 'black' && !this.gameState.boardFlipped) {
-            console.log('Configuration URL: color=black, application du flip automatique');
-            this.applyAutoFlip();
-        } else if (urlParams.color === 'white' && this.gameState.boardFlipped) {
-            console.log('Configuration URL: color=white, désactivation du flip');
-            this.applyAutoFlip();
-        }
-        
-        // CORRECTION : Détection robuste du bot
-        const shouldActivateBot = urlParams.bot === '1' || 
-                                 urlParams.bot === 'true' || 
-                                 urlParams.mode === 'bot' ||
-                                 urlParams.level === '0';
-        
-        if (shouldActivateBot) {
-            console.log('🤖 Configuration URL: bot activé');
-            const botColor = urlParams.color === 'white' ? 'black' : 'white';
-            this.core.setBotLevel(1, botColor);
-        }
-        
-        if (urlParams.mode) {
-            console.log('Mode de jeu:', urlParams.mode);
-            this.gameMode = urlParams.mode;
-        }
+        // Ne pas appeler flipPlayerSections() ici - il sera géré par ChessGameCore
+    }
+    
+    // Si white est demandé mais que le board est flipé, le remettre à l'endroit
+    if (wantsWhiteStart && this.gameState.boardFlipped) {
+        console.log('🔀 Retour à l\'endroit pour color=white');
+        this.core.flipBoard();
+    }
+    
+    // --- BOT ---
+    const shouldActivateBot =
+        urlParams.bot === '1' ||
+        urlParams.bot === 'true' ||
+        urlParams.mode === 'bot' ||
+        urlParams.level === '0';
+    
+    if (shouldActivateBot) {
+        console.log('🤖 Bot activé via URL');
+        const botColor = urlParams.color === 'white' ? 'black' : 'white';
+        this.core.setBotLevel(1, botColor);
+    }
+    
+    // --- MODE ---
+    if (urlParams.mode) {
+        console.log('Mode de jeu :', urlParams.mode);
+        this.gameMode = urlParams.mode;
+    }
+}
+
+
+// applyAutoFlip(shouldFlipSections = false) {
+//     console.log('Application du flip automatique');
+    
+//     this.gameState.boardFlipped = !this.gameState.boardFlipped;
+
+//     // Reconstruction du plateau (DOM)
+//     this.board.createBoard();
+//     this.loadInitialPosition();
+//     this.clearSelection();
+
+//     // 🚀 ICI le DOM est prêt → maintenant on peut flipper les sections
+//     if (shouldFlipSections && window.flipPlayerSections) {
+//         console.log("Flip des sections joueurs (post-createBoard)");
+//         window.flipPlayerSections();
+//     }
+// }
+
+
+applyAutoFlip() {
+    console.log("Application du flip automatique (simulation bouton flip)");
+
+    // 🔵 1 — Si la fonction externe existe, on l’utilise
+    if (typeof window.flipBoard === "function") {
+        console.log("↪️ flip externe trouvé → appel direct");
+        window.flipBoard();
+        return;
     }
 
-    applyAutoFlip() {
-        console.log('Application du flip automatique');
-        this.gameState.boardFlipped = !this.gameState.boardFlipped;
-        this.board.createBoard();
-        this.loadInitialPosition();
-        this.clearSelection();
-    }
+    // 🔵 2 — Sinon on flip via le Core interne
+    // if (this.core && typeof this.core.flipBoard === "function") {
+    //     console.log("↪️ flip interne via ChessGameCore");
+    //     this.core.flipBoard();
+    // } else {
+    //     console.error("❌ flipBoard interne non disponible");
+    // }
+}
+
+
 
     getUrlParams() {
         const params = {};
