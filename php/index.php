@@ -7,10 +7,10 @@ $config = json_decode(file_get_contents('config/game-config.json'), true);
 function isMobileDevice() {
     $userAgent = $_SERVER['HTTP_USER_AGENT'];
     $mobileKeywords = [
-        'Android', 'webOS', 'iPhone', 'iPad', 'iPod', 'BlackBerry', 
+        'Android', 'webOS', 'iPhone', 'iPad', 'iPod', 'BlackBerry',
         'IEMobile', 'Opera Mini', 'Mobile'
     ];
-    
+
     foreach ($mobileKeywords as $keyword) {
         if (stripos($userAgent, $keyword) !== false) {
             return true;
@@ -22,7 +22,7 @@ function isMobileDevice() {
 $isMobile = isMobileDevice();
 $versionJson = $config['version'] ?? '1.0';
 ?>
-    
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -49,8 +49,8 @@ $versionJson = $config['version'] ?? '1.0';
 
                     <!-- Sélection du mode de jeu -->
                     <div class="new-game-section">
-                        <!-- <h2 class="section-title">Mode de Jeu</h2> -->
                         <div class="new-game-buttons">
+
                             <button class="game-mode-btn btn-human" data-mode="human" data-level="false" data-profondeur="false">
                                 <div class="mode-description">
                                     <div class="mode-header">
@@ -58,7 +58,6 @@ $versionJson = $config['version'] ?? '1.0';
                                         <span>Humain vs Humain</span>
                                     </div>
                                 </div>
-                                
                             </button>
 
                             <button class="game-mode-btn btn-level-0" data-mode="bot" data-level="0" data-profondeur="0">
@@ -72,7 +71,6 @@ $versionJson = $config['version'] ?? '1.0';
                                         <div class="mode-difficulty">Profondeur 0</div>
                                     </div>
                                 </div>
-                                
                             </button>
 
                             <button class="game-mode-btn btn-level-1" data-mode="bot" data-level="1" data-profondeur="0">
@@ -86,43 +84,45 @@ $versionJson = $config['version'] ?? '1.0';
                                         <div class="mode-difficulty">Profondeur 0</div>
                                     </div>
                                 </div>
-                                
                             </button>
 
-
-
-
-
-
-
-
-                            
                         </div>
                     </div>
 
                     <!-- Sélection de la couleur -->
                     <div class="new-game-section">
-                        <!-- <h2 class="section-title">Couleur</h2> -->
                         <div class="color-selection">
                             <div class="color-options">
+
                                 <div class="color-option selected" data-color="white">
                                     <div class="color-piece">
                                         <i class="fas fa-chess-queen" style="color: white; text-shadow: 1px 1px 2px black;"></i>
                                     </div>
                                     <div class="color-label">Blancs</div>
                                 </div>
+
                                 <div class="color-option" data-color="black">
                                     <div class="color-piece">
                                         <i class="fas fa-chess-queen" style="color: black;"></i>
                                     </div>
                                     <div class="color-label">Noirs</div>
                                 </div>
+
                                 <div class="color-option random" data-color="random">
                                     <div class="color-piece">
                                         <i class="bi bi-shuffle random-icon"></i>
                                     </div>
                                     <div class="color-label">Aléatoire</div>
                                 </div>
+
+                                <!-- 🔥 BOUTON TIMER (1h30) -->
+                                <div class="color-option timer-option" data-timer="90">
+                                    <div class="color-piece">
+                                        <i class="bi bi-stopwatch"></i>
+                                    </div>
+                                    <div class="color-label">Timer 1h30</div>
+                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -133,6 +133,7 @@ $versionJson = $config['version'] ?? '1.0';
                             <i class="fas fa-play-circle me-2"></i>Démarrer la Partie
                         </button>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -142,7 +143,7 @@ $versionJson = $config['version'] ?? '1.0';
                 <div class="footer-info">
                     <small class="text-white-50">
                         Dev. <?php echo htmlspecialchars($config['author']); ?>
-                        <?php echo htmlspecialchars($config['author2']); ?> | 
+                        <?php echo htmlspecialchars($config['author2']); ?> |
                         &copy; LRDS 2024-<?php echo date('Y'); ?> |
                         v<?php echo htmlspecialchars($config['version']); ?>
                     </small>
@@ -152,97 +153,113 @@ $versionJson = $config['version'] ?? '1.0';
 
     </div>
 
-    <script>
-        let selectedMode = 'human';
-        let selectedLevel = 'false';
-        let selectedProfondeur = 'false';
-        let selectedColor = 'white';
+    
+<script>
+    let selectedMode = 'human';
+    let selectedLevel = 'false';
+    let selectedProfondeur = 'false';
+    let selectedColor = 'white';
+    let selectedTimer = 90; // Timer par défaut = 1h30 en minutes
 
-        // Déterminer la page cible
-        const isMobile = <?php echo $isMobile ? 'true' : 'false'; ?>;
-        const targetPage = isMobile ? 'templates/templateChess-mobile.php' : 'templates/templateChess-desktop.php';
+    // Page suivant l’appareil
+    const isMobile = <?php echo $isMobile ? 'true' : 'false'; ?>;
+    const targetPage = isMobile ? 'templates/templateChess-mobile.php'
+                                : 'templates/templateChess-desktop.php';
 
-        // Gestion de la sélection du mode
-        document.querySelectorAll('.game-mode-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                // Retirer la sélection précédente
-                document.querySelectorAll('.game-mode-btn').forEach(b => {
-                    b.classList.remove('selected');
-                });
-                
-                // Sélectionner le nouveau mode
-                this.classList.add('selected');
-                selectedMode = this.dataset.mode;
-                selectedLevel = this.dataset.level;
-                selectedProfondeur = this.dataset.profondeur;
-                
-                console.log('Mode sélectionné:', {
-                    mode: selectedMode,
-                    level: selectedLevel,
-                    profondeur: selectedProfondeur
-                });
+    // --- Sélection du MODE ---
+    document.querySelectorAll('.game-mode-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+
+            // Nettoyage visuel
+            document.querySelectorAll('.game-mode-btn')
+                    .forEach(b => b.classList.remove('selected'));
+
+            this.classList.add('selected');
+
+            selectedMode = this.dataset.mode;
+            selectedLevel = this.dataset.level;
+            selectedProfondeur = this.dataset.profondeur;
+
+            console.log('Mode sélectionné:', {
+                mode: selectedMode,
+                level: selectedLevel,
+                profondeur: selectedProfondeur
             });
         });
+    });
 
-        // Gestion de la sélection de la couleur
-        document.querySelectorAll('.color-option').forEach(option => {
-            option.addEventListener('click', function() {
-                document.querySelectorAll('.color-option').forEach(opt => {
-                    opt.classList.remove('selected');
-                });
-                this.classList.add('selected');
+    // --- Sélection COULEUR + TIMER ---
+    document.querySelectorAll('.color-option').forEach(option => {
+        option.addEventListener('click', function() {
+
+            // Effacer la sélection couleur précédente
+            document.querySelectorAll('.color-option')
+                    .forEach(opt => opt.classList.remove('selected'));
+
+            this.classList.add('selected');
+
+            // Si l'option possède un timer → c’est un bouton de timer
+            if (this.dataset.timer !== undefined) {
+                selectedTimer = parseInt(this.dataset.timer);
+                console.log("⏱️ Timer sélectionné :", selectedTimer, "minutes");
+
+            } else {
                 selectedColor = this.dataset.color;
-                
                 console.log('Couleur sélectionnée:', selectedColor);
-            });
-        });
-
-        // Gestion du bouton de démarrage
-        document.getElementById('startGameBtn').addEventListener('click', function() {
-            let url = targetPage;
-            
-            // Gérer la couleur aléatoire
-            let finalColor = selectedColor;
-            if (selectedColor === 'random') {
-                finalColor = Math.random() > 0.5 ? 'white' : 'black';
-                console.log(`🎲 Couleur aléatoire: ${finalColor}`);
             }
-            
-            // Construire l'URL avec tous les paramètres harmonisés
-            const params = new URLSearchParams({
-                mode: selectedMode,
-                level: selectedLevel,
-                profondeur: selectedProfondeur,
-                color: finalColor
-            });
-            
-            url += '?' + params.toString();
-            
-            console.log('🚀 Démarrage de la partie:', { 
-                mode: selectedMode,
-                level: selectedLevel,
-                profondeur: selectedProfondeur,
-                originalColor: selectedColor,
-                finalColor: finalColor,
-                url: url,
-                device: isMobile ? 'mobile' : 'desktop'
-            });
-            
-            window.location.href = url;
+        });
+    });
+
+    // --- BOUTON START ---
+    document.getElementById('startGameBtn').addEventListener('click', function() {
+
+        let url = targetPage;
+
+        // Gestion couleur aléatoire
+        let finalColor = selectedColor;
+        if (selectedColor === 'random') {
+            finalColor = Math.random() > 0.5 ? 'white' : 'black';
+            console.log(`🎲 Couleur aléatoire: ${finalColor}`);
+        }
+
+        // Construction des paramètres
+        const params = new URLSearchParams({
+            mode: selectedMode,
+            level: selectedLevel,
+            profondeur: selectedProfondeur,
+            color: finalColor,
+            timer: selectedTimer
         });
 
-        // Animation au chargement
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Device détecté:', isMobile ? 'Mobile' : 'Desktop');
-            
-            // Assurer que le contenu est visible sur mobile
-            setTimeout(() => {
-                document.querySelector('.new-game-content').scrollIntoView({ 
-                    behavior: 'smooth',
-                    block: 'center'
-                });
-            }, 100);
+        url += '?' + params.toString();
+
+        console.log('🚀 Démarrage de la partie:', {
+            mode: selectedMode,
+            level: selectedLevel,
+            profondeur: selectedProfondeur,
+            originalColor: selectedColor,
+            finalColor: finalColor,
+            timer: selectedTimer,
+            url: url,
+            device: isMobile ? 'mobile' : 'desktop'
         });
-    </script>
+
+        window.location.href = url;
+    });
+
+    // Animation
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Device détecté:', isMobile ? 'Mobile' : 'Desktop');
+        setTimeout(() => {
+            document.querySelector('.new-game-content').scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }, 100);
+    });
+</script>
+
+
+
 </body>
 </html>

@@ -154,6 +154,13 @@ body.dark {
     border: 2px solid var(--color1);
 }
 
+.timer-option {
+    pointer-events: none; /* Empêche tout clic */
+    opacity: 0.6;         /* Optionnel : grise légèrement le bouton pour montrer qu'il est désactivé */
+    cursor: default;      /* Le curseur reste normal */
+}
+
+
 /* Sur mobile */
 @media (max-width: 768px) {
     .header-level {
