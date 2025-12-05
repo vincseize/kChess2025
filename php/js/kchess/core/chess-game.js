@@ -1,4 +1,4 @@
-// core/chess-game.js - Classe principale qui orchestre tout
+// chess-game.js - Classe principale SIMPLIFIÉE
 class ChessGame {
     constructor() {
         this.pieceManager = new PieceManager();
@@ -6,10 +6,10 @@ class ChessGame {
         this.board = new ChessBoard(this.gameState, this.pieceManager);
         this.moveValidator = new MoveValidator(this.board, this.gameState);
         
-        // Utiliser ChessGameCore pour la logique principale
+        // Utiliser ChessGameCore
         this.core = new ChessGameCore(this.board, this.gameState, this.moveValidator);
         
-        console.log('♟️ ChessGame initialized with modular core');
+        console.log('♟️ ChessGame initialisé');
         
         this.init();
     }
@@ -18,8 +18,7 @@ class ChessGame {
         this.loadInitialPosition();
         this.applyUrlParamsConfiguration();
         
-        // CORRECTION : Ne pas appeler initNotificationStyles() car elle est gérée automatiquement
-        // par ChessStyleManager dans le constructeur de ChessGameUI
+        // Setup UI si disponible
         if (this.core.ui && typeof this.core.ui.setupEventListeners === 'function') {
             this.core.ui.setupEventListeners();
         }
@@ -29,7 +28,7 @@ class ChessGame {
         }
     }
 
-    // Méthodes déléguées vers le core
+    // Méthodes déléguées
     handleSquareClick = (displayRow, displayCol) => this.core.handleSquareClick(displayRow, displayCol);
     highlightPossibleMoves = () => this.core.highlightPossibleMoves();
     clearSelection = () => this.core.clearSelection();
@@ -47,91 +46,32 @@ class ChessGame {
         });
     }
 
-    // Appliquer la configuration depuis les paramètres URL
-    // chess-game.js - dans la classe ChessGame
-applyUrlParamsConfiguration() {
-    const urlParams = this.getUrlParams();
-    console.log('Paramètres URL détectés:', urlParams);
-    
-    // --- GESTION DU FLIP AUTOMATIQUE ---
-    const wantsBlackStart = urlParams.color === 'black';
-    const wantsWhiteStart = urlParams.color === 'white';
-    
-    console.log(`🎯 Configuration couleur: ${urlParams.color}, Flip actuel: ${this.gameState.boardFlipped}`);
-    
-    // Appliquer le flip immédiatement si nécessaire
-    if (wantsBlackStart && !this.gameState.boardFlipped) {
-        console.log('🔀 Application du flip automatique pour color=black');
-        this.core.flipBoard(); // Flip l'échiquier via le core
+    // CONFIGURATION URL SIMPLIFIÉE
+    applyUrlParamsConfiguration() {
+        const urlParams = this.getUrlParams();
+        console.log('🎯 Configuration URL:', urlParams);
         
-        // Ne pas appeler flipPlayerSections() ici - il sera géré par ChessGameCore
+        // Mettre à jour gameState
+        this.gameState.updateFromUrlParams(urlParams);
+        
+        // Bot
+        const shouldActivateBot =
+            urlParams.bot === '1' ||
+            urlParams.bot === 'true' ||
+            urlParams.mode === 'bot' ||
+            urlParams.level === '0';
+        
+        if (shouldActivateBot) {
+            console.log('🤖 Bot activé via URL');
+            const botColor = urlParams.color === 'white' ? 'black' : 'white';
+            this.core.setBotLevel(1, botColor);
+        }
+        
+        // Mode
+        if (urlParams.mode) {
+            this.gameMode = urlParams.mode;
+        }
     }
-    
-    // Si white est demandé mais que le board est flipé, le remettre à l'endroit
-    if (wantsWhiteStart && this.gameState.boardFlipped) {
-        console.log('🔀 Retour à l\'endroit pour color=white');
-        this.core.flipBoard();
-    }
-    
-    // --- BOT ---
-    const shouldActivateBot =
-        urlParams.bot === '1' ||
-        urlParams.bot === 'true' ||
-        urlParams.mode === 'bot' ||
-        urlParams.level === '0';
-    
-    if (shouldActivateBot) {
-        console.log('🤖 Bot activé via URL');
-        const botColor = urlParams.color === 'white' ? 'black' : 'white';
-        this.core.setBotLevel(1, botColor);
-    }
-    
-    // --- MODE ---
-    if (urlParams.mode) {
-        console.log('Mode de jeu :', urlParams.mode);
-        this.gameMode = urlParams.mode;
-    }
-}
-
-
-// applyAutoFlip(shouldFlipSections = false) {
-//     console.log('Application du flip automatique');
-    
-//     this.gameState.boardFlipped = !this.gameState.boardFlipped;
-
-//     // Reconstruction du plateau (DOM)
-//     this.board.createBoard();
-//     this.loadInitialPosition();
-//     this.clearSelection();
-
-//     // 🚀 ICI le DOM est prêt → maintenant on peut flipper les sections
-//     if (shouldFlipSections && window.flipPlayerSections) {
-//         console.log("Flip des sections joueurs (post-createBoard)");
-//         window.flipPlayerSections();
-//     }
-// }
-
-
-applyAutoFlip() {
-    console.log("Application du flip automatique (simulation bouton flip)");
-
-    // 🔵 1 — Si la fonction externe existe, on l’utilise
-    if (typeof window.flipBoard === "function") {
-        console.log("↪️ flip externe trouvé → appel direct");
-        window.flipBoard();
-        return;
-    }
-
-    // 🔵 2 — Sinon on flip via le Core interne
-    // if (this.core && typeof this.core.flipBoard === "function") {
-    //     console.log("↪️ flip interne via ChessGameCore");
-    //     this.core.flipBoard();
-    // } else {
-    //     console.error("❌ flipBoard interne non disponible");
-    // }
-}
-
-
 
     getUrlParams() {
         const params = {};
@@ -144,22 +84,28 @@ applyAutoFlip() {
         return params;
     }
 
+    // FLIP SIMPLIFIÉ - délègue tout au core
     flipBoard() {
+        console.log('🔄 ChessGame.flipBoard() appelé');
         this.core.flipBoard();
     }
 
     newGame() {
+        console.log('🔄 Nouvelle partie');
         this.core.newGame();
-        // Réappliquer la configuration URL pour le flip
+        
+        // Réappliquer la configuration URL
         this.applyUrlParamsConfiguration();
     }
 
     clearMoveHistory() {
         this.gameState.moveHistory = [];
-        this.core.ui.updateMoveHistory();
+        if (this.core.ui && typeof this.core.ui.updateMoveHistory === 'function') {
+            this.core.ui.updateMoveHistory();
+        }
     }
 
-    // Délégation des méthodes bot
+    // Délégation bot
     setBotLevel(level, color = 'black') {
         return this.core.setBotLevel(level, color);
     }
@@ -179,147 +125,36 @@ applyAutoFlip() {
     handleMove(fromRow, fromCol, toRow, toCol) {
         return this.core.handleMove(fromRow, fromCol, toRow, toCol);
     }
-
-    // Méthodes utilitaires pour le debug
-    getGameState() {
-        return {
-            gameActive: this.gameState.gameActive,
-            currentPlayer: this.gameState.currentPlayer,
-            boardFlipped: this.gameState.boardFlipped,
-            halfMoveClock: this.gameState.halfMoveClock,
-            moveHistory: this.gameState.moveHistory.length
-        };
-    }
-
-    // Méthode pour forcer le tour du bot (debug)
-    forceBotTurn() {
-        console.log('🤖 Forçage du tour du bot');
-        if (this.core.botManager.isBotTurn()) {
-            this.core.botManager.playBotMove();
-        } else {
-            console.log('🤖 Pas le tour du bot actuellement');
-            const status = this.getBotStatus();
-            console.log('Statut bot:', status);
-        }
-    }
-
-    // Méthode pour tester le bot manuellement
-    testBot() {
-        console.log('🧪 Test manuel du bot');
-        const botStatus = this.getBotStatus();
-        console.log('Statut bot:', botStatus);
-        
-        if (botStatus.active) {
-            console.log('🤖 Bot actif, niveau:', botStatus.level);
-            console.log('🤖 Bot couleur:', botStatus.color);
-            console.log('🤖 En réflexion:', botStatus.thinking);
-            
-            // Tester la génération de coup
-            const currentFEN = FENGenerator.generateFEN(this.gameState, this.board);
-            console.log('🎯 FEN actuel:', currentFEN);
-            
-            if (this.core.botManager.bot && this.core.botManager.bot.getMove) {
-                const testMove = this.core.botManager.bot.getMove(currentFEN);
-                console.log('🎯 Coup test du bot:', testMove);
-            }
-        } else {
-            console.log('❌ Bot non activé');
-        }
-    }
 }
 
 window.ChessGame = ChessGame;
 
-// Interface de debug globale
+// Interface debug simplifiée
 window.chessDebug = {
-    // Informations du jeu
-    gameInfo: () => {
+    status: function() {
         if (!window.chessGame) {
-            console.log('❌ Aucun jeu initialisé');
-            return null;
-        }
-        return {
-            game: window.chessGame,
-            gameState: window.chessGame.getGameState(),
-            botStatus: window.chessGame.getBotStatus(),
-            core: window.chessGame.core
-        };
-    },
-    
-    // Contrôle du bot
-    activateBot: (level = 1, color = 'black') => {
-        if (window.chessGame) {
-            console.log(`🤖 Activation bot niveau ${level}, couleur ${color}`);
-            return window.chessGame.setBotLevel(level, color);
-        }
-        console.log('❌ Jeu non initialisé');
-        return null;
-    },
-    
-    // Test du bot
-    testBot: () => {
-        if (window.chessGame) {
-            window.chessGame.testBot();
-        } else {
             console.log('❌ Jeu non initialisé');
-        }
-    },
-    
-    // Forcer un coup du bot
-    forceBotMove: () => {
-        if (window.chessGame) {
-            window.chessGame.forceBotTurn();
-        } else {
-            console.log('❌ Jeu non initialisé');
-        }
-    },
-    
-    // Statut complet
-    status: () => {
-        if (!window.chessGame) {
-            console.log('❌ Aucun jeu initialisé');
             return;
         }
         
-        console.group('🎮 STATUT COMPLET DU JEU');
-        console.log('♟️ État du jeu:', window.chessGame.getGameState());
-        console.log('🤖 Statut bot:', window.chessGame.getBotStatus());
-        console.log('🔄 Tour actuel:', window.chessGame.gameState.currentPlayer);
-        console.log('🎯 FEN actuel:', FENGenerator.generateFEN(window.chessGame.gameState, window.chessGame.board));
+        console.group('🎮 STATUT CHESSGAME');
+        console.log('Current player:', window.chessGame.gameState.currentPlayer);
+        console.log('Board flipped:', window.chessGame.gameState.boardFlipped);
+        console.log('URL color:', window.chessGame.gameState.urlColor);
+        console.log('Auto flip done:', window.chessGame.gameState.autoFlipDone);
+        console.log('Move history:', window.chessGame.gameState.moveHistory.length);
         console.groupEnd();
     },
     
-    // Réinitialisation
-    resetGame: () => {
+    flip: function() {
         if (window.chessGame) {
-            console.log('🔄 Réinitialisation du jeu');
-            window.chessGame.newGame();
-        } else {
-            console.log('❌ Jeu non initialisé');
+            window.chessGame.flipBoard();
         }
     },
     
-    // Flip du plateau
-    flipBoard: () => {
+    newGame: function() {
         if (window.chessGame) {
-            console.log('🔄 Flip du plateau');
-            window.chessGame.flipBoard();
-        } else {
-            console.log('❌ Jeu non initialisé');
+            window.chessGame.newGame();
         }
     }
 };
-
-// Message d'aide pour la console
-console.log(`
-🎮 COMMANDES DEBUG DISPONIBLES:
-
-• chessDebug.status()       - Statut complet du jeu
-• chessDebug.activateBot()  - Activer le bot
-• chessDebug.testBot()      - Tester le bot
-• chessDebug.forceBotMove() - Forcer un coup du bot
-• chessDebug.resetGame()    - Nouvelle partie
-• chessDebug.flipBoard()    - Flip du plateau
-
-• window.chessGame          - Accès direct au jeu
-`);

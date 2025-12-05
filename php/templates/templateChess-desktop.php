@@ -54,42 +54,51 @@ $selectedTimer = isset($_GET['timer']) ? intval($_GET['timer']) : $defaultTimer;
     <link href="../css/kchess/responsive.css?version=<?php echo $version; ?>" rel="stylesheet">
     <link href="../css/kchess/promotion-modal.css?version=<?php echo $version; ?>" rel="stylesheet">
 
-    <!-- STYLE EMERGENCY FIX - AJOUTEZ CECI -->
+    <!-- SYSTÈME ANTI-DOUBLE FLIP -->
     <style>
-    /* CORRECTION URGENTE - Empêche l'affichage de "10:00" */
-    .player-clock::before,
-    .player-clock::after,
-    .player-clock-white::before,
-    .player-clock-white::after,
-    .player-clock-black::before,
-    .player-clock-black::after {
-        content: "" !important;
-        display: none !important;
+    /* PROTECTION CONTRE LES FLIPS MULTIPLES */
+    .flip-in-progress {
+        pointer-events: none;
+        opacity: 0.7;
+        transition: opacity 0.3s;
     }
     
-    /* Assure que le texte s'affiche correctement */
-    .player-clock {
-        min-width: 70px;
-        text-align: center;
-        font-family: 'Courier New', monospace;
-        font-weight: bold;
-        font-size: 1.2em;
-        padding: 5px 10px;
-        border-radius: 4px;
-        display: inline-block;
-    }
-    
-    /* Couleurs spécifiques */
-    .player-clock-white {
-        color: #000;
-        background: #fff;
-        border: 2px solid #333;
-    }
-    
+    /* FORÇAGE ABSOLU DES TIMERS */
+    .player-clock-white,
     .player-clock-black {
-        color: #fff;
-        background: #000;
-        border: 2px solid #666;
+        all: unset !important;
+        display: inline-block !important;
+        font-family: 'Courier New', monospace !important;
+        font-weight: bold !important;
+        font-size: 1.3em !important;
+        padding: 8px 12px !important;
+        border-radius: 6px !important;
+        min-width: 80px !important;
+        text-align: center !important;
+        border: 3px solid !important;
+        margin: 5px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+    }
+
+    .player-clock-white {
+        color: #000000 !important;
+        background: #FFFFFF !important;
+        border-color: #333333 !important;
+    }
+
+    .player-clock-black {
+        color: #FFFFFF !important;
+        background: #000000 !important;
+        border-color: #666666 !important;
+    }
+    
+    /* État initial caché pour éviter les flashes */
+    .chess-board-container {
+        visibility: hidden;
+    }
+    .chess-board-container.ready {
+        visibility: visible;
+        transition: visibility 0.3s;
     }
     </style>
 
@@ -122,7 +131,7 @@ $selectedTimer = isset($_GET['timer']) ? intval($_GET['timer']) : $defaultTimer;
                 </div>
             </div>
 
-            <div class="chessboard-container">
+            <div class="chessboard-container" id="chessboardContainer">
                 <div id="chessBoard" class="chess-board">
                     <!-- Le board sera généré en JS -->
                 </div>
@@ -196,249 +205,327 @@ $selectedTimer = isset($_GET['timer']) ? intval($_GET['timer']) : $defaultTimer;
 
 </div> <!-- FIN .game-layout -->
 
-<!-- Timer JS - VERSION CORRECTE -->
+<!-- FLIP MANAGER GLOBAL - DOIT ÊTRE ICI DANS TEMPLATE -->
 <script>
 // =============================================
-// CLASSE TIMER AMÉLIORÉE
+// 1. FLIP MANAGER GLOBAL - EXÉCUTÉ EN PREMIER
 // =============================================
-class PlayerTimer {
-    constructor(clockElement, totalMinutes) {
-        this.clockElement = clockElement;
-        this.totalSeconds = totalMinutes * 60;
-        this.remainingSeconds = this.totalSeconds;
-        this.intervalId = null;
-        
-        // Nettoyer et afficher immédiatement
-        this.forceCleanDisplay();
-    }
+window.FlipManager = {
+    isFlipInProgress: false,
+    autoFlipApplied: false,
+    flipHistory: [],
+    desiredColor: 'white',
     
-    // Force le nettoyage de tout contenu CSS
-    forceCleanDisplay() {
-        // Supprimer tout contenu existant
-        this.clockElement.textContent = '';
-        this.clockElement.innerHTML = '';
+    init: function() {
+        console.log('🔒 FlipManager initialisé');
+        this.flipHistory = [];
+        this.isFlipInProgress = false;
+        this.autoFlipApplied = false;
         
-        // Créer un nouvel élément span pour contenir le temps
-        const timeSpan = document.createElement('span');
-        timeSpan.className = 'timer-display';
-        timeSpan.style.fontFamily = "'Courier New', monospace";
-        timeSpan.style.fontWeight = 'bold';
-        timeSpan.style.fontSize = '1.2em';
+        // Récupérer les paramètres URL
+        const params = this.getUrlParams();
+        this.desiredColor = params.color || 'white';
         
-        // Calculer et afficher le temps initial
-        this.updateDisplayElement(timeSpan);
+        console.log('🔍 Paramètres URL:', params);
+        console.log('🎯 Couleur désirée:', this.desiredColor);
         
-        // Remplacer le contenu
-        this.clockElement.appendChild(timeSpan);
-        this.displayElement = timeSpan;
-    }
+        return this;
+    },
     
-    updateDisplayElement(element) {
-        const minutes = Math.floor(this.remainingSeconds / 60);
-        const seconds = this.remainingSeconds % 60;
-        const display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    getUrlParams: function() {
+        const params = {};
+        const urlParams = new URLSearchParams(window.location.search);
+        for (let [key, value] of urlParams.entries()) {
+            params[key] = value;
+        }
+        return params;
+    },
+    
+    needsAutoFlip: function() {
+        const board = document.getElementById('chessBoard');
+        const isCurrentlyFlipped = board ? board.classList.contains('flipped') : false;
+        const shouldBeFlipped = this.desiredColor === 'black';
         
-        element.textContent = display;
-        element.dataset.time = display;
-    }
-
-    start() {
-        if (this.intervalId) return;
-        this.intervalId = setInterval(() => {
-            if (this.remainingSeconds <= 0) {
-                this.stop();
-                if (this.displayElement) {
-                    this.displayElement.textContent = "00:00";
-                }
-                alert('Temps écoulé pour ' + this.clockElement.className);
-                return;
+        return {
+            needsFlip: shouldBeFlipped && !isCurrentlyFlipped,
+            needsUnflip: !shouldBeFlipped && isCurrentlyFlipped,
+            currentState: isCurrentlyFlipped ? 'flipped' : 'normal',
+            desiredState: shouldBeFlipped ? 'flipped' : 'normal'
+        };
+    },
+    
+    safeFlipBoard: function() {
+        if (this.isFlipInProgress) {
+            console.log('🚫 Flip déjà en cours - ignoré');
+            return false;
+        }
+        
+        try {
+            this.isFlipInProgress = true;
+            document.body.classList.add('flip-in-progress');
+            
+            console.log('🔄 Début du flip sécurisé');
+            
+            // 1. Essayer ChessGame d'abord
+            if (window.chessGame && typeof window.chessGame.flipBoard === 'function') {
+                console.log('✅ Utilisation de chessGame.flipBoard()');
+                window.chessGame.flipBoard();
             }
-            this.remainingSeconds--;
-            this.updateDisplay();
+            // 2. Sinon fonction globale
+            else if (typeof window.flipBoard === 'function') {
+                console.log('✅ Utilisation de window.flipBoard()');
+                window.flipBoard();
+            }
+            // 3. Fallback manuel
+            else {
+                console.log('⚠️ Fallback manuel');
+                this.manualFlip();
+            }
+            
+            // Historique
+            this.flipHistory.push({
+                timestamp: new Date().toISOString(),
+                source: 'safeFlipBoard',
+                desiredColor: this.desiredColor
+            });
+            
+            console.log('✅ Flip sécurisé terminé');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Erreur lors du flip:', error);
+            return false;
+        } finally {
+            setTimeout(() => {
+                this.isFlipInProgress = false;
+                document.body.classList.remove('flip-in-progress');
+            }, 500);
+        }
+    },
+    
+    manualFlip: function() {
+        const board = document.getElementById('chessBoard');
+        if (!board) return false;
+        
+        board.classList.toggle('flipped');
+        
+        const pieces = document.querySelectorAll('.chess-piece');
+        pieces.forEach(piece => {
+            if (board.classList.contains('flipped')) {
+                piece.style.transform = 'rotate(180deg)';
+            } else {
+                piece.style.transform = 'rotate(0deg)';
+            }
+        });
+        
+        this.flipSections();
+        return true;
+    },
+    
+    flipSections: function() {
+        const sectionWhite = document.getElementById('section-white');
+        const sectionBlack = document.getElementById('section-black');
+        const chessboardContainer = document.getElementById('chessboardContainer');
+        const chessboardCol = document.querySelector('.chessboard-col');
+        
+        if (sectionWhite && sectionBlack && chessboardContainer && chessboardCol) {
+            const currentOrder = Array.from(chessboardCol.children).map(child => child.id);
+            
+            if (currentOrder[0] === 'section-black') {
+                chessboardCol.innerHTML = '';
+                chessboardCol.appendChild(sectionWhite);
+                chessboardCol.appendChild(chessboardContainer);
+                chessboardCol.appendChild(sectionBlack);
+                console.log('✅ Sections: Blanc en haut, Noir en bas');
+            } else {
+                chessboardCol.innerHTML = '';
+                chessboardCol.appendChild(sectionBlack);
+                chessboardCol.appendChild(chessboardContainer);
+                chessboardCol.appendChild(sectionWhite);
+                console.log('✅ Sections: Noir en haut, Blanc en bas');
+            }
+        }
+    },
+    
+    applyAutoFlipOnce: function() {
+        if (this.autoFlipApplied) {
+            console.log('⚠️ Flip automatique déjà appliqué');
+            return false;
+        }
+        
+        const needs = this.needsAutoFlip();
+        console.log('🔍 État flip:', needs);
+        
+        if (needs.needsFlip || needs.needsUnflip) {
+            console.log(`🎯 Flip automatique nécessaire: ${needs.needsFlip ? 'FLIP' : 'UNFLIP'}`);
+            
+            setTimeout(() => {
+                const success = this.safeFlipBoard();
+                if (success) {
+                    this.autoFlipApplied = true;
+                    console.log('✅ Flip automatique appliqué UNE SEULE FOIS');
+                    
+                    // Montrer le board
+                    const container = document.getElementById('chessboardContainer');
+                    if (container) {
+                        container.classList.add('ready');
+                    }
+                }
+            }, 800);
+            
+            return true;
+        }
+        
+        console.log('✅ Aucun flip automatique nécessaire');
+        setTimeout(() => {
+            const container = document.getElementById('chessboardContainer');
+            if (container) {
+                container.classList.add('ready');
+            }
+        }, 500);
+        
+        return false;
+    },
+    
+    reset: function() {
+        this.autoFlipApplied = false;
+        console.log('🔄 FlipManager réinitialisé');
+        
+        setTimeout(() => {
+            this.applyAutoFlipOnce();
         }, 1000);
+    },
+    
+    debug: function() {
+        const needs = this.needsAutoFlip();
+        const board = document.getElementById('chessBoard');
+        
+        console.group('🔍 DEBUG FlipManager');
+        console.log('Desired color:', this.desiredColor);
+        console.log('Current flipped:', board ? board.classList.contains('flipped') : 'N/A');
+        console.log('Needs flip:', needs);
+        console.log('Auto flip applied:', this.autoFlipApplied);
+        console.log('Flip in progress:', this.isFlipInProgress);
+        console.log('Flip history:', this.flipHistory);
+        console.groupEnd();
+        
+        return needs;
     }
+};
 
-    stop() {
-        if (this.intervalId) {
-            clearInterval(this.intervalId);
-            this.intervalId = null;
-        }
+// =============================================
+// 2. INITIALISATION GLOBALE
+// =============================================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 DOM Content Loaded - Initialisation FlipManager');
+    
+    // Initialiser FlipManager IMMÉDIATEMENT
+    window.FlipManager.init();
+    
+    // Configurer les boutons
+    setupGlobalButtons();
+    
+    // Appliquer flip auto avec délai
+    setTimeout(() => {
+        window.FlipManager.applyAutoFlipOnce();
+    }, 1000);
+});
+
+// =============================================
+// 3. CONFIGURATION DES BOUTONS GLOBAUX
+// =============================================
+function setupGlobalButtons() {
+    // Bouton flip
+    const flipButton = document.getElementById('flipBoard');
+    if (flipButton) {
+        const newButton = flipButton.cloneNode(true);
+        flipButton.parentNode.replaceChild(newButton, flipButton);
+        
+        newButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔄 Bouton flip cliqué manuellement');
+            window.FlipManager.safeFlipBoard();
+        });
+        
+        newButton.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('📱 Bouton flip touché');
+            window.FlipManager.safeFlipBoard();
+        });
     }
-
-    reset() {
-        this.remainingSeconds = this.totalSeconds;
-        this.updateDisplay();
-        this.stop();
-    }
-
-    updateDisplay() {
-        if (this.displayElement) {
-            this.updateDisplayElement(this.displayElement);
-        }
+    
+    // Bouton nouvelle partie
+    const newGameButton = document.getElementById('newGame');
+    if (newGameButton) {
+        const newButton = newGameButton.cloneNode(true);
+        newGameButton.parentNode.replaceChild(newButton, newGameButton);
+        
+        newButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('🔄 Nouvelle partie demandée');
+            window.FlipManager.reset();
+            
+            if (window.chessGame && typeof window.chessGame.newGame === 'function') {
+                window.chessGame.newGame();
+            }
+        });
     }
 }
 
 // =============================================
-// INITIALISATION DES TIMERS
+// 4. FONCTIONS GLOBALES POUR COMPATIBILITÉ
 // =============================================
-const timerMinutes = <?php echo $selectedTimer; ?>;
-console.log('⏱️ Timer configuré à:', timerMinutes, 'minutes');
+window.flipBoard = function() {
+    console.log('🔄 flipBoard() global appelé');
+    return window.FlipManager.safeFlipBoard();
+};
 
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔄 Initialisation timers...');
-    
-    // Attendre un peu pour que tous les CSS soient chargés
-    setTimeout(() => {
-        const whiteClockElement = document.querySelector('.player-clock-white');
-        const blackClockElement = document.querySelector('.player-clock-black');
-        
-        if (!whiteClockElement || !blackClockElement) {
-            console.error('❌ Éléments timer non trouvés');
-            return;
-        }
-        
-        // Initialiser les timers
-        window.whiteClock = new PlayerTimer(whiteClockElement, timerMinutes);
-        window.blackClock = new PlayerTimer(blackClockElement, timerMinutes);
-        
-        // SEUL le timer blanc démarre au début
-        window.currentPlayer = 'white';
-        window.whiteClock.start();
-        
-        console.log('✅ Timers initialisés - Blancs:', timerMinutes + 'min, Noirs:', timerMinutes + 'min');
-        
-        // Nouvelle partie
-        document.getElementById('newGame').addEventListener('click', () => {
-            console.log('🔄 Nouvelle partie - réinitialisation timers');
-            window.whiteClock.reset();
-            window.blackClock.reset();
-            window.currentPlayer = 'white';
-            window.whiteClock.start();
-        });
-        
-    }, 100); // Petit délai pour laisser le CSS se charger
-});
+window.newGame = function() {
+    console.log('🔄 newGame() global appelé');
+    if (window.chessGame && typeof window.chessGame.newGame === 'function') {
+        return window.chessGame.newGame();
+    }
+    return false;
+};
 
-// =============================================
-// FONCTION POUR CHANGER DE TOUR
-// =============================================
-window.switchTurn = function() {
-    if (!window.whiteClock || !window.blackClock) {
-        console.error('❌ Timers non initialisés');
-        return;
-    }
-    
-    console.log('🔄 Changement de tour de', window.currentPlayer);
-    
-    if (window.currentPlayer === 'white') {
-        window.whiteClock.stop();
-        window.blackClock.start();
-        window.currentPlayer = 'black';
-    } else {
-        window.blackClock.stop();
-        window.whiteClock.start();
-        window.currentPlayer = 'white';
-    }
-    
-    console.log('✅ Nouveau tour:', window.currentPlayer);
+window.getUrlParams = function() {
+    return window.FlipManager.getUrlParams();
 };
 
 // =============================================
-// FONCTIONS DE DEBUG
+// 5. INTERFACE DEBUG
 // =============================================
-window.testTimer = {
-    switchTurn: () => {
-        console.log('🧪 Test manuel switchTurn');
-        window.switchTurn();
+window.debugGlobal = {
+    status: function() {
+        console.group('🔧 DEBUG GLOBAL');
+        window.FlipManager.debug();
+        console.log('ChessGame disponible:', window.chessGame ? 'OUI' : 'NON');
+        console.groupEnd();
     },
-    getStatus: () => {
-        return {
-            currentPlayer: window.currentPlayer,
-            whiteRunning: window.whiteClock?.intervalId !== null,
-            blackRunning: window.blackClock?.intervalId !== null,
-            whiteTime: window.whiteClock?.remainingSeconds,
-            blackTime: window.blackClock?.remainingSeconds
-        };
+    
+    testFlip: function() {
+        console.log('🧪 Test flip manuel');
+        window.FlipManager.safeFlipBoard();
     },
-    simulateMove: () => {
-        console.log('🧪 Simulation d\'un coup');
-        window.switchTurn();
-    },
-    forceUpdate: () => {
-        if (window.whiteClock) window.whiteClock.updateDisplay();
-        if (window.blackClock) window.blackClock.updateDisplay();
-        console.log('🔄 Affichage forcé');
+    
+    forceAutoFlip: function() {
+        console.log('🧪 Forçage flip automatique');
+        window.FlipManager.autoFlipApplied = false;
+        window.FlipManager.applyAutoFlipOnce();
     }
 };
 
-console.log('🎮 Système timer initialisé - PHP value:', timerMinutes);
-</script>
-
-<script>
-// =============================================
-// INTÉGRATION AVEC CHESSGAME
-// =============================================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔄 Initialisation intégration ChessGame...');
-    
-    // Attendre que ChessGame soit disponible
-    const checkChessGame = setInterval(() => {
-        if (typeof window.chessGame !== 'undefined') {
-            clearInterval(checkChessGame);
-            console.log('🎮 ChessGame détecté, intégration en cours...');
-            
-            // Intégration avec handleMove
-            if (window.chessGame.handleMove) {
-                const originalHandleMove = window.chessGame.handleMove;
-                window.chessGame.handleMove = function(fromRow, fromCol, toRow, toCol) {
-                    const result = originalHandleMove.call(this, fromRow, fromCol, toRow, toCol);
-                    if (result && window.switchTurn) {
-                        console.log('✅ Coup valide - changement de timer');
-                        window.switchTurn();
-                    }
-                    return result;
-                };
-                console.log('✅ Hook handleMove installé');
-            }
-            
-            // Intégration avec newGame
-            if (window.chessGame.newGame) {
-                const originalNewGame = window.chessGame.newGame;
-                window.chessGame.newGame = function() {
-                    console.log('♟️ Nouvelle partie ChessGame');
-                    const result = originalNewGame.apply(this, arguments);
-                    
-                    // Réinitialiser les timers
-                    if (window.whiteClock && window.blackClock) {
-                        window.whiteClock.reset();
-                        window.blackClock.reset();
-                        window.currentPlayer = 'white';
-                        window.whiteClock.start();
-                    }
-                    
-                    return result;
-                };
-                console.log('✅ Hook newGame installé');
-            }
-        }
-    }, 100);
-    
-    // Timeout de sécurité
-    setTimeout(() => {
-        clearInterval(checkChessGame);
-    }, 5000);
-});
-
-console.log(`
-🎮 COMMANDES DISPONIBLES :
-• testTimer.getStatus()    - Voir l'état des timers
-• testTimer.simulateMove() - Simuler un coup (change de tour)
-• testTimer.forceUpdate()  - Forcer l'affichage
-• switchTurn()             - Changer manuellement de tour
-`);
+console.log('🎮 FlipManager global prêt - Commandes: debugGlobal.status(), debugGlobal.testFlip()');
 </script>
 
 <?php
 // Inclure le footer avec les scripts
 require_once '../footer.php';  
 ?>
+
+</body>
+</html>
