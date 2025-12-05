@@ -23,7 +23,6 @@
                         <!-- Contenu du menu - SECTION RAPIDE SEULEMENT -->
                         <div id="menuContent" class="d-md-block">
                             <!-- Section rapide - VISIBLE UNIQUEMENT SUR DESKTOP -->
-                            <!-- <div class="small text-muted mb-2 d-none d-md-block">Actions rapides</div> -->
                             <div class="d-grid gap-2 d-none d-md-block">
                                 <button class="btn btn-success btn-sm new-game-btn" id="newGame">
                                     <i class="bi bi-plus-circle me-1"></i> Nouvelle Partie
@@ -41,16 +40,16 @@
         <!-- Colonne du milieu - Échiquier (légèrement réduite) -->
         <div class="col-xxl-8 col-xl-6 col-lg-6 col-md-8 col-12">
             <div class="chess-container bg-light rounded-3 p-2 h-100 position-relative">
-                <!-- Label JOUEUR ORDINATEUR en haut à gauche -->
+                <!-- Label JOUEUR ORDINATEUR en haut à gauche - AVEC ID -->
                 <div class="position-absolute top-0 start-0 m-2">
-                    <span class="badge bg-dark text-white p-2">
+                    <span id="topPlayerLabel" class="badge bg-dark text-white p-2">
                         <i class="bi bi-cpu me-1"></i> Human black
                     </span>
                 </div>
                 
-                <!-- Label MOI en bas à gauche -->
+                <!-- Label MOI en bas à gauche - AVEC ID -->
                 <div class="position-absolute bottom-0 start-0 m-2">
-                    <span class="badge bg-primary text-white p-2">
+                    <span id="bottomPlayerLabel" class="badge bg-white text-dark border border-dark p-2">
                         <i class="bi bi-person me-1"></i> Human White
                     </span>
                 </div>
@@ -69,12 +68,6 @@
                 
                 <!-- Statut de la partie -->
                 <div class="card mb-3 flex-grow-0">
-                    <!-- <div class="card-header bg-info text-white py-2">
-                        <h4 class="h6 mb-0 text-center">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Statut
-                        </h4>
-                    </div> -->
                     <div class="card-body p-2">
                         <div class="game-status text-center">
                             <!-- Statut dynamique du joueur actuel -->

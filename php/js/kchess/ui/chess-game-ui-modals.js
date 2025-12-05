@@ -128,7 +128,7 @@ class ChessModalManager {
         this.ui.timerManager.stopTimer();
         
         setTimeout(() => {
-            window.location.href = '../index.php';
+            window.location.href = 'index.php';
         }, 500);
     }
 }

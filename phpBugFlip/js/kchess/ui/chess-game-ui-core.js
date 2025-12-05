@@ -1,4 +1,4 @@
-// chess-game-ui-core.js - Classe principale ChessGameUI
+// ui/chess-game-ui-core.js - Classe principale ChessGameUI
 class ChessGameUI {
     constructor(game) {
         this.game = game;

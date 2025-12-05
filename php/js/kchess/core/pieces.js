@@ -3,20 +3,20 @@ class PieceManager {
     constructor() {
         this.pieceSymbols = {
             white: {
-                king: '<img src="../img/chesspieces/wikipedia/wK.png" alt="Roi Blanc" class="chess-piece-img">',
-                queen: '<img src="../img/chesspieces/wikipedia/wQ.png" alt="Dame Blanche" class="chess-piece-img">',
-                rook: '<img src="../img/chesspieces/wikipedia/wR.png" alt="Tour Blanche" class="chess-piece-img">',
-                bishop: '<img src="../img/chesspieces/wikipedia/wB.png" alt="Fou Blanc" class="chess-piece-img">',
-                knight: '<img src="../img/chesspieces/wikipedia/wN.png" alt="Cavalier Blanc" class="chess-piece-img">',
-                pawn: '<img src="../img/chesspieces/wikipedia/wP.png" alt="Pion Blanc" class="chess-piece-img">'
+                king: '<img src="img/chesspieces/wikipedia/wK.png" alt="Roi Blanc" class="chess-piece-img">',
+                queen: '<img src="img/chesspieces/wikipedia/wQ.png" alt="Dame Blanche" class="chess-piece-img">',
+                rook: '<img src="img/chesspieces/wikipedia/wR.png" alt="Tour Blanche" class="chess-piece-img">',
+                bishop: '<img src="img/chesspieces/wikipedia/wB.png" alt="Fou Blanc" class="chess-piece-img">',
+                knight: '<img src="img/chesspieces/wikipedia/wN.png" alt="Cavalier Blanc" class="chess-piece-img">',
+                pawn: '<img src="img/chesspieces/wikipedia/wP.png" alt="Pion Blanc" class="chess-piece-img">'
             },
             black: {
-                king: '<img src="../img/chesspieces/wikipedia/bK.png" alt="Roi Noir" class="chess-piece-img">',
-                queen: '<img src="../img/chesspieces/wikipedia/bQ.png" alt="Dame Noire" class="chess-piece-img">',
-                rook: '<img src="../img/chesspieces/wikipedia/bR.png" alt="Tour Noire" class="chess-piece-img">',
-                bishop: '<img src="../img/chesspieces/wikipedia/bB.png" alt="Fou Noir" class="chess-piece-img">',
-                knight: '<img src="../img/chesspieces/wikipedia/bN.png" alt="Cavalier Noir" class="chess-piece-img">',
-                pawn: '<img src="../img/chesspieces/wikipedia/bP.png" alt="Pion Noir" class="chess-piece-img">'
+                king: '<img src="img/chesspieces/wikipedia/bK.png" alt="Roi Noir" class="chess-piece-img">',
+                queen: '<img src="img/chesspieces/wikipedia/bQ.png" alt="Dame Noire" class="chess-piece-img">',
+                rook: '<img src="img/chesspieces/wikipedia/bR.png" alt="Tour Noire" class="chess-piece-img">',
+                bishop: '<img src="img/chesspieces/wikipedia/bB.png" alt="Fou Noir" class="chess-piece-img">',
+                knight: '<img src="img/chesspieces/wikipedia/bN.png" alt="Cavalier Noir" class="chess-piece-img">',
+                pawn: '<img src="img/chesspieces/wikipedia/bP.png" alt="Pion Noir" class="chess-piece-img">'
             }
         };
     }
