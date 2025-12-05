@@ -1,4 +1,4 @@
-// ui/chess-game-ui-core.js - Classe principale ChessGameUI
+// ui/chess-game-ui-core.js - Classe principale ChessGameUI (modifiée)
 class ChessGameUI {
     constructor(game) {
         this.game = game;
@@ -82,6 +82,7 @@ class ChessGameUI {
         this.timerManager.updateTimerDisplay();
         this.moveHistoryManager.updateMoveHistory();
         this.updateGameStatus();
+        this.updateBotIndicator(); // Ajout de l'indicateur de bot
     }
 
     updateGameStatus() {
@@ -92,6 +93,73 @@ class ChessGameUI {
             const player = this.game.gameState.currentPlayer;
             currentPlayerElement.textContent = player === 'white' ? 'Aux blancs de jouer' : 'Aux noirs de jouer';
         }
+    }
+
+    // Nouvelle méthode : afficher l'indicateur de bot
+    updateBotIndicator() {
+        const botStatus = this.game.getBotStatus();
+        const currentPlayerElement = document.getElementById('currentPlayer');
+        const botIndicatorElement = document.getElementById('botIndicator') || this.createBotIndicator();
+        
+        if (!currentPlayerElement) return;
+        
+        if (botStatus.active) {
+            // Déterminer le type de bot
+            let botType = '';
+            let botIcon = '';
+            
+            switch(botStatus.level) {
+                case 1:
+                    botType = 'Bot Niv.1 (Aléatoire)';
+                    botIcon = '🤖';
+                    break;
+                case 2:
+                    botType = 'Bot Niv.2 (CCMO)';
+                    botIcon = '🧠';
+                    break;
+                default:
+                    botType = `Bot Niv.${botStatus.level}`;
+                    botIcon = '🤖';
+            }
+            
+            // Mettre à jour l'indicateur
+            botIndicatorElement.innerHTML = `
+                <span class="bot-indicator" title="${botType} - Joue les ${botStatus.color === 'white' ? 'Blancs' : 'Noirs'}">
+                    ${botIcon} ${botType}
+                </span>
+            `;
+            
+            // Ajouter la classe bot-active à l'élément currentPlayer
+            currentPlayerElement.classList.add('bot-active');
+            
+            // Si c'est le tour du bot, ajouter une classe supplémentaire
+            if (this.game.core && this.game.core.bot && this.game.core.bot.isBotTurn()) {
+                currentPlayerElement.classList.add('bot-turn');
+                currentPlayerElement.title = `${botType} réfléchit...`;
+            } else {
+                currentPlayerElement.classList.remove('bot-turn');
+                currentPlayerElement.title = '';
+            }
+            
+        } else {
+            // Cacher l'indicateur si le bot est désactivé
+            botIndicatorElement.innerHTML = '';
+            currentPlayerElement.classList.remove('bot-active', 'bot-turn');
+            currentPlayerElement.title = '';
+        }
+    }
+    
+    // Créer l'élément indicateur de bot s'il n'existe pas
+    createBotIndicator() {
+        const container = document.querySelector('.player-info') || document.getElementById('currentPlayer')?.parentElement;
+        if (!container) return document.createElement('div');
+        
+        const botIndicator = document.createElement('div');
+        botIndicator.id = 'botIndicator';
+        botIndicator.className = 'bot-indicator-container';
+        container.appendChild(botIndicator);
+        
+        return botIndicator;
     }
 
     // Méthode utilitaire pour les notifications
