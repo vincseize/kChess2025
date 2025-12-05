@@ -1,4 +1,4 @@
-// chess-events.js - Initialisation du jeu SIMPLIFIÉE
+// ui/chess-events.js - Initialisation du jeu SIMPLIFIÉE
 
 // ============================================
 // FONCTION GLOBALE POUR METTRE À JOUR LES LABELS
@@ -22,44 +22,32 @@ function updatePlayerLabels() {
             // Essayer d'obtenir l'état depuis le core
             if (window.chessGame.core && window.chessGame.core.gameState) {
                 isFlipped = window.chessGame.core.gameState.boardFlipped;
-                console.log(`📊 État depuis core.gameState: ${isFlipped}`);
-            } 
-            // Essayer depuis la méthode isBoardFlipped
-            else if (typeof window.chessGame.isBoardFlipped === 'function') {
-                isFlipped = window.chessGame.isBoardFlipped();
-                console.log(`📊 État depuis isBoardFlipped(): ${isFlipped}`);
-            }
-            // Essayer depuis le core directement
-            else if (window.chessGame.core && window.chessGame.core.boardFlipped !== undefined) {
-                isFlipped = window.chessGame.core.boardFlipped;
-                console.log(`📊 État depuis core.boardFlipped: ${isFlipped}`);
             }
         }
         
-        console.log(`🔧 État final du plateau: flipped=${isFlipped}`);
+        console.log(`🔧 État du plateau: flipped=${isFlipped}`);
         
-        // Logique d'inversion des labels
+        // CORRECTION: Toujours définir les labels selon l'état, pas seulement échanger
         if (isFlipped) {
             // Plateau inversé: blancs en haut, noirs en bas
             topLabel.innerHTML = '<i class="bi bi-person me-1"></i> Human White';
+            topLabel.className = 'badge bg-white text-dark border border-dark p-2';
+            
             bottomLabel.innerHTML = '<i class="bi bi-cpu me-1"></i> Human Black';
-            topLabel.className = 'badge bg-primary text-white p-2';
             bottomLabel.className = 'badge bg-dark text-white p-2';
         } else {
             // Plateau normal: noirs en haut, blancs en bas
             topLabel.innerHTML = '<i class="bi bi-cpu me-1"></i> Human Black';
-            bottomLabel.innerHTML = '<i class="bi bi-person me-1"></i> Human White';
             topLabel.className = 'badge bg-dark text-white p-2';
-            bottomLabel.className = 'badge bg-primary text-white p-2';
+            
+            bottomLabel.innerHTML = '<i class="bi bi-person me-1"></i> Human White';
+            bottomLabel.className = 'badge bg-white text-dark border border-dark p-2';
         }
         
         console.log('✅ Labels mis à jour avec succès');
         
     } catch (error) {
         console.error('❌ Erreur updatePlayerLabels:', error);
-        // Valeurs par défaut en cas d'erreur
-        topLabel.innerHTML = '<i class="bi bi-cpu me-1"></i> Human Black';
-        bottomLabel.innerHTML = '<i class="bi bi-person me-1"></i> Human White';
     }
 }
 

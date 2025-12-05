@@ -1,4 +1,4 @@
-// chess-game-core.js - Classe principale orchestratrice MODULAIRE
+// core/chess-game-core.js - Classe principale orchestratrice MODULAIRE
 class ChessGameCore {
     constructor(board, gameState, moveValidator) {
         this.board = board;
@@ -16,14 +16,6 @@ class ChessGameCore {
         this.gameStatusManager = new GameStatusManager(this);
         
         console.log('♟️ ChessGameCore initialized with modular managers');
-        
-        // CORRECTION IMPORTANTE: Attacher la méthode updatePlayerLabels
-        this.updatePlayerLabels = this.updatePlayerLabels.bind(this);
-        
-        // Mettre à jour les labels après un court délai
-        setTimeout(() => {
-            this.updatePlayerLabels();
-        }, 1000);
     }
     
     // ============================================
@@ -160,7 +152,7 @@ class ChessGameCore {
     }
 
     // ============================================
-    // MÉTHODE POUR TOURNER LE PLATEAU (CORRIGÉE)
+    // MÉTHODE POUR TOURNER LE PLATEAU (SIMPLIFIÉE)
     // ============================================
     flipBoard() {
         console.log('🔄 Flip du plateau - ancien état:', this.gameState.boardFlipped);
@@ -193,59 +185,9 @@ class ChessGameCore {
         
         console.log('🔄 Flip du plateau - nouvel état:', this.gameState.boardFlipped);
         
-        // CORRECTION CRITIQUE: Mettre à jour les labels
-        this.updatePlayerLabels();
-    }
-
-    // ============================================
-    // MÉTHODE POUR METTRE À JOUR LES LABELS (NOUVELLE)
-    // ============================================
-    updatePlayerLabels() {
-        console.log('🎮 ChessGameCore.updatePlayerLabels() appelée');
-        
-        // Appeler la fonction globale depuis chess-events.js
+        // SIMPLE: Appeler la fonction globale pour mettre à jour les labels
         if (typeof window.updatePlayerLabels === 'function') {
-            try {
-                window.updatePlayerLabels();
-                console.log('✅ Labels mis à jour via fonction globale');
-            } catch (error) {
-                console.error('❌ Erreur dans window.updatePlayerLabels:', error);
-                this._updatePlayerLabelsFallback();
-            }
-        } else {
-            console.warn('⚠️ window.updatePlayerLabels() non disponible, utilisation du fallback');
-            this._updatePlayerLabelsFallback();
-        }
-    }
-    
-    // ============================================
-    // FALLBACK SI LA FONCTION GLOBALE N'EST PAS DISPONIBLE
-    // ============================================
-    _updatePlayerLabelsFallback() {
-        const topLabel = document.getElementById('topPlayerLabel');
-        const bottomLabel = document.getElementById('bottomPlayerLabel');
-        
-        if (!topLabel || !bottomLabel) {
-            console.warn('⚠️ Labels non trouvés pour le fallback');
-            return;
-        }
-        
-        const isFlipped = this.gameState.boardFlipped;
-        
-        console.log(`🔧 Fallback labels: flipped=${isFlipped}`);
-        
-        if (isFlipped) {
-            // Plateau inversé
-            topLabel.innerHTML = '<i class="bi bi-person me-1"></i> Human White';
-            bottomLabel.innerHTML = '<i class="bi bi-cpu me-1"></i> Human Black';
-            topLabel.className = 'badge bg-primary text-white p-2';
-            bottomLabel.className = 'badge bg-dark text-white p-2';
-        } else {
-            // Plateau normal
-            topLabel.innerHTML = '<i class="bi bi-cpu me-1"></i> Human Black';
-            bottomLabel.innerHTML = '<i class="bi bi-person me-1"></i> Human White';
-            topLabel.className = 'badge bg-dark text-white p-2';
-            bottomLabel.className = 'badge bg-primary text-white p-2';
+            window.updatePlayerLabels();
         }
     }
 
@@ -278,10 +220,12 @@ class ChessGameCore {
         // Mettre à jour l'UI
         this.updateUI();
         
-        // Mettre à jour les labels
+        // Mettre à jour les labels via la fonction globale
         setTimeout(() => {
-            this.updatePlayerLabels();
-            console.log('✅ Labels mis à jour après nouvelle partie');
+            if (typeof window.updatePlayerLabels === 'function') {
+                window.updatePlayerLabels();
+                console.log('✅ Labels mis à jour après nouvelle partie');
+            }
         }, 300);
     }
 
@@ -312,5 +256,3 @@ class ChessGameCore {
 
 // Exporter la classe
 window.ChessGameCore = ChessGameCore;
-
-console.log('✅ chess-game-core.js chargé avec méthode updatePlayerLabels intégrée');
