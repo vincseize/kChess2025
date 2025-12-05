@@ -25,6 +25,7 @@
 
 <!-- BOTS -->
 <script src="js/kchess/bots/Level_0.js?version=<?php echo $version; ?>"></script>
+<script src="js/kchess/bots/Level_1.js?version=<?php echo $version; ?>"></script>
 
 <!-- Check Chess Mat - AVANCÉ -->
 <script src="js/kchess/check/checkChessMat.js?version=<?php echo $version; ?>"></script>

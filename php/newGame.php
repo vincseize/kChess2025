@@ -35,7 +35,7 @@ $targetPage = $isMobile ? 'app_mobile.php' : 'app.php';
                 <i class="bi bi-check-lg check-icon"></i>
             </button>
 
-            <button class="game-mode-btn btn-level-1" data-mode="bot" data-level="1" data-profondeur="0">
+            <button class="game-mode-btn btn-level-1" data-mode="bot" data-level="2" data-profondeur="0">
                 <div class="mode-description">
                     <div><i class="bi bi-robot mode-icon"></i> Niveau 1 - CCMO</div>
                     <div class="mode-difficulty">Bot : Check, Captures, Menaces, Optimisation</div>
@@ -43,6 +43,7 @@ $targetPage = $isMobile ? 'app_mobile.php' : 'app.php';
                 </div>
                 <i class="bi bi-check-lg check-icon"></i>
             </button>
+            
         </div>
 
         <!-- Sélection de la couleur -->
@@ -105,7 +106,12 @@ document.querySelectorAll('.game-mode-btn').forEach(btn => {
         console.log('Mode sélectionné:', {
             mode: selectedMode,
             level: selectedLevel,
-            profondeur: selectedProfondeur
+            profondeur: selectedProfondeur,
+            botName: this.getAttribute('data-mode') === 'bot' ? 
+                     (selectedLevel === '0' ? 'Level_0 (Aléatoire)' : 
+                      selectedLevel === '1' ? 'Level_1 (CCMO)' : 
+                      'Inconnu') : 
+                     'Humain'
         });
     });
 });
@@ -148,7 +154,12 @@ document.getElementById('startGameBtn').addEventListener('click', function() {
         profondeur: selectedProfondeur,
         originalColor: selectedColor,
         finalColor: finalColor,
-        url: url
+        url: url,
+        botName: selectedMode === 'bot' ? 
+                (selectedLevel === '0' ? 'Level_0 (Aléatoire)' : 
+                 selectedLevel === '1' ? 'Level_1 (CCMO)' : 
+                 'Inconnu') : 
+                'Humain'
     });
     
     window.location.href = url;

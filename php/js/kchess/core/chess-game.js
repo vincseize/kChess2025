@@ -1,4 +1,4 @@
-// chess-game.js - Classe principale qui orchestre tout
+// core/chess-game.js - Classe principale qui orchestre tout
 class ChessGame {
     constructor() {
         this.pieceManager = new PieceManager();
@@ -61,16 +61,21 @@ class ChessGame {
             this.applyAutoFlip();
         }
         
-        // CORRECTION : Détection robuste du bot
-        const shouldActivateBot = urlParams.bot === '1' || 
-                                 urlParams.bot === 'true' || 
-                                 urlParams.mode === 'bot' ||
-                                 urlParams.level === '0';
-        
-        if (shouldActivateBot) {
+        // CORRECTION : Configuration du bot selon les nouveaux niveaux
+        // mode=bot, level=0 (désactivé), level=1 (Level_0), level=2 (Level_1)
+        if (urlParams.mode === 'bot') {
             console.log('🤖 Configuration URL: bot activé');
+            
+            // Récupérer le niveau du bot (0, 1 ou 2)
+            const botLevel = parseInt(urlParams.level) || 1;
+            
+            // Déterminer la couleur du bot (opposée à celle du joueur)
             const botColor = urlParams.color === 'white' ? 'black' : 'white';
-            this.core.setBotLevel(1, botColor);
+            
+            console.log(`🤖 Config bot: level=${botLevel}, botColor=${botColor}, humanColor=${urlParams.color}`);
+            
+            // Activer le bot avec le bon niveau
+            this.core.setBotLevel(botLevel, botColor);
         }
         
         if (urlParams.mode) {
