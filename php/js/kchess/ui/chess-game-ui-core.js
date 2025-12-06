@@ -1,4 +1,4 @@
-// ui/chess-game-ui-core.js - Classe principale ChessGameUI (modifiée)
+// ui/chess-game-ui-core.js - Version corrigée
 class ChessGameUI {
     constructor(game) {
         this.game = game;
@@ -83,6 +83,7 @@ class ChessGameUI {
         this.moveHistoryManager.updateMoveHistory();
         this.updateGameStatus();
         this.updateBotIndicator(); // Ajout de l'indicateur de bot
+        this.updatePlayerLabelsWithBot(); // Ajout de la mise à jour des labels
     }
 
     updateGameStatus() {
@@ -97,7 +98,7 @@ class ChessGameUI {
 
     // Nouvelle méthode : afficher l'indicateur de bot
     updateBotIndicator() {
-        const botStatus = this.game.getBotStatus();
+        const botStatus = this.game.getBotStatus ? this.game.getBotStatus() : { active: false };
         const currentPlayerElement = document.getElementById('currentPlayer');
         const botIndicatorElement = document.getElementById('botIndicator') || this.createBotIndicator();
         
@@ -133,7 +134,7 @@ class ChessGameUI {
             currentPlayerElement.classList.add('bot-active');
             
             // Si c'est le tour du bot, ajouter une classe supplémentaire
-            if (this.game.core && this.game.core.bot && this.game.core.bot.isBotTurn()) {
+            if (this.game.core && this.game.core.bot && this.game.core.bot.isBotTurn && this.game.core.bot.isBotTurn()) {
                 currentPlayerElement.classList.add('bot-turn');
                 currentPlayerElement.title = `${botType} réfléchit...`;
             } else {
@@ -160,6 +161,15 @@ class ChessGameUI {
         container.appendChild(botIndicator);
         
         return botIndicator;
+    }
+    
+    // Méthode pour mettre à jour les labels des joueurs avec info bot
+    updatePlayerLabelsWithBot() {
+        // Cette méthode sera appelée par updateUI()
+        // L'actualisation des labels se fait par la fonction globale updatePlayerLabels
+        if (typeof window.updatePlayerLabels === 'function') {
+            window.updatePlayerLabels();
+        }
     }
 
     // Méthode utilitaire pour les notifications

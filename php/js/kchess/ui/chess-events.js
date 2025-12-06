@@ -27,24 +27,73 @@ function updatePlayerLabels() {
         
         console.log(`🔧 État du plateau: flipped=${isFlipped}`);
         
-        // CORRECTION: Toujours définir les labels selon l'état, pas seulement échanger
+        // Récupérer le statut du bot
+        const botStatus = window.chessGame && window.chessGame.getBotStatus ? 
+                         window.chessGame.getBotStatus() : 
+                         { active: false, level: 0, color: '' };
+        
+        // Déterminer le texte pour chaque joueur
+        let topText, bottomText, topClass, bottomClass;
+        
         if (isFlipped) {
             // Plateau inversé: blancs en haut, noirs en bas
-            topLabel.innerHTML = '<i class="bi bi-person me-1"></i> Human White';
-            topLabel.className = 'badge bg-white text-dark border border-dark p-2';
+            topText = 'Blancs';
+            bottomText = 'Noirs';
             
-            bottomLabel.innerHTML = '<i class="bi bi-cpu me-1"></i> Human Black';
-            bottomLabel.className = 'badge bg-dark text-white p-2';
+            // Ajouter "Bot" si le bot joue cette couleur
+            if (botStatus.active && botStatus.color === 'white') {
+                topText = `Blancs (Bot Niv.${botStatus.level})`;
+                topClass = 'bot-player bot-color-white';
+            }
+            if (botStatus.active && botStatus.color === 'black') {
+                bottomText = `Noirs (Bot Niv.${botStatus.level})`;
+                bottomClass = 'bot-player bot-color-black';
+            }
+            
+            // Classes CSS
+            topClass = (topClass || '') + ' badge bg-white text-dark border border-dark p-2';
+            bottomClass = (bottomClass || '') + ' badge bg-dark text-white p-2';
+            
         } else {
             // Plateau normal: noirs en haut, blancs en bas
-            topLabel.innerHTML = '<i class="bi bi-cpu me-1"></i> Human Black';
-            topLabel.className = 'badge bg-dark text-white p-2';
+            topText = 'Noirs';
+            bottomText = 'Blancs';
             
-            bottomLabel.innerHTML = '<i class="bi bi-person me-1"></i> Human White';
-            bottomLabel.className = 'badge bg-white text-dark border border-dark p-2';
+            // Ajouter "Bot" si le bot joue cette couleur
+            if (botStatus.active && botStatus.color === 'black') {
+                topText = `Noirs (Bot Niv.${botStatus.level})`;
+                topClass = 'bot-player bot-color-black';
+            }
+            if (botStatus.active && botStatus.color === 'white') {
+                bottomText = `Blancs (Bot Niv.${botStatus.level})`;
+                bottomClass = 'bot-player bot-color-white';
+            }
+            
+            // Classes CSS
+            topClass = (topClass || '') + ' badge bg-dark text-white p-2';
+            bottomClass = (bottomClass || '') + ' badge bg-white text-dark border border-dark p-2';
         }
         
-        console.log('✅ Labels mis à jour avec succès');
+        // Mettre à jour les labels
+        topLabel.innerHTML = `${botStatus.active && (
+            (isFlipped && botStatus.color === 'white') || 
+            (!isFlipped && botStatus.color === 'black')
+        ) ? '<i class="bi bi-cpu me-1"></i>' : '<i class="bi bi-person me-1"></i>'} ${topText}`;
+        topLabel.className = topClass;
+        
+        bottomLabel.innerHTML = `${botStatus.active && (
+            (isFlipped && botStatus.color === 'black') || 
+            (!isFlipped && botStatus.color === 'white')
+        ) ? '<i class="bi bi-cpu me-1"></i>' : '<i class="bi bi-person me-1"></i>'} ${bottomText}`;
+        bottomLabel.className = bottomClass;
+        
+        console.log('✅ Labels mis à jour avec succès', { 
+            topText, 
+            bottomText, 
+            botActive: botStatus.active,
+            botLevel: botStatus.level,
+            botColor: botStatus.color 
+        });
         
     } catch (error) {
         console.error('❌ Erreur updatePlayerLabels:', error);
@@ -366,6 +415,12 @@ window.debugChess = {
             };
         }
         return { flipped: false, currentPlayer: 'white', gameActive: false };
+    },
+    getBotStatus: () => {
+        if (window.chessGame && window.chessGame.getBotStatus) {
+            return window.chessGame.getBotStatus();
+        }
+        return { active: false, level: 0, color: '' };
     },
     forceUpdateLabels: () => {
         console.log('🔧 Forçage mise à jour des labels');
