@@ -1,11 +1,30 @@
-// move-validator-king.js - CORRIGÉ avec gestion correcte des roques
+// validators/move-pieces/move-validator-king.js - CORRIGÉ avec gestion correcte des roques
 class KingMoveValidator {
+    
+    static consoleLog = true; // false pour production, true pour debug
+    
+    static init() {
+        if (this.consoleLog) {
+            console.log('validators/move-pieces/move-validator-king.js loaded');
+        }
+    }
+
     constructor(board, gameState) {
         this.board = board;
         this.gameState = gameState;
+        
+        if (this.constructor.consoleLog) {
+            console.log('🔧 KingMoveValidator initialisé');
+            console.log(`  - Board: ${board ? '✓' : '✗'}`);
+            console.log(`  - GameState: ${gameState ? '✓' : '✗'}`);
+        }
     }
 
     getPossibleMoves(piece, row, col) {
+        if (this.constructor.consoleLog) {
+            console.log(`\n♔🔍 Recherche mouvements pour roi ${piece.color} en [${row},${col}]`);
+        }
+        
         const moves = [];
         const directions = [
             [1, 0], [-1, 0], [0, 1], [0, -1],
@@ -13,10 +32,13 @@ class KingMoveValidator {
         ];
 
         const kingColor = piece.color;
-        console.log(`♔ Calcul des mouvements du roi ${kingColor} en [${row},${col}]`);
+        
+        if (this.constructor.consoleLog) {
+            console.log(`♔ Mouvements adjacents: ${directions.length} directions`);
+        }
         
         // Mouvements normaux
-        directions.forEach(([rowDir, colDir]) => {
+        directions.forEach(([rowDir, colDir], index) => {
             const newRow = row + rowDir;
             const newCol = col + colDir;
             
@@ -32,35 +54,93 @@ class KingMoveValidator {
                                 col: newCol, 
                                 type: moveType 
                             });
+                            
+                            if (this.constructor.consoleLog) {
+                                const directionDesc = this.getDirectionDescription(rowDir, colDir);
+                                const pieceDesc = targetPiece ? 
+                                    `⚔️ ${targetPiece.color} ${targetPiece.type}` : 'case vide';
+                                console.log(`  ${index + 1}. [${newRow},${newCol}] ${directionDesc} → ${pieceDesc}`);
+                            }
+                        } else if (this.constructor.consoleLog) {
+                            console.log(`  ${index + 1}. [${newRow},${newCol}] → ❌ trop près du roi adverse`);
                         }
+                    } else if (this.constructor.consoleLog) {
+                        console.log(`  ${index + 1}. [${newRow},${newCol}] → ❌ mettrait le roi en échec`);
                     }
+                } else if (this.constructor.consoleLog) {
+                    console.log(`  ${index + 1}. [${newRow},${newCol}] → ❌ bloqué par ${targetPiece.color} ${targetPiece.type} (allié)`);
                 }
+            } else if (this.constructor.consoleLog) {
+                console.log(`  ${index + 1}. [${newRow},${newCol}] → ❌ hors plateau`);
             }
         });
 
-        // DEBUG: Logs détaillés pour le roque
-        console.log(`🔍 DEBUG ROQUE ${kingColor}:`);
-        console.log(`🔍 - Position actuelle: [${row},${col}]`);
+        if (this.constructor.consoleLog) {
+            console.log(`\n♔📊 Résultat mouvements normaux: ${moves.length} mouvements`);
+        }
+        
+        // Vérification du roque
+        if (this.constructor.consoleLog) {
+            console.log(`\n♔🏰 VÉRIFICATION ROQUE ${kingColor}:`);
+            console.log(`  Position actuelle: [${row},${col}]`);
+        }
         
         const isOnStartingSquare = this.isKingOnStartingSquare(kingColor, row, col);
-        console.log(`🔍 - Sur case départ: ${isOnStartingSquare}`);
-        
         const hasMovedInGameState = this.hasKingMoved(kingColor);
-        console.log(`🔍 - A bougé (gameState): ${hasMovedInGameState}`);
-        
         const canCastle = isOnStartingSquare && !hasMovedInGameState;
-        console.log(`🔍 ROQUE POSSIBLE: ${canCastle} (départ=${isOnStartingSquare}, pasBougé=${!hasMovedInGameState})`);
+        
+        if (this.constructor.consoleLog) {
+            console.log(`  Sur case départ: ${isOnStartingSquare ? '✓' : '✗'}`);
+            console.log(`  A bougé: ${hasMovedInGameState ? '✗' : '✓'}`);
+            console.log(`  Roque possible: ${canCastle ? '✓' : '✗'}`);
+        }
         
         if (canCastle) {
             const castleMoves = this.getCastleMoves(piece, row, col);
             moves.push(...castleMoves);
-            console.log(`🔍 - ${castleMoves.length} mouvements de roque ajoutés`);
-        } else {
-            console.log(`🔍 - Roque refusé pour ${kingColor}`);
+            
+            if (this.constructor.consoleLog) {
+                console.log(`  ${castleMoves.length} mouvement(s) de roque ajouté(s)`);
+            }
+        } else if (this.constructor.consoleLog) {
+            console.log(`  ❌ Roque refusé pour ${kingColor}`);
         }
 
-        console.log(`♔ Mouvements valides pour le roi ${kingColor}:`, moves.length);
+        if (this.constructor.consoleLog) {
+            console.log(`\n♔✅ FINAL: Roi ${kingColor} en [${row},${col}]`);
+            console.log(`  - Total mouvements: ${moves.length}`);
+            
+            if (moves.length > 0) {
+                console.log(`  Mouvements valides:`);
+                moves.forEach((move, index) => {
+                    const typeIcon = move.type.includes('castle') ? '🏰' : 
+                                   move.type === 'capture' ? '⚔️' : ' ';
+                    const castleType = move.type.includes('castle') ? 
+                        ` (${move.type.includes('kingside') ? 'petit roque' : 'grand roque'})` : '';
+                    console.log(`  ${index + 1}. [${move.row},${move.col}] ${typeIcon}${castleType}`);
+                });
+            } else {
+                console.log(`  ⚠️ Aucun mouvement valide disponible`);
+            }
+        }
+        
         return moves;
+    }
+
+    // NOUVELLE MÉTHODE : Description des directions
+    getDirectionDescription(rowDir, colDir) {
+        const descriptions = {
+            '1,0': '↓ bas',
+            '-1,0': '↑ haut',
+            '0,1': '→ droite',
+            '0,-1': '← gauche',
+            '1,1': '↘️ SE',
+            '1,-1': '↙️ SO',
+            '-1,1': '↗️ NE',
+            '-1,-1': '↖️ NO'
+        };
+        
+        return descriptions[`${rowDir},${colDir}`] || `[${rowDir},${colDir}]`;
     }
 
     // Vérifier si le roi est sur sa case de départ
@@ -69,7 +149,11 @@ class KingMoveValidator {
         const startingCol = 4;
         
         const isOnStart = currentRow === startingRow && currentCol === startingCol;
-        console.log(`🔍 isKingOnStartingSquare(${color}): [${currentRow},${currentCol}] vs [${startingRow},${startingCol}] = ${isOnStart}`);
+        
+        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            console.log(`    ↳ Case départ ${color}: [${startingRow},${startingCol}] vs actuelle: [${currentRow},${currentCol}] = ${isOnStart ? '✓' : '✗'}`);
+        }
+        
         return isOnStart;
     }
 
@@ -78,24 +162,32 @@ class KingMoveValidator {
         const moves = [];
         const color = king.color;
         
-        console.log(`🔍 getCastleMoves pour ${color}`);
+        if (this.constructor.consoleLog) {
+            console.log(`\n♔🏰 Analyse roque pour ${color}`);
+        }
         
         // Le roi ne doit pas être en échec
         if (this.isKingInCheck(color)) {
-            console.log(`♔❌ Roque impossible: roi ${color} en échec`);
+            if (this.constructor.consoleLog) {
+                console.log(`  ❌ Roque impossible: roi ${color} en échec`);
+            }
             return moves;
         }
 
         // Roque côté roi (petit roque)
         if (this.canCastleKingside(color)) {
-            console.log(`♔✅ Roque côté roi possible pour ${color}`);
+            if (this.constructor.consoleLog) {
+                console.log(`  ✓ Roque côté roi possible`);
+            }
             const kingsideMove = this.createCastleMove(color, 'kingside');
             if (kingsideMove) moves.push(kingsideMove);
         }
 
         // Roque côté dame (grand roque)
         if (this.canCastleQueenside(color)) {
-            console.log(`♔✅ Roque côté dame possible pour ${color}`);
+            if (this.constructor.consoleLog) {
+                console.log(`  ✓ Roque côté dame possible`);
+            }
             const queensideMove = this.createCastleMove(color, 'queenside');
             if (queensideMove) moves.push(queensideMove);
         }
@@ -105,17 +197,26 @@ class KingMoveValidator {
 
     // Vérifier via gameState si le roi a bougé
     hasKingMoved(color) {
-        console.log(`🔍 hasKingMoved(${color}) - gameState:`, this.gameState);
+        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            console.log(`    ↳ Vérification déplacement roi ${color}`);
+        }
         
         // Priorité à gameState s'il existe et est initialisé
         if (this.gameState && this.gameState.hasKingMoved) {
             const hasMoved = this.gameState.hasKingMoved[color];
-            console.log(`🔍 - gameState.hasKingMoved[${color}] = ${hasMoved}`);
+            
+            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                console.log(`      gameState.hasKingMoved[${color}] = ${hasMoved}`);
+            }
+            
             return hasMoved === true;
         }
         
         // Si gameState n'est pas disponible, utiliser un fallback sécurisé
-        console.log(`🔍 - gameState non disponible, utilisation du fallback`);
+        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            console.log(`      gameState non disponible, fallback`);
+        }
+        
         return this.hasKingMovedFallback(color);
     }
 
@@ -127,63 +228,84 @@ class KingMoveValidator {
         const king = this.board.getPiece(startRow, startCol);
         const isOnStartSquare = king && king.type === 'king' && king.color === color;
         
-        console.log(`🔍 hasKingMovedFallback(${color}): roi sur [${startRow},${startCol}] = ${isOnStartSquare}`);
+        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            console.log(`      fallback: roi ${color} sur [${startRow},${startCol}] = ${isOnStartSquare ? '✓' : '✗'}`);
+        }
+        
         return !isOnStartSquare;
     }
 
     // Vérifier le roque côté roi
     canCastleKingside(color) {
-        const row = color === 'white' ? 7 : 0;
-        
-        console.log(`🔍 canCastleKingside(${color})`);
+        if (this.constructor.consoleLog) {
+            console.log(`  🔍 Roque côté roi (${color}):`);
+        }
         
         // Vérifier si la tour côté roi n'a pas bougé
         if (this.hasRookMoved(color, 'kingside')) {
-            console.log(`♔❌ Tour côté roi ${color} a bougé`);
+            if (this.constructor.consoleLog) {
+                console.log(`    ❌ Tour côté roi a bougé`);
+            }
             return false;
         }
 
         // Vérifier les cases vides entre roi et tour
         if (!this.areCastleSquaresEmpty(color, 'kingside')) {
-            console.log(`♔❌ Cases non vides pour roque côté roi ${color}`);
+            if (this.constructor.consoleLog) {
+                console.log(`    ❌ Cases non vides`);
+            }
             return false;
         }
 
         // Vérifier que les cases traversées ne sont pas attaquées
         if (!this.areCastleSquaresSafe(color, 'kingside')) {
-            console.log(`♔❌ Cases attaquées pour roque côté roi ${color}`);
+            if (this.constructor.consoleLog) {
+                console.log(`    ❌ Cases attaquées`);
+            }
             return false;
         }
 
-        console.log(`🔍 canCastleKingside(${color}) = TRUE`);
+        if (this.constructor.consoleLog) {
+            console.log(`    ✓ Conditions remplies`);
+        }
+        
         return true;
     }
 
     // Vérifier le roque côté dame
     canCastleQueenside(color) {
-        const row = color === 'white' ? 7 : 0;
-        
-        console.log(`🔍 canCastleQueenside(${color})`);
+        if (this.constructor.consoleLog) {
+            console.log(`  🔍 Roque côté dame (${color}):`);
+        }
         
         // Vérifier si la tour côté dame n'a pas bougé
         if (this.hasRookMoved(color, 'queenside')) {
-            console.log(`♔❌ Tour côté dame ${color} a bougé`);
+            if (this.constructor.consoleLog) {
+                console.log(`    ❌ Tour côté dame a bougé`);
+            }
             return false;
         }
 
         // Vérifier les cases vides entre roi et tour
         if (!this.areCastleSquaresEmpty(color, 'queenside')) {
-            console.log(`♔❌ Cases non vides pour roque côté dame ${color}`);
+            if (this.constructor.consoleLog) {
+                console.log(`    ❌ Cases non vides`);
+            }
             return false;
         }
 
         // Vérifier que les cases traversées ne sont pas attaquées
         if (!this.areCastleSquaresSafe(color, 'queenside')) {
-            console.log(`♔❌ Cases attaquées pour roque côté dame ${color}`);
+            if (this.constructor.consoleLog) {
+                console.log(`    ❌ Cases attaquées`);
+            }
             return false;
         }
 
-        console.log(`🔍 canCastleQueenside(${color}) = TRUE`);
+        if (this.constructor.consoleLog) {
+            console.log(`    ✓ Conditions remplies`);
+        }
+        
         return true;
     }
 
@@ -195,14 +317,25 @@ class KingMoveValidator {
             // Cases f et g doivent être vides
             const fEmpty = !this.board.getPiece(row, 5);
             const gEmpty = !this.board.getPiece(row, 6);
-            console.log(`🔍 areCastleSquaresEmpty(${color}, ${side}): f=${fEmpty}, g=${gEmpty}`);
+            
+            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                console.log(`      Cases [${row},5] (f): ${fEmpty ? '✓ vide' : '✗ occupée'}`);
+                console.log(`      Cases [${row},6] (g): ${gEmpty ? '✓ vide' : '✗ occupée'}`);
+            }
+            
             return fEmpty && gEmpty;
         } else {
             // Cases b, c, d doivent être vides
             const bEmpty = !this.board.getPiece(row, 1);
             const cEmpty = !this.board.getPiece(row, 2);
             const dEmpty = !this.board.getPiece(row, 3);
-            console.log(`🔍 areCastleSquaresEmpty(${color}, ${side}): b=${bEmpty}, c=${cEmpty}, d=${dEmpty}`);
+            
+            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                console.log(`      Cases [${row},1] (b): ${bEmpty ? '✓ vide' : '✗ occupée'}`);
+                console.log(`      Cases [${row},2] (c): ${cEmpty ? '✓ vide' : '✗ occupée'}`);
+                console.log(`      Cases [${row},3] (d): ${dEmpty ? '✓ vide' : '✗ occupée'}`);
+            }
+            
             return bEmpty && cEmpty && dEmpty;
         }
     }
@@ -217,7 +350,10 @@ class KingMoveValidator {
             const fAttacked = this.isSquareAttacked(row, 5, opponentColor);
             const gAttacked = this.isSquareAttacked(row, 6, opponentColor);
             
-            console.log(`♔ Cases roque côté roi: f[${row},5] attaquée=${fAttacked}, g[${row},6] attaquée=${gAttacked}`);
+            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                console.log(`      Cases [${row},5] (f): ${fAttacked ? '✗ attaquée' : '✓ sûre'}`);
+                console.log(`      Cases [${row},6] (g): ${gAttacked ? '✗ attaquée' : '✓ sûre'}`);
+            }
             
             return !fAttacked && !gAttacked;
         } else {
@@ -225,7 +361,10 @@ class KingMoveValidator {
             const dAttacked = this.isSquareAttacked(row, 3, opponentColor);
             const cAttacked = this.isSquareAttacked(row, 2, opponentColor);
             
-            console.log(`♔ Cases roque côté dame: d[${row},3] attaquée=${dAttacked}, c[${row},2] attaquée=${cAttacked}`);
+            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                console.log(`      Cases [${row},3] (d): ${dAttacked ? '✗ attaquée' : '✓ sûre'}`);
+                console.log(`      Cases [${row},2] (c): ${cAttacked ? '✗ attaquée' : '✓ sûre'}`);
+            }
             
             return !dAttacked && !cAttacked;
         }
@@ -236,13 +375,19 @@ class KingMoveValidator {
         const row = color === 'white' ? 7 : 0;
         const rookCol = side === 'kingside' ? 7 : 0;
         
-        console.log(`🔍 hasRookMoved(${color}, ${side})`);
+        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            console.log(`    ↳ Tour ${side} ${color} en [${row},${rookCol}]`);
+        }
         
         // Vérifier via gameState d'abord
         if (this.gameState && this.gameState.hasRookMoved && this.gameState.hasRookMoved[color]) {
             const rookState = this.gameState.hasRookMoved[color];
             const hasMoved = side === 'kingside' ? rookState.kingside : rookState.queenside;
-            console.log(`🔍 - gameState: ${hasMoved}`);
+            
+            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                console.log(`      gameState: ${hasMoved ? '✗ a bougé' : '✓ pas bougé'}`);
+            }
+            
             if (hasMoved) return true;
         }
         
@@ -250,7 +395,10 @@ class KingMoveValidator {
         const rook = this.board.getPiece(row, rookCol);
         const isRookPresent = rook && rook.type === 'rook' && rook.color === color;
         
-        console.log(`🔍 - fallback: tour présente = ${isRookPresent}`);
+        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            console.log(`      fallback: ${isRookPresent ? '✓ présente' : '✗ absente'}`);
+        }
+        
         return !isRookPresent;
     }
 
@@ -283,7 +431,9 @@ class KingMoveValidator {
             const engine = new ChessEngine(tempFEN);
             return engine.isSquareAttacked(row, col, attackerColor === 'white' ? 'w' : 'b');
         } catch (error) {
-            console.error('Erreur dans isSquareAttacked:', error);
+            if (this.constructor.consoleLog) {
+                console.error('❌ Erreur dans isSquareAttacked:', error);
+            }
             return true; // En cas d'erreur, considérer comme attaqué pour sécurité
         }
     }
@@ -296,7 +446,9 @@ class KingMoveValidator {
             const engine = new ChessEngine(tempFEN);
             return engine.isKingInCheck(color === 'white' ? 'w' : 'b');
         } catch (error) {
-            console.error('Erreur dans isKingInCheck:', error);
+            if (this.constructor.consoleLog) {
+                console.error('❌ Erreur dans isKingInCheck:', error);
+            }
             return true; // En cas d'erreur, considérer comme en échec pour sécurité
         }
     }
@@ -310,10 +462,16 @@ class KingMoveValidator {
             const tempFEN = this.generateTempFEN(tempBoard, kingColor);
             const engine = new ChessEngine(tempFEN);
             const isInCheck = engine.isKingInCheck(kingColor === 'white' ? 'w' : 'b');
-            console.log(`🔍 Simulation [${fromRow},${fromCol}]->[${toRow},${toCol}]: échec = ${isInCheck}`);
+            
+            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                console.log(`      Simulation [${fromRow},${fromCol}]->[${toRow},${toCol}]: ${isInCheck ? '✗ échec' : '✓ sûr'}`);
+            }
+            
             return isInCheck;
         } catch (error) {
-            console.error('Erreur dans wouldBeInCheck:', error);
+            if (this.constructor.consoleLog) {
+                console.error('❌ Erreur dans wouldBeInCheck:', error);
+            }
             return true;
         }
     }
@@ -325,9 +483,11 @@ class KingMoveValidator {
         const rowDiff = Math.abs(newRow - opponentKingPos.row);
         const colDiff = Math.abs(newCol - opponentKingPos.col);
         const areAdjacent = rowDiff <= 1 && colDiff <= 1;
-        if (areAdjacent) {
-            console.log(`⚠️ Rois adjacents: roi ${kingColor} [${newRow},${newCol}] vs roi ${opponentColor} [${opponentKingPos.row},${opponentKingPos.col}]`);
+        
+        if (areAdjacent && this.constructor.consoleLog && this.constructor.consoleLog) {
+            console.log(`      ⚠️ Rois adjacents: [${newRow},${newCol}] vs [${opponentKingPos.row},${opponentKingPos.col}]`);
         }
+        
         return areAdjacent;
     }
 
@@ -341,7 +501,11 @@ class KingMoveValidator {
                 }
             }
         }
-        console.warn(`❌ Roi ${color} non trouvé !`);
+        
+        if (this.constructor.consoleLog) {
+            console.warn(`❌ Roi ${color} non trouvé !`);
+        }
+        
         return null;
     }
 
@@ -395,8 +559,12 @@ class KingMoveValidator {
     }
 
     isValidSquare(row, col) {
-        return row >= 0 && row < 8 && col >= 0 && col < 8;
+        const isValid = row >= 0 && row < 8 && col >= 0 && col < 8;
+        return isValid;
     }
 }
+
+// Initialisation statique
+KingMoveValidator.init();
 
 window.KingMoveValidator = KingMoveValidator;

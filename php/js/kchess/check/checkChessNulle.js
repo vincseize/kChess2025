@@ -1,5 +1,14 @@
-// checkChessNulle.js - Vérification des autres cas de nullité
+// check/checkChessNulle.js - Vérification des autres cas de nullité
 class ChessNulleEngine extends ChessEngine {
+    
+    static consoleLog = true; // false pour production, true pour debug
+    
+    static init() {
+        if (this.consoleLog) {
+            console.log('check/checkChessNulle.js loaded');
+        }
+    }
+
     constructor(fen, moveHistory = []) {
         super(fen);
         this.moveHistory = moveHistory; // Historique des coups pour la répétition
@@ -21,32 +30,42 @@ class ChessNulleEngine extends ChessEngine {
 
     // Vérifier la répétition triple
     isThreefoldRepetition() {
-        console.log(`🔄🔍 Vérification répétition triple`);
+        if (this.constructor.consoleLog) {
+            console.log(`🔄🔍 Vérification répétition triple`);
+        }
         
         const currentFEN = this.getPositionSignature();
         const count = this.positionCount.get(currentFEN) || 0;
         
-        console.log(`🔄 Position actuelle apparue ${count} fois`);
+        if (this.constructor.consoleLog) {
+            console.log(`🔄 Position actuelle apparue ${count} fois`);
+        }
         
         return count >= 3;
     }
 
     // Vérifier la règle des 50 coups
     isFiftyMoveRule(halfMoveClock) {
-        console.log(`🎯🔍 Vérification règle des 50 coups: ${halfMoveClock}/50`);
+        if (this.constructor.consoleLog) {
+            console.log(`🎯🔍 Vérification règle des 50 coups: ${halfMoveClock}/50`);
+        }
         
         return halfMoveClock >= 50;
     }
 
     // Vérifier matériel insuffisant (égalité)
     isInsufficientMaterial() {
-        console.log(`♜🔍 Vérification matériel insuffisant`);
+        if (this.constructor.consoleLog) {
+            console.log(`♜🔍 Vérification matériel insuffisant`);
+        }
         
         const pieces = this.getAllPieces();
         
         // Cas 1: Roi contre roi
         if (pieces.length === 2) {
-            console.log(`♜✅ Roi contre roi - matériel insuffisant`);
+            if (this.constructor.consoleLog) {
+                console.log(`♜✅ Roi contre roi - matériel insuffisant`);
+            }
             return true;
         }
         
@@ -54,7 +73,9 @@ class ChessNulleEngine extends ChessEngine {
         if (pieces.length === 3) {
             const bishops = pieces.filter(p => p.piece.toLowerCase() === 'b');
             if (bishops.length === 1) {
-                console.log(`♜✅ Roi + fou contre roi - matériel insuffisant`);
+                if (this.constructor.consoleLog) {
+                    console.log(`♜✅ Roi + fou contre roi - matériel insuffisant`);
+                }
                 return true;
             }
         }
@@ -63,7 +84,9 @@ class ChessNulleEngine extends ChessEngine {
         if (pieces.length === 3) {
             const knights = pieces.filter(p => p.piece.toLowerCase() === 'n');
             if (knights.length === 1) {
-                console.log(`♜✅ Roi + cavalier contre roi - matériel insuffisant`);
+                if (this.constructor.consoleLog) {
+                    console.log(`♜✅ Roi + cavalier contre roi - matériel insuffisant`);
+                }
                 return true;
             }
         }
@@ -80,14 +103,18 @@ class ChessNulleEngine extends ChessEngine {
                     const blackSquareColor = (blackBishop.row + blackBishop.col) % 2;
                     
                     if (whiteSquareColor === blackSquareColor) {
-                        console.log(`♜✅ Roi + fou contre roi + fou (même couleur) - matériel insuffisant`);
+                        if (this.constructor.consoleLog) {
+                            console.log(`♜✅ Roi + fou contre roi + fou (même couleur) - matériel insuffisant`);
+                        }
                         return true;
                     }
                 }
             }
         }
         
-        console.log(`♜❌ Matériel suffisant pour continuer`);
+        if (this.constructor.consoleLog) {
+            console.log(`♜❌ Matériel suffisant pour continuer`);
+        }
         return false;
     }
 
@@ -125,27 +152,37 @@ class ChessNulleEngine extends ChessEngine {
 
     // Vérifier toutes les conditions de nullité avec détection précise
     isDraw(halfMoveClock) {
-        console.log(`🤝🔍 Vérification globale des conditions de nullité`);
+        if (this.constructor.consoleLog) {
+            console.log(`🤝🔍 Vérification globale des conditions de nullité`);
+        }
         
         // 1. Matériel insuffisant - LE PLUS RAPIDE À VÉRIFIER
         if (this.isInsufficientMaterial()) {
-            console.log(`🤝✅ Nullité par matériel insuffisant`);
+            if (this.constructor.consoleLog) {
+                console.log(`🤝✅ Nullité par matériel insuffisant`);
+            }
             return { isDraw: true, reason: 'insufficientMaterial' };
         }
         
         // 2. Règle des 50 coups - SIMPLE COMPARATION
         if (this.isFiftyMoveRule(halfMoveClock)) {
-            console.log(`🤝✅ Nullité par règle des 50 coups`);
+            if (this.constructor.consoleLog) {
+                console.log(`🤝✅ Nullité par règle des 50 coups`);
+            }
             return { isDraw: true, reason: 'fiftyMoves' };
         }
         
         // 3. Répétition triple - LE PLUS LOURD À CALCULER
         if (this.isThreefoldRepetition()) {
-            console.log(`🤝✅ Nullité par répétition triple`);
+            if (this.constructor.consoleLog) {
+                console.log(`🤝✅ Nullité par répétition triple`);
+            }
             return { isDraw: true, reason: 'repetition' };
         }
         
-        console.log(`🤝❌ Aucune condition de nullité détectée`);
+        if (this.constructor.consoleLog) {
+            console.log(`🤝❌ Aucune condition de nullité détectée`);
+        }
         return { isDraw: false, reason: null };
     }
 
@@ -169,5 +206,8 @@ class ChessNulleEngine extends ChessEngine {
         return descriptions[reason] || 'La partie est déclarée nulle.';
     }
 }
+
+// Initialisation statique
+ChessNulleEngine.init();
 
 window.ChessNulleEngine = ChessNulleEngine;

@@ -1,22 +1,38 @@
-// checkChessPat.js - Vérification du pat (égalité)
+// check/checkChessPat.js - Vérification du pat (égalité) avec consoleLog configurable
 class ChessPatEngine extends ChessEngine {
+    
+    static consoleLog = true; // false pour production, true pour debug
+    
+    static init() {
+        if (this.consoleLog) {
+            console.log('check/checkChessPat.js loaded');
+        }
+    }
+
     constructor(fen) {
         super(fen);
     }
 
     // Vérifier le pat (égalité)
     isStalemate(color) {
-        console.log(`♟️🔍 Vérification pat pour ${color}`);
+        if (this.constructor.consoleLog) {
+            console.log(`♟️🔍 Vérification pat pour ${color}`);
+        }
         
         // 1. Le roi n'est PAS en échec
         if (this.isKingInCheck(color)) {
-            console.log(`♟️❌ Roi en échec - pas pat`);
+            if (this.constructor.consoleLog) {
+                console.log(`♟️❌ Roi en échec - pas pat`);
+            }
             return false;
         }
         
         // 2. Aucun coup légal possible
         const hasLegalMoves = this.hasAnyLegalMoves(color);
-        console.log(`♟️✅ Pas d'échec, coups légaux: ${hasLegalMoves}`);
+        
+        if (this.constructor.consoleLog) {
+            console.log(`♟️✅ Pas d'échec, coups légaux: ${hasLegalMoves}`);
+        }
         
         return !hasLegalMoves;
     }
@@ -36,7 +52,9 @@ class ChessPatEngine extends ChessEngine {
                     // Si au moins un mouvement est légal (ne met pas le roi en échec)
                     for (const move of possibleMoves) {
                         if (this.isMoveLegal(color, row, col, move.row, move.col)) {
-                            console.log(`♟️✅ Coup légal trouvé: ${piece} de [${row},${col}] vers [${move.row},${move.col}]`);
+                            if (this.constructor.consoleLog) {
+                                console.log(`♟️✅ Coup légal trouvé: ${piece} de [${row},${col}] vers [${move.row},${move.col}]`);
+                            }
                             return true; // Au moins un coup légal existe
                         }
                     }
@@ -44,7 +62,10 @@ class ChessPatEngine extends ChessEngine {
             }
         }
         
-        console.log(`♟️❌ Aucun coup légal pour ${color}`);
+        if (this.constructor.consoleLog) {
+            console.log(`♟️❌ Aucun coup légal pour ${color}`);
+        }
+        
         return false; // Aucun coup légal
     }
 
@@ -147,7 +168,7 @@ class ChessPatEngine extends ChessEngine {
         return fen;
     }
 
-    // Méthodes de génération des mouvements (identique à ChessMateEngine)
+    // Méthodes de génération des mouvements
     getPawnMoves(moves, piece, row, col) {
         const direction = piece === 'P' ? -1 : 1;
         const startRow = piece === 'P' ? 6 : 1;
@@ -256,6 +277,17 @@ class ChessPatEngine extends ChessEngine {
     isValidSquare(row, col) {
         return row >= 0 && row < 8 && col >= 0 && col < 8;
     }
+    
+    /**
+     * Configurer le mode debug
+     */
+    static setDebugMode(enabled) {
+        this.consoleLog = enabled;
+        console.log(`🔧 ChessPatEngine debug mode: ${enabled ? 'ON' : 'OFF'}`);
+    }
 }
+
+// Appeler init() automatiquement
+ChessPatEngine.init();
 
 window.ChessPatEngine = ChessPatEngine;

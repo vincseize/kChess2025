@@ -1,33 +1,87 @@
-// checkChessMat.js - Moteur avancé de vérification d'échec et mat
+// check/checkChessMat.js - Moteur avancé de vérification d'échec et mat
 class ChessMateEngine extends ChessEngine {
+    
+    static consoleLog = true; // false pour production, true pour debug
+    
+    static init() {
+        if (this.consoleLog) {
+            console.log('check/checkChessMat.js loaded');
+        }
+    }
+
     constructor(fen) {
         super(fen);
+        
+        if (this.constructor.consoleLog) {
+            console.log(`♔🔧 ChessMateEngine initialisé avec FEN: ${fen.split(' ')[0]}`);
+        }
     }
 
     // Vérifier l'échec et mat
     isCheckmate(color) {
+        if (this.constructor.consoleLog) {
+            console.log(`♔🔍 Vérification échec et mat pour ${color === 'w' ? 'Blancs' : 'Noirs'}`);
+        }
+        
         // 1. Le roi doit être en échec
         if (!this.isKingInCheck(color)) {
+            if (this.constructor.consoleLog) {
+                console.log(`♔❌ Le roi n'est pas en échec`);
+            }
             return false;
         }
         
         // 2. Aucun coup légal ne permet d'échapper à l'échec
-        return !this.hasAnyLegalMoves(color);
+        const hasLegalMoves = this.hasAnyLegalMoves(color);
+        
+        if (this.constructor.consoleLog) {
+            if (hasLegalMoves) {
+                console.log(`♔❌ Des coups légaux sont disponibles`);
+            } else {
+                console.log(`♔✅ ÉCHEC ET MAT ! Aucun coup légal disponible`);
+            }
+        }
+        
+        return !hasLegalMoves;
     }
 
     // Vérifier le pat (égalité)
     isStalemate(color) {
+        if (this.constructor.consoleLog) {
+            console.log(`⚖️🔍 Vérification pat pour ${color === 'w' ? 'Blancs' : 'Noirs'}`);
+        }
+        
         // 1. Le roi n'est PAS en échec
         if (this.isKingInCheck(color)) {
+            if (this.constructor.consoleLog) {
+                console.log(`⚖️❌ Le roi est en échec - pas un pat`);
+            }
             return false;
         }
         
         // 2. Aucun coup légal possible
-        return !this.hasAnyLegalMoves(color);
+        const hasLegalMoves = this.hasAnyLegalMoves(color);
+        
+        if (this.constructor.consoleLog) {
+            if (hasLegalMoves) {
+                console.log(`⚖️❌ Des coups légaux sont disponibles`);
+            } else {
+                console.log(`⚖️✅ PAT DÉTECTÉ ! Aucun coup légal disponible sans échec`);
+            }
+        }
+        
+        return !hasLegalMoves;
     }
 
     // Vérifier s'il y a au moins un coup légal
     hasAnyLegalMoves(color) {
+        let pieceCount = 0;
+        let totalMoves = 0;
+        
+        if (this.constructor.consoleLog) {
+            console.log(`♟️🔍 Recherche de coups légaux pour ${color === 'w' ? 'Blancs' : 'Noirs'}`);
+        }
+        
         // Parcourir toutes les pièces de la couleur
         for (let row = 0; row < 8; row++) {
             for (let col = 0; col < 8; col++) {
@@ -35,17 +89,28 @@ class ChessMateEngine extends ChessEngine {
                 
                 // Si c'est une pièce de la bonne couleur
                 if (piece && this.isPieceColor(piece, color)) {
+                    pieceCount++;
+                    
                     // Générer tous les mouvements possibles pour cette pièce
                     const possibleMoves = this.getPossibleMovesForPiece(piece, row, col);
                     
                     // Si au moins un mouvement est légal (ne met pas le roi en échec)
                     for (const move of possibleMoves) {
+                        totalMoves++;
+                        
                         if (this.isMoveLegal(color, row, col, move.row, move.col)) {
+                            if (this.constructor.consoleLog) {
+                                console.log(`♟️✅ Coup légal trouvé: ${piece} de [${row},${col}] vers [${move.row},${move.col}]`);
+                            }
                             return true; // Au moins un coup légal existe
                         }
                     }
                 }
             }
+        }
+        
+        if (this.constructor.consoleLog) {
+            console.log(`♟️❌ Aucun coup légal trouvé parmi ${pieceCount} pièces et ${totalMoves} mouvements testés`);
         }
         
         return false; // Aucun coup légal
@@ -88,6 +153,10 @@ class ChessMateEngine extends ChessEngine {
 
     // Vérifier si un mouvement est légal (ne met pas le roi en échec)
     isMoveLegal(color, fromRow, fromCol, toRow, toCol) {
+        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            console.log(`  ↳ Test mouvement: [${fromRow},${fromCol}] -> [${toRow},${toCol}]`);
+        }
+        
         // Créer une copie du plateau pour simulation
         const tempBoard = this.createTempBoard();
         const piece = tempBoard[fromRow][fromCol];
@@ -97,8 +166,11 @@ class ChessMateEngine extends ChessEngine {
         tempBoard[fromRow][fromCol] = null;
         
         // Vérifier si le roi est toujours en échec après le mouvement
-        const tempEngine = new ChessMateEngine(this.generateFENFromBoard(tempBoard, color));
-        return !tempEngine.isKingInCheck(color);
+        const fen = this.generateFENFromBoard(tempBoard, color);
+        const tempEngine = new ChessMateEngine(fen);
+        const stillInCheck = tempEngine.isKingInCheck(color);
+        
+        return !stillInCheck;
     }
 
     // Créer une copie temporaire du plateau
@@ -259,6 +331,64 @@ class ChessMateEngine extends ChessEngine {
     isValidSquare(row, col) {
         return row >= 0 && row < 8 && col >= 0 && col < 8;
     }
+
+    // NOUVELLE MÉTHODE : Vérification complète d'état de jeu
+    checkGameState(color, halfMoveClock = 0) {
+        if (this.constructor.consoleLog) {
+            console.log(`🎮🔍 Vérification complète de l'état du jeu pour ${color === 'w' ? 'Blancs' : 'Noirs'}`);
+        }
+        
+        // 1. Vérifier échec et mat
+        if (this.isCheckmate(color)) {
+            if (this.constructor.consoleLog) {
+                console.log(`🎮✅ ÉCHEC ET MAT détecté`);
+            }
+            return { 
+                isGameOver: true, 
+                state: 'checkmate', 
+                winner: color === 'w' ? 'b' : 'w',
+                message: `Échec et mat ! ${color === 'w' ? 'Les Noirs' : 'Les Blancs'} gagnent.`
+            };
+        }
+        
+        // 2. Vérifier pat
+        if (this.isStalemate(color)) {
+            if (this.constructor.consoleLog) {
+                console.log(`🎮✅ PAT détecté`);
+            }
+            return { 
+                isGameOver: true, 
+                state: 'stalemate', 
+                winner: null,
+                message: 'Pat ! La partie est nulle.'
+            };
+        }
+        
+        // 3. Vérifier échec simple (le jeu continue)
+        if (this.isKingInCheck(color)) {
+            if (this.constructor.consoleLog) {
+                console.log(`🎮⚠️  Le roi est en échec (jeu continue)`);
+            }
+            return { 
+                isGameOver: false, 
+                state: 'check', 
+                message: 'Le roi est en échec !'
+            };
+        }
+        
+        // 4. Jeu normal
+        if (this.constructor.consoleLog) {
+            console.log(`🎮➡️  Jeu normal, coup suivant`);
+        }
+        return { 
+            isGameOver: false, 
+            state: 'normal', 
+            message: 'Jeu en cours.'
+        };
+    }
 }
+
+// Initialisation statique
+ChessMateEngine.init();
 
 window.ChessMateEngine = ChessMateEngine;
