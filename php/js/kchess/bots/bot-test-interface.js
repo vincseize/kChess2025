@@ -1,16 +1,30 @@
 // bots/bot-test-interface.js - Interface de test pour les bots
 class BotTestInterface {
+    
+    static consoleLog = true; // false pour production, true pour debug
+    
+    static init() {
+        if (this.consoleLog) {
+            console.log('bots/bot-test-interface.js loaded');
+        }
+    }
+
     constructor(chessGame) {
         this.chessGame = chessGame;
         this.testPanel = null;
         this.isVisible = false;
         
-        console.log('🧪 BotTestInterface initialized');
+        if (this.constructor.consoleLog) {
+            console.log('🤖 [BotTestInterface] Interface de test pour bots initialisée');
+        }
     }
 
     // Créer l'interface de test
     createTestPanel() {
         if (this.testPanel) {
+            if (this.constructor.consoleLog) {
+                console.log('🗑️ [BotTestInterface] Suppression de l\'ancien panneau de test');
+            }
             this.testPanel.remove();
         }
 
@@ -38,17 +52,23 @@ class BotTestInterface {
         this.attachEventListeners();
         this.isVisible = true;
         
-        console.log('🧪 Bot test panel created');
+        if (this.constructor.consoleLog) {
+            console.log('✅ [BotTestInterface] Panneau de test créé et affiché');
+        }
     }
 
     // HTML du panneau de test
     getPanelHTML() {
         const botStatus = this.chessGame.getBotStatus();
         
+        if (this.constructor.consoleLog) {
+            console.log('📊 [BotTestInterface] Récupération statut bot:', botStatus);
+        }
+        
         return `
             <div style="margin-bottom: 10px;">
-                <strong style="color: #3498db;">🤖 Test Interface Bot</strong>
-                <button id="close-test-panel" style="float: right; background: #e74c3c; color: white; border: none; border-radius: 3px; padding: 2px 6px; cursor: pointer;">×</button>
+                <strong style="color: #3498db;">🤖 Interface Test Bot</strong>
+                <button id="close-test-panel" style="float: right; background: #e74c3c; color: white; border: none; border-radius: 3px; padding: 2px 6px; cursor: pointer;" title="Fermer le panneau">×</button>
             </div>
             
             <div style="background: #34495e; padding: 8px; border-radius: 4px; margin-bottom: 10px;">
@@ -109,6 +129,9 @@ class BotTestInterface {
         this.testPanel.querySelectorAll('.bot-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const level = parseInt(e.target.dataset.level);
+                if (this.constructor.consoleLog) {
+                    console.log(`⚙️ [BotTestInterface] Configuration du bot au niveau ${level}`);
+                }
                 this.chessGame.setBotLevel(level);
                 this.updatePanel();
                 this.logTest(`Bot niveau ${level} activé`);
@@ -119,6 +142,9 @@ class BotTestInterface {
         this.testPanel.querySelectorAll('.color-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const color = e.target.dataset.color;
+                if (this.constructor.consoleLog) {
+                    console.log(`🎨 [BotTestInterface] Changement de couleur du bot: ${color}`);
+                }
                 this.chessGame.setBotColor(color);
                 this.updatePanel();
                 this.logTest(`Couleur bot changée: ${color}`);
@@ -127,23 +153,35 @@ class BotTestInterface {
 
         // Forcer un coup
         this.testPanel.querySelector('#force-bot-move').addEventListener('click', () => {
+            if (this.constructor.consoleLog) {
+                console.log('▶️ [BotTestInterface] Forçage d\'un coup par le bot');
+            }
             this.logTest('Forçage coup bot...');
             this.chessGame.playBotMove();
         });
 
         // Tester le bot
         this.testPanel.querySelector('#test-bot').addEventListener('click', () => {
+            if (this.constructor.consoleLog) {
+                console.log('🧪 [BotTestInterface] Démarrage du test du bot');
+            }
             this.testBot();
         });
 
         // Afficher statut
         this.testPanel.querySelector('#show-status').addEventListener('click', () => {
+            if (this.constructor.consoleLog) {
+                console.log('📈 [BotTestInterface] Affichage du statut détaillé du bot');
+            }
             const status = this.chessGame.getBotStatus();
             this.logTest('Statut bot: ' + JSON.stringify(status, null, 2));
         });
 
         // Tester coups valides
         this.testPanel.querySelector('#test-moves').addEventListener('click', () => {
+            if (this.constructor.consoleLog) {
+                console.log('🔍 [BotTestInterface] Test des coups valides');
+            }
             this.testValidMoves();
         });
     }
@@ -151,6 +189,9 @@ class BotTestInterface {
     // Mettre à jour le panneau
     updatePanel() {
         if (this.testPanel) {
+            if (this.constructor.consoleLog) {
+                console.log('🔄 [BotTestInterface] Mise à jour du panneau de test');
+            }
             this.testPanel.innerHTML = this.getPanelHTML();
             this.attachEventListeners();
         }
@@ -159,6 +200,9 @@ class BotTestInterface {
     // Cacher le panneau
     hideTestPanel() {
         if (this.testPanel) {
+            if (this.constructor.consoleLog) {
+                console.log('👋 [BotTestInterface] Fermeture du panneau de test');
+            }
             this.testPanel.remove();
             this.testPanel = null;
         }
@@ -181,7 +225,7 @@ class BotTestInterface {
             const timestamp = new Date().toLocaleTimeString();
             resultsDiv.innerHTML = `<div>[${timestamp}] ${message}</div>` + resultsDiv.innerHTML;
         }
-        console.log('🧪 ' + message);
+        console.log('📝 [BotTestInterface] ' + message);
     }
 
     // Tester le bot
@@ -190,6 +234,9 @@ class BotTestInterface {
         
         const bot = this.chessGame.core.bot;
         if (!bot) {
+            if (this.constructor.consoleLog) {
+                console.log('❌ [BotTestInterface] Aucun bot activé pour le test');
+            }
             this.logTest('❌ Aucun bot activé');
             return;
         }
@@ -201,11 +248,20 @@ class BotTestInterface {
             const move = bot.getMove(currentFEN);
             if (move) {
                 this.logTest(`✅ Coup proposé: ${move.fromRow},${move.fromCol} → ${move.toRow},${move.toCol}`);
+                if (this.constructor.consoleLog) {
+                    console.log(`✅ [BotTestInterface] Coup proposé par le bot: ${move.fromRow},${move.fromCol} → ${move.toRow},${move.toCol}`);
+                }
             } else {
                 this.logTest('❌ Aucun coup proposé');
+                if (this.constructor.consoleLog) {
+                    console.log('❌ [BotTestInterface] Le bot n\'a proposé aucun coup');
+                }
             }
         } catch (error) {
             this.logTest(`❌ Erreur test: ${error.message}`);
+            if (this.constructor.consoleLog) {
+                console.log(`❌ [BotTestInterface] Erreur lors du test: ${error.message}`);
+            }
         }
     }
 
@@ -216,12 +272,19 @@ class BotTestInterface {
         const bot = this.chessGame.core.bot;
         if (!bot || !bot.getAllValidMoves) {
             this.logTest('❌ Bot ou méthode getAllValidMoves non disponible');
+            if (this.constructor.consoleLog) {
+                console.log('❌ [BotTestInterface] Bot ou méthode getAllValidMoves non disponible');
+            }
             return;
         }
 
         try {
             const moves = bot.getAllValidMoves();
             this.logTest(`📊 ${moves.length} coups valides trouvés`);
+            
+            if (this.constructor.consoleLog) {
+                console.log(`📊 [BotTestInterface] ${moves.length} coups valides trouvés`);
+            }
             
             // Afficher les 5 premiers coups
             moves.slice(0, 5).forEach((move, index) => {
@@ -233,6 +296,9 @@ class BotTestInterface {
             }
         } catch (error) {
             this.logTest(`❌ Erreur test coups: ${error.message}`);
+            if (this.constructor.consoleLog) {
+                console.log(`❌ [BotTestInterface] Erreur lors du test des coups: ${error.message}`);
+            }
         }
     }
 }
@@ -241,6 +307,10 @@ class BotTestInterface {
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         if (window.chessGame && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            if (BotTestInterface.consoleLog) {
+                console.log('🚀 [BotTestInterface] Auto-ajout de l\'interface en environnement de développement');
+            }
+            
             window.botTestInterface = new BotTestInterface(window.chessGame);
             
             // Ajouter un bouton pour ouvrir l'interface
@@ -261,13 +331,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             `;
             toggleBtn.addEventListener('click', () => {
+                if (BotTestInterface.consoleLog) {
+                    console.log('🎛️ [BotTestInterface] Bouton de test cliqué - basculement du panneau');
+                }
                 window.botTestInterface.toggleTestPanel();
             });
             
             document.body.appendChild(toggleBtn);
-            console.log('🎛️ Interface de test bot ajoutée');
+            if (BotTestInterface.consoleLog) {
+                console.log('✅ [BotTestInterface] Interface de test bot ajoutée au DOM');
+            }
         }
     }, 2000);
 });
+
+// Initialisation statique
+BotTestInterface.init();
 
 window.BotTestInterface = BotTestInterface;

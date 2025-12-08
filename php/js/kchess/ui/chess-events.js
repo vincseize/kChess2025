@@ -1,113 +1,154 @@
 // ui/chess-events.js - Initialisation du jeu SIMPLIFIÉE
-
-// ============================================
-// FONCTION GLOBALE POUR METTRE À JOUR LES LABELS
-// ============================================
-function updatePlayerLabels() {
-    console.log('🔄 Mise à jour des labels des joueurs...');
+class ChessEventsManager {
     
-    const topLabel = document.getElementById('topPlayerLabel');
-    const bottomLabel = document.getElementById('bottomPlayerLabel');
+    static consoleLog = true; // false pour production, true pour debug
     
-    if (!topLabel || !bottomLabel) {
-        console.warn('⚠️ Labels des joueurs non trouvés');
-        return;
+    static init() {
+        if (this.consoleLog) {
+            console.log('ui/chess-events.js loaded');
+        }
     }
-    
-    try {
-        // Récupérer l'état du plateau depuis le jeu
-        let isFlipped = false;
-        
-        if (window.chessGame) {
-            // Essayer d'obtenir l'état depuis le core
-            if (window.chessGame.core && window.chessGame.core.gameState) {
-                isFlipped = window.chessGame.core.gameState.boardFlipped;
-            }
+
+    // ============================================
+    // FONCTION GLOBALE POUR METTRE À JOUR LES LABELS
+    // ============================================
+    static updatePlayerLabels() {
+        if (this.constructor.consoleLog) {
+            console.log('\n🏷️ [ChessEvents] === MISE À JOUR DES LABELS ===');
         }
         
-        console.log(`🔧 État du plateau: flipped=${isFlipped}`);
+        const topLabel = document.getElementById('topPlayerLabel');
+        const bottomLabel = document.getElementById('bottomPlayerLabel');
         
-        // Récupérer le statut du bot
-        const botStatus = window.chessGame && window.chessGame.getBotStatus ? 
-                         window.chessGame.getBotStatus() : 
-                         { active: false, level: 0, color: '' };
-        
-        // Déterminer le texte pour chaque joueur
-        let topText, bottomText, topClass, bottomClass;
-        
-        if (isFlipped) {
-            // Plateau inversé: blancs en haut, noirs en bas
-            topText = 'Blancs';
-            bottomText = 'Noirs';
-            
-            // Ajouter "Bot" si le bot joue cette couleur
-            if (botStatus.active && botStatus.color === 'white') {
-                topText = `Blancs (Bot Niv.${botStatus.level})`;
-                topClass = 'bot-player bot-color-white';
+        if (!topLabel || !bottomLabel) {
+            if (this.constructor.consoleLog) {
+                console.warn('⚠️ [ChessEvents] Labels des joueurs non trouvés');
             }
-            if (botStatus.active && botStatus.color === 'black') {
-                bottomText = `Noirs (Bot Niv.${botStatus.level})`;
-                bottomClass = 'bot-player bot-color-black';
-            }
-            
-            // Classes CSS
-            topClass = (topClass || '') + ' badge bg-white text-dark border border-dark p-2';
-            bottomClass = (bottomClass || '') + ' badge bg-dark text-white p-2';
-            
-        } else {
-            // Plateau normal: noirs en haut, blancs en bas
-            topText = 'Noirs';
-            bottomText = 'Blancs';
-            
-            // Ajouter "Bot" si le bot joue cette couleur
-            if (botStatus.active && botStatus.color === 'black') {
-                topText = `Noirs (Bot Niv.${botStatus.level})`;
-                topClass = 'bot-player bot-color-black';
-            }
-            if (botStatus.active && botStatus.color === 'white') {
-                bottomText = `Blancs (Bot Niv.${botStatus.level})`;
-                bottomClass = 'bot-player bot-color-white';
-            }
-            
-            // Classes CSS
-            topClass = (topClass || '') + ' badge bg-dark text-white p-2';
-            bottomClass = (bottomClass || '') + ' badge bg-white text-dark border border-dark p-2';
+            return;
         }
         
-        // Mettre à jour les labels
-        topLabel.innerHTML = `${botStatus.active && (
-            (isFlipped && botStatus.color === 'white') || 
-            (!isFlipped && botStatus.color === 'black')
-        ) ? '<i class="bi bi-cpu me-1"></i>' : '<i class="bi bi-person me-1"></i>'} ${topText}`;
-        topLabel.className = topClass;
-        
-        bottomLabel.innerHTML = `${botStatus.active && (
-            (isFlipped && botStatus.color === 'black') || 
-            (!isFlipped && botStatus.color === 'white')
-        ) ? '<i class="bi bi-cpu me-1"></i>' : '<i class="bi bi-person me-1"></i>'} ${bottomText}`;
-        bottomLabel.className = bottomClass;
-        
-        console.log('✅ Labels mis à jour avec succès', { 
-            topText, 
-            bottomText, 
-            botActive: botStatus.active,
-            botLevel: botStatus.level,
-            botColor: botStatus.color 
-        });
-        
-    } catch (error) {
-        console.error('❌ Erreur updatePlayerLabels:', error);
+        try {
+            // Récupérer l'état du plateau depuis le jeu
+            let isFlipped = false;
+            
+            if (window.chessGame) {
+                // Essayer d'obtenir l'état depuis le core
+                if (window.chessGame.core && window.chessGame.core.gameState) {
+                    isFlipped = window.chessGame.core.gameState.boardFlipped;
+                }
+            }
+            
+            if (this.constructor.consoleLog) {
+                console.log(`🏷️ [ChessEvents] État du plateau: ${isFlipped ? 'retourné' : 'normal'}`);
+            }
+            
+            // Récupérer le statut du bot
+            const botStatus = window.chessGame && window.chessGame.getBotStatus ? 
+                             window.chessGame.getBotStatus() : 
+                             { active: false, level: 0, color: '' };
+            
+            if (this.constructor.consoleLog && botStatus.active) {
+                console.log(`🤖 [ChessEvents] Bot actif: niveau ${botStatus.level}, couleur ${botStatus.color}`);
+            }
+            
+            // Déterminer le texte pour chaque joueur
+            let topText, bottomText, topClass, bottomClass;
+            
+            if (isFlipped) {
+                // Plateau inversé: blancs en haut, noirs en bas
+                topText = 'Blancs';
+                bottomText = 'Noirs';
+                
+                // Ajouter "Bot" si le bot joue cette couleur
+                if (botStatus.active && botStatus.color === 'white') {
+                    topText = `Blancs (Bot Niv.${botStatus.level})`;
+                    topClass = 'bot-player bot-color-white';
+                    if (this.constructor.consoleLog) {
+                        console.log('🤖 [ChessEvents] Bot joue les blancs (en haut)');
+                    }
+                }
+                if (botStatus.active && botStatus.color === 'black') {
+                    bottomText = `Noirs (Bot Niv.${botStatus.level})`;
+                    bottomClass = 'bot-player bot-color-black';
+                    if (this.constructor.consoleLog) {
+                        console.log('🤖 [ChessEvents] Bot joue les noirs (en bas)');
+                    }
+                }
+                
+                // Classes CSS
+                topClass = (topClass || '') + ' badge bg-white text-dark border border-dark p-2';
+                bottomClass = (bottomClass || '') + ' badge bg-dark text-white p-2';
+                
+            } else {
+                // Plateau normal: noirs en haut, blancs en bas
+                topText = 'Noirs';
+                bottomText = 'Blancs';
+                
+                // Ajouter "Bot" si le bot joue cette couleur
+                if (botStatus.active && botStatus.color === 'black') {
+                    topText = `Noirs (Bot Niv.${botStatus.level})`;
+                    topClass = 'bot-player bot-color-black';
+                    if (this.constructor.consoleLog) {
+                        console.log('🤖 [ChessEvents] Bot joue les noirs (en haut)');
+                    }
+                }
+                if (botStatus.active && botStatus.color === 'white') {
+                    bottomText = `Blancs (Bot Niv.${botStatus.level})`;
+                    bottomClass = 'bot-player bot-color-white';
+                    if (this.constructor.consoleLog) {
+                        console.log('🤖 [ChessEvents] Bot joue les blancs (en bas)');
+                    }
+                }
+                
+                // Classes CSS
+                topClass = (topClass || '') + ' badge bg-dark text-white p-2';
+                bottomClass = (bottomClass || '') + ' badge bg-white text-dark border border-dark p-2';
+            }
+            
+            // Mettre à jour les labels
+            const topIcon = botStatus.active && (
+                (isFlipped && botStatus.color === 'white') || 
+                (!isFlipped && botStatus.color === 'black')
+            ) ? '<i class="bi bi-cpu me-1"></i>' : '<i class="bi bi-person me-1"></i>';
+            
+            const bottomIcon = botStatus.active && (
+                (isFlipped && botStatus.color === 'black') || 
+                (!isFlipped && botStatus.color === 'white')
+            ) ? '<i class="bi bi-cpu me-1"></i>' : '<i class="bi bi-person me-1"></i>';
+            
+            topLabel.innerHTML = `${topIcon} ${topText}`;
+            topLabel.className = topClass;
+            
+            bottomLabel.innerHTML = `${bottomIcon} ${bottomText}`;
+            bottomLabel.className = bottomClass;
+            
+            if (this.constructor.consoleLog) {
+                console.log('✅ [ChessEvents] Labels mis à jour avec succès:', { 
+                    topText, 
+                    bottomText, 
+                    botActive: botStatus.active,
+                    botLevel: botStatus.level,
+                    botColor: botStatus.color 
+                });
+                console.log('🏷️ [ChessEvents] === FIN MISE À JOUR ===\n');
+            }
+            
+        } catch (error) {
+            if (this.constructor.consoleLog) {
+                console.log(`❌ [ChessEvents] Erreur updatePlayerLabels: ${error.message}`);
+            }
+        }
     }
 }
-
-// Exporter la fonction globale
-window.updatePlayerLabels = updatePlayerLabels;
 
 // ============================================
 // INITIALISATION PRINCIPALE
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 DOM Content Loaded - Début initialisation');
+    if (ChessEventsManager.consoleLog) {
+        console.log('\n🚀 [ChessEvents] === INITIALISATION ===');
+        console.log('🚀 [ChessEvents] DOM Content Loaded - Début initialisation');
+    }
     
     // Initialiser le jeu
     initializeChessGame();
@@ -117,11 +158,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Mettre à jour les labels initiaux après un délai
     setTimeout(() => {
-        updatePlayerLabels();
-        console.log('✅ Labels initiaux mis à jour');
+        ChessEventsManager.updatePlayerLabels();
+        if (ChessEventsManager.consoleLog) {
+            console.log('✅ [ChessEvents] Labels initiaux mis à jour');
+            console.log('🚀 [ChessEvents] === INITIALISATION TERMINÉE ===\n');
+        }
     }, 800);
-    
-    console.log('✅ Initialisation terminée');
 });
 
 // ============================================
@@ -131,27 +173,42 @@ function initializeChessGame() {
     try {
         if (typeof ChessGame !== 'undefined' && !window.chessGame) {
             window.chessGame = new ChessGame();
-            console.log('✅ ChessGame initialisé avec succès');
+            
+            if (ChessEventsManager.consoleLog) {
+                console.log('✅ [ChessEvents] ChessGame initialisé avec succès');
+            }
             
             // Attacher la fonction updatePlayerLabels au jeu pour y accéder facilement
             if (window.chessGame.core) {
-                window.chessGame.core.updatePlayerLabels = updatePlayerLabels;
-                console.log('✅ updatePlayerLabels attaché au core');
+                window.chessGame.core.updatePlayerLabels = ChessEventsManager.updatePlayerLabels;
+                
+                if (ChessEventsManager.consoleLog) {
+                    console.log('✅ [ChessEvents] updatePlayerLabels attaché au core');
+                }
             }
         } else if (window.chessGame) {
-            console.log('ℹ️ ChessGame déjà initialisé');
+            if (ChessEventsManager.consoleLog) {
+                console.log('ℹ️ [ChessEvents] ChessGame déjà initialisé');
+            }
         } else {
-            console.error('❌ ChessGame non disponible');
+            if (ChessEventsManager.consoleLog) {
+                console.log('❌ [ChessEvents] ChessGame non disponible');
+            }
             // Réessayer après délai
             setTimeout(() => {
                 if (typeof ChessGame !== 'undefined' && !window.chessGame) {
                     window.chessGame = new ChessGame();
-                    console.log('✅ ChessGame initialisé avec délai');
+                    
+                    if (ChessEventsManager.consoleLog) {
+                        console.log('✅ [ChessEvents] ChessGame initialisé avec délai');
+                    }
                 }
             }, 1500);
         }
     } catch (error) {
-        console.error('❌ Erreur initialisation ChessGame:', error);
+        if (ChessEventsManager.consoleLog) {
+            console.log(`❌ [ChessEvents] Erreur initialisation ChessGame: ${error.message}`);
+        }
     }
 }
 
@@ -159,7 +216,9 @@ function initializeChessGame() {
 // CONFIGURATION DES ÉVÉNEMENTS
 // ============================================
 function setupEventListeners() {
-    console.log('📱 Configuration des événements...');
+    if (ChessEventsManager.consoleLog) {
+        console.log('📱 [ChessEvents] Configuration des événements...');
+    }
     
     // Configurer les boutons mobiles
     setupMobileButtons();
@@ -172,7 +231,10 @@ function setupEventListeners() {
     
     // Mettre à jour les labels lors du redimensionnement
     window.addEventListener('resize', () => {
-        setTimeout(updatePlayerLabels, 100);
+        if (ChessEventsManager.consoleLog) {
+            console.log('🔄 [ChessEvents] Redimensionnement détecté');
+        }
+        setTimeout(ChessEventsManager.updatePlayerLabels, 100);
     });
 }
 
@@ -183,18 +245,22 @@ function setupMobileButtons() {
     const mobileButtons = [
         { 
             id: 'newGameMobile', 
-            action: () => confirmNewGame()
+            action: () => confirmNewGame(),
+            description: 'Nouvelle partie mobile'
         },
         { 
             id: 'flipBoardMobile', 
-            action: () => flipBoardWithLabelsUpdate()
+            action: () => flipBoardWithLabelsUpdate(),
+            description: 'Flip plateau mobile'
         }
     ];
     
     mobileButtons.forEach(button => {
         const element = document.getElementById(button.id);
         if (element) {
-            console.log(`✅ Configuration bouton mobile: ${button.id}`);
+            if (ChessEventsManager.consoleLog) {
+                console.log(`✅ [ChessEvents] Configuration bouton mobile: ${button.description}`);
+            }
             
             // Cloner pour nettoyer les événements
             const newElement = element.cloneNode(true);
@@ -204,7 +270,11 @@ function setupMobileButtons() {
             newElement.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log(`📱 Click sur ${button.id}`);
+                
+                if (ChessEventsManager.consoleLog) {
+                    console.log(`📱 [ChessEvents] Click sur ${button.description}`);
+                }
+                
                 button.action();
             });
             
@@ -212,7 +282,11 @@ function setupMobileButtons() {
             newElement.addEventListener('touchend', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log(`📱 Touch sur ${button.id}`);
+                
+                if (ChessEventsManager.consoleLog) {
+                    console.log(`📱 [ChessEvents] Touch sur ${button.description}`);
+                }
+                
                 button.action();
             });
             
@@ -222,7 +296,9 @@ function setupMobileButtons() {
             newElement.style.userSelect = 'none';
             
         } else {
-            console.warn(`⚠️ Bouton mobile ${button.id} non trouvé`);
+            if (ChessEventsManager.consoleLog) {
+                console.warn(`⚠️ [ChessEvents] Bouton mobile ${button.id} non trouvé`);
+            }
         }
     });
 }
@@ -234,19 +310,23 @@ function setupDesktopButtons() {
     const desktopButtons = [
         { 
             selector: '#newGame', 
-            action: () => confirmNewGame()
+            action: () => confirmNewGame(),
+            description: 'Nouvelle partie desktop'
         },
         { 
             selector: '#flipBoard', 
-            action: () => flipBoardWithLabelsUpdate()
+            action: () => flipBoardWithLabelsUpdate(),
+            description: 'Flip plateau desktop'
         },
         { 
             selector: '.new-game-btn:not(#newGameMobile)', 
-            action: () => confirmNewGame()
+            action: () => confirmNewGame(),
+            description: 'Nouvelle partie générique'
         },
         { 
             selector: '.flip-board-btn:not(#flipBoardMobile)', 
-            action: () => flipBoardWithLabelsUpdate()
+            action: () => flipBoardWithLabelsUpdate(),
+            description: 'Flip plateau générique'
         }
     ];
     
@@ -260,7 +340,11 @@ function setupDesktopButtons() {
             // Événement click
             newElement.addEventListener('click', function(e) {
                 e.preventDefault();
-                console.log(`🖥️ Click sur ${button.selector}`);
+                
+                if (ChessEventsManager.consoleLog) {
+                    console.log(`🖥️ [ChessEvents] Click sur ${button.description}`);
+                }
+                
                 button.action();
             });
         });
@@ -275,30 +359,51 @@ function setupDesktopButtons() {
 // FONCTION POUR TOURNER LE PLATEAU
 // ============================================
 function flipBoardWithLabelsUpdate() {
-    console.log('🔄 Flip du plateau avec mise à jour des labels');
+    if (ChessEventsManager.consoleLog) {
+        console.log('\n🔄 [ChessEvents] === FLIP DU PLATEAU ===');
+    }
     
     if (window.chessGame && typeof window.chessGame.flipBoard === 'function') {
         // Appeler la fonction flip du jeu
         window.chessGame.flipBoard();
         
+        if (ChessEventsManager.consoleLog) {
+            console.log('🔄 [ChessEvents] Flip via window.chessGame.flipBoard()');
+        }
+        
         // Mettre à jour les labels après un court délai
         setTimeout(() => {
-            updatePlayerLabels();
-            console.log('✅ Labels mis à jour après flip (via ChessGame)');
+            ChessEventsManager.updatePlayerLabels();
+            
+            if (ChessEventsManager.consoleLog) {
+                console.log('✅ [ChessEvents] Labels mis à jour après flip (via ChessGame)');
+                console.log('🔄 [ChessEvents] === FIN FLIP ===\n');
+            }
         }, 100);
     } else if (window.chessGame && window.chessGame.core && typeof window.chessGame.core.flipBoard === 'function') {
         // Alternative: appeler via core
         window.chessGame.core.flipBoard();
         
+        if (ChessEventsManager.consoleLog) {
+            console.log('🔄 [ChessEvents] Flip via window.chessGame.core.flipBoard()');
+        }
+        
         setTimeout(() => {
-            updatePlayerLabels();
-            console.log('✅ Labels mis à jour après flip (via core)');
+            ChessEventsManager.updatePlayerLabels();
+            
+            if (ChessEventsManager.consoleLog) {
+                console.log('✅ [ChessEvents] Labels mis à jour après flip (via core)');
+                console.log('🔄 [ChessEvents] === FIN FLIP ===\n');
+            }
         }, 100);
     } else {
-        console.error('❌ flipBoard non disponible');
+        if (ChessEventsManager.consoleLog) {
+            console.log('❌ [ChessEvents] flipBoard non disponible');
+            console.log('⚠️ [ChessEvents] Flip simulé (labels seulement)');
+        }
+        
         // Fallback: juste mettre à jour les labels visuellement
-        updatePlayerLabels();
-        console.log('⚠️ Flip simulé (labels seulement)');
+        ChessEventsManager.updatePlayerLabels();
     }
 }
 
@@ -306,15 +411,28 @@ function flipBoardWithLabelsUpdate() {
 // CONFIRMATION NOUVELLE PARTIE
 // ============================================
 function confirmNewGame() {
+    if (ChessEventsManager.consoleLog) {
+        console.log('\n🆕 [ChessEvents] === NOUVELLE PARTIE ===');
+    }
+    
     if (window.chessGame) {
         // Nouvelle architecture modulaire
         if (window.chessGame.core && window.chessGame.core.ui && window.chessGame.core.ui.modalManager) {
             const result = window.chessGame.core.ui.modalManager.confirmNewGame();
+            
+            if (ChessEventsManager.consoleLog) {
+                console.log(`✅ [ChessEvents] ModalManager confirmNewGame: ${result ? 'accepted' : 'canceled'}`);
+            }
+            
             if (result) {
                 // Mettre à jour les labels après une nouvelle partie
                 setTimeout(() => {
-                    updatePlayerLabels();
-                    console.log('✅ Labels mis à jour après nouvelle partie');
+                    ChessEventsManager.updatePlayerLabels();
+                    
+                    if (ChessEventsManager.consoleLog) {
+                        console.log('✅ [ChessEvents] Labels mis à jour après nouvelle partie');
+                        console.log('🆕 [ChessEvents] === FIN NOUVELLE PARTIE ===\n');
+                    }
                 }, 800);
             }
             return result;
@@ -322,22 +440,35 @@ function confirmNewGame() {
         // Ancienne architecture
         else if (window.chessGame.core && window.chessGame.core.ui && typeof window.chessGame.core.ui.confirmNewGame === 'function') {
             const result = window.chessGame.core.ui.confirmNewGame();
+            
+            if (ChessEventsManager.consoleLog) {
+                console.log(`✅ [ChessEvents] UI confirmNewGame: ${result ? 'accepted' : 'canceled'}`);
+            }
+            
             if (result) {
                 setTimeout(() => {
-                    updatePlayerLabels();
-                    console.log('✅ Labels mis à jour après nouvelle partie');
+                    ChessEventsManager.updatePlayerLabels();
+                    
+                    if (ChessEventsManager.consoleLog) {
+                        console.log('✅ [ChessEvents] Labels mis à jour après nouvelle partie');
+                        console.log('🆕 [ChessEvents] === FIN NOUVELLE PARTIE ===\n');
+                    }
                 }, 800);
             }
             return result;
         }
         // Fallback
         else {
-            console.error('❌ Aucune méthode confirmNewGame disponible');
+            if (ChessEventsManager.consoleLog) {
+                console.log('❌ [ChessEvents] Aucune méthode confirmNewGame disponible');
+            }
             redirectToIndex();
             return false;
         }
     } else {
-        console.error('❌ Jeu non initialisé');
+        if (ChessEventsManager.consoleLog) {
+            console.log('❌ [ChessEvents] Jeu non initialisé');
+        }
         redirectToIndex();
         return false;
     }
@@ -347,23 +478,37 @@ function confirmNewGame() {
 // FONCTIONS UTILITAIRES
 // ============================================
 function redirectToIndex() {
-    console.log('🔄 Redirection vers index.php');
+    if (ChessEventsManager.consoleLog) {
+        console.log('🔄 [ChessEvents] Redirection vers index.php');
+    }
     window.location.href = 'index.php';
 }
 
 function copyPGN() {
     if (window.chessGame && typeof window.chessGame.copyPGN === 'function') {
         window.chessGame.copyPGN();
+        
+        if (ChessEventsManager.consoleLog) {
+            console.log('📋 [ChessEvents] PGN copié');
+        }
     } else {
-        console.warn('❌ copyPGN non disponible');
+        if (ChessEventsManager.consoleLog) {
+            console.warn('❌ [ChessEvents] copyPGN non disponible');
+        }
     }
 }
 
 function copyFEN() {
     if (window.chessGame && typeof window.chessGame.copyFEN === 'function') {
         window.chessGame.copyFEN();
+        
+        if (ChessEventsManager.consoleLog) {
+            console.log('📋 [ChessEvents] FEN copié');
+        }
     } else {
-        console.warn('❌ copyFEN non disponible');
+        if (ChessEventsManager.consoleLog) {
+            console.warn('❌ [ChessEvents] copyFEN non disponible');
+        }
     }
 }
 
@@ -377,14 +522,22 @@ function setupURLObserver() {
     const urlObserver = setInterval(() => {
         if (window.location.href !== lastURL) {
             lastURL = window.location.href;
-            console.log('🔗 URL changée, mise à jour des labels');
-            setTimeout(updatePlayerLabels, 500);
+            
+            if (ChessEventsManager.consoleLog) {
+                console.log('🔗 [ChessEvents] URL changée, mise à jour des labels');
+            }
+            
+            setTimeout(ChessEventsManager.updatePlayerLabels, 500);
         }
     }, 500);
     
     // Nettoyer l'observateur si la page est déchargée
     window.addEventListener('beforeunload', () => {
         clearInterval(urlObserver);
+        
+        if (ChessEventsManager.consoleLog) {
+            console.log('🧹 [ChessEvents] Observateur d\'URL nettoyé');
+        }
     });
 }
 
@@ -393,17 +546,20 @@ function setupURLObserver() {
 // ============================================
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
-        console.log('👀 Page visible, mise à jour des labels');
-        setTimeout(updatePlayerLabels, 200);
+        if (ChessEventsManager.consoleLog) {
+            console.log('👀 [ChessEvents] Page visible, mise à jour des labels');
+        }
+        
+        setTimeout(ChessEventsManager.updatePlayerLabels, 200);
     }
 });
 
 // ============================================
 // DEBUG ET EXPORTS
 // ============================================
-window.debugChess = {
+window.debugChessEvents = {
     game: () => window.chessGame,
-    updateLabels: () => updatePlayerLabels(),
+    updateLabels: () => ChessEventsManager.updatePlayerLabels(),
     testFlip: () => flipBoardWithLabelsUpdate(),
     testNewGame: () => confirmNewGame(),
     getBoardState: () => {
@@ -423,9 +579,19 @@ window.debugChess = {
         return { active: false, level: 0, color: '' };
     },
     forceUpdateLabels: () => {
-        console.log('🔧 Forçage mise à jour des labels');
-        updatePlayerLabels();
+        if (ChessEventsManager.consoleLog) {
+            console.log('🔧 [ChessEvents] Forçage mise à jour des labels');
+        }
+        ChessEventsManager.updatePlayerLabels();
     }
 };
 
-console.log('✅ chess-events.js chargé avec fonction updatePlayerLabels globale');
+// Initialisation statique
+ChessEventsManager.init();
+
+// Exporter la fonction globale
+window.updatePlayerLabels = ChessEventsManager.updatePlayerLabels;
+
+if (ChessEventsManager.consoleLog) {
+    console.log('✅ [ChessEvents] chess-events.js chargé avec fonction updatePlayerLabels globale');
+}

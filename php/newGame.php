@@ -19,16 +19,16 @@ $targetPage = $isMobile ? 'app_mobile.php' : 'app.php';
 
         <!-- Sélection du mode de jeu -->
         <div class="new-game-buttons">
-            <button class="game-mode-btn btn-human" data-mode="human" data-level="false" data-profondeur="false">
+            <button class="game-mode-btn btn-human" data-mode="human" data-level="0" data-profondeur="false">
                 <div class="mode-description">
                     <div><i class="bi bi-people-fill mode-icon"></i> Humain vs Humain</div>
                 </div>
                 <i class="bi bi-check-lg check-icon"></i>
             </button>
 
-            <button class="game-mode-btn btn-level-0" data-mode="bot" data-level="0" data-profondeur="0">
+            <button class="game-mode-btn btn-level-0" data-mode="bot" data-level="1" data-profondeur="0">
                 <div class="mode-description">
-                    <div><i class="bi bi-cpu mode-icon"></i> Niveau 0 - Aléatoire</div>
+                    <div><i class="bi bi-cpu mode-icon"></i> Niveau 1 - Aléatoire</div>
                     <div class="mode-difficulty">Bot : Coups aléatoires</div>
                     <div class="mode-difficulty">Profondeur 0</div>
                 </div>
@@ -37,7 +37,7 @@ $targetPage = $isMobile ? 'app_mobile.php' : 'app.php';
 
             <button class="game-mode-btn btn-level-1" data-mode="bot" data-level="2" data-profondeur="0">
                 <div class="mode-description">
-                    <div><i class="bi bi-robot mode-icon"></i> Niveau 1 - CCMO</div>
+                    <div><i class="bi bi-robot mode-icon"></i> Niveau 2 - CCMO</div>
                     <div class="mode-difficulty">Bot : Check, Captures, Menaces, Optimisation</div>
                     <div class="mode-difficulty">Profondeur 0</div>
                 </div>
@@ -103,15 +103,24 @@ document.querySelectorAll('.game-mode-btn').forEach(btn => {
         // Activer le bouton de démarrage
         document.getElementById('startGameBtn').disabled = false;
         
-        console.log('Mode sélectionné:', {
+        // Déterminer le nom du bot basé sur le niveau
+        let botName = 'Humain';
+        if (selectedMode === 'bot') {
+            if (selectedLevel === '1') {
+                botName = 'Level_0 (Aléatoire)';
+            } else if (selectedLevel === '2') {
+                botName = 'Level_1 (CCMO)';
+            } else {
+                botName = 'Inconnu';
+            }
+        }
+        
+        console.log('🎮 Mode sélectionné:', {
             mode: selectedMode,
             level: selectedLevel,
             profondeur: selectedProfondeur,
-            botName: this.getAttribute('data-mode') === 'bot' ? 
-                     (selectedLevel === '0' ? 'Level_0 (Aléatoire)' : 
-                      selectedLevel === '1' ? 'Level_1 (CCMO)' : 
-                      'Inconnu') : 
-                     'Humain'
+            botName: botName,
+            description: 'Level 0=désactivé, 1=Aléatoire, 2=CCMO'
         });
     });
 });
@@ -148,18 +157,27 @@ document.getElementById('startGameBtn').addEventListener('click', function() {
     
     url += '?' + params.toString();
     
+    // Déterminer le nom du bot
+    let botName = 'Humain';
+    if (selectedMode === 'bot') {
+        if (selectedLevel === '1') {
+            botName = 'Level_0 (Aléatoire)';
+        } else if (selectedLevel === '2') {
+            botName = 'Level_1 (CCMO)';
+        } else {
+            botName = 'Inconnu';
+        }
+    }
+    
     console.log('🚀 Démarrage de la partie:', { 
         mode: selectedMode,
         level: selectedLevel,
         profondeur: selectedProfondeur,
         originalColor: selectedColor,
         finalColor: finalColor,
+        botName: botName,
         url: url,
-        botName: selectedMode === 'bot' ? 
-                (selectedLevel === '0' ? 'Level_0 (Aléatoire)' : 
-                 selectedLevel === '1' ? 'Level_1 (CCMO)' : 
-                 'Inconnu') : 
-                'Humain'
+        mapping: 'Niveau 0=désactivé, 1=Aléatoire, 2=CCMO'
     });
     
     window.location.href = url;

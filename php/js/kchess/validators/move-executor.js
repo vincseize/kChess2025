@@ -1,7 +1,21 @@
-// move-executor.js - Exécution physique des mouvements
+// validators/move-executor.js - Exécution physique des mouvements
 class MoveExecutor {
+    
+    static consoleLog = true; // false pour production, true pour debug
+    
+    static init() {
+        if (this.consoleLog) {
+            console.log('validators/move-executor.js loaded');
+        }
+    }
+
     constructor(game) {
         this.game = game;
+        
+        if (this.constructor.consoleLog) {
+            console.log('🔧 MoveExecutor initialisé');
+            console.log(`  - Game: ${game ? '✓' : '✗'}`);
+        }
     }
 
     prepareMoveExecution(toRow, toCol) {
@@ -11,20 +25,37 @@ class MoveExecutor {
         const move = this.game.possibleMoves.find(m => m.row === toRow && m.col === toCol);
         
         if (!fromSquare || !toSquare) {
-            DeviceLogger.error('Cases source/destination non trouvées');
+            if (this.constructor.consoleLog) {
+                console.error('❌ Cases source/destination non trouvées');
+            }
             return null;
         }
 
         const pieceElement = fromSquare.element.querySelector('.chess-piece');
         if (!pieceElement) {
-            DeviceLogger.error('Élément pièce non trouvé');
+            if (this.constructor.consoleLog) {
+                console.error('❌ Élément pièce non trouvé');
+            }
             return null;
+        }
+        
+        if (this.constructor.consoleLog) {
+            console.log(`🎯 Préparation exécution mouvement:`);
+            console.log(`  - Pièce: ${selectedPiece.piece.color} ${selectedPiece.piece.type}`);
+            console.log(`  - De: [${selectedPiece.row},${selectedPiece.col}]`);
+            console.log(`  - Vers: [${toRow},${toCol}]`);
+            console.log(`  - Move trouvé: ${move ? '✓' : '✗'}`);
         }
         
         return { selectedPiece, fromSquare, toSquare, move, pieceElement };
     }
 
     executeNormalMove(fromSquare, toSquare, selectedPiece, move, toRow, toCol) {
+        if (this.constructor.consoleLog) {
+            console.log(`\n🚀 EXÉCUTION MOUVEMENT NORMAL:`);
+            console.log(`  ${selectedPiece.piece.color} ${selectedPiece.piece.type} de [${selectedPiece.row},${selectedPiece.col}] vers [${toRow},${toCol}]`);
+        }
+        
         const pieceElement = fromSquare.element.querySelector('.chess-piece');
         this.transferPieceElement(pieceElement, fromSquare, toSquare, selectedPiece.piece);
         
@@ -32,6 +63,9 @@ class MoveExecutor {
 
         // Gestion promotion
         if (move && this.shouldPromote(move, selectedPiece.piece)) {
+            if (this.constructor.consoleLog) {
+                console.log(`👑 DÉTECTION PROMOTION`);
+            }
             this.handlePromotion(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement);
             return;
         }
@@ -44,22 +78,42 @@ class MoveExecutor {
         toSquare.element.appendChild(pieceElement);
         toSquare.piece = piece;
         fromSquare.piece = null;
+        
+        if (this.constructor.consoleLog) {
+            console.log(`  🔄 Pièce transférée de ${fromSquare.element.className} vers ${toSquare.element.className}`);
+        }
     }
 
     shouldPromote(move, piece) {
-        return move && this.game.promotionManager.checkPromotion(move, piece);
+        const shouldPromote = move && this.game.promotionManager.checkPromotion(move, piece);
+        
+        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            console.log(`  🔍 Vérification promotion: ${shouldPromote ? 'OUI' : 'NON'}`);
+        }
+        
+        return shouldPromote;
     }
 
     handlePromotion(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement) {
         this.game.moveHandler.isPromoting = true;
         this.game.clearSelection();
         
+        if (this.constructor.consoleLog) {
+            console.log(`🎭 Démarrage processus de promotion`);
+        }
+        
         this.game.promotionManager.handlePromotion(
             toRow, toCol, selectedPiece.piece.color,
             (promotedPieceType) => {
                 if (promotedPieceType) {
+                    if (this.constructor.consoleLog) {
+                        console.log(`✅ Promotion choisie: ${promotedPieceType}`);
+                    }
                     this.finalizePromotion(toRow, toCol, promotedPieceType, move, selectedPiece);
                 } else {
+                    if (this.constructor.consoleLog) {
+                        console.log(`❌ Promotion annulée`);
+                    }
                     this.undoPromotionMove(fromSquare, toSquare, pieceElement, selectedPiece);
                 }
                 this.game.moveHandler.isPromoting = false;
@@ -68,7 +122,9 @@ class MoveExecutor {
     }
 
     finalizeNormalMove(toRow, toCol, move, selectedPiece) {
-        DeviceLogger.log('Mouvement normal finalisé');
+        if (this.constructor.consoleLog) {
+            console.log(`✅ Mouvement normal finalisé`);
+        }
         
         if (move) {
             this.game.moveValidator.updateEnPassantTarget(
@@ -79,6 +135,10 @@ class MoveExecutor {
                 },
                 selectedPiece.piece
             );
+            
+            if (this.constructor.consoleLog && move.isDoublePush) {
+                console.log(`🎯 Cible en passant définie pour prochain coup`);
+            }
         }
 
         this.updateCastlingRights(selectedPiece, toRow, toCol);
@@ -110,6 +170,10 @@ class MoveExecutor {
         const newPieceElement = this.createPieceElement(newPiece);
         toSquare.element.appendChild(newPieceElement);
 
+        if (this.constructor.consoleLog) {
+            console.log(`👑 Promotion finalisée: ${selectedPiece.piece.color} ${selectedPiece.piece.type} → ${promotedPieceType}`);
+        }
+
         this.game.gameState.recordMove(
             selectedPiece.row, 
             selectedPiece.col, 
@@ -132,11 +196,16 @@ class MoveExecutor {
         fromSquare.piece = selectedPiece.piece;
         
         this.game.clearSelection();
-        DeviceLogger.log('Promotion annulée');
+        
+        if (this.constructor.consoleLog) {
+            console.log(`↩️ Promotion annulée - retour à la position initiale`);
+        }
     }
 
     updateGameStateForMove(piece, fromRow, fromCol, toRow, toCol) {
-        DeviceLogger.log(`Mise à jour gameState pour ${piece.type} ${piece.color}`);
+        if (this.constructor.consoleLog) {
+            console.log(`🔄 Mise à jour gameState pour ${piece.color} ${piece.type}`);
+        }
         
         if (!this.game.gameState.hasKingMoved) {
             this.game.gameState.hasKingMoved = { white: false, black: false };
@@ -150,21 +219,28 @@ class MoveExecutor {
         }
 
         if (piece.type === 'king') {
-            DeviceLogger.log(`Roi ${piece.color} a bougé`);
             this.game.gameState.hasKingMoved[piece.color] = true;
+            
+            if (this.constructor.consoleLog) {
+                console.log(`  👑 Roi ${piece.color} marqué comme ayant bougé`);
+            }
         }
         
         if (piece.type === 'rook') {
-            DeviceLogger.log(`Tour ${piece.color} a bougé`);
-            
             const rookState = this.game.gameState.hasRookMoved[piece.color];
             
             if (fromCol === 7) {
                 rookState.kingside = true;
-                DeviceLogger.log(`Tour côté roi ${piece.color} marquée comme ayant bougé`);
+                
+                if (this.constructor.consoleLog) {
+                    console.log(`  🏰 Tour côté roi ${piece.color} marquée comme ayant bougé`);
+                }
             } else if (fromCol === 0) {
                 rookState.queenside = true;
-                DeviceLogger.log(`Tour côté dame ${piece.color} marquée comme ayant bougé`);
+                
+                if (this.constructor.consoleLog) {
+                    console.log(`  🏰 Tour côté dame ${piece.color} marquée comme ayant bougé`);
+                }
             }
         }
     }
@@ -184,7 +260,10 @@ class MoveExecutor {
                 kingside: false,
                 queenside: false
             };
-            DeviceLogger.log(`Roi ${color} a bougé - roques désactivés`);
+            
+            if (this.constructor.consoleLog) {
+                console.log(`  🏰 Roques désactivés pour ${color} (roi a bougé)`);
+            }
         }
 
         if (piece.type === 'rook') {
@@ -198,7 +277,10 @@ class MoveExecutor {
                     };
                 }
                 this.game.gameState.castlingRights[color].kingside = false;
-                DeviceLogger.log(`Tour côté roi ${color} a bougé - roque côté roi désactivé`);
+                
+                if (this.constructor.consoleLog) {
+                    console.log(`  🏰 Roque côté roi désactivé pour ${color}`);
+                }
             }
             
             if (selectedPiece.col === 0 && selectedPiece.row === startRow) {
@@ -209,7 +291,10 @@ class MoveExecutor {
                     };
                 }
                 this.game.gameState.castlingRights[color].queenside = false;
-                DeviceLogger.log(`Tour côté dame ${color} a bougé - roque côté dame désactivé`);
+                
+                if (this.constructor.consoleLog) {
+                    console.log(`  🏰 Roque côté dame désactivé pour ${color}`);
+                }
             }
         }
     }
@@ -240,5 +325,8 @@ class MoveExecutor {
         return pieceElement;
     }
 }
+
+// Initialisation statique
+MoveExecutor.init();
 
 window.MoveExecutor = MoveExecutor;
