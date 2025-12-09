@@ -16,5 +16,8 @@
         "selected": "#aec6cf",
         "move_indicator": "#32CD32",
         "capture_indicator": "#ff4444"
+    },
+    "debug": {
+        "console_log": "false"
     }
 }

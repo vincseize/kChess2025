@@ -1,10 +1,14 @@
 <?php
 // index.php
-$version = time(); // ou $config['version'] si vous voulez une version stable
+$version = time();
 
 // Charger la configuration JSON
 $config = json_decode(file_get_contents('config/game-config.json'), true);
 
+// Vérifier si le chargement a réussi
+if (json_last_error() !== JSON_ERROR_NONE) {
+    die("Erreur de chargement de la configuration JSON: " . json_last_error_msg());
+}
 ?>
 
 <!DOCTYPE html>
@@ -35,8 +39,22 @@ $config = json_decode(file_get_contents('config/game-config.json'), true);
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/bootstrap-icons.css">
 
-    <style>
+    <!-- Configuration JavaScript -->
+    <script>
+        // Passer la configuration PHP à JavaScript
+        window.appConfig = <?php echo json_encode($config, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+        
+        // Log de debug si activé
+        <?php if ($config['debug']['console_log'] === "true"): ?>
+        console.log('⚙️ Configuration chargée:', {
+            app: window.appConfig.app_name,
+            version: window.appConfig.version,
+            debug: window.appConfig.debug.console_log
+        });
+        <?php endif; ?>
+    </script>
 
+    <style>
         body {
             margin: 0;
             padding: 0;
@@ -47,7 +65,7 @@ $config = json_decode(file_get_contents('config/game-config.json'), true);
 <body>
 
 <?php
-// Inclure les fichiers nécessaires
+// Inclure newGame.php - les variables $config et $version sont déjà disponibles
 require_once 'newGame.php';
 ?>
 
