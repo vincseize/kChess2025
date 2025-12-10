@@ -18,6 +18,9 @@
         "capture_indicator": "#ff4444"
     },
     "debug": {
-        "console_log": "false"
+        "console_log": false
+    },
+    "chess_engine": {
+        "console_log": false
     }
 }

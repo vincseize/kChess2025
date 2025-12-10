@@ -1,11 +1,68 @@
-// validators/move-executor.js - Exécution physique des mouvements
+// validators/move-executor.js - Version utilisant la configuration JSON comme priorité
+if (typeof MoveExecutor !== 'undefined') {
+    console.warn('⚠️ MoveExecutor existe déjà. Vérifiez les doublons dans les imports.');
+} else {
+
 class MoveExecutor {
     
-    static consoleLog = true; // false pour production, true pour debug
+    // Valeur par défaut - sera écrasée par la config JSON si disponible
+    static consoleLog = true; // true par défaut pour debug
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
+        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('validators/move-executor.js loaded');
+            console.log('🚀 validators/move-executor.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            // Message silencieux si debug désactivé
+            console.info('🚀 MoveExecutor: Mode silencieux activé (debug désactivé dans config)');
+        }
+    }
+    
+    // Méthode pour charger la configuration
+    static loadConfig() {
+        try {
+            if (window.appConfig && window.appConfig.chess_engine) {
+                // Configuration prioritaire: window.appConfig
+                if (window.appConfig.chess_engine.console_log !== undefined) {
+                    this.consoleLog = window.appConfig.chess_engine.console_log;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('🚀 Configuration chargée depuis window.appConfig');
+                }
+            } else if (window.chessConfig) {
+                // Configuration secondaire: window.chessConfig (pour compatibilité)
+                if (window.chessConfig.debug !== undefined) {
+                    this.consoleLog = window.chessConfig.debug;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('🚀 Configuration chargée depuis window.chessConfig (legacy)');
+                }
+            } else {
+                // Fallback: valeurs par défaut
+                if (this.consoleLog) {
+                    console.log('🚀 Configuration: valeurs par défaut utilisées');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement de la configuration:', error);
+            // Garder les valeurs par défaut en cas d'erreur
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig && window.appConfig.chess_engine) {
+            return 'window.appConfig';
+        } else if (window.chessConfig) {
+            return 'window.chessConfig (legacy)';
+        } else {
+            return 'valeur par défaut';
         }
     }
 
@@ -15,6 +72,7 @@ class MoveExecutor {
         if (this.constructor.consoleLog) {
             console.log('🔧 MoveExecutor initialisé');
             console.log(`  - Game: ${game ? '✓' : '✗'}`);
+            console.log(`  - Configuration: console_log = ${this.constructor.consoleLog}`);
         }
     }
 
@@ -40,11 +98,16 @@ class MoveExecutor {
         }
         
         if (this.constructor.consoleLog) {
-            console.log(`🎯 Préparation exécution mouvement:`);
+            console.log(`\n🎯 Préparation exécution mouvement:`);
             console.log(`  - Pièce: ${selectedPiece.piece.color} ${selectedPiece.piece.type}`);
             console.log(`  - De: [${selectedPiece.row},${selectedPiece.col}]`);
             console.log(`  - Vers: [${toRow},${toCol}]`);
             console.log(`  - Move trouvé: ${move ? '✓' : '✗'}`);
+            if (move) {
+                console.log(`  - Type de mouvement: ${move.type || 'standard'}`);
+                if (move.isDoublePush) console.log(`  - Double poussée: OUI`);
+                if (move.isPromotion) console.log(`  - Promotion: OUI`);
+            }
         }
         
         return { selectedPiece, fromSquare, toSquare, move, pieceElement };
@@ -87,8 +150,11 @@ class MoveExecutor {
     shouldPromote(move, piece) {
         const shouldPromote = move && this.game.promotionManager.checkPromotion(move, piece);
         
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`  🔍 Vérification promotion: ${shouldPromote ? 'OUI' : 'NON'}`);
+            if (shouldPromote) {
+                console.log(`    ↳ Condition de promotion remplie pour ${piece.color} ${piece.type}`);
+            }
         }
         
         return shouldPromote;
@@ -123,7 +189,7 @@ class MoveExecutor {
 
     finalizeNormalMove(toRow, toCol, move, selectedPiece) {
         if (this.constructor.consoleLog) {
-            console.log(`✅ Mouvement normal finalisé`);
+            console.log(`\n✅ Mouvement normal finalisé`);
         }
         
         if (move) {
@@ -154,6 +220,11 @@ class MoveExecutor {
         this.game.gameState.switchPlayer();
         this.game.clearSelection();
         this.game.updateUI();
+        
+        if (this.constructor.consoleLog) {
+            console.log(`  🔄 Joueur actuel changé: ${this.game.gameState.currentPlayer}`);
+            console.log(`  📝 Coup enregistré dans l'historique`);
+        }
     }
 
     finalizePromotion(toRow, toCol, promotedPieceType, move, selectedPiece) {
@@ -186,6 +257,10 @@ class MoveExecutor {
         this.game.gameState.switchPlayer();
         this.game.clearSelection();
         this.game.updateUI();
+        
+        if (this.constructor.consoleLog) {
+            console.log(`  🔄 Joueur actuel changé après promotion: ${this.game.gameState.currentPlayer}`);
+        }
     }
 
     undoPromotionMove(fromSquare, toSquare, pieceElement, selectedPiece) {
@@ -204,7 +279,7 @@ class MoveExecutor {
 
     updateGameStateForMove(piece, fromRow, fromCol, toRow, toCol) {
         if (this.constructor.consoleLog) {
-            console.log(`🔄 Mise à jour gameState pour ${piece.color} ${piece.type}`);
+            console.log(`\n🔄 Mise à jour gameState pour ${piece.color} ${piece.type}`);
         }
         
         if (!this.game.gameState.hasKingMoved) {
@@ -324,9 +399,46 @@ class MoveExecutor {
         
         return pieceElement;
     }
+
+    // NOUVELLE MÉTHODE : Afficher le résumé de l'exécution
+    displayExecutionSummary(selectedPiece, toRow, toCol, move) {
+        if (!this.constructor.consoleLog) return;
+        
+        console.log(`\n📊 RÉSUMÉ EXÉCUTION MOUVEMENT:`);
+        console.log(`  Pièce: ${selectedPiece.piece.color} ${selectedPiece.piece.type}`);
+        console.log(`  De: [${selectedPiece.row},${selectedPiece.col}]`);
+        console.log(`  Vers: [${toRow},${toCol}]`);
+        console.log(`  Type: ${move ? move.type || 'standard' : 'inconnu'}`);
+        
+        if (move) {
+            console.log(`  Spécial: ${move.isDoublePush ? 'Double poussée' : move.isPromotion ? 'Promotion' : 'Normal'}`);
+        }
+        
+        console.log(`  Cible en passant: ${this.game.moveValidator.enPassantTarget ? 
+            `[${this.game.moveValidator.enPassantTarget.row},${this.game.moveValidator.enPassantTarget.col}]` : 'Aucune'}`);
+        
+        console.log(`  Joueur suivant: ${this.game.gameState.currentPlayer}`);
+    }
+
+    // NOUVELLE MÉTHODE : Vérifier l'état du MoveExecutor
+    checkState() {
+        if (!this.constructor.consoleLog) return;
+        
+        console.log(`\n🔍 ÉTAT MOVE EXECUTOR:`);
+        console.log(`  Game connecté: ${this.game ? '✓' : '✗'}`);
+        console.log(`  Configuration: console_log = ${this.constructor.consoleLog}`);
+        
+        if (this.game) {
+            console.log(`  GameState: ${this.game.gameState ? '✓' : '✗'}`);
+            console.log(`  MoveValidator: ${this.game.moveValidator ? '✓' : '✗'}`);
+            console.log(`  PromotionManager: ${this.game.promotionManager ? '✓' : '✗'}`);
+        }
+    }
 }
 
 // Initialisation statique
 MoveExecutor.init();
 
 window.MoveExecutor = MoveExecutor;
+
+} // Fin du if de protection

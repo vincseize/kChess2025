@@ -1,16 +1,11 @@
 <?php
-// index.php
-$version = time();
+// index.php - dans le dossier php/
+require_once __DIR__ . '/config-loader.php'; // Même dossier
 
-// Charger la configuration JSON
-$config = json_decode(file_get_contents('config/game-config.json'), true);
-
-// Vérifier si le chargement a réussi
-if (json_last_error() !== JSON_ERROR_NONE) {
-    die("Erreur de chargement de la configuration JSON: " . json_last_error_msg());
-}
+$config = loadGameConfig();
+$version = getVersion();
+logConfigInfo($config);
 ?>
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -39,18 +34,25 @@ if (json_last_error() !== JSON_ERROR_NONE) {
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/bootstrap-icons.css">
 
-    <!-- Configuration JavaScript -->
+    <!-- Configuration JavaScript - NORMALISÉE -->
     <script>
-        // Passer la configuration PHP à JavaScript
-        window.appConfig = <?php echo json_encode($config, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+        // Configuration globale normalisée - MÊME STRUCTURE QUE HEADER.PHP
+        window.appConfig = <?php echo getAppConfigJson($config); ?>;
         
         // Log de debug si activé
-        <?php if ($config['debug']['console_log'] === "true"): ?>
-        console.log('⚙️ Configuration chargée:', {
+        <?php if ($config['debug']['console_log'] === true): ?>
+        console.log('⚙️ Configuration index.php chargée:', {
             app: window.appConfig.app_name,
             version: window.appConfig.version,
-            debug: window.appConfig.debug.console_log
+            debug_console_log: window.appConfig.debug.console_log,
+            chess_engine_console_log: window.appConfig.chess_engine.console_log,
+            source: 'index.php'
         });
+        
+        alert('index.php - Configuration chargée:\n' +
+              '- debug.console_log = ' + window.appConfig.debug.console_log + '\n' +
+              '- chess_engine.console_log = ' + window.appConfig.chess_engine.console_log + '\n' +
+              '- Les deux doivent être FALSE pour désactiver les logs!');
         <?php endif; ?>
     </script>
 

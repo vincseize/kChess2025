@@ -1,11 +1,68 @@
-// validators/special-moves-handler.js - Gestion des mouvements spéciaux
+// validators/special-moves-handler.js - Version utilisant la configuration JSON comme priorité
+if (typeof SpecialMovesHandler !== 'undefined') {
+    console.warn('⚠️ SpecialMovesHandler existe déjà. Vérifiez les doublons dans les imports.');
+} else {
+
 class SpecialMovesHandler {
     
-    static consoleLog = true; // false pour production, true pour debug
+    // Valeur par défaut - sera écrasée par la config JSON si disponible
+    static consoleLog = true; // true par défaut pour debug
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
+        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('validators/special-moves-handler.js loaded');
+            console.log('⚡ validators/special-moves-handler.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            // Message silencieux si debug désactivé
+            console.info('⚡ SpecialMovesHandler: Mode silencieux activé (debug désactivé dans config)');
+        }
+    }
+    
+    // Méthode pour charger la configuration
+    static loadConfig() {
+        try {
+            if (window.appConfig && window.appConfig.chess_engine) {
+                // Configuration prioritaire: window.appConfig
+                if (window.appConfig.chess_engine.console_log !== undefined) {
+                    this.consoleLog = window.appConfig.chess_engine.console_log;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('⚡ Configuration chargée depuis window.appConfig');
+                }
+            } else if (window.chessConfig) {
+                // Configuration secondaire: window.chessConfig (pour compatibilité)
+                if (window.chessConfig.debug !== undefined) {
+                    this.consoleLog = window.chessConfig.debug;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('⚡ Configuration chargée depuis window.chessConfig (legacy)');
+                }
+            } else {
+                // Fallback: valeurs par défaut
+                if (this.consoleLog) {
+                    console.log('⚡ Configuration: valeurs par défaut utilisées');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement de la configuration:', error);
+            // Garder les valeurs par défaut en cas d'erreur
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig && window.appConfig.chess_engine) {
+            return 'window.appConfig';
+        } else if (window.chessConfig) {
+            return 'window.chessConfig (legacy)';
+        } else {
+            return 'valeur par défaut';
         }
     }
 
@@ -15,14 +72,27 @@ class SpecialMovesHandler {
         if (this.constructor.consoleLog) {
             console.log('🔧 SpecialMovesHandler initialisé');
             console.log(`  - Game: ${game ? '✓' : '✗'}`);
+            console.log(`  - Configuration: console_log = ${this.constructor.consoleLog}`);
         }
+        
+        // Statistiques des mouvements spéciaux
+        this.stats = {
+            castles: { kingside: 0, queenside: 0 },
+            enPassant: 0,
+            promotions: 0
+        };
     }
 
     handleSpecialMove(move, selectedPiece, fromSquare, toSquare, toRow, toCol) {
-        if (!move) return false;
+        if (!move) {
+            if (this.constructor.consoleLog) {
+                console.log(`❌ Pas de mouvement à traiter`);
+            }
+            return false;
+        }
 
         if (this.constructor.consoleLog) {
-            console.log(`⚡ Vérification mouvement spécial: ${move.type}${move.special ? ' (' + move.special + ')' : ''}`);
+            console.log(`\n⚡ Vérification mouvement spécial: ${move.type}${move.special ? ' (' + move.special + ')' : ''}`);
         }
 
         if (move.special === 'castle') {
@@ -30,6 +100,7 @@ class SpecialMovesHandler {
                 console.log(`🏰 ROQUE DÉTECTÉ: ${move.type}`);
             }
             this.executeCastleMove(move, selectedPiece);
+            this.stats.castles[move.type.includes('kingside') ? 'kingside' : 'queenside']++;
             return true;
         }
 
@@ -38,6 +109,7 @@ class SpecialMovesHandler {
                 console.log(`🎯 PRISE EN PASSANT DÉTECTÉE`);
             }
             this.executeEnPassantMove(move, selectedPiece, fromSquare, toSquare, toRow, toCol);
+            this.stats.enPassant++;
             return true;
         }
 
@@ -52,6 +124,7 @@ class SpecialMovesHandler {
         if (this.constructor.consoleLog) {
             console.log(`\n🏰 EXÉCUTION ROQUE: ${move.type} pour ${selectedPiece.piece.color}`);
             console.log(`  Position roi: [${selectedPiece.row},${selectedPiece.col}] → [${move.row},${move.col}]`);
+            console.log(`  Type: ${move.type.includes('kingside') ? 'Petit roque' : 'Grand roque'}`);
         }
         
         this.game.moveHandler.updateGameStateForMove(selectedPiece.piece, selectedPiece.row, selectedPiece.col, move.row, move.col);
@@ -78,31 +151,33 @@ class SpecialMovesHandler {
     executeCastle(move, king, fromRow, fromCol) {
         const color = king.color;
         const row = color === 'white' ? 7 : 0;
+        const isKingside = move.type.includes('kingside');
         
         if (this.constructor.consoleLog) {
             console.log(`  📐 Configuration roque ${color}:`);
-            console.log(`    - Rangée: ${row} (${color === 'white' ? 'bas' : 'haut'})`);
-            console.log(`    - Type: ${move.type.includes('kingside') ? 'côté roi (petit roque)' : 'côté dame (grand roque)'}`);
+            console.log(`    - Rangée: ${row} (${color === 'white' ? 'haut' : 'bas'})`);
+            console.log(`    - Type: ${isKingside ? 'côté roi (petit roque)' : 'côté dame (grand roque)'}`);
+            console.log(`    - Notation: ${isKingside ? '0-0' : '0-0-0'}`);
         }
 
-        if (move.type === 'castle-kingside') {
+        if (isKingside) {
             if (this.constructor.consoleLog) {
-                console.log(`  🔄 Déplacements petit roque:`);
-                console.log(`    - Roi: [${fromRow},${fromCol}] → [${row},6]`);
+                console.log(`  🔄 Déplacements petit roque (0-0):`);
+                console.log(`    - Roi: [${fromRow},4] → [${row},6]`);
                 console.log(`    - Tour: [${row},7] → [${row},5]`);
             }
             
-            this.movePiece(fromRow, fromCol, row, 6); // Roi e1→g1 / e8→g8
-            this.movePiece(row, 7, row, 5);           // Tour h1→f1 / h8→f8
-        } else if (move.type === 'castle-queenside') {
+            this.movePiece(row, 4, row, 6); // Roi e1→g1 / e8→g8
+            this.movePiece(row, 7, row, 5); // Tour h1→f1 / h8→f8
+        } else {
             if (this.constructor.consoleLog) {
-                console.log(`  🔄 Déplacements grand roque:`);
-                console.log(`    - Roi: [${fromRow},${fromCol}] → [${row},2]`);
+                console.log(`  🔄 Déplacements grand roque (0-0-0):`);
+                console.log(`    - Roi: [${fromRow},4] → [${row},2]`);
                 console.log(`    - Tour: [${row},0] → [${row},3]`);
             }
             
-            this.movePiece(fromRow, fromCol, row, 2); // Roi e1→c1 / e8→c8
-            this.movePiece(row, 0, row, 3);           // Tour a1→d1 / a8→d8
+            this.movePiece(row, 4, row, 2); // Roi e1→c1 / e8→c8
+            this.movePiece(row, 0, row, 3); // Tour a1→d1 / a8→d8
         }
         
         if (this.constructor.consoleLog) {
@@ -137,9 +212,10 @@ class SpecialMovesHandler {
         toSquare.piece = fromSquare.piece;
         fromSquare.piece = null;
         
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
+            const pieceType = fromSquare.piece ? fromSquare.piece.type : 'inconnue';
             console.log(`    ↳ Pièce déplacée: [${fromRow},${fromCol}] → [${toRow},${toCol}]`);
-            console.log(`      Type: ${fromSquare.piece?.type || '?'}`);
+            console.log(`      Type: ${pieceType}`);
         }
     }
 
@@ -148,6 +224,7 @@ class SpecialMovesHandler {
             console.log(`\n🏰 FINALISATION ROQUE ${move.type}:`);
             console.log(`  Joueur: ${selectedPiece.piece.color}`);
             console.log(`  Position finale roi: [${move.row},${move.col}]`);
+            console.log(`  Notation: ${move.type.includes('kingside') ? '0-0' : '0-0-0'}`);
         }
         
         this.game.gameState.recordMove(
@@ -173,6 +250,10 @@ class SpecialMovesHandler {
         this.game.gameState.switchPlayer();
         this.game.clearSelection();
         this.game.updateUI();
+        
+        if (this.constructor.consoleLog) {
+            console.log(`  🔄 Joueur changé: ${this.game.gameState.currentPlayer}`);
+        }
     }
 
     transferPieceElement(pieceElement, fromSquare, toSquare, piece) {
@@ -181,14 +262,14 @@ class SpecialMovesHandler {
         toSquare.piece = piece;
         fromSquare.piece = null;
         
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`  🔄 Pièce transférée de ${fromSquare.element.className} vers ${toSquare.element.className}`);
         }
     }
 
     finalizeNormalMove(toRow, toCol, move, selectedPiece) {
         if (this.constructor.consoleLog) {
-            console.log(`✅ Finalisation mouvement normal`);
+            console.log(`\n✅ Finalisation mouvement normal`);
         }
         
         if (move) {
@@ -279,27 +360,82 @@ class SpecialMovesHandler {
     logSpecialMoveStats() {
         if (!this.constructor.consoleLog) return;
         
-        console.log(`\n📊 STATISTIQUES MOUVEMENTS SPÉCIAUX:`);
+        console.log(`\n📊 STATISTIQUES MOUVEMENTS SPÉCIAUX (cette session):`);
         
+        const totalCastles = this.stats.castles.kingside + this.stats.castles.queenside;
+        
+        console.log(`  🏰 Roques: ${totalCastles}`);
+        console.log(`    - Petit roque (0-0): ${this.stats.castles.kingside}`);
+        console.log(`    - Grand roque (0-0-0): ${this.stats.castles.queenside}`);
+        console.log(`  🎯 Prises en passant: ${this.stats.enPassant}`);
+        console.log(`  👑 Promotions: ${this.stats.promotions}`);
+        
+        const totalSpecial = totalCastles + this.stats.enPassant + this.stats.promotions;
+        console.log(`  📈 Total mouvements spéciaux: ${totalSpecial}`);
+        
+        // Statistiques de la partie
         const moveHistory = this.game.gameState?.moveHistory || [];
-        let castleCount = 0;
-        let enPassantCount = 0;
-        let promotionCount = 0;
-        
-        moveHistory.forEach(move => {
-            if (move.type?.includes('castle')) castleCount++;
-            if (move.type === 'en-passant') enPassantCount++;
-            if (move.promotion) promotionCount++;
-        });
-        
-        console.log(`  - Roques: ${castleCount}`);
-        console.log(`  - Prises en passant: ${enPassantCount}`);
-        console.log(`  - Promotions: ${promotionCount}`);
-        console.log(`  - Total mouvements: ${moveHistory.length}`);
-        
         if (moveHistory.length > 0) {
-            const specialPercentage = ((castleCount + enPassantCount + promotionCount) / moveHistory.length * 100).toFixed(1);
-            console.log(`  - Pourcentage mouvements spéciaux: ${specialPercentage}%`);
+            console.log(`\n📊 STATISTIQUES PARTIE ACTUELLE:`);
+            
+            let gameCastleCount = 0;
+            let gameEnPassantCount = 0;
+            let gamePromotionCount = 0;
+            
+            moveHistory.forEach(move => {
+                if (move.type?.includes('castle')) gameCastleCount++;
+                if (move.type === 'en-passant') gameEnPassantCount++;
+                if (move.promotion) gamePromotionCount++;
+            });
+            
+            console.log(`  - Roques: ${gameCastleCount}`);
+            console.log(`  - Prises en passant: ${gameEnPassantCount}`);
+            console.log(`  - Promotions: ${gamePromotionCount}`);
+            console.log(`  - Total mouvements: ${moveHistory.length}`);
+            
+            if (moveHistory.length > 0) {
+                const specialPercentage = ((gameCastleCount + gameEnPassantCount + gamePromotionCount) / moveHistory.length * 100).toFixed(1);
+                console.log(`  - Pourcentage mouvements spéciaux: ${specialPercentage}%`);
+            }
+        }
+    }
+
+    // NOUVELLE MÉTHODE : Incrémenter les statistiques de promotion
+    incrementPromotionCount() {
+        this.stats.promotions++;
+        
+        if (this.constructor.consoleLog) {
+            console.log(`📈 Promotion comptabilisée: ${this.stats.promotions} promotion(s) cette session`);
+        }
+    }
+
+    // NOUVELLE MÉTHODE : Obtenir un résumé des statistiques
+    getStatsSummary() {
+        const totalCastles = this.stats.castles.kingside + this.stats.castles.queenside;
+        const totalSpecial = totalCastles + this.stats.enPassant + this.stats.promotions;
+        
+        return {
+            castles: { ...this.stats.castles, total: totalCastles },
+            enPassant: this.stats.enPassant,
+            promotions: this.stats.promotions,
+            totalSpecial: totalSpecial
+        };
+    }
+
+    // NOUVELLE MÉTHODE : Réinitialiser les statistiques
+    resetStats() {
+        if (this.constructor.consoleLog) {
+            console.log(`🔄 Réinitialisation statistiques mouvements spéciaux`);
+        }
+        
+        this.stats = {
+            castles: { kingside: 0, queenside: 0 },
+            enPassant: 0,
+            promotions: 0
+        };
+        
+        if (this.constructor.consoleLog) {
+            console.log(`✅ Statistiques réinitialisées`);
         }
     }
 }
@@ -308,3 +444,5 @@ class SpecialMovesHandler {
 SpecialMovesHandler.init();
 
 window.SpecialMovesHandler = SpecialMovesHandler;
+
+} // Fin du if de protection

@@ -1,12 +1,28 @@
-// ui/chess-game-ui-timer.js - Version utilisant la configuration JSON comme priorité
+// ui/chess-game-ui-timer.js - Version complète avec même structure que PawnMoveValidator
+if (typeof ChessTimerManager !== 'undefined') {
+    console.warn('⚠️ ChessTimerManager existe déjà. Vérifiez les doublons dans les imports.');
+} else {
+
 class ChessTimerManager {
     
     // Valeur par défaut - sera écrasée par la config JSON si disponible
     static consoleLog = true; // true par défaut pour debug
     
     static init() {
-        // Charger la configuration depuis window.appConfig
+        // ALERT DE DEBUG - Voir si la config est chargée
+        alert(`DEBUG ChessTimerManager.init():\n` +
+              `- window.appConfig existe: ${!!window.appConfig}\n` +
+              `- window.appConfig?.debug?.console_log: ${window.appConfig?.debug?.console_log}\n` +
+              `- window.appConfig?.chess_engine?.console_log: ${window.appConfig?.chess_engine?.console_log}`);
+        
+        // Charger la configuration
         this.loadConfig();
+        
+        // ALERT après loadConfig pour voir le résultat
+        alert(`DEBUG après loadConfig():\n` +
+              `- this.consoleLog: ${this.consoleLog}\n` +
+              `- Source config: ${this.getConfigSource()}\n` +
+              `- Mode debug: ${this.consoleLog ? 'ACTIVÉ' : 'DÉSACTIVÉ'}`);
         
         // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
@@ -18,56 +34,45 @@ class ChessTimerManager {
         }
     }
     
-    // Méthode pour charger la configuration
+    // Méthode pour charger la configuration - MÊME PATTERN QUE PAWNMOVEVALIDATOR
     static loadConfig() {
         try {
-            // Vérifier si la configuration globale existe
-            if (window.appConfig && window.appConfig.debug) {
-                const configValue = window.appConfig.debug.console_log;
-                
-                // CONVERSION CORRECTE - Gérer les string "false" et "true"
-                if (configValue === "false") {
-                    this.consoleLog = false;
-                    if (configValue !== "false") {
-                        console.info('🔧 ChessTimerManager: console_log désactivé via config JSON');
+            if (window.appConfig && window.appConfig.chess_engine) {
+                // Configuration prioritaire: window.appConfig.chess_engine (comme PawnMoveValidator)
+                if (window.appConfig.chess_engine.console_log !== undefined) {
+                    this.consoleLog = window.appConfig.chess_engine.console_log;
+                    if (this.consoleLog) {
+                        console.log('⏱️ Configuration chargée depuis window.appConfig.chess_engine');
                     }
-                } else if (configValue === false) {
-                    this.consoleLog = false;
-                } else if (configValue === "true") {
-                    this.consoleLog = true;
-                } else if (configValue === true) {
-                    this.consoleLog = true;
-                } else {
-                    // Pour toute autre valeur, utiliser Boolean()
-                    this.consoleLog = Boolean(configValue);
                 }
-                
-                // Log de confirmation (uniquement en mode debug)
+            } else if (window.appConfig && window.appConfig.debug) {
+                // Configuration alternative: window.appConfig.debug (votre structure actuelle)
+                if (window.appConfig.debug.console_log !== undefined) {
+                    this.consoleLog = window.appConfig.debug.console_log;
+                    if (this.consoleLog) {
+                        console.log('⏱️ Configuration chargée depuis window.appConfig.debug');
+                    }
+                }
+            } else if (window.chessConfig) {
+                // Configuration secondaire: window.chessConfig (pour compatibilité)
+                if (window.chessConfig.debug !== undefined) {
+                    this.consoleLog = window.chessConfig.debug;
+                    if (this.consoleLog) {
+                        console.log('⏱️ Configuration chargée depuis window.chessConfig (legacy)');
+                    }
+                }
+            } else {
+                // Fallback: valeurs par défaut
                 if (this.consoleLog) {
-                    console.log(`⚙️ ChessTimerManager: Configuration chargée - console_log = ${this.consoleLog} (valeur brute: "${configValue}")`);
+                    console.log('⏱️ Configuration: valeurs par défaut utilisées');
                 }
-                return true;
             }
             
-            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
-            if (typeof window.getConfig === 'function') {
-                const configValue = window.getConfig('debug.console_log', 'true');
-                
-                if (configValue === "false") {
-                    this.consoleLog = false;
-                } else if (configValue === false) {
-                    this.consoleLog = false;
-                } else {
-                    this.consoleLog = Boolean(configValue);
-                }
-                return true;
-            }
-            
-            // Si rien n'est disponible, garder la valeur par défaut
+            // Log de confirmation (uniquement en mode debug)
             if (this.consoleLog) {
-                console.warn('⚠️ ChessTimerManager: Aucune configuration trouvée, utilisation de la valeur par défaut (true)');
+                console.log(`🔧 ChessTimerManager: console_log = ${this.consoleLog}`);
             }
-            return false;
+            return true;
             
         } catch (error) {
             console.error('❌ ChessTimerManager: Erreur lors du chargement de la config:', error);
@@ -77,10 +82,12 @@ class ChessTimerManager {
     
     // Méthode pour déterminer la source de la configuration
     static getConfigSource() {
-        if (window.appConfig) {
-            return 'JSON config';
-        } else if (typeof window.getConfig === 'function') {
-            return 'fonction getConfig';
+        if (window.appConfig && window.appConfig.chess_engine) {
+            return 'window.appConfig.chess_engine';
+        } else if (window.appConfig && window.appConfig.debug) {
+            return 'window.appConfig.debug';
+        } else if (window.chessConfig) {
+            return 'window.chessConfig (legacy)';
         } else {
             return 'valeur par défaut';
         }
@@ -93,7 +100,7 @@ class ChessTimerManager {
 
     constructor(ui) {
         // Vérifier que la configuration est à jour
-        this.constructor.loadConfig();
+        ChessTimerManager.loadConfig();
         
         this.ui = ui;
         this.whiteTime = 0;
@@ -102,7 +109,7 @@ class ChessTimerManager {
         this.timerInterval = null;
         this.isTimerRunning = false;
         
-        if (this.constructor.consoleLog) {
+        if (ChessTimerManager.consoleLog) {
             console.log('⏱️ ChessTimerManager initialisé');
             console.log(`  - UI: ${ui ? '✓' : '✗'}`);
             console.log(`  - Timers: Blanc=${this.whiteTime}s, Noir=${this.blackTime}s`);
@@ -111,64 +118,43 @@ class ChessTimerManager {
     }
 
     startTimer() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            if (this.timerInterval) {
-                this.stopTimer();
-            }
-            
-            if (!this.ui.game.gameState.gameActive) {
-                return;
-            }
-            
-            this.gameStartTime = Date.now();
-            this.isTimerRunning = true;
-            
-            this.timerInterval = setInterval(() => {
-                if (!this.ui.game.gameState.gameActive) {
-                    this.stopTimer();
-                    return;
-                }
-                
-                const currentPlayer = this.ui.game.gameState.currentPlayer;
-                
-                if (currentPlayer === 'white') {
-                    this.whiteTime++;
-                } else {
-                    this.blackTime++;
-                }
-                
-                this.updateTimerDisplay();
-            }, 1000);
-            return;
+        const isDebug = ChessTimerManager.consoleLog;
+        
+        if (isDebug) {
+            console.log('\n⏱️ Démarrage du timer');
+            console.log(`  - Timer actuellement: ${this.timerInterval ? 'en cours' : 'arrêté'}`);
+            console.log(`  - Jeu actif: ${this.ui.game.gameState.gameActive ? '✓' : '✗'}`);
+            console.log(`  - Joueur courant: ${this.ui.game.gameState.currentPlayer}`);
         }
         
-        // Mode debug
-        console.log('\n⏱️ Démarrage du timer');
-        console.log(`  - Timer actuellement: ${this.timerInterval ? 'en cours' : 'arrêté'}`);
-        console.log(`  - Jeu actif: ${this.ui.game.gameState.gameActive ? '✓' : '✗'}`);
-        console.log(`  - Joueur courant: ${this.ui.game.gameState.currentPlayer}`);
-        
         if (this.timerInterval) {
-            console.log('  ⚠️ Timer déjà en cours, arrêt préalable...');
+            if (isDebug) {
+                console.log('  ⚠️ Timer déjà en cours, arrêt préalable...');
+            }
             this.stopTimer();
         }
         
         if (!this.ui.game.gameState.gameActive) {
-            console.log('  ❌ Timer non démarré - jeu non actif');
-            console.log(`  - Statut jeu: ${this.ui.game.gameState.gameStatus || 'indéfini'}`);
+            if (isDebug) {
+                console.log('  ❌ Timer non démarré - jeu non actif');
+                console.log(`  - Statut jeu: ${this.ui.game.gameState.gameStatus || 'indéfini'}`);
+            }
             return;
         }
         
         this.gameStartTime = Date.now();
         this.isTimerRunning = true;
         
-        console.log(`  - Heure de début: ${new Date(this.gameStartTime).toLocaleTimeString()}`);
-        console.log(`  - Timer démarré pour: ${this.ui.game.gameState.currentPlayer}`);
+        if (isDebug) {
+            console.log(`  - Heure de début: ${new Date(this.gameStartTime).toLocaleTimeString()}`);
+            console.log(`  - Timer démarré pour: ${this.ui.game.gameState.currentPlayer}`);
+        }
         
         this.timerInterval = setInterval(() => {
             if (!this.ui.game.gameState.gameActive) {
-                console.log('    ⚠️ Jeu non actif, arrêt du timer...');
+                if (isDebug) {
+                    console.log('    ⚠️ Jeu non actif, arrêt du timer...');
+                }
                 this.stopTimer();
                 return;
             }
@@ -177,72 +163,74 @@ class ChessTimerManager {
             
             if (currentPlayer === 'white') {
                 this.whiteTime++;
-                console.log(`    ⏱️ +1s Blanc: ${this.whiteTime}s total`);
+                if (isDebug) {
+                    console.log(`    ⏱️ +1s Blanc: ${this.whiteTime}s total`);
+                }
             } else {
                 this.blackTime++;
-                console.log(`    ⏱️ +1s Noir: ${this.blackTime}s total`);
+                if (isDebug) {
+                    console.log(`    ⏱️ +1s Noir: ${this.blackTime}s total`);
+                }
             }
             
             this.updateTimerDisplay();
         }, 1000);
         
-        console.log('  ✅ Timer démarré avec succès');
-        console.log(`  - Interval ID: ${this.timerInterval ? 'défini' : 'non défini'}`);
-        console.log(`  - Fréquence: 1000ms (1 seconde)`);
+        if (isDebug) {
+            console.log('  ✅ Timer démarré avec succès');
+            console.log(`  - Interval ID: ${this.timerInterval ? 'défini' : 'non défini'}`);
+            console.log(`  - Fréquence: 1000ms (1 seconde)`);
+        }
     }
 
     stopTimer() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            if (this.timerInterval) {
-                clearInterval(this.timerInterval);
-                this.timerInterval = null;
-            }
+        const isDebug = ChessTimerManager.consoleLog;
+        
+        if (isDebug) {
+            console.log('\n⏱️ Arrêt du timer');
+            console.log(`  - Timer en cours: ${this.timerInterval ? '✓' : '✗'}`);
+            console.log(`  - Timer actif: ${this.isTimerRunning ? '✓' : '✗'}`);
             
-            this.isTimerRunning = false;
-            return;
-        }
-        
-        // Mode debug
-        console.log('\n⏱️ Arrêt du timer');
-        console.log(`  - Timer en cours: ${this.timerInterval ? '✓' : '✗'}`);
-        console.log(`  - Timer actif: ${this.isTimerRunning ? '✓' : '✗'}`);
-        
-        if (this.timerInterval) {
-            const elapsed = Date.now() - (this.gameStartTime || Date.now());
-            console.log(`  - Durée écoulée: ${Math.floor(elapsed / 1000)} secondes`);
-            console.log(`  - Temps final: Blanc=${this.whiteTime}s, Noir=${this.blackTime}s`);
+            if (this.timerInterval) {
+                const elapsed = Date.now() - (this.gameStartTime || Date.now());
+                console.log(`  - Durée écoulée: ${Math.floor(elapsed / 1000)} secondes`);
+                console.log(`  - Temps final: Blanc=${this.whiteTime}s, Noir=${this.blackTime}s`);
+            }
         }
         
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
-            console.log('  ✅ Intervalle effacé');
+            if (isDebug) {
+                console.log('  ✅ Intervalle effacé');
+            }
         }
         
         this.isTimerRunning = false;
-        console.log('  ✅ Timer arrêté');
+        
+        if (isDebug) {
+            console.log('  ✅ Timer arrêté');
+        }
     }
 
     resumeTimer() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            if (this.ui.game.gameState.gameActive && !this.isTimerRunning) {
-                this.startTimer();
-            }
-            return;
+        const isDebug = ChessTimerManager.consoleLog;
+        
+        if (isDebug) {
+            console.log('\n⏱️ Reprise du timer');
+            console.log(`  - Jeu actif: ${this.ui.game.gameState.gameActive ? '✓' : '✗'}`);
+            console.log(`  - Timer en cours: ${this.isTimerRunning ? '✓' : '✗'}`);
         }
         
-        // Mode debug
-        console.log('\n⏱️ Reprise du timer');
-        console.log(`  - Jeu actif: ${this.ui.game.gameState.gameActive ? '✓' : '✗'}`);
-        console.log(`  - Timer en cours: ${this.isTimerRunning ? '✓' : '✗'}`);
-        
         if (this.ui.game.gameState.gameActive && !this.isTimerRunning) {
-            console.log('  ✅ Conditions remplies, redémarrage...');
+            if (isDebug) {
+                console.log('  ✅ Conditions remplies, redémarrage...');
+            }
             this.startTimer();
-            console.log('  ✅ Timer repris');
-        } else {
+            if (isDebug) {
+                console.log('  ✅ Timer repris');
+            }
+        } else if (isDebug) {
             console.log('  ⚠️ Timer non repris: conditions non remplies');
             if (!this.ui.game.gameState.gameActive) {
                 console.log('    - Jeu non actif');
@@ -254,20 +242,13 @@ class ChessTimerManager {
     }
 
     resetTimers() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            this.stopTimer();
-            this.whiteTime = 0;
-            this.blackTime = 0;
-            this.gameStartTime = null;
-            this.updateTimerDisplay();
-            return;
-        }
+        const isDebug = ChessTimerManager.consoleLog;
         
-        // Mode debug
-        console.log('\n⏱️ Réinitialisation des timers');
-        console.log(`  - Avant: Blanc=${this.whiteTime}s, Noir=${this.blackTime}s`);
-        console.log(`  - Timer en cours: ${this.timerInterval ? '✓' : '✗'}`);
+        if (isDebug) {
+            console.log('\n⏱️ Réinitialisation des timers');
+            console.log(`  - Avant: Blanc=${this.whiteTime}s, Noir=${this.blackTime}s`);
+            console.log(`  - Timer en cours: ${this.timerInterval ? '✓' : '✗'}`);
+        }
         
         this.stopTimer();
         
@@ -278,57 +259,33 @@ class ChessTimerManager {
         this.blackTime = 0;
         this.gameStartTime = null;
         
-        console.log(`  - Après: Blanc=${this.whiteTime}s, Noir=${this.blackTime}s`);
-        console.log(`  - Temps effacé: Blanc ${previousWhite}s, Noir ${previousBlack}s`);
+        if (isDebug) {
+            console.log(`  - Après: Blanc=${this.whiteTime}s, Noir=${this.blackTime}s`);
+            console.log(`  - Temps effacé: Blanc ${previousWhite}s, Noir ${previousBlack}s`);
+        }
         
         this.updateTimerDisplay();
         
-        console.log('  ✅ Timers réinitialisés');
-        console.log('  ✅ Affichage mis à jour');
+        if (isDebug) {
+            console.log('  ✅ Timers réinitialisés');
+            console.log('  ✅ Affichage mis à jour');
+        }
     }
 
     updateTimerDisplay() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            const whiteTimerElement = document.getElementById('whiteTime');
-            const blackTimerElement = document.getElementById('blackTime');
-            
-            if (whiteTimerElement) {
-                const whiteFormatted = this.formatTime(this.whiteTime);
-                whiteTimerElement.textContent = whiteFormatted;
-                
-                if (this.ui.game.gameState.currentPlayer === 'white') {
-                    whiteTimerElement.style.fontWeight = 'bold';
-                    whiteTimerElement.style.color = '#28a745';
-                } else {
-                    whiteTimerElement.style.fontWeight = 'normal';
-                    whiteTimerElement.style.color = '';
-                }
-            }
-            
-            if (blackTimerElement) {
-                const blackFormatted = this.formatTime(this.blackTime);
-                blackTimerElement.textContent = blackFormatted;
-                
-                if (this.ui.game.gameState.currentPlayer === 'black') {
-                    blackTimerElement.style.fontWeight = 'bold';
-                    blackTimerElement.style.color = '#28a745';
-                } else {
-                    blackTimerElement.style.fontWeight = 'normal';
-                    blackTimerElement.style.color = '';
-                }
-            }
-            return;
-        }
+        const isDebug = ChessTimerManager.consoleLog;
         
-        // Mode debug
-        console.log('\n    ⏱️ Mise à jour de l\'affichage des timers');
+        if (isDebug) {
+            console.log('\n    ⏱️ Mise à jour de l\'affichage des timers');
+        }
         
         const whiteTimerElement = document.getElementById('whiteTime');
         const blackTimerElement = document.getElementById('blackTime');
         
-        console.log(`    - Élément Blanc: ${whiteTimerElement ? '✓' : '✗'}`);
-        console.log(`    - Élément Noir: ${blackTimerElement ? '✓' : '✗'}`);
+        if (isDebug) {
+            console.log(`    - Élément Blanc: ${whiteTimerElement ? '✓' : '✗'}`);
+            console.log(`    - Élément Noir: ${blackTimerElement ? '✓' : '✗'}`);
+        }
         
         if (whiteTimerElement) {
             const whiteFormatted = this.formatTime(this.whiteTime);
@@ -337,13 +294,17 @@ class ChessTimerManager {
             if (this.ui.game.gameState.currentPlayer === 'white') {
                 whiteTimerElement.style.fontWeight = 'bold';
                 whiteTimerElement.style.color = '#28a745';
-                console.log(`    - Blanc [${whiteFormatted}]: actif (gras, vert)`);
+                if (isDebug) {
+                    console.log(`    - Blanc [${whiteFormatted}]: actif (gras, vert)`);
+                }
             } else {
                 whiteTimerElement.style.fontWeight = 'normal';
                 whiteTimerElement.style.color = '';
-                console.log(`    - Blanc [${whiteFormatted}]: inactif`);
+                if (isDebug) {
+                    console.log(`    - Blanc [${whiteFormatted}]: inactif`);
+                }
             }
-        } else {
+        } else if (isDebug) {
             console.log(`    ⚠️ Élément whiteTime non trouvé`);
         }
         
@@ -354,34 +315,32 @@ class ChessTimerManager {
             if (this.ui.game.gameState.currentPlayer === 'black') {
                 blackTimerElement.style.fontWeight = 'bold';
                 blackTimerElement.style.color = '#28a745';
-                console.log(`    - Noir [${blackFormatted}]: actif (gras, vert)`);
+                if (isDebug) {
+                    console.log(`    - Noir [${blackFormatted}]: actif (gras, vert)`);
+                }
             } else {
                 blackTimerElement.style.fontWeight = 'normal';
                 blackTimerElement.style.color = '';
-                console.log(`    - Noir [${blackFormatted}]: inactif`);
+                if (isDebug) {
+                    console.log(`    - Noir [${blackFormatted}]: inactif`);
+                }
             }
-        } else {
+        } else if (isDebug) {
             console.log(`    ⚠️ Élément blackTime non trouvé`);
         }
     }
 
     formatTime(seconds) {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            if (seconds < 0) {
-                seconds = 0;
-            }
-            
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        const isDebug = ChessTimerManager.consoleLog;
+        
+        if (isDebug) {
+            console.log(`      Formatage: ${seconds} secondes`);
         }
         
-        // Mode debug
-        console.log(`      Formatage: ${seconds} secondes`);
-        
         if (seconds < 0) {
-            console.warn(`      ⚠️ Temps négatif: ${seconds}s`);
+            if (isDebug) {
+                console.warn(`      ⚠️ Temps négatif: ${seconds}s`);
+            }
             seconds = 0;
         }
         
@@ -389,13 +348,16 @@ class ChessTimerManager {
         const secs = seconds % 60;
         const formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         
-        console.log(`      Résultat: ${formatted} (${mins}m ${secs}s)`);
+        if (isDebug) {
+            console.log(`      Résultat: ${formatted} (${mins}m ${secs}s)`);
+        }
         
         return formatted;
     }
 
     // Méthode utilitaire pour obtenir les statistiques des timers
     getTimerStats() {
+        const isDebug = ChessTimerManager.consoleLog;
         const stats = {
             whiteTime: this.whiteTime,
             blackTime: this.blackTime,
@@ -406,7 +368,7 @@ class ChessTimerManager {
             elapsedSinceStart: this.gameStartTime ? Date.now() - this.gameStartTime : 0
         };
         
-        if (this.constructor.consoleLog) {
+        if (isDebug) {
             console.log('\n⏱️ Statistiques des timers:');
             console.log(`  - Blanc: ${this.formatTime(stats.whiteTime)} (${stats.whiteTime}s)`);
             console.log(`  - Noir: ${this.formatTime(stats.blackTime)} (${stats.blackTime}s)`);
@@ -432,8 +394,8 @@ class ChessTimerManager {
     
     // NOUVELLE MÉTHODE : Vérifier si le timer fonctionne correctement
     checkTimerHealth() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
+        if (!ChessTimerManager.consoleLog) {
+            // Mode silencieux
             const health = {
                 timerRunning: this.isTimerRunning,
                 intervalSet: !!this.timerInterval,
@@ -486,8 +448,8 @@ class ChessTimerManager {
     
     // NOUVELLE MÉTHODE : Réparer le timer s'il est cassé
     repairTimer() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
+        if (!ChessTimerManager.consoleLog) {
+            // Mode silencieux
             // Vérifier l'état actuel
             const health = this.checkTimerHealth();
             
@@ -570,7 +532,13 @@ window.ChessTimerManager = ChessTimerManager;
 // Ajouter des fonctions utilitaires globales
 window.TimerManagerUtils = {
     // Forcer le rechargement de la config
-    reloadConfig: () => ChessTimerManager.reloadConfig(),
+    reloadConfig: () => {
+        ChessTimerManager.loadConfig();
+        if (ChessTimerManager.consoleLog) {
+            console.log('🔄 Configuration rechargée manuellement');
+        }
+        return ChessTimerManager.consoleLog;
+    },
     
     // Obtenir l'état actuel
     getState: () => ({
@@ -584,27 +552,36 @@ window.TimerManagerUtils = {
     setConsoleLog: (value) => {
         const oldValue = ChessTimerManager.consoleLog;
         ChessTimerManager.consoleLog = Boolean(value);
-        console.log(`🔧 ChessTimerManager: consoleLog changé manuellement: ${oldValue} → ${ChessTimerManager.consoleLog}`);
+        if (ChessTimerManager.consoleLog) {
+            console.log(`🔧 consoleLog changé manuellement: ${oldValue} → ${ChessTimerManager.consoleLog}`);
+        }
         return ChessTimerManager.consoleLog;
     },
     
     // Tester la création d'un TimerManager
     testTimerManager: (ui) => {
-        console.group('🧪 Test ChessTimerManager');
+        if (ChessTimerManager.consoleLog) {
+            console.group('🧪 Test ChessTimerManager');
+        }
         const timerManager = new ChessTimerManager(ui);
-        console.log('TimerManager créé:', timerManager);
-        console.log('Statistiques:', timerManager.getTimerStats());
-        console.log('Santé:', timerManager.checkTimerHealth());
-        console.log('Statut config:', ChessTimerManager.getConfigStatus());
-        console.groupEnd();
+        if (ChessTimerManager.consoleLog) {
+            console.log('TimerManager créé:', timerManager);
+            console.log('Statistiques:', timerManager.getTimerStats());
+            console.log('Santé:', timerManager.checkTimerHealth());
+            console.groupEnd();
+        }
         return timerManager;
     },
     
     // Tester le fonctionnement du timer
     testTimerFunctions: (timerManager) => {
         if (!timerManager) {
-            console.log('❌ TimerManager non fourni');
+            console.error('❌ TimerManager non fourni');
             return null;
+        }
+        
+        if (!ChessTimerManager.consoleLog) {
+            return { tests: {}, passed: false };
         }
         
         console.group('🧪 Test des fonctions du timer');
@@ -647,7 +624,6 @@ window.TimerManagerUtils = {
             console.log(`Timer démarré: ${tests.startTimer ? '✅' : '❌'}`);
             
             // Tester resetTimer
-            const beforeReset = { ...timerManager.getTimerStats() };
             timerManager.resetTimers();
             const afterReset = timerManager.getTimerStats();
             tests.resetTimer = afterReset.whiteTime === 0 && afterReset.blackTime === 0;
@@ -664,7 +640,6 @@ window.TimerManagerUtils = {
         const totalTests = Object.keys(tests).length;
         
         console.log(`\n📊 Résultat: ${passedTests}/${totalTests} tests réussis`);
-        console.log('Détails des tests:', tests);
         console.groupEnd();
         
         return { tests, passed: passedTests === totalTests };
@@ -715,3 +690,5 @@ if (ChessTimerManager.consoleLog) {
 } else {
     console.info('✅ ChessTimerManager prêt (mode silencieux)');
 }
+
+} // Fin du if de protection

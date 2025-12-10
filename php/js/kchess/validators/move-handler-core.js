@@ -1,11 +1,68 @@
-// validators/move-handler-core.js - Cœur de la gestion des mouvements
+// validators/move-handler-core.js - Version utilisant la configuration JSON comme priorité
+if (typeof ChessGameMoveHandler !== 'undefined') {
+    console.warn('⚠️ ChessGameMoveHandler existe déjà. Vérifiez les doublons dans les imports.');
+} else {
+
 class ChessGameMoveHandler {
     
-    static consoleLog = true; // false pour production, true pour debug
+    // Valeur par défaut - sera écrasée par la config JSON si disponible
+    static consoleLog = true; // true par défaut pour debug
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
+        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('validators/move-handler-core.js loaded');
+            console.log('🎮 validators/move-handler-core.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            // Message silencieux si debug désactivé
+            console.info('🎮 ChessGameMoveHandler: Mode silencieux activé (debug désactivé dans config)');
+        }
+    }
+    
+    // Méthode pour charger la configuration
+    static loadConfig() {
+        try {
+            if (window.appConfig && window.appConfig.chess_engine) {
+                // Configuration prioritaire: window.appConfig
+                if (window.appConfig.chess_engine.console_log !== undefined) {
+                    this.consoleLog = window.appConfig.chess_engine.console_log;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('🎮 Configuration chargée depuis window.appConfig');
+                }
+            } else if (window.chessConfig) {
+                // Configuration secondaire: window.chessConfig (pour compatibilité)
+                if (window.chessConfig.debug !== undefined) {
+                    this.consoleLog = window.chessConfig.debug;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('🎮 Configuration chargée depuis window.chessConfig (legacy)');
+                }
+            } else {
+                // Fallback: valeurs par défaut
+                if (this.consoleLog) {
+                    console.log('🎮 Configuration: valeurs par défaut utilisées');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement de la configuration:', error);
+            // Garder les valeurs par défaut en cas d'erreur
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig && window.appConfig.chess_engine) {
+            return 'window.appConfig';
+        } else if (window.chessConfig) {
+            return 'window.chessConfig (legacy)';
+        } else {
+            return 'valeur par défaut';
         }
     }
 
@@ -16,6 +73,7 @@ class ChessGameMoveHandler {
         if (this.constructor.consoleLog) {
             console.log('🔧 ChessGameMoveHandler initialisé');
             console.log(`  - Game: ${game ? '✓' : '✗'}`);
+            console.log(`  - Configuration: console_log = ${this.constructor.consoleLog}`);
         }
         
         // Initialiser les modules
@@ -23,6 +81,14 @@ class ChessGameMoveHandler {
         this.specialMovesHandler = new SpecialMovesHandler(game);
         this.moveStateManager = new MoveStateManager(game);
         this.validatorInterface = new ValidatorInterface(game);
+        
+        if (this.constructor.consoleLog) {
+            console.log(`  - Modules chargés:`);
+            console.log(`    • MoveExecutor: ${this.moveExecutor ? '✓' : '✗'}`);
+            console.log(`    • SpecialMovesHandler: ${this.specialMovesHandler ? '✓' : '✗'}`);
+            console.log(`    • MoveStateManager: ${this.moveStateManager ? '✓' : '✗'}`);
+            console.log(`    • ValidatorInterface: ${this.validatorInterface ? '✓' : '✗'}`);
+        }
     }
 
     // ========== MÉTHODES PRINCIPALES ==========
@@ -77,7 +143,10 @@ class ChessGameMoveHandler {
                 console.log(`❌ Mouvement non valide`);
                 console.log(`  Mouvements possibles: ${possibleMoves.length}`);
                 possibleMoves.forEach(move => {
-                    console.log(`    → [${move.row},${move.col}] (${move.type})`);
+                    const typeIcon = move.type === 'capture' ? '⚔️' : 
+                                   move.type === 'castle' ? '🏰' : 
+                                   move.type === 'en-passant' ? '🎯' : '➡️';
+                    console.log(`    → [${move.row},${move.col}] ${typeIcon}`);
                 });
             }
             return false;
@@ -107,6 +176,10 @@ class ChessGameMoveHandler {
                 console.log(`⚠️ Promotion en cours`);
             }
             return false;
+        }
+        
+        if (this.constructor.consoleLog) {
+            console.log(`✓ Jeu actif et prêt`);
         }
         
         return true;
@@ -230,7 +303,10 @@ class ChessGameMoveHandler {
             console.log(`  Mouvements possibles: ${this.game.possibleMoves.length}`);
             if (this.game.possibleMoves.length > 0) {
                 this.game.possibleMoves.forEach((move, index) => {
-                    console.log(`    ${index + 1}. [${move.row},${move.col}] (${move.type})`);
+                    const typeIcon = move.type === 'capture' ? '⚔️' : 
+                                   move.type === 'castle' ? '🏰' : 
+                                   move.type === 'en-passant' ? '🎯' : '➡️';
+                    console.log(`    ${index + 1}. [${move.row},${move.col}] ${typeIcon}`);
                 });
             }
         }
@@ -239,7 +315,7 @@ class ChessGameMoveHandler {
     // ========== ACCÈS AUX MÉTHODES DES MODULES ==========
 
     clearSelection() {
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`  🧹 Nettoyage sélection`);
         }
         
@@ -247,7 +323,7 @@ class ChessGameMoveHandler {
     }
 
     highlightPossibleMoves() {
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`  💡 Mise en surbrillance des mouvements possibles`);
         }
         
@@ -255,7 +331,47 @@ class ChessGameMoveHandler {
     }
 
     updateGameStateForMove(piece, fromRow, fromCol, toRow, toCol) {
+        if (this.constructor.consoleLog) {
+            console.log(`  🔄 Mise à jour gameState pour ${piece.color} ${piece.type}`);
+        }
+        
         this.moveExecutor.updateGameStateForMove(piece, fromRow, fromCol, toRow, toCol);
+    }
+
+    // NOUVELLE MÉTHODE : Afficher le résumé du handler
+    displayHandlerSummary() {
+        if (!this.constructor.consoleLog) return;
+        
+        console.log(`\n📊 RÉSUMÉ CHESS GAME MOVE HANDLER:`);
+        console.log(`  Promotion en cours: ${this.isPromoting ? '✓ OUI' : '✗ NON'}`);
+        console.log(`  Jeu actif: ${this.game.gameState.gameActive ? '✓ OUI' : '✗ NON'}`);
+        console.log(`  Joueur actuel: ${this.game.gameState.currentPlayer}`);
+        console.log(`  Pièce sélectionnée: ${this.game.selectedPiece ? '✓ OUI' : '✗ NON'}`);
+        console.log(`  Modules chargés: ${this.moveExecutor && this.specialMovesHandler && this.moveStateManager && this.validatorInterface ? '✓ TOUS' : '❌ MANQUANTS'}`);
+        
+        if (this.game.selectedPiece) {
+            console.log(`  Pièce sélectionnée: ${this.game.selectedPiece.piece.color} ${this.game.selectedPiece.piece.type}`);
+            console.log(`  Position: [${this.game.selectedPiece.row},${this.game.selectedPiece.col}]`);
+            console.log(`  Mouvements disponibles: ${this.game.possibleMoves.length}`);
+        }
+    }
+
+    // NOUVELLE MÉTHODE : Réinitialiser le handler
+    resetHandler() {
+        if (this.constructor.consoleLog) {
+            console.log(`🔄 Réinitialisation du handler...`);
+        }
+        
+        this.isPromoting = false;
+        
+        // Réinitialiser les modules si nécessaire
+        if (this.moveStateManager) {
+            this.moveStateManager.clearSelection();
+        }
+        
+        if (this.constructor.consoleLog) {
+            console.log(`✅ Handler réinitialisé`);
+        }
     }
 }
 
@@ -263,3 +379,5 @@ class ChessGameMoveHandler {
 ChessGameMoveHandler.init();
 
 window.ChessGameMoveHandler = ChessGameMoveHandler;
+
+} // Fin du if de protection
