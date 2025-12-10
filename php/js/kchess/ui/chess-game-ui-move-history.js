@@ -1,24 +1,110 @@
 // ui/chess-game-ui-move-history.js - Gestion de l'historique des coups
 class ChessMoveHistoryManager {
     
-    static consoleLog = true; // false pour production, true pour debug
+    static consoleLog = true; // Valeur par défaut - sera écrasée par la config JSON
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
         if (this.consoleLog) {
-            console.log('ui/chess-game-ui-move-history.js loaded');
+            console.log('ui/chess-game-ui-move-history.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            console.info('🔇 ChessMoveHistoryManager: Mode silencieux activé');
         }
+    }
+    
+    // Méthode pour charger la configuration depuis window.appConfig
+    static loadConfig() {
+        try {
+            // Vérifier si la configuration globale existe
+            if (window.appConfig && window.appConfig.debug) {
+                const configValue = window.appConfig.debug.console_log;
+                
+                // CONVERSION CORRECTE - Gérer les string "false" et "true"
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else if (configValue === "true") {
+                    this.consoleLog = true;
+                } else if (configValue === true) {
+                    this.consoleLog = true;
+                } else {
+                    // Pour toute autre valeur, utiliser Boolean()
+                    this.consoleLog = Boolean(configValue);
+                }
+                
+                // Log de confirmation (uniquement en mode debug)
+                if (this.consoleLog) {
+                    console.log(`⚙️ ChessMoveHistoryManager: Configuration chargée - console_log = ${this.consoleLog}`);
+                }
+                return true;
+            }
+            
+            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
+            if (typeof window.getConfig === 'function') {
+                const configValue = window.getConfig('debug.console_log', 'true');
+                
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
+                return true;
+            }
+            
+            // Si rien n'est disponible, garder la valeur par défaut
+            if (this.consoleLog) {
+                console.warn('⚠️ ChessMoveHistoryManager: Aucune configuration trouvée, utilisation de la valeur par défaut (true)');
+            }
+            return false;
+            
+        } catch (error) {
+            console.error('❌ ChessMoveHistoryManager: Erreur lors du chargement de la config:', error);
+            return false;
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig) {
+            return 'JSON config';
+        } else if (typeof window.getConfig === 'function') {
+            return 'fonction getConfig';
+        } else {
+            return 'valeur par défaut';
+        }
+    }
+    
+    // Méthode pour vérifier si on est en mode debug
+    static isDebugMode() {
+        return this.consoleLog;
     }
 
     constructor(ui) {
         this.ui = ui;
         
+        // Vérifier que la configuration est à jour
+        this.constructor.loadConfig();
+        
         if (this.constructor.consoleLog) {
             console.log('📋 ChessMoveHistoryManager initialisé');
             console.log(`  - UI: ${ui ? '✓' : '✗'}`);
+        } else {
+            console.info('📋 ChessMoveHistoryManager initialisé');
         }
     }
 
     updateMoveHistory() {
+        // Vérifier la configuration avant l'action
+        if (!this.constructor.consoleLog && window.appConfig) {
+            this.constructor.loadConfig();
+        }
+        
         if (this.constructor.consoleLog) {
             console.log('\n📋 Mise à jour de l\'historique des coups');
         }
@@ -113,6 +199,11 @@ class ChessMoveHistoryManager {
     }
 
     selectMoveRow(rowElement, startIndex, moveNumber) {
+        // Vérifier la configuration avant l'action
+        if (!this.constructor.consoleLog && window.appConfig) {
+            this.constructor.loadConfig();
+        }
+        
         if (this.constructor.consoleLog) {
             console.log(`\n📋 Sélection de la ligne de mouvement ${moveNumber}`);
         }
@@ -153,7 +244,7 @@ class ChessMoveHistoryManager {
         }
         
         if (move.notation) {
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`    Notation prédéfinie: ${move.notation}`);
             }
             return move.notation;
@@ -163,7 +254,7 @@ class ChessMoveHistoryManager {
         const fromSquare = this.coordinatesToAlgebraic(move.from.row, move.from.col);
         const toSquare = this.coordinatesToAlgebraic(move.to.row, move.to.col);
         
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`    Création notation: ${move.piece} de ${fromSquare} à ${toSquare}`);
         }
         
@@ -174,7 +265,7 @@ class ChessMoveHistoryManager {
                 `${fromSquare.charAt(0)}x${toSquare}` : 
                 toSquare;
                 
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`    Pion: ${notation} ${move.captured ? '(capture)' : ''}`);
             }
         } else {
@@ -182,7 +273,7 @@ class ChessMoveHistoryManager {
                 `${pieceSymbol}x${toSquare}` : 
                 `${pieceSymbol}${toSquare}`;
                 
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`    ${move.piece}: ${notation} ${move.captured ? '(capture)' : ''}`);
             }
         }
@@ -190,12 +281,12 @@ class ChessMoveHistoryManager {
         if (move.piece.toLowerCase() === 'king') {
             if (move.to.col - move.from.col === 2) {
                 notation = 'O-O';
-                if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                if (this.constructor.consoleLog) {
                     console.log(`    Roi: Petit roque`);
                 }
             } else if (move.to.col - move.from.col === -2) {
                 notation = 'O-O-O';
-                if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                if (this.constructor.consoleLog) {
                     console.log(`    Roi: Grand roque`);
                 }
             }
@@ -240,9 +331,53 @@ class ChessMoveHistoryManager {
         
         return symbol;
     }
+    
+    // Méthode pour forcer la mise à jour de la configuration
+    static reloadConfig() {
+        const oldValue = this.consoleLog;
+        this.loadConfig();
+        
+        if (this.consoleLog && oldValue !== this.consoleLog) {
+            console.log(`🔄 ChessMoveHistoryManager: Configuration rechargée: ${oldValue} → ${this.consoleLog}`);
+        }
+        return this.consoleLog;
+    }
 }
 
 // Initialisation statique
 ChessMoveHistoryManager.init();
+
+// Exposer des fonctions utilitaires globales
+window.ChessMoveHistoryManagerUtils = {
+    // Forcer le rechargement de la config
+    reloadConfig: () => ChessMoveHistoryManager.reloadConfig(),
+    
+    // Obtenir l'état de la configuration
+    getConfigState: () => ({
+        consoleLog: ChessMoveHistoryManager.consoleLog,
+        source: ChessMoveHistoryManager.getConfigSource(),
+        debugMode: ChessMoveHistoryManager.isDebugMode(),
+        configValue: window.appConfig?.debug?.console_log
+    }),
+    
+    // Tester la configuration
+    testConfig: () => {
+        console.group('🧪 Test de configuration ChessMoveHistoryManager');
+        console.log('consoleLog actuel:', ChessMoveHistoryManager.consoleLog);
+        console.log('Source config:', ChessMoveHistoryManager.getConfigSource());
+        console.log('window.appConfig disponible:', !!window.appConfig);
+        
+        if (window.appConfig) {
+            console.log('Valeur debug.console_log dans appConfig:', 
+                window.appConfig.debug?.console_log, 
+                '(type:', typeof window.appConfig.debug?.console_log + ')');
+        }
+        
+        console.log('Mode debug activé:', ChessMoveHistoryManager.isDebugMode());
+        console.groupEnd();
+        
+        return ChessMoveHistoryManager.consoleLog;
+    }
+};
 
 window.ChessMoveHistoryManager = ChessMoveHistoryManager;

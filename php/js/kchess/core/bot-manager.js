@@ -1,12 +1,91 @@
-// core/bot-manager.js - Version corrigée
+// core/bot-manager.js - Version utilisant la configuration JSON
 class BotManager {
     
-    static consoleLog = true; // false pour production, true pour debug
+    static consoleLog = true; // Valeur par défaut - sera écrasée par la config
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
         if (this.consoleLog) {
-            console.log('core/bot-manager.js loaded');
+            console.log('core/bot-manager.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            console.info('🔇 BotManager: Mode silencieux activé');
         }
+    }
+    
+    // Méthode pour charger la configuration depuis window.appConfig
+    static loadConfig() {
+        try {
+            // Vérifier si la configuration globale existe
+            if (window.appConfig && window.appConfig.debug) {
+                const configValue = window.appConfig.debug.console_log;
+                
+                // CONVERSION CORRECTE - Gérer les string "false" et "true"
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                    if (configValue !== "false") { // Log seulement si ce n'est pas déjà false
+                        console.info('🔧 BotManager: console_log désactivé via config JSON ("false")');
+                    }
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else if (configValue === "true") {
+                    this.consoleLog = true;
+                } else if (configValue === true) {
+                    this.consoleLog = true;
+                } else {
+                    // Pour toute autre valeur, utiliser Boolean()
+                    this.consoleLog = Boolean(configValue);
+                }
+                
+                // Log de confirmation (uniquement en mode debug)
+                if (this.consoleLog) {
+                    console.log(`⚙️ BotManager: Configuration chargée - console_log = ${this.consoleLog} (valeur brute: "${configValue}")`);
+                }
+                return true;
+            }
+            
+            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
+            if (typeof window.getConfig === 'function') {
+                const configValue = window.getConfig('debug.console_log', 'true');
+                
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
+                return true;
+            }
+            
+            // Si rien n'est disponible, garder la valeur par défaut
+            if (this.consoleLog) {
+                console.warn('⚠️ BotManager: Aucune configuration trouvée, utilisation de la valeur par défaut (true)');
+            }
+            return false;
+            
+        } catch (error) {
+            console.error('❌ BotManager: Erreur lors du chargement de la config:', error);
+            return false;
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig) {
+            return 'JSON config';
+        } else if (typeof window.getConfig === 'function') {
+            return 'fonction getConfig';
+        } else {
+            return 'valeur par défaut';
+        }
+    }
+    
+    // Méthode pour vérifier si on est en mode debug
+    static isDebugMode() {
+        return this.consoleLog;
     }
 
     constructor(chessGame) {
@@ -19,16 +98,27 @@ class BotManager {
         this.maxRetries = 3;
         this.retryCount = 0;
         
+        // Vérifier que la configuration est à jour
+        this.constructor.loadConfig();
+        
         if (this.constructor.consoleLog) {
             console.log('🤖 [BotManager] Gestionnaire de bot initialisé');
         }
     }
 
     setBotLevel(level, color = 'black') {
+        // Vérifier la configuration avant l'action
+        if (!this.constructor.consoleLog && window.appConfig) {
+            this.constructor.loadConfig();
+        }
+        
         if (this.constructor.consoleLog) {
             console.log(`\n⚙️ [BotManager] === CONFIGURATION DU BOT ===`);
             console.log(`⚙️ [BotManager] Niveau demandé: ${level}, Couleur: ${color}`);
             console.log(`⚙️ [BotManager] Bot actuel: niveau ${this.botLevel}, couleur ${this.botColor}`);
+        } else {
+            // Mode silencieux
+            console.info(`🤖 [BotManager] Configuration bot: niveau ${level}, couleur ${color}`);
         }
         
         // Convertir en nombre
@@ -53,6 +143,8 @@ class BotManager {
         if (level === 0) {
             if (this.constructor.consoleLog) {
                 console.log(`🔴 [BotManager] Bot désactivé`);
+            } else {
+                console.info('🔴 [BotManager] Bot désactivé');
             }
         } else if (level === 1) {
             // Niveau 1 = Level_1 (aléatoire)
@@ -62,11 +154,14 @@ class BotManager {
                     console.log(`🟢 [BotManager] Bot Level 1 activé (Level_1 - aléatoire)`);
                     console.log(`🎨 [BotManager] Bot joue les ${color === 'white' ? 'Blancs' : 'Noirs'}`);
                     console.log(`🤖 [BotManager] Nom: ${this.bot.name}`);
+                } else {
+                    console.info(`🟢 [BotManager] Bot Level 1 activé - joue les ${color === 'white' ? 'Blancs' : 'Noirs'}`);
                 }
             } else {
                 if (this.constructor.consoleLog) {
                     console.log(`❌ [BotManager] Classe Level_1 non trouvée`);
                 }
+                console.error('❌ BotManager: Classe Level_1 non trouvée');
             }
         } else if (level === 2) {
             // Niveau 2 = Level_2 (CCMO)
@@ -77,16 +172,20 @@ class BotManager {
                     console.log(`🎨 [BotManager] Bot joue les ${color === 'white' ? 'Blancs' : 'Noirs'}`);
                     console.log(`🤖 [BotManager] Nom: ${this.bot.name}`);
                     console.log(`🎯 [BotManager] Stratégie: Check → Capture → Menace → Optimisation`);
+                } else {
+                    console.info(`🟢 [BotManager] Bot Level 2 activé - joue les ${color === 'white' ? 'Blancs' : 'Noirs'}`);
                 }
             } else {
                 if (this.constructor.consoleLog) {
                     console.log(`❌ [BotManager] Classe Level_2 non trouvée`);
                 }
+                console.error('❌ BotManager: Classe Level_2 non trouvée');
             }
         } else {
             if (this.constructor.consoleLog) {
                 console.log(`❌ [BotManager] Niveau de bot inconnu: ${level}`);
             }
+            console.error(`❌ BotManager: Niveau de bot inconnu: ${level}`);
         }
         
         if (this.constructor.consoleLog) {
@@ -121,6 +220,22 @@ class BotManager {
     }
 
     isBotTurn() {
+        // Mode silencieux - vérifier rapidement
+        if (!this.constructor.consoleLog) {
+            try {
+                return this.chessGame && 
+                       this.chessGame.gameState && 
+                       this.bot && 
+                       this.botLevel > 0 && 
+                       !this.isBotThinking && 
+                       this.chessGame.gameState.gameActive && 
+                       this.chessGame.gameState.currentPlayer === this.botColor;
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        // Mode debug - avec logs
         try {
             // Vérifications de base
             if (!this.chessGame || !this.chessGame.gameState) {
@@ -159,10 +274,17 @@ class BotManager {
     }
 
     async playBotMove() {
+        // Vérifier la configuration avant l'action
+        if (!this.constructor.consoleLog && window.appConfig) {
+            this.constructor.loadConfig();
+        }
+        
         if (this.constructor.consoleLog) {
             console.log(`\n🤖 [BotManager] === DÉBUT DU TOUR DU BOT ===`);
             console.log(`🤖 [BotManager] Niveau: ${this.botLevel}, Couleur: ${this.botColor}`);
             console.log(`🤖 [BotManager] En réflexion: ${this.isBotThinking ? 'OUI ⏳' : 'NON ✅'}`);
+        } else {
+            console.info(`🤖 [BotManager] Tour du bot niveau ${this.botLevel}...`);
         }
         
         // Vérifications initiales
@@ -191,6 +313,73 @@ class BotManager {
         
         this.isBotThinking = true;
         this.moveCount++;
+        
+        // Mode silencieux - exécution sans logs
+        if (!this.constructor.consoleLog) {
+            try {
+                // Temps de réflexion très court
+                const thinkTime = 50 + Math.random() * 150;
+                await new Promise(resolve => setTimeout(resolve, thinkTime));
+                
+                // Vérifier avant de continuer
+                if (this.chessGame.gameState.currentPlayer !== this.botColor) {
+                    this.isBotThinking = false;
+                    return;
+                }
+                
+                // Générer le FEN
+                const currentFEN = FENGenerator.generateFEN(this.chessGame.gameState, this.chessGame.board);
+                
+                // Demander un coup au bot
+                const botMove = this.bot.getMove(currentFEN);
+                
+                if (!botMove) {
+                    this.retryCount++;
+                    this.isBotThinking = false;
+                    
+                    if (this.retryCount < this.maxRetries) {
+                        setTimeout(() => {
+                            if (this.isBotTurn()) {
+                                this.playBotMove();
+                            }
+                        }, 100);
+                    }
+                    return;
+                }
+                
+                // Jouer le coup
+                const success = this.chessGame.handleMove(
+                    botMove.fromRow, 
+                    botMove.fromCol, 
+                    botMove.toRow, 
+                    botMove.toCol
+                );
+                
+                if (!success) {
+                    this.retryCount++;
+                    this.isBotThinking = false;
+                    
+                    if (this.retryCount < this.maxRetries) {
+                        setTimeout(() => {
+                            if (this.isBotTurn()) {
+                                this.playBotMove();
+                            }
+                        }, 100);
+                    }
+                    return;
+                }
+                
+                this.retryCount = 0; // Réinitialiser le compteur d'erreurs
+                
+            } catch (error) {
+                // Mode silencieux - pas de log d'erreur
+            } finally {
+                this.isBotThinking = false;
+            }
+            return;
+        }
+        
+        // Mode debug - avec logs complets
         if (this.constructor.consoleLog) {
             console.log(`🧠 [BotManager] Bot commence à penser... (coup ${this.moveCount})`);
             console.log(`⏱️ [BotManager] Temps de réflexion: 50-200ms`);
@@ -316,10 +505,17 @@ class BotManager {
     }
 
     setBotColor(color) {
+        // Vérifier la configuration avant l'action
+        if (!this.constructor.consoleLog && window.appConfig) {
+            this.constructor.loadConfig();
+        }
+        
         if (this.constructor.consoleLog) {
             console.log(`\n🎨 [BotManager] === CHANGEMENT DE COULEUR ===`);
             console.log(`🎨 [BotManager] Ancienne couleur: ${this.botColor}`);
             console.log(`🎨 [BotManager] Nouvelle couleur: ${color}`);
+        } else {
+            console.info(`🎨 [BotManager] Changement couleur bot: ${this.botColor} → ${color}`);
         }
         
         this.botColor = color;
@@ -426,9 +622,64 @@ class BotManager {
             console.groupEnd();
         }
     }
+    
+    // Méthode statique pour recharger la configuration
+    static reloadConfig() {
+        const oldValue = this.consoleLog;
+        this.loadConfig();
+        
+        if (this.consoleLog && oldValue !== this.consoleLog) {
+            console.log(`🔄 BotManager: Configuration rechargée: ${oldValue} → ${this.consoleLog}`);
+        }
+        return this.consoleLog;
+    }
+    
+    // Méthode statique pour obtenir la source de configuration
+    static getConfigSource() {
+        if (window.appConfig) {
+            return 'JSON config';
+        } else if (typeof window.getConfig === 'function') {
+            return 'fonction getConfig';
+        } else {
+            return 'valeur par défaut';
+        }
+    }
 }
 
 // Initialisation statique
 BotManager.init();
+
+// Exposer des fonctions utilitaires globales
+window.BotManagerUtils = {
+    // Forcer le rechargement de la config
+    reloadConfig: () => BotManager.reloadConfig(),
+    
+    // Obtenir l'état de la configuration
+    getConfigState: () => ({
+        consoleLog: BotManager.consoleLog,
+        source: BotManager.getConfigSource(),
+        debugMode: BotManager.isDebugMode(),
+        configValue: window.appConfig?.debug?.console_log
+    }),
+    
+    // Tester la configuration
+    testConfig: () => {
+        console.group('🧪 Test de configuration BotManager');
+        console.log('consoleLog actuel:', BotManager.consoleLog);
+        console.log('Source config:', BotManager.getConfigSource());
+        console.log('window.appConfig disponible:', !!window.appConfig);
+        
+        if (window.appConfig) {
+            console.log('Valeur debug.console_log dans appConfig:', 
+                window.appConfig.debug?.console_log, 
+                '(type:', typeof window.appConfig.debug?.console_log + ')');
+        }
+        
+        console.log('Mode debug activé:', BotManager.isDebugMode());
+        console.groupEnd();
+        
+        return BotManager.consoleLog;
+    }
+};
 
 window.BotManager = BotManager;

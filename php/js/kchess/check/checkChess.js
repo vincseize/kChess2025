@@ -1,12 +1,126 @@
-// check/checkChess.js - Moteur de vérification d'échec simple CORRIGÉ
+// check/checkChess.js - Moteur de vérification d'échec simple avec priorité à la config JSON
 class ChessEngine {
     
-    static consoleLog = true; // false pour production, true pour debug
+    // Valeur par défaut - sera écrasée par la config JSON si disponible
+    static consoleLog = true; // true par défaut pour debug
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
         if (this.consoleLog) {
-            console.log('check/checkChess.js loaded');
+            console.log('✅ check/checkChess.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            console.info('🔇 checkChess.js: Mode silencieux activé');
         }
+    }
+    
+    // Méthode pour charger la configuration CORRIGÉE
+    static loadConfig(debugLoading = false) {
+        try {
+            if (debugLoading && this.consoleLog) {
+                console.log('🔄 ChessEngine.loadConfig() appelé');
+                console.log('🔍 Recherche de window.appConfig...');
+            }
+            
+            // Vérifier si la configuration globale existe
+            if (window.appConfig) {
+                if (debugLoading && this.consoleLog) {
+                    console.log('✅ window.appConfig trouvé');
+                }
+                
+                if (window.appConfig.debug) {
+                    const configValue = window.appConfig.debug.console_log;
+                    
+                    if (debugLoading && this.consoleLog) {
+                        console.log(`📊 Valeur debug.console_log: "${configValue}" (type: ${typeof configValue})`);
+                    }
+                    
+                    // CONVERSION CORRECTE - Gérer les string "false" et "true"
+                    let newConsoleLog;
+                    if (configValue === "false") {
+                        newConsoleLog = false;
+                    } else if (configValue === false) {
+                        newConsoleLog = false;
+                    } else if (configValue === "true") {
+                        newConsoleLog = true;
+                    } else if (configValue === true) {
+                        newConsoleLog = true;
+                    } else {
+                        // Pour toute autre valeur, utiliser Boolean()
+                        newConsoleLog = Boolean(configValue);
+                    }
+                    
+                    // Mettre à jour seulement si la valeur a changé
+                    if (this.consoleLog !== newConsoleLog) {
+                        if (debugLoading && this.consoleLog) {
+                            console.log(`🔄 Changement de consoleLog: ${this.consoleLog} → ${newConsoleLog}`);
+                        }
+                        this.consoleLog = newConsoleLog;
+                    } else if (debugLoading && this.consoleLog) {
+                        console.log(`ℹ️ Pas de changement (déjà ${this.consoleLog})`);
+                    }
+                    
+                    if (debugLoading && this.consoleLog) {
+                        console.log(`🔧 Configuration finale: console_log = ${this.consoleLog}`);
+                    }
+                    
+                    return true;
+                } else if (debugLoading && this.consoleLog) {
+                    console.log('❌ window.appConfig.debug NON TROUVÉ');
+                }
+            } else if (debugLoading && this.consoleLog) {
+                console.log('❌ window.appConfig NON DÉFINI');
+            }
+            
+            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
+            if (typeof window.getConfig === 'function') {
+                if (debugLoading && this.consoleLog) {
+                    console.log('🔍 Appel de window.getConfig()...');
+                }
+                const configValue = window.getConfig('debug.console_log', 'true');
+                
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
+                
+                if (debugLoading && this.consoleLog) {
+                    console.log(`📊 Valeur getConfig: "${configValue}" → ${this.consoleLog}`);
+                }
+                return true;
+            }
+            
+            // Si rien n'est disponible, garder la valeur par défaut
+            if (this.consoleLog && debugLoading) {
+                console.log('⚠️ ChessEngine: Aucune configuration trouvée, utilisation de la valeur par défaut');
+            }
+            return false;
+            
+        } catch (error) {
+            console.error('❌ ChessEngine: Erreur lors du chargement de la config:', error);
+            return false;
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig) {
+            return 'JSON config';
+        } else if (typeof window.getConfig === 'function') {
+            return 'fonction getConfig';
+        } else {
+            return 'valeur par défaut';
+        }
+    }
+    
+    // Méthode pour vérifier si on est en mode debug
+    static isDebugMode() {
+        return this.consoleLog;
     }
 
     constructor(fen) {
@@ -15,9 +129,15 @@ class ChessEngine {
         const parts = fen.split(' ');
         this.turn = parts[1]; // 'w' pour blanc, 'b' pour noir
         
+        // Vérifier que la configuration est à jour
+        this.constructor.loadConfig();
+        
         if (this.constructor.consoleLog) {
-            console.log('🔧 ChessEngine créé avec FEN:', fen);
+            console.log('🔧 ChessEngine créé avec FEN:', fen.substring(0, 50) + (fen.length > 50 ? '...' : ''));
+            console.log(`📊 Source config: ${this.constructor.getConfigSource()}`);
             this.displayBoard(); // Afficher le plateau à la création
+        } else {
+            console.info('🔧 ChessEngine créé (mode silencieux)');
         }
     }
 
@@ -69,6 +189,67 @@ class ChessEngine {
     }
 
     isSquareAttacked(row, col, attackerColor) {
+        // Mode silencieux - exécuter sans logs
+        if (!this.constructor.consoleLog) {
+            const directions = {
+                rook: [[-1,0], [1,0], [0,-1], [0,1]],
+                bishop: [[-1,-1], [-1,1], [1,-1], [1,1]],
+                queen: [[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [-1,1], [1,-1], [1,1]],
+                knight: [[-2,-1], [-2,1], [-1,-2], [-1,2], [1,-2], [1,2], [2,-1], [2,1]]
+            };
+
+            const pawnAttacks = attackerColor === 'w' 
+                ? [[1, -1], [1, 1]]   // Pions blancs attaquent vers le bas
+                : [[-1, -1], [-1, 1]]; // Pions noirs attaquent vers le haut
+
+            // Vérifier les pions
+            for (const [dr, dc] of pawnAttacks) {
+                const r = row + dr, c = col + dc;
+                if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+                    const piece = this.getPiece(r, c);
+                    const pawn = attackerColor === 'w' ? 'P' : 'p';
+                    if (piece === pawn) return true;
+                }
+            }
+
+            // Vérifier les cavaliers
+            for (const [dr, dc] of directions.knight) {
+                const r = row + dr, c = col + dc;
+                if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+                    const piece = this.getPiece(r, c);
+                    const knight = attackerColor === 'w' ? 'N' : 'n';
+                    if (piece === knight) return true;
+                }
+            }
+
+            // Vérifier les directions (tours, fous, dame)
+            for (const [type, dirs] of [['rook', directions.rook], ['bishop', directions.bishop], ['queen', directions.queen]]) {
+                for (const [dr, dc] of dirs) {
+                    let r = row + dr, c = col + dc;
+                    
+                    while (r >= 0 && r < 8 && c >= 0 && c < 8) {
+                        const piece = this.getPiece(r, c);
+                        if (piece) {
+                            const pieceType = piece.toLowerCase();
+                            const isAttackerColor = (attackerColor === 'w') === (piece === piece.toUpperCase());
+                            
+                            if (isAttackerColor) {
+                                if (type === 'rook' && (pieceType === 'r' || pieceType === 'q')) return true;
+                                if (type === 'bishop' && (pieceType === 'b' || pieceType === 'q')) return true;
+                                if (type === 'queen' && pieceType === 'q') return true;
+                            }
+                            break;
+                        }
+                        r += dr;
+                        c += dc;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        // Mode debug - avec logs
         if (this.constructor.consoleLog) {
             console.log(`\n🔍🔍🔍 Vérification case [${row},${col}] attaquée par ${attackerColor === 'w' ? 'blancs' : 'noirs'}`);
         }
@@ -80,9 +261,6 @@ class ChessEngine {
             knight: [[-2,-1], [-2,1], [-1,-2], [-1,2], [1,-2], [1,2], [2,-1], [2,1]]
         };
 
-        // CORRECTION CRITIQUE : Système de coordonnées inversé
-        // Pions blancs (en bas) attaquent vers le BAS (lignes croissantes)
-        // Pions noirs (en haut) attaquent vers le HAUT (lignes décroissantes)
         const pawnAttacks = attackerColor === 'w' 
             ? [[1, -1], [1, 1]]   // Pions blancs attaquent vers le bas
             : [[-1, -1], [-1, 1]]; // Pions noirs attaquent vers le haut
@@ -112,14 +290,6 @@ class ChessEngine {
                         console.log(`🎯✅✅✅ PION TROUVÉ! Pion ${attackerColor} attaque depuis [${r},${c}] vers [${row},${col}]`);
                     }
                     return true;
-                } else {
-                    if (this.constructor.consoleLog) {
-                        console.log(`🎯❌ Pas de pion ${attackerColor} en [${r},${c}] (trouvé: '${piece}')`);
-                    }
-                }
-            } else {
-                if (this.constructor.consoleLog) {
-                    console.log(`🎯❌ Case [${r},${c}] hors plateau`);
                 }
             }
         }
@@ -219,7 +389,6 @@ class ChessEngine {
         const rowDiff = Math.abs(whiteKing.row - blackKing.row);
         const colDiff = Math.abs(whiteKing.col - blackKing.col);
         
-        // Les rois sont adjacents s'ils sont à 1 case de distance
         const areAdjacent = rowDiff <= 1 && colDiff <= 1 && !(rowDiff === 0 && colDiff === 0);
         
         if (this.constructor.consoleLog) {
@@ -240,15 +409,7 @@ class ChessEngine {
         return isCheck;
     }
 
-    // NOUVELLE MÉTHODE : Vérifier si une case spécifique est attaquée (pour debug)
-    debugSquareAttacked(row, col, attackerColor) {
-        if (this.constructor.consoleLog) {
-            console.log(`\n🔍🔍🔍 DEBUG: Case [${row},${col}] attaquée par ${attackerColor === 'w' ? 'blancs' : 'noirs'}?`);
-        }
-        return this.isSquareAttacked(row, col, attackerColor);
-    }
-
-    // NOUVELLE MÉTHODE : Afficher le plateau complet
+    // Afficher le plateau complet
     displayBoard() {
         if (!this.constructor.consoleLog) return;
         
@@ -265,26 +426,9 @@ class ChessEngine {
         console.log('   a b c d e f g h\n');
     }
 
-    // NOUVELLE MÉTHODE : Vérifier les positions spécifiques
-    checkSpecificPositions() {
-        if (!this.constructor.consoleLog) return;
-        
-        console.log('\n📍📍📍 POSITIONS SPÉCIFIQUES:');
-        console.log('Case f4 (roi blanc):', this.getPiece(4, 5), 'en [4,5]');
-        console.log('Case e5 (pion noir):', this.getPiece(3, 4), 'en [3,4]');
-        console.log('Case g5 (autre):', this.getPiece(3, 6), 'en [3,6]');
-        console.log('Case d5 (autre):', this.getPiece(3, 3), 'en [3,3]');
-        
-        // Test des cases que le pion devrait attaquer
-        console.log('\n🎯🎯🎯 TEST ATTAQUES PION:');
-        console.log('Pion en [3,4] devrait attaquer [2,3] et [2,5]');
-        console.log('Case [2,3] contient:', this.getPiece(2, 3));
-        console.log('Case [2,5] contient:', this.getPiece(2, 5));
-    }
-
-    // NOUVELLE MÉTHODE : Obtenir un résumé du plateau
+    // Obtenir un résumé du plateau
     getBoardSummary() {
-        if (!this.constructor.consoleLog) return '';
+        if (!this.constructor.consoleLog) return {};
         
         const summary = {
             turn: this.turn === 'w' ? 'Blancs' : 'Noirs',
@@ -298,7 +442,7 @@ class ChessEngine {
         return summary;
     }
 
-    // NOUVELLE MÉTHODE : Afficher le résumé
+    // Afficher le résumé
     displaySummary() {
         if (!this.constructor.consoleLog) return;
         
@@ -312,9 +456,119 @@ class ChessEngine {
         console.log(`Échec noir: ${summary.blackInCheck ? 'OUI ⚠️' : 'NON ✓'}`);
         console.log(`Rois adjacents: ${summary.kingsAdjacent ? 'OUI ⚠️' : 'NON ✓'}`);
     }
+    
+    // Méthode pour forcer la mise à jour de la configuration
+    static reloadConfig() {
+        const oldValue = this.consoleLog;
+        this.loadConfig();
+        
+        if (this.consoleLog && oldValue !== this.consoleLog) {
+            console.log(`🔄 ChessEngine: Configuration rechargée: ${oldValue} → ${this.consoleLog}`);
+        }
+        return this.consoleLog;
+    }
 }
 
 // Initialisation statique
 ChessEngine.init();
 
+// Exposer la classe globalement
 window.ChessEngine = ChessEngine;
+
+// Ajouter des fonctions utilitaires globales
+window.ChessEngineUtils = {
+    // Forcer le rechargement de la config
+    reloadConfig: () => ChessEngine.reloadConfig(),
+    
+    // Tester la configuration
+    testConfig: () => {
+        console.group('🧪 Test de configuration ChessEngine');
+        console.log('consoleLog actuel:', ChessEngine.consoleLog);
+        console.log('Source config:', ChessEngine.getConfigSource());
+        console.log('window.appConfig disponible:', !!window.appConfig);
+        
+        if (window.appConfig) {
+            console.log('Valeur debug.console_log dans appConfig:', 
+                window.appConfig.debug?.console_log, 
+                '(type:', typeof window.appConfig.debug?.console_log + ')');
+        }
+        
+        console.log('Mode debug activé:', ChessEngine.isDebugMode());
+        console.groupEnd();
+        
+        return ChessEngine.consoleLog;
+    },
+    
+    // Obtenir l'état actuel
+    getState: () => ({
+        consoleLog: ChessEngine.consoleLog,
+        source: ChessEngine.getConfigSource(),
+        debugMode: ChessEngine.isDebugMode(),
+        configValue: window.appConfig?.debug?.console_log
+    }),
+    
+    // Vérifier la configuration JSON
+    checkJSONConfig: () => {
+        if (window.appConfig) {
+            return {
+                exists: true,
+                debug: window.appConfig.debug,
+                console_log_value: window.appConfig.debug?.console_log,
+                console_log_type: typeof window.appConfig.debug?.console_log
+            };
+        }
+        return { exists: false };
+    },
+    
+    // Tester le moteur d'échec
+    testEngine: (fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") => {
+        console.log('🧪 Test ChessEngine avec FEN:', fen);
+        const engine = new ChessEngine(fen);
+        
+        // Exécuter les vérifications uniquement si debug activé
+        if (ChessEngine.consoleLog) {
+            console.log('✓ Blanc en échec?', engine.isKingInCheck('w'));
+            console.log('✓ Noir en échec?', engine.isKingInCheck('b'));
+            console.log('✓ Échec (tour actuel)?', engine.isCheck());
+            console.log('✓ Rois adjacents?', engine.areKingsAdjacent());
+        }
+        
+        return engine;
+    }
+};
+
+// Vérifier la configuration après le chargement complet de la page
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            ChessEngine.loadConfig();
+            if (ChessEngine.consoleLog) {
+                console.log('✅ ChessEngine: Configuration vérifiée après chargement du DOM');
+            }
+        }, 100);
+    });
+} else {
+    setTimeout(() => {
+        ChessEngine.loadConfig();
+    }, 100);
+}
+
+// Message final basé sur la configuration
+if (ChessEngine.consoleLog) {
+    console.log('✅ ChessEngine prêt (mode debug activé)');
+} else {
+    console.info('✅ ChessEngine prêt (mode silencieux)');
+}
+
+// Fonction de test pour vérifier depuis la console (toujours disponible)
+window.testChessEngineConfig = function() {
+    console.log('=== TEST CONFIGURATION ChessEngine ===');
+    const state = window.ChessEngineUtils.getState();
+    console.log('État actuel:', state);
+    console.log('Valeur brute JSON:', window.appConfig?.debug?.console_log);
+    console.log('String "false" === false ?', "false" === false);
+    console.log('Boolean("false") ?', Boolean("false"));
+    console.log('"false" == false ?', "false" == false);
+    console.log('=== FIN TEST ===');
+    return state;
+};

@@ -3,8 +3,6 @@
 
 // Charger la configuration JSON
 $config = json_decode(file_get_contents('config/game-config.json'), true);
-
-
 $version = time(); // ou $config['version'] si vous voulez une version stable
 ?>
 <!DOCTYPE html>
@@ -50,6 +48,44 @@ $version = time(); // ou $config['version'] si vous voulez une version stable
     <link href="css/kchess/responsive.css?version=<?php echo $version; ?>" rel="stylesheet">
     <link href="css/kchess/promotion-modal.css?version=<?php echo $version; ?>" rel="stylesheet">
 
-    <script src="http://jsconsole.com/remote.js?vincseize"></script>
+    <!-- PASSER LA CONFIGURATION JSON AU JAVASCRIPT -->
+    <script>
+        // Définir la configuration globale AVANT tout autre script
+        window.appConfig = <?php echo json_encode($config); ?>;
+        
+        // Fonction utilitaire pour accéder facilement à la config
+        window.getConfig = function(path, defaultValue) {
+            try {
+                const keys = path.split('.');
+                let value = window.appConfig;
+                
+                for (const key of keys) {
+                    if (value && typeof value === 'object' && key in value) {
+                        value = value[key];
+                    } else {
+                        return defaultValue;
+                    }
+                }
+                return value;
+            } catch (error) {
+                return defaultValue;
+            }
+        };
+        
+        // Log initial pour vérification (toujours actif pour le debug initial)
+        console.log('⚙️ Configuration JSON chargée pour <?php echo $config['app_name']; ?>');
+        console.log('📋 debug.console_log:', window.getConfig('debug.console_log', 'valeur par défaut'));
+        
+        // Fonction pour convertir correctement les valeurs booléennes
+        window.parseConfigBoolean = function(value) {
+            if (typeof value === 'string') {
+                return value.toLowerCase() === 'true' || value === '1';
+            }
+            return Boolean(value);
+        };
+    </script>
 
+    <!-- Remote JS Console (optionnel) -->
+    <script src="http://jsconsole.com/remote.js?vincseize"></script>
 </head>
+<body>

@@ -12,36 +12,61 @@ class Level_1 {
         if (this.consoleLog) {
             console.log('🤖 bots/Level_1.js chargé');
             console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            // Message silencieux si debug désactivé
+            console.info('🤖 Level_1: Mode silencieux activé (debug désactivé dans config)');
         }
     }
     
-    // Méthode pour charger la configuration
+    // Méthode pour charger la configuration CORRIGÉE
     static loadConfig() {
         try {
             // Vérifier si la configuration globale existe
             if (window.appConfig && window.appConfig.debug) {
                 const configValue = window.appConfig.debug.console_log;
                 
-                // Convertir la valeur en booléen
-                if (typeof configValue === 'string') {
-                    this.consoleLog = configValue.toLowerCase() === 'true';
+                // CONVERSION CORRECTE - Gérer les string "false" et "true"
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                    // Ne pas loguer en mode silencieux
+                    if (configValue !== "false") {
+                        console.info('🔧 Level_1: console_log désactivé via config JSON');
+                    }
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else if (configValue === "true") {
+                    this.consoleLog = true;
+                } else if (configValue === true) {
+                    this.consoleLog = true;
                 } else {
+                    // Pour toute autre valeur, utiliser Boolean()
                     this.consoleLog = Boolean(configValue);
                 }
                 
+                // Log de confirmation (uniquement en mode debug)
+                if (this.consoleLog) {
+                    console.log(`⚙️ Level_1: Configuration chargée - console_log = ${this.consoleLog} (valeur brute: "${configValue}")`);
+                }
                 return true;
             }
             
-            // Si window.appConfig n'existe pas, essayer de le charger
+            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
             if (typeof window.getConfig === 'function') {
                 const configValue = window.getConfig('debug.console_log', 'true');
-                this.consoleLog = configValue === true || configValue === 'true';
+                
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
                 return true;
             }
             
             // Si rien n'est disponible, garder la valeur par défaut
             if (this.consoleLog) {
-                console.warn('⚠️ Level_1: Aucune configuration trouvée, utilisation de la valeur par défaut');
+                console.warn('⚠️ Level_1: Aucune configuration trouvée, utilisation de la valeur par défaut (true)');
             }
             return false;
             
@@ -68,24 +93,77 @@ class Level_1 {
     }
 
     constructor() {
-        this.name = "Bot Level 0";
-        this.level = 0;
+        this.name = "Bot Level 1";
+        this.level = 1;
         
         // Vérifier que la configuration est à jour
         this.constructor.loadConfig();
         
         if (this.constructor.consoleLog) {
-            console.log(`🤖 [Level_1] Bot Level 0 initialisé - "Random Move Bot"`);
+            console.log(`🤖 [Level_1] Bot Level 1 initialisé - "Random Move Bot"`);
             console.log(`📊 ${this.constructor.getConfigSource()}: console_log = ${this.constructor.consoleLog}`);
+        } else {
+            console.info(`🤖 [Level_1] Bot Level 1 initialisé (mode silencieux)`);
         }
     }
 
     getMove(fen) {
-        // Vérifier la configuration avant chaque appel (optionnel)
+        // Vérifier la configuration avant chaque appel
         if (!this.constructor.consoleLog && window.appConfig) {
             this.constructor.loadConfig();
         }
         
+        // Si debug désactivé, exécuter silencieusement
+        if (!this.constructor.consoleLog) {
+            try {
+                const game = window.chessGame;
+                if (!game || !game.core || !game.core.moveValidator) {
+                    return null;
+                }
+
+                const validMoves = [];
+                const currentPlayer = game.gameState.currentPlayer;
+
+                // Parcourir toutes les pièces
+                for (let fromRow = 0; fromRow < 8; fromRow++) {
+                    for (let fromCol = 0; fromCol < 8; fromCol++) {
+                        const square = game.board.getSquare(fromRow, fromCol);
+                        
+                        if (square && square.piece && square.piece.color === currentPlayer) {
+                            const possibleMoves = game.core.moveValidator.getPossibleMoves(
+                                square.piece, 
+                                fromRow, 
+                                fromCol
+                            );
+                            
+                            possibleMoves.forEach(move => {
+                                validMoves.push({
+                                    fromRow: fromRow,
+                                    fromCol: fromCol,
+                                    toRow: move.row,
+                                    toCol: move.col,
+                                    piece: square.piece
+                                });
+                            });
+                        }
+                    }
+                }
+
+                if (validMoves.length === 0) {
+                    return null;
+                }
+
+                // Choisir aléatoirement
+                const randomIndex = Math.floor(Math.random() * validMoves.length);
+                return validMoves[randomIndex];
+
+            } catch (error) {
+                // En mode silencieux, on ne logue pas l'erreur
+                return null;
+            }
+        }
+        
+        // Mode debug activé - avec logs
         if (this.constructor.consoleLog) {
             console.log(`🎲 [Level_1] Début calcul du coup pour FEN: ${fen}`);
             console.log(`⚪ [Level_1] Joueur actuel: ${window.chessGame?.gameState?.currentPlayer || 'inconnu'}`);
@@ -244,7 +322,8 @@ class Level_1 {
         
         if (window.appConfig) {
             console.log('Valeur debug.console_log dans appConfig:', 
-                window.appConfig.debug?.console_log);
+                window.appConfig.debug?.console_log, 
+                '(type:', typeof window.appConfig.debug?.console_log + ')');
         }
         
         if (typeof window.getConfig === 'function') {
@@ -277,7 +356,8 @@ window.Level1Utils = {
     getState: () => ({
         consoleLog: Level_1.consoleLog,
         source: Level_1.getConfigSource(),
-        debugMode: Level_1.isDebugMode()
+        debugMode: Level_1.isDebugMode(),
+        configValue: window.appConfig?.debug?.console_log
     }),
     
     // Activer/désactiver manuellement (temporaire)
@@ -286,6 +366,19 @@ window.Level1Utils = {
         Level_1.consoleLog = Boolean(value);
         console.log(`🔧 Level_1: consoleLog changé manuellement: ${oldValue} → ${Level_1.consoleLog}`);
         return Level_1.consoleLog;
+    },
+    
+    // Vérifier la configuration JSON
+    checkJSONConfig: () => {
+        if (window.appConfig) {
+            return {
+                exists: true,
+                debug: window.appConfig.debug,
+                console_log_value: window.appConfig.debug?.console_log,
+                console_log_type: typeof window.appConfig.debug?.console_log
+            };
+        }
+        return { exists: false };
     }
 };
 
@@ -305,7 +398,22 @@ if (document.readyState === 'loading') {
     }, 100);
 }
 
-// Log final (si activé)
+// Message final basé sur la configuration
 if (Level_1.consoleLog) {
-    console.log('✅ Level_1 prêt à utiliser la configuration JSON');
+    console.log('✅ Level_1 prêt (mode debug activé)');
+} else {
+    console.info('✅ Level_1 prêt (mode silencieux)');
 }
+
+// Fonction de test pour vérifier depuis la console
+window.testLevel1Config = function() {
+    console.log('=== TEST CONFIGURATION Level_1 ===');
+    const state = window.Level1Utils.getState();
+    console.log('État actuel:', state);
+    console.log('Valeur brute JSON:', window.appConfig?.debug?.console_log);
+    console.log('String "false" === false ?', "false" === false);
+    console.log('Boolean("false") ?', Boolean("false"));
+    console.log('"false" == false ?', "false" == false);
+    console.log('=== FIN TEST ===');
+    return state;
+};

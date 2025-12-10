@@ -1,18 +1,99 @@
 // core/chess-game.js - Classe principale qui orchestre tout
 class ChessGame {
     
-    static consoleLog = true; // false pour production, true pour debug
+    static consoleLog = true; // Valeur par défaut - sera écrasée par la config JSON
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
         if (this.consoleLog) {
-            console.log('core/chess-game.js loaded');
+            console.log('core/chess-game.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            console.info('🔇 chess-game.js: Mode silencieux activé');
         }
+    }
+    
+    // Méthode pour charger la configuration depuis window.appConfig
+    static loadConfig() {
+        try {
+            // Vérifier si la configuration globale existe
+            if (window.appConfig && window.appConfig.debug) {
+                const configValue = window.appConfig.debug.console_log;
+                
+                // CONVERSION CORRECTE - Gérer les string "false" et "true"
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else if (configValue === "true") {
+                    this.consoleLog = true;
+                } else if (configValue === true) {
+                    this.consoleLog = true;
+                } else {
+                    // Pour toute autre valeur, utiliser Boolean()
+                    this.consoleLog = Boolean(configValue);
+                }
+                
+                // Log de confirmation (uniquement en mode debug)
+                if (this.consoleLog) {
+                    console.log(`⚙️ ChessGame: Configuration chargée - console_log = ${this.consoleLog}`);
+                }
+                return true;
+            }
+            
+            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
+            if (typeof window.getConfig === 'function') {
+                const configValue = window.getConfig('debug.console_log', 'true');
+                
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
+                return true;
+            }
+            
+            // Si rien n'est disponible, garder la valeur par défaut
+            if (this.consoleLog) {
+                console.warn('⚠️ ChessGame: Aucune configuration trouvée, utilisation de la valeur par défaut (true)');
+            }
+            return false;
+            
+        } catch (error) {
+            console.error('❌ ChessGame: Erreur lors du chargement de la config:', error);
+            return false;
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig) {
+            return 'JSON config';
+        } else if (typeof window.getConfig === 'function') {
+            return 'fonction getConfig';
+        } else {
+            return 'valeur par défaut';
+        }
+    }
+    
+    // Méthode pour vérifier si on est en mode debug
+    static isDebugMode() {
+        return this.consoleLog;
     }
 
     constructor() {
+        // Vérifier que la configuration est à jour
+        this.constructor.loadConfig();
+        
         if (this.constructor.consoleLog) {
             console.log('\n🎮 [ChessGame] === INITIALISATION DU JEU ===');
             console.log('🎮 [ChessGame] Création des composants de base...');
+        } else {
+            console.info('🎮 Initialisation du jeu...');
         }
         
         this.pieceManager = new PieceManager();
@@ -45,6 +126,8 @@ class ChessGame {
     init() {
         if (this.constructor.consoleLog) {
             console.log('\n⚙️ [ChessGame] === CONFIGURATION INITIALE ===');
+        } else {
+            console.info('⚙️ Configuration initiale...');
         }
         
         this.loadInitialPosition();
@@ -68,6 +151,8 @@ class ChessGame {
         
         if (this.constructor.consoleLog) {
             console.log('✅ [ChessGame] === CONFIGURATION TERMINÉE ===\n');
+        } else {
+            console.info('✅ Configuration terminée');
         }
     }
 
@@ -101,6 +186,8 @@ class ChessGame {
         
         if (this.constructor.consoleLog) {
             console.log(`✅ [ChessGame] ${piecesPlaced} pièce(s) placée(s) sur le plateau`);
+        } else if (piecesPlaced > 0) {
+            console.info(`✅ ${piecesPlaced} pièces placées`);
         }
     }
 
@@ -108,6 +195,34 @@ class ChessGame {
     applyUrlParamsConfiguration() {
         const urlParams = this.getUrlParams();
         
+        // Mode silencieux - exécuter sans logs
+        if (!this.constructor.consoleLog) {
+            if (Object.keys(urlParams).length === 0) {
+                return;
+            }
+            
+            // Configuration du flip basée sur le paramètre color
+            if (urlParams.color === 'black' && !this.gameState.boardFlipped) {
+                this.applyAutoFlip();
+            } else if (urlParams.color === 'white' && this.gameState.boardFlipped) {
+                this.applyAutoFlip();
+            }
+            
+            // Configuration du bot
+            if (urlParams.mode === 'bot') {
+                const botLevel = parseInt(urlParams.level) || 1;
+                const humanColor = urlParams.color || 'white';
+                const botColor = humanColor === 'white' ? 'black' : 'white';
+                this.core.setBotLevel(botLevel, botColor);
+            }
+            
+            if (urlParams.mode) {
+                this.gameMode = urlParams.mode;
+            }
+            return;
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('\n🌐 [ChessGame] === CONFIGURATION PAR URL ===');
             console.log('🌐 [ChessGame] Paramètres URL détectés:', urlParams);
@@ -177,6 +292,16 @@ class ChessGame {
     }
 
     applyAutoFlip() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            this.gameState.boardFlipped = !this.gameState.boardFlipped;
+            this.board.createBoard();
+            this.loadInitialPosition();
+            this.clearSelection();
+            return;
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('🔄 [ChessGame] Application du flip automatique');
             console.log(`   • Ancien état: ${this.gameState.boardFlipped ? 'retourné' : 'normal'}`);
@@ -209,6 +334,13 @@ class ChessGame {
     }
 
     flipBoard() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            this.core.flipBoard();
+            return;
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('🔄 [ChessGame] Délégation de flipBoard() au core');
         }
@@ -216,6 +348,14 @@ class ChessGame {
     }
 
     newGame() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            this.core.newGame();
+            this.applyUrlParamsConfiguration();
+            return;
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('\n🆕 [ChessGame] === NOUVELLE PARTIE ===');
             console.log('🆕 [ChessGame] Lancement d\'une nouvelle partie...');
@@ -231,6 +371,14 @@ class ChessGame {
     }
 
     clearMoveHistory() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            this.gameState.moveHistory = [];
+            this.core.ui.updateMoveHistory();
+            return;
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('🧹 [ChessGame] Effacement de l\'historique des coups');
             console.log(`   • Avant: ${this.gameState.moveHistory.length} coup(s)`);
@@ -247,6 +395,12 @@ class ChessGame {
 
     // Délégation des méthodes bot
     setBotLevel(level, color = 'black') {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            return this.core.setBotLevel(level, color);
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('🤖 [ChessGame] Délégation setBotLevel au core');
         }
@@ -254,6 +408,12 @@ class ChessGame {
     }
 
     getBotStatus() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            return this.core.getBotStatus();
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('🤖 [ChessGame] Délégation getBotStatus au core');
         }
@@ -261,6 +421,13 @@ class ChessGame {
     }
 
     setBotColor(color) {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            this.core.setBotColor(color);
+            return;
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('🤖 [ChessGame] Délégation setBotColor au core');
         }
@@ -268,6 +435,12 @@ class ChessGame {
     }
 
     playBotMove() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            return this.core.playBotMove();
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('🤖 [ChessGame] Délégation playBotMove au core');
         }
@@ -275,6 +448,12 @@ class ChessGame {
     }
     
     handleMove(fromRow, fromCol, toRow, toCol) {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            return this.core.handleMove(fromRow, fromCol, toRow, toCol);
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log(`🎮 [ChessGame] Délégation handleMove: [${fromRow},${fromCol}] → [${toRow},${toCol}]`);
         }
@@ -300,6 +479,16 @@ class ChessGame {
 
     // Méthode pour forcer le tour du bot (debug)
     forceBotTurn() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            const isBotTurn = this.core.botManager.isBotTurn();
+            if (isBotTurn) {
+                this.core.botManager.playBotMove();
+            }
+            return;
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('\n⚡ [ChessGame] === FORÇAGE DU TOUR DU BOT ===');
         }
@@ -330,6 +519,21 @@ class ChessGame {
 
     // Méthode pour tester le bot manuellement
     testBot() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            const botStatus = this.getBotStatus();
+            if (botStatus.active) {
+                const currentFEN = FENGenerator.generateFEN(this.gameState, this.board);
+                if (this.core.botManager.bot && this.core.botManager.bot.getMove) {
+                    const testMove = this.core.botManager.bot.getMove(currentFEN);
+                    // Retourne le coup sans loguer
+                    return testMove;
+                }
+            }
+            return null;
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('\n🧪 [ChessGame] === TEST MANUEL DU BOT ===');
             console.log('🧪 [ChessGame] Lancement du test...');
@@ -363,6 +567,7 @@ class ChessGame {
                         console.log(`   • Départ: [${testMove.fromRow},${testMove.fromCol}]`);
                         console.log(`   • Arrivée: [${testMove.toRow},${testMove.toCol}]`);
                     }
+                    return testMove;
                 } else {
                     if (this.constructor.consoleLog) {
                         console.log('❌ [ChessGame] Aucun coup test trouvé');
@@ -382,6 +587,8 @@ class ChessGame {
         if (this.constructor.consoleLog) {
             console.log('✅ [ChessGame] === FIN TEST ===\n');
         }
+        
+        return null;
     }
     
     // NOUVELLE MÉTHODE : Obtenir un résumé complet
@@ -400,14 +607,94 @@ class ChessGame {
         
         return summary;
     }
+    
+    // Méthode pour forcer la mise à jour de la configuration
+    static reloadConfig() {
+        const oldValue = this.consoleLog;
+        this.loadConfig();
+        
+        if (this.consoleLog && oldValue !== this.consoleLog) {
+            console.log(`🔄 ChessGame: Configuration rechargée: ${oldValue} → ${this.consoleLog}`);
+        }
+        return this.consoleLog;
+    }
 }
 
 // Initialisation statique
 ChessGame.init();
 
+// Exposer des fonctions utilitaires globales
+window.ChessGameUtils = {
+    // Forcer le rechargement de la config
+    reloadConfig: () => ChessGame.reloadConfig(),
+    
+    // Tester la configuration
+    testConfig: () => {
+        console.group('🧪 Test de configuration ChessGame');
+        console.log('consoleLog actuel:', ChessGame.consoleLog);
+        console.log('Source config:', ChessGame.getConfigSource());
+        console.log('window.appConfig disponible:', !!window.appConfig);
+        
+        if (window.appConfig) {
+            console.log('Valeur debug.console_log dans appConfig:', 
+                window.appConfig.debug?.console_log, 
+                '(type:', typeof window.appConfig.debug?.console_log + ')');
+        }
+        
+        console.log('Mode debug activé:', ChessGame.isDebugMode());
+        console.groupEnd();
+        
+        return ChessGame.consoleLog;
+    },
+    
+    // Obtenir l'état actuel
+    getState: () => ({
+        consoleLog: ChessGame.consoleLog,
+        source: ChessGame.getConfigSource(),
+        debugMode: ChessGame.isDebugMode(),
+        configValue: window.appConfig?.debug?.console_log
+    }),
+    
+    // Vérifier la configuration JSON
+    checkJSONConfig: () => {
+        if (window.appConfig) {
+            return {
+                exists: true,
+                debug: window.appConfig.debug,
+                console_log_value: window.appConfig.debug?.console_log,
+                console_log_type: typeof window.appConfig.debug?.console_log
+            };
+        }
+        return { exists: false };
+    }
+};
+
+// Vérifier la configuration après le chargement complet de la page
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            ChessGame.loadConfig();
+            if (ChessGame.consoleLog) {
+                console.log('✅ ChessGame: Configuration vérifiée après chargement du DOM');
+            }
+        }, 100);
+    });
+} else {
+    setTimeout(() => {
+        ChessGame.loadConfig();
+    }, 100);
+}
+
+// Message final basé sur la configuration
+if (ChessGame.consoleLog) {
+    console.log('✅ ChessGame prêt (mode debug activé)');
+} else {
+    console.info('✅ ChessGame prêt (mode silencieux)');
+}
+
 window.ChessGame = ChessGame;
 
-// Interface de debug globale
+// Interface de debug globale (toujours disponible, mais avec logs conditionnels)
 window.chessDebug = {
     // Informations du jeu
     gameInfo: () => {
@@ -447,10 +734,10 @@ window.chessDebug = {
     testBot: () => {
         if (window.chessGame) {
             console.log('🧪 [chessDebug] Test du bot');
-            window.chessGame.testBot();
-        } else {
-            console.log('❌ [chessDebug] Jeu non initialisé');
+            return window.chessGame.testBot();
         }
+        console.log('❌ [chessDebug] Jeu non initialisé');
+        return null;
     },
     
     // Forcer un coup du bot
@@ -514,7 +801,7 @@ window.chessDebug = {
     }
 };
 
-// Message d'aide pour la console
+// Message d'aide pour la console (conditionnel au debug)
 if (ChessGame.consoleLog) {
     console.log(`
 🎮 [ChessGame] COMMANDES DEBUG DISPONIBLES:

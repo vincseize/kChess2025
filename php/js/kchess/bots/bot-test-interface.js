@@ -1,12 +1,69 @@
-// bots/bot-test-interface.js - Interface de test pour les bots
+// bots/bot-test-interface.js - Interface de test pour les bots avec priorité à la config JSON
 class BotTestInterface {
     
-    static consoleLog = true; // false pour production, true pour debug
+    // Valeur par défaut - sera écrasée par la config JSON si disponible
+    static consoleLog = true; // true par défaut pour debug
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
         if (this.consoleLog) {
-            console.log('bots/bot-test-interface.js loaded');
+            console.log('🤖 bots/bot-test-interface.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
         }
+    }
+    
+    // Méthode pour charger la configuration
+    static loadConfig() {
+        try {
+            // Vérifier si la configuration globale existe
+            if (window.appConfig && window.appConfig.debug) {
+                const configValue = window.appConfig.debug.console_log;
+                
+                // Convertir la valeur en booléen
+                if (typeof configValue === 'string') {
+                    this.consoleLog = configValue.toLowerCase() === 'true';
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
+                
+                return true;
+            }
+            
+            // Si window.appConfig n'existe pas, essayer de le charger
+            if (typeof window.getConfig === 'function') {
+                const configValue = window.getConfig('debug.console_log', 'true');
+                this.consoleLog = configValue === true || configValue === 'true';
+                return true;
+            }
+            
+            // Si rien n'est disponible, garder la valeur par défaut
+            if (this.consoleLog) {
+                console.warn('⚠️ BotTestInterface: Aucune configuration trouvée, utilisation de la valeur par défaut');
+            }
+            return false;
+            
+        } catch (error) {
+            console.error('❌ BotTestInterface: Erreur lors du chargement de la config:', error);
+            return false;
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig) {
+            return 'JSON config';
+        } else if (typeof window.getConfig === 'function') {
+            return 'fonction getConfig';
+        } else {
+            return 'valeur par défaut';
+        }
+    }
+    
+    // Méthode pour vérifier si on est en mode debug
+    static isDebugMode() {
+        return this.consoleLog;
     }
 
     constructor(chessGame) {
@@ -14,8 +71,12 @@ class BotTestInterface {
         this.testPanel = null;
         this.isVisible = false;
         
+        // Vérifier que la configuration est à jour
+        this.constructor.loadConfig();
+        
         if (this.constructor.consoleLog) {
             console.log('🤖 [BotTestInterface] Interface de test pour bots initialisée');
+            console.log(`📊 ${this.constructor.getConfigSource()}: console_log = ${this.constructor.consoleLog}`);
         }
     }
 
@@ -225,7 +286,9 @@ class BotTestInterface {
             const timestamp = new Date().toLocaleTimeString();
             resultsDiv.innerHTML = `<div>[${timestamp}] ${message}</div>` + resultsDiv.innerHTML;
         }
-        console.log('📝 [BotTestInterface] ' + message);
+        if (this.constructor.consoleLog) {
+            console.log('📝 [BotTestInterface] ' + message);
+        }
     }
 
     // Tester le bot
@@ -303,8 +366,60 @@ class BotTestInterface {
     }
 }
 
+// Initialisation statique
+BotTestInterface.init();
+
+// Exposer la classe globalement
+window.BotTestInterface = BotTestInterface;
+
+// Ajouter des fonctions utilitaires globales
+window.BotTestInterfaceUtils = {
+    // Forcer le rechargement de la config
+    reloadConfig: () => {
+        BotTestInterface.loadConfig();
+        console.log(`🔧 BotTestInterface: Configuration rechargée: ${BotTestInterface.consoleLog}`);
+        return BotTestInterface.consoleLog;
+    },
+    
+    // Tester la configuration
+    testConfig: () => {
+        console.group('🧪 Test de configuration BotTestInterface');
+        console.log('consoleLog actuel:', BotTestInterface.consoleLog);
+        console.log('Source config:', BotTestInterface.getConfigSource());
+        console.log('window.appConfig disponible:', !!window.appConfig);
+        
+        if (window.appConfig) {
+            console.log('Valeur debug.console_log dans appConfig:', 
+                window.appConfig.debug?.console_log);
+        }
+        
+        console.log('Mode debug activé:', BotTestInterface.isDebugMode());
+        console.groupEnd();
+        
+        return BotTestInterface.consoleLog;
+    },
+    
+    // Tester l'interface
+    testInterface: () => {
+        if (!window.chessGame) {
+            console.error('❌ chessGame non disponible');
+            return null;
+        }
+        
+        const testInterface = new BotTestInterface(window.chessGame);
+        testInterface.createTestPanel();
+        console.log('✅ Interface de test créée');
+        return testInterface;
+    }
+};
+
 // Auto-ajout de l'interface en développement
 document.addEventListener('DOMContentLoaded', function() {
+    // Vérifier la configuration avant d'ajouter l'interface
+    if (!BotTestInterface.consoleLog) {
+        return; // Ne pas ajouter l'interface si console_log est false
+    }
+    
     setTimeout(() => {
         if (window.chessGame && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
             if (BotTestInterface.consoleLog) {
@@ -345,7 +460,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 2000);
 });
 
-// Initialisation statique
-BotTestInterface.init();
+// Vérifier la configuration après le chargement complet de la page
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            BotTestInterface.loadConfig();
+            if (BotTestInterface.consoleLog) {
+                console.log('✅ BotTestInterface: Configuration vérifiée après chargement du DOM');
+            }
+        }, 100);
+    });
+} else {
+    setTimeout(() => {
+        BotTestInterface.loadConfig();
+    }, 100);
+}
 
-window.BotTestInterface = BotTestInterface;
+// Log final (si activé)
+if (BotTestInterface.consoleLog) {
+    console.log('✅ BotTestInterface prêt à utiliser la configuration JSON');
+}

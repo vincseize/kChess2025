@@ -1,20 +1,118 @@
 // check/checkChessPat.js - Vérification du pat (égalité) avec consoleLog configurable
 class ChessPatEngine extends ChessEngine {
     
-    static consoleLog = true; // false pour production, true pour debug
+    static consoleLog = true; // Valeur par défaut - sera écrasée par la config JSON
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
         if (this.consoleLog) {
-            console.log('check/checkChessPat.js loaded');
+            console.log('check/checkChessPat.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            console.info('🔇 checkChessPat.js: Mode silencieux activé');
         }
+    }
+    
+    // Méthode pour charger la configuration depuis window.appConfig
+    static loadConfig() {
+        try {
+            // Vérifier si la configuration globale existe
+            if (window.appConfig && window.appConfig.debug) {
+                const configValue = window.appConfig.debug.console_log;
+                
+                // CONVERSION CORRECTE - Gérer les string "false" et "true"
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else if (configValue === "true") {
+                    this.consoleLog = true;
+                } else if (configValue === true) {
+                    this.consoleLog = true;
+                } else {
+                    // Pour toute autre valeur, utiliser Boolean()
+                    this.consoleLog = Boolean(configValue);
+                }
+                
+                // Log de confirmation (uniquement en mode debug)
+                if (this.consoleLog) {
+                    console.log(`⚙️ ChessPatEngine: Configuration chargée - console_log = ${this.consoleLog}`);
+                }
+                return true;
+            }
+            
+            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
+            if (typeof window.getConfig === 'function') {
+                const configValue = window.getConfig('debug.console_log', 'true');
+                
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
+                return true;
+            }
+            
+            // Si rien n'est disponible, garder la valeur par défaut
+            if (this.consoleLog) {
+                console.warn('⚠️ ChessPatEngine: Aucune configuration trouvée, utilisation de la valeur par défaut (true)');
+            }
+            return false;
+            
+        } catch (error) {
+            console.error('❌ ChessPatEngine: Erreur lors du chargement de la config:', error);
+            return false;
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig) {
+            return 'JSON config';
+        } else if (typeof window.getConfig === 'function') {
+            return 'fonction getConfig';
+        } else {
+            return 'valeur par défaut';
+        }
+    }
+    
+    // Méthode pour vérifier si on est en mode debug
+    static isDebugMode() {
+        return this.consoleLog;
     }
 
     constructor(fen) {
         super(fen);
+        
+        // Vérifier que la configuration est à jour
+        this.constructor.loadConfig();
+        
+        if (this.constructor.consoleLog) {
+            console.log('🔧 ChessPatEngine créé');
+            console.log(`📊 Source config: ${this.constructor.getConfigSource()}`);
+        } else {
+            console.info('🔧 ChessPatEngine créé (mode silencieux)');
+        }
     }
 
     // Vérifier le pat (égalité)
     isStalemate(color) {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            // 1. Le roi n'est PAS en échec
+            if (this.isKingInCheck(color)) {
+                return false;
+            }
+            
+            // 2. Aucun coup légal possible
+            return !this.hasAnyLegalMoves(color);
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log(`♟️🔍 Vérification pat pour ${color}`);
         }
@@ -39,6 +137,31 @@ class ChessPatEngine extends ChessEngine {
 
     // Vérifier s'il y a au moins un coup légal
     hasAnyLegalMoves(color) {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            // Parcourir toutes les pièces de la couleur
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const piece = this.getPiece(row, col);
+                    
+                    // Si c'est une pièce de la bonne couleur
+                    if (piece && this.isPieceColor(piece, color)) {
+                        // Générer tous les mouvements possibles pour cette pièce
+                        const possibleMoves = this.getPossibleMovesForPiece(piece, row, col);
+                        
+                        // Si au moins un mouvement est légal (ne met pas le roi en échec)
+                        for (const move of possibleMoves) {
+                            if (this.isMoveLegal(color, row, col, move.row, move.col)) {
+                                return true; // Au moins un coup légal existe
+                            }
+                        }
+                    }
+                }
+            }
+            return false; // Aucun coup légal
+        }
+        
+        // Mode debug
         // Parcourir toutes les pièces de la couleur
         for (let row = 0; row < 8; row++) {
             for (let col = 0; col < 8; col++) {
@@ -106,6 +229,26 @@ class ChessPatEngine extends ChessEngine {
 
     // Vérifier si un mouvement est légal (ne met pas le roi en échec)
     isMoveLegal(color, fromRow, fromCol, toRow, toCol) {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            // Créer une copie du plateau pour simulation
+            const tempBoard = this.createTempBoard();
+            const piece = tempBoard[fromRow][fromCol];
+            
+            // Exécuter le mouvement temporairement
+            tempBoard[toRow][toCol] = piece;
+            tempBoard[fromRow][fromCol] = null;
+            
+            // Vérifier si le roi est toujours en échec après le mouvement
+            const tempEngine = new ChessPatEngine(this.generateFENFromBoard(tempBoard, color));
+            return !tempEngine.isKingInCheck(color);
+        }
+        
+        // Mode debug
+        if (this.constructor.consoleLog) {
+            console.log(`♟️🔍 Vérification légalité coup: [${fromRow},${fromCol}] → [${toRow},${toCol}]`);
+        }
+        
         // Créer une copie du plateau pour simulation
         const tempBoard = this.createTempBoard();
         const piece = tempBoard[fromRow][fromCol];
@@ -116,7 +259,13 @@ class ChessPatEngine extends ChessEngine {
         
         // Vérifier si le roi est toujours en échec après le mouvement
         const tempEngine = new ChessPatEngine(this.generateFENFromBoard(tempBoard, color));
-        return !tempEngine.isKingInCheck(color);
+        const isLegal = !tempEngine.isKingInCheck(color);
+        
+        if (this.constructor.consoleLog) {
+            console.log(`♟️ ${isLegal ? '✅ Légal' : '❌ Illégal'} - Échec après coup: ${!isLegal}`);
+        }
+        
+        return isLegal;
     }
 
     // Créer une copie temporaire du plateau
@@ -278,6 +427,17 @@ class ChessPatEngine extends ChessEngine {
         return row >= 0 && row < 8 && col >= 0 && col < 8;
     }
     
+    // Méthode pour forcer la mise à jour de la configuration
+    static reloadConfig() {
+        const oldValue = this.consoleLog;
+        this.loadConfig();
+        
+        if (this.consoleLog && oldValue !== this.consoleLog) {
+            console.log(`🔄 ChessPatEngine: Configuration rechargée: ${oldValue} → ${this.consoleLog}`);
+        }
+        return this.consoleLog;
+    }
+    
     /**
      * Configurer le mode debug
      */
@@ -287,7 +447,90 @@ class ChessPatEngine extends ChessEngine {
     }
 }
 
-// Appeler init() automatiquement
+// Initialisation statique
 ChessPatEngine.init();
+
+// Exposer des fonctions utilitaires globales
+window.ChessPatEngineUtils = {
+    // Forcer le rechargement de la config
+    reloadConfig: () => ChessPatEngine.reloadConfig(),
+    
+    // Tester la configuration
+    testConfig: () => {
+        console.group('🧪 Test de configuration ChessPatEngine');
+        console.log('consoleLog actuel:', ChessPatEngine.consoleLog);
+        console.log('Source config:', ChessPatEngine.getConfigSource());
+        console.log('window.appConfig disponible:', !!window.appConfig);
+        
+        if (window.appConfig) {
+            console.log('Valeur debug.console_log dans appConfig:', 
+                window.appConfig.debug?.console_log, 
+                '(type:', typeof window.appConfig.debug?.console_log + ')');
+        }
+        
+        console.log('Mode debug activé:', ChessPatEngine.isDebugMode());
+        console.groupEnd();
+        
+        return ChessPatEngine.consoleLog;
+    },
+    
+    // Obtenir l'état actuel
+    getState: () => ({
+        consoleLog: ChessPatEngine.consoleLog,
+        source: ChessPatEngine.getConfigSource(),
+        debugMode: ChessPatEngine.isDebugMode(),
+        configValue: window.appConfig?.debug?.console_log
+    }),
+    
+    // Vérifier la configuration JSON
+    checkJSONConfig: () => {
+        if (window.appConfig) {
+            return {
+                exists: true,
+                debug: window.appConfig.debug,
+                console_log_value: window.appConfig.debug?.console_log,
+                console_log_type: typeof window.appConfig.debug?.console_log
+            };
+        }
+        return { exists: false };
+    },
+    
+    // Tester le moteur de pat
+    testEngine: (fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", color = "w") => {
+        console.log('🧪 Test ChessPatEngine avec FEN:', fen);
+        const engine = new ChessPatEngine(fen);
+        
+        // Exécuter les vérifications uniquement si debug activé
+        if (ChessPatEngine.consoleLog) {
+            console.log('✓ Pat pour', color, '?', engine.isStalemate(color));
+            console.log('✓ Coups légaux pour', color, '?', engine.hasAnyLegalMoves(color));
+        }
+        
+        return engine;
+    }
+};
+
+// Vérifier la configuration après le chargement complet de la page
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            ChessPatEngine.loadConfig();
+            if (ChessPatEngine.consoleLog) {
+                console.log('✅ ChessPatEngine: Configuration vérifiée après chargement du DOM');
+            }
+        }, 100);
+    });
+} else {
+    setTimeout(() => {
+        ChessPatEngine.loadConfig();
+    }, 100);
+}
+
+// Message final basé sur la configuration
+if (ChessPatEngine.consoleLog) {
+    console.log('✅ ChessPatEngine prêt (mode debug activé)');
+} else {
+    console.info('✅ ChessPatEngine prêt (mode silencieux)');
+}
 
 window.ChessPatEngine = ChessPatEngine;

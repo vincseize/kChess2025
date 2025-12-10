@@ -1,13 +1,88 @@
 // check/checkFenPosition.js - Version avec consoleLog configurable
 class ChessFenPosition {
     
-    static consoleLog = trus; // false pour production, true pour debug
+    static consoleLog = true; // Valeur par défaut - sera écrasée par la config JSON
     
-    // CORRECTION : Ce code doit être dans une méthode
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
         if (this.consoleLog) {
-            console.log('check/checkFenPosition.js loaded');
+            console.log('✅ check/checkFenPosition.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            console.info('🔇 checkFenPosition.js: Mode silencieux activé');
         }
+    }
+    
+    // Méthode pour charger la configuration CORRIGÉE
+    static loadConfig() {
+        try {
+            // Vérifier si la configuration globale existe
+            if (window.appConfig && window.appConfig.debug) {
+                const configValue = window.appConfig.debug.console_log;
+                
+                // CONVERSION CORRECTE - Gérer les string "false" et "true"
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else if (configValue === "true") {
+                    this.consoleLog = true;
+                } else if (configValue === true) {
+                    this.consoleLog = true;
+                } else {
+                    // Pour toute autre valeur, utiliser Boolean()
+                    this.consoleLog = Boolean(configValue);
+                }
+                
+                // Log de confirmation (uniquement en mode debug)
+                if (this.consoleLog) {
+                    console.log(`⚙️ ChessFenPosition: Configuration chargée - console_log = ${this.consoleLog}`);
+                }
+                return true;
+            }
+            
+            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
+            if (typeof window.getConfig === 'function') {
+                const configValue = window.getConfig('debug.console_log', 'true');
+                
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
+                return true;
+            }
+            
+            // Si rien n'est disponible, garder la valeur par défaut
+            if (this.consoleLog) {
+                console.warn('⚠️ ChessFenPosition: Aucune configuration trouvée, utilisation de la valeur par défaut (true)');
+            }
+            return false;
+            
+        } catch (error) {
+            console.error('❌ ChessFenPosition: Erreur lors du chargement de la config:', error);
+            return false;
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig) {
+            return 'JSON config';
+        } else if (typeof window.getConfig === 'function') {
+            return 'fonction getConfig';
+        } else {
+            return 'valeur par défaut';
+        }
+    }
+    
+    // Méthode pour vérifier si on est en mode debug
+    static isDebugMode() {
+        return this.consoleLog;
     }
 
     static isValid(fen) {
@@ -27,7 +102,7 @@ class ChessFenPosition {
             if (!this.validateCounters(halfMove, fullMove)) return false;
             
             if (this.consoleLog) {
-                console.log('✅ Position FEN valide:', fen);
+                console.log('✅ Position FEN valide:', fen.substring(0, 50) + (fen.length > 50 ? '...' : ''));
             }
             
             return true;
@@ -41,6 +116,41 @@ class ChessFenPosition {
     }
     
     static validateBoard(board) {
+        // Mode silencieux - sans logs
+        if (!this.consoleLog) {
+            const rows = board.split('/');
+            if (rows.length !== 8) return false;
+            
+            // Vérifier chaque rangée
+            for (let i = 0; i < 8; i++) {
+                let count = 0;
+                for (const char of rows[i]) {
+                    if (/^[KQRBNPkqrbnp]$/.test(char)) {
+                        count++;
+                    } else if (/^[1-8]$/.test(char)) {
+                        count += parseInt(char);
+                    } else {
+                        return false;
+                    }
+                }
+                if (count !== 8) return false;
+                
+                // Pions pas sur rangée 1 ou 8
+                if (i === 0 && rows[i].includes('P')) return false;
+                if (i === 7 && rows[i].includes('p')) return false;
+            }
+            
+            // Exactement 1 roi par couleur
+            const whiteKings = (board.match(/K/g) || []).length;
+            const blackKings = (board.match(/k/g) || []).length;
+            
+            if (whiteKings !== 1) return false;
+            if (blackKings !== 1) return false;
+            
+            return true;
+        }
+        
+        // Mode debug - avec logs
         const rows = board.split('/');
         if (rows.length !== 8) {
             if (this.consoleLog) console.log('❌ Plateau doit avoir 8 rangées');
@@ -109,6 +219,22 @@ class ChessFenPosition {
     }
     
     static validateCounters(halfMove, fullMove) {
+        // Mode silencieux
+        if (!this.consoleLog) {
+            if (!/^\d+$/.test(halfMove) || !/^\d+$/.test(fullMove)) {
+                return false;
+            }
+            
+            const halfMoveNum = parseInt(halfMove);
+            const fullMoveNum = parseInt(fullMove);
+            
+            if (halfMoveNum < 0 || halfMoveNum > 100) return false;
+            if (fullMoveNum < 1) return false;
+            
+            return true;
+        }
+        
+        // Mode debug
         if (!/^\d+$/.test(halfMove) || !/^\d+$/.test(fullMove)) {
             if (this.consoleLog) console.log('❌ Compteurs de coups invalides');
             return false;
@@ -215,8 +341,19 @@ class ChessFenPosition {
         return `🎯 Nullité - 100/100 (règle des 50 coups appliquée)`;
     }
     
+    // Méthode pour forcer la mise à jour de la configuration
+    static reloadConfig() {
+        const oldValue = this.consoleLog;
+        this.loadConfig();
+        
+        if (this.consoleLog && oldValue !== this.consoleLog) {
+            console.log(`🔄 ChessFenPosition: Configuration rechargée: ${oldValue} → ${this.consoleLog}`);
+        }
+        return this.consoleLog;
+    }
+    
     /**
-     * Configurer le mode debug
+     * Configurer le mode debug (manuellement)
      */
     static setDebugMode(enabled) {
         this.consoleLog = enabled;
@@ -224,7 +361,91 @@ class ChessFenPosition {
     }
 }
 
-// Appeler init() automatiquement quand la classe est chargée
+// Initialisation statique
 ChessFenPosition.init();
 
+// Exposer la classe globalement
 window.ChessFenPosition = ChessFenPosition;
+
+// Ajouter des fonctions utilitaires globales
+window.ChessFenPositionUtils = {
+    // Forcer le rechargement de la config
+    reloadConfig: () => ChessFenPosition.reloadConfig(),
+    
+    // Tester la configuration
+    testConfig: () => {
+        console.group('🧪 Test de configuration ChessFenPosition');
+        console.log('consoleLog actuel:', ChessFenPosition.consoleLog);
+        console.log('Source config:', ChessFenPosition.getConfigSource());
+        console.log('window.appConfig disponible:', !!window.appConfig);
+        
+        if (window.appConfig) {
+            console.log('Valeur debug.console_log dans appConfig:', 
+                window.appConfig.debug?.console_log,
+                '(type:', typeof window.appConfig.debug?.console_log + ')');
+        }
+        
+        console.log('Mode debug activé:', ChessFenPosition.isDebugMode());
+        console.groupEnd();
+        
+        return ChessFenPosition.consoleLog;
+    },
+    
+    // Obtenir l'état actuel
+    getState: () => ({
+        consoleLog: ChessFenPosition.consoleLog,
+        source: ChessFenPosition.getConfigSource(),
+        debugMode: ChessFenPosition.isDebugMode(),
+        configValue: window.appConfig?.debug?.console_log
+    }),
+    
+    // Vérifier la configuration JSON
+    checkJSONConfig: () => {
+        if (window.appConfig) {
+            return {
+                exists: true,
+                debug: window.appConfig.debug,
+                console_log_value: window.appConfig.debug?.console_log,
+                console_log_type: typeof window.appConfig.debug?.console_log
+            };
+        }
+        return { exists: false };
+    },
+    
+    // Tester un FEN
+    testFEN: (fen) => {
+        console.group('🧪 Test FEN');
+        const result = ChessFenPosition.analyze(fen);
+        console.log('Résultat:', result);
+        console.groupEnd();
+        return result;
+    },
+    
+    // Validation rapide
+    quickValidate: (fen) => {
+        return ChessFenPosition.quickCheck(fen);
+    }
+};
+
+// Vérifier la configuration après le chargement complet de la page
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            ChessFenPosition.loadConfig();
+            if (ChessFenPosition.consoleLog) {
+                console.log('✅ ChessFenPosition: Configuration vérifiée après chargement du DOM');
+            }
+        }, 100);
+    });
+} else {
+    setTimeout(() => {
+        ChessFenPosition.loadConfig();
+    }, 100);
+}
+
+// Message final basé sur la configuration
+if (ChessFenPosition.consoleLog) {
+    console.log('✅ ChessFenPosition prêt (mode debug activé)');
+} else {
+    console.info('✅ ChessFenPosition prêt (mode silencieux)');
+}

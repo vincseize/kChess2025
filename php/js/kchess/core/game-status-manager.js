@@ -1,25 +1,91 @@
 // core/game-status-manager.js - Gestion du statut de jeu (échec, mat, pat, nullité)
 class GameStatusManager {
     
-    static consoleLog = true; // false pour production, true pour debug
+    // Valeur par défaut - sera écrasée par la config JSON si disponible
+    static consoleLog = true; // true par défaut pour debug
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
         if (this.consoleLog) {
-            console.log('core/game-status-manager.js loaded');
+            console.log('🛡️ core/game-status-manager.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
         }
+    }
+    
+    // Méthode pour charger la configuration
+    static loadConfig() {
+        try {
+            // Vérifier si la configuration globale existe
+            if (window.appConfig && window.appConfig.debug) {
+                const configValue = window.appConfig.debug.console_log;
+                
+                // Convertir la valeur en booléen
+                if (typeof configValue === 'string') {
+                    this.consoleLog = configValue.toLowerCase() === 'true';
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
+                
+                return true;
+            }
+            
+            // Si window.appConfig n'existe pas, essayer de le charger
+            if (typeof window.getConfig === 'function') {
+                const configValue = window.getConfig('debug.console_log', 'true');
+                this.consoleLog = configValue === true || configValue === 'true';
+                return true;
+            }
+            
+            // Si rien n'est disponible, garder la valeur par défaut
+            if (this.consoleLog) {
+                console.warn('⚠️ GameStatusManager: Aucune configuration trouvée, utilisation de la valeur par défaut');
+            }
+            return false;
+            
+        } catch (error) {
+            console.error('❌ GameStatusManager: Erreur lors du chargement de la config:', error);
+            return false;
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig) {
+            return 'JSON config';
+        } else if (typeof window.getConfig === 'function') {
+            return 'fonction getConfig';
+        } else {
+            return 'valeur par défaut';
+        }
+    }
+    
+    // Méthode pour vérifier si on est en mode debug
+    static isDebugMode() {
+        return this.consoleLog;
     }
 
     constructor(chessGame) {
         this.chessGame = chessGame;
         this.lastCheckAlert = null;
         
+        // Vérifier que la configuration est à jour
+        this.constructor.loadConfig();
+        
         if (this.constructor.consoleLog) {
             console.log('🛡️ [GameStatusManager] Gestionnaire de statut initialisé');
             console.log('🛡️ [GameStatusManager] ChessGame:', chessGame);
+            console.log(`📊 ${this.constructor.getConfigSource()}: console_log = ${this.constructor.consoleLog}`);
         }
     }
 
     updateGameStatus() {
+        // Vérifier la configuration avant chaque appel
+        if (!this.constructor.consoleLog && window.appConfig) {
+            this.constructor.loadConfig();
+        }
+        
         if (this.constructor.consoleLog) {
             console.log('\n🔍 [GameStatusManager] === VÉRIFICATION DU STATUT ===');
         }
@@ -567,4 +633,63 @@ if (!document.querySelector('#chess-notification-styles')) {
     if (GameStatusManager.consoleLog) {
         console.log('🎨 [GameStatusManager] Styles de notification injectés');
     }
+}
+
+// Exposer la classe globalement
+window.GameStatusManager = GameStatusManager;
+
+// Ajouter des fonctions utilitaires globales
+window.GameStatusManagerUtils = {
+    // Forcer le rechargement de la config
+    reloadConfig: () => {
+        GameStatusManager.loadConfig();
+        console.log(`🔧 GameStatusManager: Configuration rechargée: ${GameStatusManager.consoleLog}`);
+        return GameStatusManager.consoleLog;
+    },
+    
+    // Obtenir l'état actuel
+    getState: () => ({
+        consoleLog: GameStatusManager.consoleLog,
+        source: GameStatusManager.getConfigSource(),
+        debugMode: GameStatusManager.isDebugMode()
+    }),
+    
+    // Tester la configuration
+    testConfig: () => {
+        console.group('🧪 Test de configuration GameStatusManager');
+        console.log('consoleLog actuel:', GameStatusManager.consoleLog);
+        console.log('Source config:', GameStatusManager.getConfigSource());
+        console.log('window.appConfig disponible:', !!window.appConfig);
+        
+        if (window.appConfig) {
+            console.log('Valeur debug.console_log dans appConfig:', 
+                window.appConfig.debug?.console_log);
+        }
+        
+        console.log('Mode debug activé:', GameStatusManager.isDebugMode());
+        console.groupEnd();
+        
+        return GameStatusManager.consoleLog;
+    }
+};
+
+// Vérifier la configuration après le chargement complet de la page
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            GameStatusManager.loadConfig();
+            if (GameStatusManager.consoleLog) {
+                console.log('✅ GameStatusManager: Configuration vérifiée après chargement du DOM');
+            }
+        }, 100);
+    });
+} else {
+    setTimeout(() => {
+        GameStatusManager.loadConfig();
+    }, 100);
+}
+
+// Log final (si activé)
+if (GameStatusManager.consoleLog) {
+    console.log('✅ GameStatusManager prêt à utiliser la configuration JSON');
 }

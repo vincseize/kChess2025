@@ -1,12 +1,88 @@
 // core/chess-game-core.js - Classe principale orchestratrice MODULAIRE
 class ChessGameCore {
     
-    static consoleLog = true; // false pour production, true pour debug
+    static consoleLog = true; // Valeur par défaut - sera écrasée par la config JSON
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
         if (this.consoleLog) {
-            console.log('core/chess-game-core.js loaded');
+            console.log('core/chess-game-core.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            console.info('🔇 chess-game-core.js: Mode silencieux activé');
         }
+    }
+    
+    // Méthode pour charger la configuration depuis window.appConfig
+    static loadConfig() {
+        try {
+            // Vérifier si la configuration globale existe
+            if (window.appConfig && window.appConfig.debug) {
+                const configValue = window.appConfig.debug.console_log;
+                
+                // CONVERSION CORRECTE - Gérer les string "false" et "true"
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else if (configValue === "true") {
+                    this.consoleLog = true;
+                } else if (configValue === true) {
+                    this.consoleLog = true;
+                } else {
+                    // Pour toute autre valeur, utiliser Boolean()
+                    this.consoleLog = Boolean(configValue);
+                }
+                
+                // Log de confirmation (uniquement en mode debug)
+                if (this.consoleLog) {
+                    console.log(`⚙️ ChessGameCore: Configuration chargée - console_log = ${this.consoleLog}`);
+                }
+                return true;
+            }
+            
+            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
+            if (typeof window.getConfig === 'function') {
+                const configValue = window.getConfig('debug.console_log', 'true');
+                
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
+                return true;
+            }
+            
+            // Si rien n'est disponible, garder la valeur par défaut
+            if (this.consoleLog) {
+                console.warn('⚠️ ChessGameCore: Aucune configuration trouvée, utilisation de la valeur par défaut (true)');
+            }
+            return false;
+            
+        } catch (error) {
+            console.error('❌ ChessGameCore: Erreur lors du chargement de la config:', error);
+            return false;
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig) {
+            return 'JSON config';
+        } else if (typeof window.getConfig === 'function') {
+            return 'fonction getConfig';
+        } else {
+            return 'valeur par défaut';
+        }
+    }
+    
+    // Méthode pour vérifier si on est en mode debug
+    static isDebugMode() {
+        return this.consoleLog;
     }
 
     constructor(board, gameState, moveValidator) {
@@ -17,6 +93,9 @@ class ChessGameCore {
         this.selectedPiece = null;
         this.possibleMoves = [];
         
+        // Vérifier que la configuration est à jour
+        this.constructor.loadConfig();
+        
         if (this.constructor.consoleLog) {
             console.log('\n🏁 [ChessGameCore] === INITIALISATION ===');
             console.log('🏁 [ChessGameCore] Création du moteur de jeu');
@@ -24,6 +103,8 @@ class ChessGameCore {
             console.log('   • Board:', board);
             console.log('   • GameState:', gameState);
             console.log('   • MoveValidator:', moveValidator);
+        } else {
+            console.info('🏁 ChessGameCore initialisé');
         }
         
         // Initialiser les managers modulaires
@@ -52,6 +133,18 @@ class ChessGameCore {
     clearSelection = () => this.moveHandler.clearSelection();
     
     updateUI = () => {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            if (this.ui && this.ui.updateUI) {
+                this.ui.updateUI();
+            }
+            if (this.gameStatusManager && this.gameStatusManager.updateGameStatus) {
+                this.gameStatusManager.updateGameStatus();
+            }
+            return;
+        }
+        
+        // Mode debug
         if (this.ui && this.ui.updateUI) {
             if (this.constructor.consoleLog) {
                 console.log('🔄 [ChessGameCore] Mise à jour de l\'UI');
@@ -70,6 +163,34 @@ class ChessGameCore {
     // GESTION DES MOUVEMENTS
     // ============================================
     handleMove(fromRow, fromCol, toRow, toCol) {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            // Ne pas bloquer si c'est le bot qui joue
+            if (!this.gameState.gameActive) {
+                return false;
+            }
+            
+            // Permettre au bot de jouer même si isBotThinking est true
+            if (this.botManager.isBotThinking && this.gameState.currentPlayer !== this.botManager.botColor) {
+                return false;
+            }
+            
+            try {
+                const success = this.moveHandler.executeDirectMove(fromRow, fromCol, toRow, toCol);
+                
+                if (success) {
+                    this.ui.updateUI();
+                    this.gameStatusManager.updateGameStatus();
+                    return true;
+                }
+                
+                return false;
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log(`\n🎮 [ChessGameCore] === TENTATIVE DE MOUVEMENT ===`);
             console.log(`🎮 [ChessGameCore] Départ: [${fromRow},${fromCol}] → Arrivée: [${toRow},${toCol}]`);
@@ -133,6 +254,17 @@ class ChessGameCore {
     // MÉTHODE POUR METTRE À JOUR LE COMPTEUR DES 50 COUPS
     // ============================================
     updateHalfMoveClock(fromPiece, toPiece, toSquare) {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            if (toPiece || fromPiece.type === 'pawn') {
+                this.gameState.halfMoveClock = 0;
+            } else {
+                this.gameState.halfMoveClock++;
+            }
+            return;
+        }
+        
+        // Mode debug
         if (toPiece || fromPiece.type === 'pawn') {
             this.gameState.halfMoveClock = 0;
             const reason = toPiece ? 'capture' : 'mouvement de pion';
@@ -157,6 +289,45 @@ class ChessGameCore {
     // MÉTHODE POUR DÉPLACER UNE PIÈCE
     // ============================================
     movePiece(fromSquare, toSquare, promotionType = null) {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            const fromPiece = fromSquare.piece;
+            const toPiece = toSquare.piece;
+            const previousFEN = FENGenerator.generateFEN(this.gameState, this.board);
+            
+            // Déplacer la pièce
+            this.board.movePiece(fromSquare, toSquare);
+            
+            // Gérer la promotion
+            if (promotionType) {
+                this.promotionManager.promotePawn(toSquare, promotionType);
+            }
+            
+            // Mettre à jour le compteur des 50 coups
+            this.updateHalfMoveClock(fromPiece, toPiece, toSquare);
+            
+            // Sauvegarder le mouvement dans l'historique
+            const moveData = {
+                from: { row: fromSquare.row, col: fromSquare.col },
+                to: { row: toSquare.row, col: toSquare.col },
+                piece: fromPiece.type,
+                color: fromPiece.color,
+                captured: toPiece ? toPiece.type : null,
+                fen: previousFEN
+            };
+            
+            this.gameState.moveHistory.push(moveData);
+            
+            // Changer le tour
+            const oldTurn = this.gameState.currentTurn;
+            this.gameState.currentTurn = this.gameState.currentTurn === 'white' ? 'black' : 'white';
+            
+            this.clearSelection();
+            this.gameStatusManager.updateGameStatus();
+            return;
+        }
+        
+        // Mode debug
         const fromPiece = fromSquare.piece;
         const toPiece = toSquare.piece;
         
@@ -229,6 +400,12 @@ class ChessGameCore {
     // DÉLÉGATION DES MÉTHODES BOT
     // ============================================
     setBotLevel(level, color = 'black') {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            return this.botManager.setBotLevel(level, color);
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log(`\n🤖 [ChessGameCore] Délégation de setBotLevel: niveau=${level}, couleur=${color}`);
         }
@@ -236,6 +413,12 @@ class ChessGameCore {
     }
 
     getBotStatus() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            return this.botManager.getBotStatus();
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('🤖 [ChessGameCore] Délégation de getBotStatus');
         }
@@ -243,6 +426,13 @@ class ChessGameCore {
     }
 
     setBotColor(color) {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            this.botManager.setBotColor(color);
+            return;
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log(`🤖 [ChessGameCore] Délégation de setBotColor: couleur=${color}`);
         }
@@ -250,6 +440,12 @@ class ChessGameCore {
     }
 
     playBotMove() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            return this.botManager.playBotMove();
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log('🤖 [ChessGameCore] Délégation de playBotMove');
         }
@@ -260,15 +456,12 @@ class ChessGameCore {
     // DÉLÉGATION DES MÉTHODES UI
     // ============================================
     showNotification(message, type = 'info') {
+        // Mode silencieux - toujours afficher les notifications
         if (this.gameStatusManager && this.gameStatusManager.showNotification) {
-            if (this.constructor.consoleLog) {
-                console.log(`📢 [ChessGameCore] Notification via GameStatusManager: ${type} - ${message}`);
-            }
             this.gameStatusManager.showNotification(message, type);
         } else {
-            if (this.constructor.consoleLog) {
-                console.log(`📢 [ChessGameCore] Notification console: ${type.toUpperCase()} - ${message}`);
-            }
+            // Fallback simple
+            console.log(`📢 ${type.toUpperCase()}: ${message}`);
         }
     }
 
@@ -276,6 +469,32 @@ class ChessGameCore {
     // MÉTHODE POUR TOURNER LE PLATEAU (SIMPLIFIÉE)
     // ============================================
     flipBoard() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            const currentPosition = this.board.saveCurrentPosition();
+            this.gameState.boardFlipped = !this.gameState.boardFlipped;
+            this.board.createBoard();
+            
+            Object.keys(currentPosition).forEach(key => {
+                const [row, col] = key.split('-').map(Number);
+                const square = this.board.getSquare(row, col);
+                if (square) {
+                    this.board.placePiece(currentPosition[key], square);
+                }
+            });
+            
+            this.clearSelection();
+            if (this.gameStatusManager && this.gameStatusManager.updateGameStatus) {
+                this.gameStatusManager.updateGameStatus();
+            }
+            
+            if (typeof window.updatePlayerLabels === 'function') {
+                window.updatePlayerLabels();
+            }
+            return;
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log(`\n🔄 [ChessGameCore] === FLIP DU PLATEAU ===`);
             console.log(`🔄 [ChessGameCore] Ancien état: ${this.gameState.boardFlipped ? 'retourné' : 'normal'}`);
@@ -340,6 +559,31 @@ class ChessGameCore {
     // NOUVELLE PARTIE
     // ============================================
     newGame() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            this.gameState.resetGame();
+            this.clearSelection();
+            this.loadInitialPosition();
+            
+            if (this.botManager.botLevel > 0) {
+                this.botManager.setBotLevel(this.botManager.botLevel, this.botManager.botColor);
+            }
+            
+            if (this.ui && this.ui.resetTimers) {
+                this.ui.resetTimers();
+            }
+            
+            this.updateUI();
+            
+            setTimeout(() => {
+                if (typeof window.updatePlayerLabels === 'function') {
+                    window.updatePlayerLabels();
+                }
+            }, 300);
+            return;
+        }
+        
+        // Mode debug
         if (this.constructor.consoleLog) {
             console.log(`\n🆕 [ChessGameCore] === NOUVELLE PARTIE ===`);
             console.log(`🆕 [ChessGameCore] Réinitialisation du jeu...`);
@@ -414,13 +658,9 @@ class ChessGameCore {
         }
         
         this.board.createBoard();
+        
         if (this.constructor.consoleLog) {
             console.log('🔧 [ChessGameCore] Plateau créé');
-        }
-        
-        // Ici vous devez placer les pièces selon votre système
-        // Exemple: this.board.setupInitialPieces();
-        if (this.constructor.consoleLog) {
             console.log('🔧 [ChessGameCore] NOTE: Les pièces doivent être placées séparément');
         }
     }
@@ -466,10 +706,89 @@ class ChessGameCore {
         
         return stats;
     }
+    
+    // Méthode pour forcer la mise à jour de la configuration
+    static reloadConfig() {
+        const oldValue = this.consoleLog;
+        this.loadConfig();
+        
+        if (this.consoleLog && oldValue !== this.consoleLog) {
+            console.log(`🔄 ChessGameCore: Configuration rechargée: ${oldValue} → ${this.consoleLog}`);
+        }
+        return this.consoleLog;
+    }
 }
 
 // Initialisation statique
 ChessGameCore.init();
 
-// Exporter la classe
+// Exposer des fonctions utilitaires globales
+window.ChessGameCoreUtils = {
+    // Forcer le rechargement de la config
+    reloadConfig: () => ChessGameCore.reloadConfig(),
+    
+    // Tester la configuration
+    testConfig: () => {
+        console.group('🧪 Test de configuration ChessGameCore');
+        console.log('consoleLog actuel:', ChessGameCore.consoleLog);
+        console.log('Source config:', ChessGameCore.getConfigSource());
+        console.log('window.appConfig disponible:', !!window.appConfig);
+        
+        if (window.appConfig) {
+            console.log('Valeur debug.console_log dans appConfig:', 
+                window.appConfig.debug?.console_log, 
+                '(type:', typeof window.appConfig.debug?.console_log + ')');
+        }
+        
+        console.log('Mode debug activé:', ChessGameCore.isDebugMode());
+        console.groupEnd();
+        
+        return ChessGameCore.consoleLog;
+    },
+    
+    // Obtenir l'état actuel
+    getState: () => ({
+        consoleLog: ChessGameCore.consoleLog,
+        source: ChessGameCore.getConfigSource(),
+        debugMode: ChessGameCore.isDebugMode(),
+        configValue: window.appConfig?.debug?.console_log
+    }),
+    
+    // Vérifier la configuration JSON
+    checkJSONConfig: () => {
+        if (window.appConfig) {
+            return {
+                exists: true,
+                debug: window.appConfig.debug,
+                console_log_value: window.appConfig.debug?.console_log,
+                console_log_type: typeof window.appConfig.debug?.console_log
+            };
+        }
+        return { exists: false };
+    }
+};
+
+// Vérifier la configuration après le chargement complet de la page
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            ChessGameCore.loadConfig();
+            if (ChessGameCore.consoleLog) {
+                console.log('✅ ChessGameCore: Configuration vérifiée après chargement du DOM');
+            }
+        }, 100);
+    });
+} else {
+    setTimeout(() => {
+        ChessGameCore.loadConfig();
+    }, 100);
+}
+
+// Message final basé sur la configuration
+if (ChessGameCore.consoleLog) {
+    console.log('✅ ChessGameCore prêt (mode debug activé)');
+} else {
+    console.info('✅ ChessGameCore prêt (mode silencieux)');
+}
+
 window.ChessGameCore = ChessGameCore;

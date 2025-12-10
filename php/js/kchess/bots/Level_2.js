@@ -12,36 +12,56 @@ class Level_2 {
             console.log('🤖 bots/Level_2.js chargé');
             console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
             console.log(`🎯 Stratégie CCMO activée: Check → Capture → Menace → Optimisation`);
+        } else {
+            console.info('🤖 Level_2: Mode silencieux activé (debug désactivé dans config)');
         }
     }
     
-    // Méthode pour charger la configuration
+    // Méthode pour charger la configuration CORRIGÉE
     static loadConfig() {
         try {
             // Vérifier si la configuration globale existe
             if (window.appConfig && window.appConfig.debug) {
                 const configValue = window.appConfig.debug.console_log;
                 
-                // Convertir la valeur en booléen
-                if (typeof configValue === 'string') {
-                    this.consoleLog = configValue.toLowerCase() === 'true';
+                // CONVERSION CORRECTE - Gérer les string "false" et "true"
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else if (configValue === "true") {
+                    this.consoleLog = true;
+                } else if (configValue === true) {
+                    this.consoleLog = true;
                 } else {
+                    // Pour toute autre valeur, utiliser Boolean()
                     this.consoleLog = Boolean(configValue);
                 }
                 
+                // Log de confirmation (uniquement en mode debug)
+                if (this.consoleLog) {
+                    console.log(`⚙️ Level_2: Configuration chargée - console_log = ${this.consoleLog} (valeur brute: "${configValue}")`);
+                }
                 return true;
             }
             
-            // Si window.appConfig n'existe pas, essayer de le charger
+            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
             if (typeof window.getConfig === 'function') {
                 const configValue = window.getConfig('debug.console_log', 'true');
-                this.consoleLog = configValue === true || configValue === 'true';
+                
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
                 return true;
             }
             
             // Si rien n'est disponible, garder la valeur par défaut
             if (this.consoleLog) {
-                console.warn('⚠️ Level_2: Aucune configuration trouvée, utilisation de la valeur par défaut');
+                console.warn('⚠️ Level_2: Aucune configuration trouvée, utilisation de la valeur par défaut (true)');
             }
             return false;
             
@@ -68,16 +88,18 @@ class Level_2 {
     }
 
     constructor() {
-        this.name = "Bot Level 1 (CCMO)";
-        this.level = 1;
+        this.name = "Bot Level 2 (CCMO)";
+        this.level = 2;
         
         // Vérifier que la configuration est à jour
         this.constructor.loadConfig();
         
         if (this.constructor.consoleLog) {
-            console.log(`🤖 [Level_2] Bot Level 1 initialisé - "CCMO Strategy Bot"`);
+            console.log(`🤖 [Level_2] Bot Level 2 initialisé - "CCMO Strategy Bot"`);
             console.log(`📊 ${this.constructor.getConfigSource()}: console_log = ${this.constructor.consoleLog}`);
             console.log(`🎯 [Level_2] Stratégie: Check → Capture → Menace → Optimisation`);
+        } else {
+            console.info(`🤖 [Level_2] Bot Level 2 initialisé (mode silencieux)`);
         }
     }
 
@@ -88,6 +110,48 @@ class Level_2 {
             this.constructor.loadConfig();
         }
         
+        // Si debug désactivé, exécuter silencieusement
+        if (!this.constructor.consoleLog) {
+            try {
+                const game = window.chessGame;
+                if (!game || !game.core || !game.core.moveValidator) {
+                    return null;
+                }
+
+                const allMoves = this.getAllValidMoves();
+                
+                if (allMoves.length === 0) {
+                    return null;
+                }
+
+                // Étape 1: CHECK
+                const checkMoves = this.getCheckMoves(allMoves);
+                if (checkMoves.length > 0) {
+                    return this.selectRandomMove(checkMoves);
+                }
+
+                // Étape 2: CAPTURE
+                const captureMoves = this.getCaptureMoves(allMoves);
+                if (captureMoves.length > 0) {
+                    return this.selectRandomMove(captureMoves);
+                }
+
+                // Étape 3: MENACE
+                const threatMoves = this.getThreatMoves(allMoves);
+                if (threatMoves.length > 0) {
+                    return this.selectRandomMove(threatMoves);
+                }
+
+                // Étape 4: OPTIMISATION
+                return this.selectRandomMove(allMoves);
+
+            } catch (error) {
+                // En mode silencieux, on ne logue pas l'erreur
+                return null;
+            }
+        }
+        
+        // Mode debug activé - avec logs
         if (this.constructor.consoleLog) {
             console.log(`\n🎲 [Level_2] === DÉBUT CALCUL DU COUP ===`);
             console.log(`📋 [Level_2] FEN reçu: ${fen.substring(0, 50)}...`);
@@ -441,6 +505,17 @@ class Level_2 {
         };
     }
     
+    // Méthode pour forcer la mise à jour de la configuration
+    static reloadConfig() {
+        const oldValue = this.consoleLog;
+        this.loadConfig();
+        
+        if (this.consoleLog && oldValue !== this.consoleLog) {
+            console.log(`🔄 Level_2: Configuration rechargée: ${oldValue} → ${this.consoleLog}`);
+        }
+        return this.consoleLog;
+    }
+    
     // Méthode pour tester la configuration
     static testConfig() {
         console.group('🧪 Test de configuration Level_2');
@@ -450,7 +525,8 @@ class Level_2 {
         
         if (window.appConfig) {
             console.log('Valeur debug.console_log dans appConfig:', 
-                window.appConfig.debug?.console_log);
+                window.appConfig.debug?.console_log,
+                '(type:', typeof window.appConfig.debug?.console_log + ')');
         }
         
         console.log('Mode debug activé:', this.isDebugMode());
@@ -469,11 +545,7 @@ window.Level_2 = Level_2;
 // Ajouter des fonctions utilitaires globales
 window.Level2Utils = {
     // Forcer le rechargement de la config
-    reloadConfig: () => {
-        Level_2.loadConfig();
-        console.log(`🔧 Level_2: Configuration rechargée: ${Level_2.consoleLog}`);
-        return Level_2.consoleLog;
-    },
+    reloadConfig: () => Level_2.reloadConfig(),
     
     // Tester la configuration
     testConfig: () => Level_2.testConfig(),
@@ -482,7 +554,8 @@ window.Level2Utils = {
     getState: () => ({
         consoleLog: Level_2.consoleLog,
         source: Level_2.getConfigSource(),
-        debugMode: Level_2.isDebugMode()
+        debugMode: Level_2.isDebugMode(),
+        configValue: window.appConfig?.debug?.console_log
     }),
     
     // Obtenir les statistiques de la partie actuelle
@@ -493,6 +566,19 @@ window.Level2Utils = {
         const bot = new Level_2();
         const moves = bot.getAllValidMoves();
         return bot.getMoveStatistics(moves);
+    },
+    
+    // Vérifier la configuration JSON
+    checkJSONConfig: () => {
+        if (window.appConfig) {
+            return {
+                exists: true,
+                debug: window.appConfig.debug,
+                console_log_value: window.appConfig.debug?.console_log,
+                console_log_type: typeof window.appConfig.debug?.console_log
+            };
+        }
+        return { exists: false };
     }
 };
 
@@ -512,7 +598,22 @@ if (document.readyState === 'loading') {
     }, 100);
 }
 
-// Log final (si activé)
+// Message final basé sur la configuration
 if (Level_2.consoleLog) {
-    console.log('✅ Level_2 CCMO Bot prêt à utiliser la configuration JSON');
+    console.log('✅ Level_2 CCMO Bot prêt (mode debug activé)');
+} else {
+    console.info('✅ Level_2 CCMO Bot prêt (mode silencieux)');
 }
+
+// Fonction de test pour vérifier depuis la console
+window.testLevel2Config = function() {
+    console.log('=== TEST CONFIGURATION Level_2 ===');
+    const state = window.Level2Utils.getState();
+    console.log('État actuel:', state);
+    console.log('Valeur brute JSON:', window.appConfig?.debug?.console_log);
+    console.log('String "false" === false ?', "false" === false);
+    console.log('Boolean("false") ?', Boolean("false"));
+    console.log('"false" == false ?', "false" == false);
+    console.log('=== FIN TEST ===');
+    return state;
+};
