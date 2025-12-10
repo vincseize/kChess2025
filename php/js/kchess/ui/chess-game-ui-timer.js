@@ -10,19 +10,19 @@ class ChessTimerManager {
     
     static init() {
         // ALERT DE DEBUG - Voir si la config est chargée
-        alert(`DEBUG ChessTimerManager.init():\n` +
-              `- window.appConfig existe: ${!!window.appConfig}\n` +
-              `- window.appConfig?.debug?.console_log: ${window.appConfig?.debug?.console_log}\n` +
-              `- window.appConfig?.chess_engine?.console_log: ${window.appConfig?.chess_engine?.console_log}`);
+        // alert(`DEBUG ChessTimerManager.init():\n` +
+        //       `- window.appConfig existe: ${!!window.appConfig}\n` +
+        //       `- window.appConfig?.debug?.console_log: ${window.appConfig?.debug?.console_log}\n` +
+        //       `- window.appConfig?.chess_engine?.console_log: ${window.appConfig?.chess_engine?.console_log}`);
         
         // Charger la configuration
         this.loadConfig();
         
         // ALERT après loadConfig pour voir le résultat
-        alert(`DEBUG après loadConfig():\n` +
-              `- this.consoleLog: ${this.consoleLog}\n` +
-              `- Source config: ${this.getConfigSource()}\n` +
-              `- Mode debug: ${this.consoleLog ? 'ACTIVÉ' : 'DÉSACTIVÉ'}`);
+        // alert(`DEBUG après loadConfig():\n` +
+        //       `- this.consoleLog: ${this.consoleLog}\n` +
+        //       `- Source config: ${this.getConfigSource()}\n` +
+        //       `- Mode debug: ${this.consoleLog ? 'ACTIVÉ' : 'DÉSACTIVÉ'}`);
         
         // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
