@@ -1,11 +1,64 @@
-// validators/move-pieces/move-validator-king.js - CORRIGÉ avec gestion correcte des roques
+// validators/move-pieces/move-validator-king.js - Version utilisant la configuration JSON comme priorité
 class KingMoveValidator {
     
-    static consoleLog = true; // false pour production, true pour debug
+    // Valeur par défaut - sera écrasée par la config JSON si disponible
+    static consoleLog = true; // true par défaut pour debug
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
+        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('validators/move-pieces/move-validator-king.js loaded');
+            console.log('♔ validators/move-pieces/move-validator-king.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            // Message silencieux si debug désactivé
+            console.info('♔ KingMoveValidator: Mode silencieux activé (debug désactivé dans config)');
+        }
+    }
+    
+    // Méthode pour charger la configuration
+    static loadConfig() {
+        try {
+            if (window.appConfig && window.appConfig.chess_engine) {
+                // Configuration prioritaire: window.appConfig
+                if (window.appConfig.chess_engine.console_log !== undefined) {
+                    this.consoleLog = window.appConfig.chess_engine.console_log;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('♔ Configuration chargée depuis window.appConfig');
+                }
+            } else if (window.chessConfig) {
+                // Configuration secondaire: window.chessConfig (pour compatibilité)
+                if (window.chessConfig.debug !== undefined) {
+                    this.consoleLog = window.chessConfig.debug;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('♔ Configuration chargée depuis window.chessConfig (legacy)');
+                }
+            } else {
+                // Fallback: valeurs par défaut
+                if (this.consoleLog) {
+                    console.log('♔ Configuration: valeurs par défaut utilisées');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement de la configuration:', error);
+            // Garder les valeurs par défaut en cas d'erreur
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig && window.appConfig.chess_engine) {
+            return 'window.appConfig';
+        } else if (window.chessConfig) {
+            return 'window.chessConfig (legacy)';
+        } else {
+            return 'valeur par défaut';
         }
     }
 
@@ -150,7 +203,7 @@ class KingMoveValidator {
         
         const isOnStart = currentRow === startingRow && currentCol === startingCol;
         
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`    ↳ Case départ ${color}: [${startingRow},${startingCol}] vs actuelle: [${currentRow},${currentCol}] = ${isOnStart ? '✓' : '✗'}`);
         }
         
@@ -197,7 +250,7 @@ class KingMoveValidator {
 
     // Vérifier via gameState si le roi a bougé
     hasKingMoved(color) {
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`    ↳ Vérification déplacement roi ${color}`);
         }
         
@@ -205,7 +258,7 @@ class KingMoveValidator {
         if (this.gameState && this.gameState.hasKingMoved) {
             const hasMoved = this.gameState.hasKingMoved[color];
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      gameState.hasKingMoved[${color}] = ${hasMoved}`);
             }
             
@@ -213,7 +266,7 @@ class KingMoveValidator {
         }
         
         // Si gameState n'est pas disponible, utiliser un fallback sécurisé
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`      gameState non disponible, fallback`);
         }
         
@@ -228,7 +281,7 @@ class KingMoveValidator {
         const king = this.board.getPiece(startRow, startCol);
         const isOnStartSquare = king && king.type === 'king' && king.color === color;
         
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`      fallback: roi ${color} sur [${startRow},${startCol}] = ${isOnStartSquare ? '✓' : '✗'}`);
         }
         
@@ -318,7 +371,7 @@ class KingMoveValidator {
             const fEmpty = !this.board.getPiece(row, 5);
             const gEmpty = !this.board.getPiece(row, 6);
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      Cases [${row},5] (f): ${fEmpty ? '✓ vide' : '✗ occupée'}`);
                 console.log(`      Cases [${row},6] (g): ${gEmpty ? '✓ vide' : '✗ occupée'}`);
             }
@@ -330,7 +383,7 @@ class KingMoveValidator {
             const cEmpty = !this.board.getPiece(row, 2);
             const dEmpty = !this.board.getPiece(row, 3);
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      Cases [${row},1] (b): ${bEmpty ? '✓ vide' : '✗ occupée'}`);
                 console.log(`      Cases [${row},2] (c): ${cEmpty ? '✓ vide' : '✗ occupée'}`);
                 console.log(`      Cases [${row},3] (d): ${dEmpty ? '✓ vide' : '✗ occupée'}`);
@@ -350,7 +403,7 @@ class KingMoveValidator {
             const fAttacked = this.isSquareAttacked(row, 5, opponentColor);
             const gAttacked = this.isSquareAttacked(row, 6, opponentColor);
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      Cases [${row},5] (f): ${fAttacked ? '✗ attaquée' : '✓ sûre'}`);
                 console.log(`      Cases [${row},6] (g): ${gAttacked ? '✗ attaquée' : '✓ sûre'}`);
             }
@@ -361,7 +414,7 @@ class KingMoveValidator {
             const dAttacked = this.isSquareAttacked(row, 3, opponentColor);
             const cAttacked = this.isSquareAttacked(row, 2, opponentColor);
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      Cases [${row},3] (d): ${dAttacked ? '✗ attaquée' : '✓ sûre'}`);
                 console.log(`      Cases [${row},2] (c): ${cAttacked ? '✗ attaquée' : '✓ sûre'}`);
             }
@@ -375,7 +428,7 @@ class KingMoveValidator {
         const row = color === 'white' ? 7 : 0;
         const rookCol = side === 'kingside' ? 7 : 0;
         
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`    ↳ Tour ${side} ${color} en [${row},${rookCol}]`);
         }
         
@@ -384,7 +437,7 @@ class KingMoveValidator {
             const rookState = this.gameState.hasRookMoved[color];
             const hasMoved = side === 'kingside' ? rookState.kingside : rookState.queenside;
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      gameState: ${hasMoved ? '✗ a bougé' : '✓ pas bougé'}`);
             }
             
@@ -395,7 +448,7 @@ class KingMoveValidator {
         const rook = this.board.getPiece(row, rookCol);
         const isRookPresent = rook && rook.type === 'rook' && rook.color === color;
         
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`      fallback: ${isRookPresent ? '✓ présente' : '✗ absente'}`);
         }
         
@@ -463,7 +516,7 @@ class KingMoveValidator {
             const engine = new ChessEngine(tempFEN);
             const isInCheck = engine.isKingInCheck(kingColor === 'white' ? 'w' : 'b');
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      Simulation [${fromRow},${fromCol}]->[${toRow},${toCol}]: ${isInCheck ? '✗ échec' : '✓ sûr'}`);
             }
             
@@ -484,7 +537,7 @@ class KingMoveValidator {
         const colDiff = Math.abs(newCol - opponentKingPos.col);
         const areAdjacent = rowDiff <= 1 && colDiff <= 1;
         
-        if (areAdjacent && this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (areAdjacent && this.constructor.consoleLog) {
             console.log(`      ⚠️ Rois adjacents: [${newRow},${newCol}] vs [${opponentKingPos.row},${opponentKingPos.col}]`);
         }
         

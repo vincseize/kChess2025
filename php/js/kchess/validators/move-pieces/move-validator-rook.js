@@ -1,11 +1,68 @@
-// validators/move-pieces/move-validator-rook.js - Validateur des mouvements de la tour
+// validators/move-pieces/move-validator-rook.js - Version utilisant la configuration JSON comme priorité
+if (typeof RookMoveValidator !== 'undefined') {
+    console.warn('⚠️ RookMoveValidator existe déjà. Vérifiez les doublons dans les imports.');
+} else {
+
 class RookMoveValidator {
     
-    static consoleLog = true; // false pour production, true pour debug
+    // Valeur par défaut - sera écrasée par la config JSON si disponible
+    static consoleLog = true; // true par défaut pour debug
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
+        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('validators/move-pieces/move-validator-rook.js loaded');
+            console.log('🏰 validators/move-pieces/move-validator-rook.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            // Message silencieux si debug désactivé
+            console.info('🏰 RookMoveValidator: Mode silencieux activé (debug désactivé dans config)');
+        }
+    }
+    
+    // Méthode pour charger la configuration
+    static loadConfig() {
+        try {
+            if (window.appConfig && window.appConfig.chess_engine) {
+                // Configuration prioritaire: window.appConfig
+                if (window.appConfig.chess_engine.console_log !== undefined) {
+                    this.consoleLog = window.appConfig.chess_engine.console_log;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('🏰 Configuration chargée depuis window.appConfig');
+                }
+            } else if (window.chessConfig) {
+                // Configuration secondaire: window.chessConfig (pour compatibilité)
+                if (window.chessConfig.debug !== undefined) {
+                    this.consoleLog = window.chessConfig.debug;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('🏰 Configuration chargée depuis window.chessConfig (legacy)');
+                }
+            } else {
+                // Fallback: valeurs par défaut
+                if (this.consoleLog) {
+                    console.log('🏰 Configuration: valeurs par défaut utilisées');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement de la configuration:', error);
+            // Garder les valeurs par défaut en cas d'erreur
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig && window.appConfig.chess_engine) {
+            return 'window.appConfig';
+        } else if (window.chessConfig) {
+            return 'window.chessConfig (legacy)';
+        } else {
+            return 'valeur par défaut';
         }
     }
 
@@ -107,18 +164,18 @@ class RookMoveValidator {
             if (!targetPiece) {
                 moves.push({ row, col, type: 'move', distance });
                 
-                if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                if (this.constructor.consoleLog) {
                     console.log(`    Distance ${distance}: [${row},${col}] → libre`);
                 }
             } else {
                 if (targetPiece.color !== piece.color) {
                     moves.push({ row, col, type: 'capture', distance });
                     
-                    if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                    if (this.constructor.consoleLog) {
                         console.log(`    Distance ${distance}: [${row},${col}] → ⚔️ ${targetPiece.color} ${targetPiece.type}`);
                     }
                 } else {
-                    if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                    if (this.constructor.consoleLog) {
                         console.log(`    Distance ${distance}: [${row},${col}] → ❌ bloqué par ${targetPiece.color} ${targetPiece.type}`);
                     }
                 }
@@ -130,14 +187,14 @@ class RookMoveValidator {
             distance++;
         }
 
-        if (this.constructor.consoleLog && distance === 1 && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog && distance === 1) {
             console.log(`    Aucun mouvement dans cette direction`);
         }
     }
 
     // Vérifier si le mouvement mettrait le roi en échec
     wouldKingBeInCheckAfterMove(pieceColor, fromRow, fromCol, toRow, toCol) {
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`    ↳ Simulation: [${fromRow},${fromCol}] → [${toRow},${toCol}]`);
         }
         
@@ -150,14 +207,14 @@ class RookMoveValidator {
             tempBoard[toRow][toCol] = rookPiece;
             tempBoard[fromRow][fromCol] = null;
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      Simulation créée: tour déplacée`);
             }
             
             // Générer un FEN temporaire
             const tempFEN = this.generateTempFEN(tempBoard, pieceColor);
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      FEN généré: ${tempFEN.substring(0, 30)}...`);
             }
             
@@ -166,7 +223,7 @@ class RookMoveValidator {
             const colorCode = pieceColor === 'white' ? 'w' : 'b';
             const isInCheck = engine.isKingInCheck(colorCode);
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      Résultat: ${isInCheck ? 'ROI EN ÉCHEC ⚠️' : 'roi en sécurité ✓'}`);
             }
             
@@ -333,3 +390,5 @@ class RookMoveValidator {
 RookMoveValidator.init();
 
 window.RookMoveValidator = RookMoveValidator;
+
+} // Fin du if de protection

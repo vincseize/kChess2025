@@ -1,11 +1,68 @@
-// validators/move-pieces/move-validator-sliding.js - Validateur des pièces à déplacement linéaire
+// validators/move-pieces/move-validator-sliding.js - Version utilisant la configuration JSON comme priorité
+if (typeof SlidingMoveValidator !== 'undefined') {
+    console.warn('⚠️ SlidingMoveValidator existe déjà. Vérifiez les doublons dans les imports.');
+} else {
+
 class SlidingMoveValidator {
     
-    static consoleLog = true; // false pour production, true pour debug
+    // Valeur par défaut - sera écrasée par la config JSON si disponible
+    static consoleLog = true; // true par défaut pour debug
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
+        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('validators/move-pieces/move-validator-sliding.js loaded');
+            console.log('📏 validators/move-pieces/move-validator-sliding.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            // Message silencieux si debug désactivé
+            console.info('📏 SlidingMoveValidator: Mode silencieux activé (debug désactivé dans config)');
+        }
+    }
+    
+    // Méthode pour charger la configuration
+    static loadConfig() {
+        try {
+            if (window.appConfig && window.appConfig.chess_engine) {
+                // Configuration prioritaire: window.appConfig
+                if (window.appConfig.chess_engine.console_log !== undefined) {
+                    this.consoleLog = window.appConfig.chess_engine.console_log;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('📏 Configuration chargée depuis window.appConfig');
+                }
+            } else if (window.chessConfig) {
+                // Configuration secondaire: window.chessConfig (pour compatibilité)
+                if (window.chessConfig.debug !== undefined) {
+                    this.consoleLog = window.chessConfig.debug;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('📏 Configuration chargée depuis window.chessConfig (legacy)');
+                }
+            } else {
+                // Fallback: valeurs par défaut
+                if (this.consoleLog) {
+                    console.log('📏 Configuration: valeurs par défaut utilisées');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement de la configuration:', error);
+            // Garder les valeurs par défaut en cas d'erreur
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig && window.appConfig.chess_engine) {
+            return 'window.appConfig';
+        } else if (window.chessConfig) {
+            return 'window.chessConfig (legacy)';
+        } else {
+            return 'valeur par défaut';
         }
     }
 
@@ -60,7 +117,7 @@ class SlidingMoveValidator {
         let col = startCol + colDir;
         let step = 1;
 
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`    Exploration direction [${rowDir},${colDir}] depuis [${startRow},${startCol}]`);
         }
 
@@ -70,19 +127,19 @@ class SlidingMoveValidator {
             if (!targetPiece) {
                 directionMoves.push({ row, col, type: 'move', step });
                 
-                if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                if (this.constructor.consoleLog) {
                     console.log(`      Étape ${step}: [${row},${col}] → case vide`);
                 }
             } else {
                 if (targetPiece.color !== piece.color) {
                     directionMoves.push({ row, col, type: 'capture', step });
                     
-                    if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                    if (this.constructor.consoleLog) {
                         const pieceChar = targetPiece.type.charAt(0).toUpperCase();
                         console.log(`      Étape ${step}: [${row},${col}] → ⚔️ capture ${targetPiece.color} ${targetPiece.type} (${pieceChar})`);
                     }
                 } else {
-                    if (this.constructor.consoleLog && this.constructor.consoleLog) {
+                    if (this.constructor.consoleLog) {
                         console.log(`      Étape ${step}: [${row},${col}] → ❌ blocage par pièce alliée`);
                     }
                 }
@@ -94,7 +151,7 @@ class SlidingMoveValidator {
             step++;
         }
 
-        if (this.constructor.consoleLog && step === 1 && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog && step === 1) {
             console.log(`      Aucun mouvement possible dans cette direction`);
         }
 
@@ -104,7 +161,7 @@ class SlidingMoveValidator {
     isValidSquare(row, col) {
         const isValid = row >= 0 && row < 8 && col >= 0 && col < 8;
         
-        if (this.constructor.consoleLog && this.constructor.consoleLog && row < 0 || row >= 8 || col < 0 || col >= 8) {
+        if (this.constructor.consoleLog && (row < 0 || row >= 8 || col < 0 || col >= 8)) {
             console.log(`      Case [${row},${col}] → hors plateau`);
         }
         
@@ -200,9 +257,47 @@ class SlidingMoveValidator {
 
         return lineInfo;
     }
+
+    // NOUVELLE MÉTHODE : Obtenir un résumé des directions
+    getDirectionsSummary(piece, row, col, directions) {
+        if (!this.constructor.consoleLog) return null;
+        
+        console.log(`\n📊 Résumé des directions pour ${piece.color} en [${row},${col}]`);
+        
+        const summary = {
+            piece: piece,
+            position: { row, col },
+            directions: []
+        };
+
+        directions.forEach(([rowDir, colDir], index) => {
+            const lineInfo = this.checkLine(piece, row, col, rowDir, colDir);
+            if (lineInfo) {
+                summary.directions.push({
+                    direction: [rowDir, colDir],
+                    reach: lineInfo.squares.length,
+                    canCapture: lineInfo.canCapture,
+                    blockedBy: lineInfo.blockedBy
+                });
+                
+                const directionDesc = `[${rowDir},${colDir}]`;
+                const reachInfo = `${lineInfo.squares.length} cases`;
+                const captureInfo = lineInfo.canCapture ? '⚔️ capture possible' : 'pas de capture';
+                const blockInfo = lineInfo.blockedBy ? 
+                    `❌ bloqué à ${lineInfo.blockedBy.distance} cases` : '✓ libre';
+                
+                console.log(`  Direction ${index + 1} ${directionDesc}: ${reachInfo}, ${captureInfo}, ${blockInfo}`);
+            }
+        });
+
+        console.log(`  Total: ${summary.directions.length} directions analysées`);
+        return summary;
+    }
 }
 
 // Initialisation statique
 SlidingMoveValidator.init();
 
 window.SlidingMoveValidator = SlidingMoveValidator;
+
+} // Fin du if de protection

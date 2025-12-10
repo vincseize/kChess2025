@@ -1,11 +1,68 @@
-// validators/move-pieces/move-validator.js - Validateur de mouvements des pièces
+// validators/move-pieces/move-validator.js - Version utilisant la configuration JSON comme priorité
+if (typeof MoveValidator !== 'undefined') {
+    console.warn('⚠️ MoveValidator existe déjà. Vérifiez les doublons dans les imports.');
+} else {
+
 class MoveValidator {
     
-    static consoleLog = true; // false pour production, true pour debug
+    // Valeur par défaut - sera écrasée par la config JSON si disponible
+    static consoleLog = true; // true par défaut pour debug
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
+        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('validators/move-pieces/move-validator.js loaded');
+            console.log('✅ validators/move-pieces/move-validator.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            // Message silencieux si debug désactivé
+            console.info('✅ MoveValidator: Mode silencieux activé (debug désactivé dans config)');
+        }
+    }
+    
+    // Méthode pour charger la configuration
+    static loadConfig() {
+        try {
+            if (window.appConfig && window.appConfig.chess_engine) {
+                // Configuration prioritaire: window.appConfig
+                if (window.appConfig.chess_engine.console_log !== undefined) {
+                    this.consoleLog = window.appConfig.chess_engine.console_log;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('✅ Configuration chargée depuis window.appConfig');
+                }
+            } else if (window.chessConfig) {
+                // Configuration secondaire: window.chessConfig (pour compatibilité)
+                if (window.chessConfig.debug !== undefined) {
+                    this.consoleLog = window.chessConfig.debug;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('✅ Configuration chargée depuis window.chessConfig (legacy)');
+                }
+            } else {
+                // Fallback: valeurs par défaut
+                if (this.consoleLog) {
+                    console.log('✅ Configuration: valeurs par défaut utilisées');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement de la configuration:', error);
+            // Garder les valeurs par défaut en cas d'erreur
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig && window.appConfig.chess_engine) {
+            return 'window.appConfig';
+        } else if (window.chessConfig) {
+            return 'window.chessConfig (legacy)';
+        } else {
+            return 'valeur par défaut';
         }
     }
 
@@ -52,10 +109,14 @@ class MoveValidator {
         
         if (this.constructor.consoleLog) {
             console.log(`✅ ${moves.length} mouvements possibles trouvés`);
-            if (moves.length > 0 && this.constructor.consoleLog) {
+            if (moves.length > 0) {
+                console.log(`  Détail des mouvements:`);
                 moves.forEach((move, index) => {
-                    const type = move.type ? ` (${move.type})` : '';
-                    console.log(`  ${index + 1}. → [${move.row},${move.col}]${type}`);
+                    const typeIcon = move.type === 'capture' ? '⚔️' : 
+                                   move.type === 'en-passant' ? '🎯' : 
+                                   move.type === 'castle' ? '🏰' : '➡️';
+                    const typeText = move.type ? ` (${move.type})` : '';
+                    console.log(`  ${index + 1}. → [${move.row},${move.col}] ${typeIcon}${typeText}`);
                 });
             }
         }
@@ -66,7 +127,7 @@ class MoveValidator {
     isValidSquare(row, col) {
         const isValid = row >= 0 && row < 8 && col >= 0 && col < 8;
         
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`  ↳ Validation case [${row},${col}]: ${isValid ? '✓ valide' : '✗ hors plateau'}`);
         }
         
@@ -85,12 +146,17 @@ class MoveValidator {
         
         if (this.constructor.consoleLog) {
             if (isValid) {
-                console.log(`✅✅✅ MOUVEMENT VALIDE`);
+                const move = possibleMoves.find(m => m.row === toRow && m.col === toCol);
+                const moveType = move ? move.type : 'standard';
+                console.log(`✅✅✅ MOUVEMENT VALIDE (${moveType})`);
             } else {
                 console.log(`❌❌❌ MOUVEMENT INVALIDE`);
                 console.log(`  Mouvements possibles:`);
-                possibleMoves.forEach(move => {
-                    console.log(`    → [${move.row},${move.col}]`);
+                possibleMoves.forEach((move, index) => {
+                    const typeIcon = move.type === 'capture' ? '⚔️' : 
+                                   move.type === 'en-passant' ? '🎯' : 
+                                   move.type === 'castle' ? '🏰' : ' ';
+                    console.log(`  ${index + 1}. → [${move.row},${move.col}] ${typeIcon}`);
                 });
             }
         }
@@ -186,9 +252,63 @@ class MoveValidator {
         console.log(`Cible en passant: ${this.enPassantTarget ? 
             `[${this.enPassantTarget.row},${this.enPassantTarget.col}]` : 'Aucune'}`);
         
+        console.log(`Validateurs disponibles:`);
         Object.entries(this.pieceValidators).forEach(([type, validator]) => {
-            console.log(`  - ${type}: ${validator ? '✓' : '✗'}`);
+            const status = validator ? '✓ actif' : '✗ inactif';
+            const validatorClass = validator ? validator.constructor.name : 'Non trouvé';
+            console.log(`  - ${type}: ${status} (${validatorClass})`);
         });
+        
+        console.log(`\nPlateau: ${this.board ? '✓ connecté' : '✗ non connecté'}`);
+        console.log(`État du jeu: ${this.gameState ? '✓ connecté' : '✗ non connecté'}`);
+    }
+
+    // NOUVELLE MÉTHODE : Vérifier la disponibilité des validateurs
+    checkValidatorsAvailability() {
+        if (!this.constructor.consoleLog) return;
+        
+        console.log('\n🔍 VÉRIFICATION DISPONIBILITÉ VALIDATEURS:');
+        
+        const requiredValidators = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'];
+        let allAvailable = true;
+        
+        requiredValidators.forEach(type => {
+            const validator = this.pieceValidators[type];
+            const isAvailable = validator !== undefined && validator !== null;
+            const status = isAvailable ? '✓ disponible' : '❌ manquant';
+            
+            console.log(`  ${type}: ${status}`);
+            
+            if (!isAvailable) {
+                allAvailable = false;
+                console.warn(`    ⚠️ Le validateur ${type} n'est pas disponible!`);
+            }
+        });
+        
+        console.log(`\nRésultat: ${allAvailable ? '✅ Tous les validateurs sont disponibles' : '❌ Certains validateurs sont manquants'}`);
+        return allAvailable;
+    }
+
+    // NOUVELLE MÉTHODE : Réinitialiser les validateurs
+    resetValidators() {
+        if (this.constructor.consoleLog) {
+            console.log('🔄 Réinitialisation des validateurs...');
+        }
+        
+        this.pieceValidators = {
+            'pawn': new PawnMoveValidator(this.board, this.gameState),
+            'knight': new KnightMoveValidator(this.board, this.gameState),
+            'bishop': new BishopMoveValidator(this.board, this.gameState),
+            'rook': new RookMoveValidator(this.board, this.gameState),
+            'queen': new QueenMoveValidator(this.board, this.gameState),
+            'king': new KingMoveValidator(this.board, this.gameState)
+        };
+        
+        if (this.constructor.consoleLog) {
+            console.log('✅ Validateurs réinitialisés');
+        }
+        
+        return this.pieceValidators;
     }
 }
 
@@ -196,3 +316,5 @@ class MoveValidator {
 MoveValidator.init();
 
 window.MoveValidator = MoveValidator;
+
+} // Fin du if de protection

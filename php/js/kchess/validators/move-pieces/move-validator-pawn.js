@@ -1,11 +1,69 @@
-// validators/move-pieces/move-validator-pawn.js - Validateur des mouvements de pion CORRIGÉ
+// validators/move-pieces/move-validator-pawn.js - Version avec protection contre double déclaration
+if (typeof PawnMoveValidator !== 'undefined') {
+    console.warn('⚠️ PawnMoveValidator existe déjà. Vérifiez les doublons dans les imports.');
+    // On pourrait aussi simplement ignorer : throw new Error('PawnMoveValidator déjà déclaré');
+} else {
+
 class PawnMoveValidator {
     
-    static consoleLog = true; // false pour production, true pour debug
+    // Valeur par défaut - sera écrasée par la config JSON si disponible
+    static consoleLog = true; // true par défaut pour debug
     
     static init() {
+        // Charger la configuration depuis window.appConfig
+        this.loadConfig();
+        
+        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('validators/move-pieces/move-validator-pawn.js loaded');
+            console.log('♟️ validators/move-pieces/move-validator-pawn.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
+        } else {
+            // Message silencieux si debug désactivé
+            console.info('♟️ PawnMoveValidator: Mode silencieux activé (debug désactivé dans config)');
+        }
+    }
+    
+    // Méthode pour charger la configuration
+    static loadConfig() {
+        try {
+            if (window.appConfig && window.appConfig.chess_engine) {
+                // Configuration prioritaire: window.appConfig
+                if (window.appConfig.chess_engine.console_log !== undefined) {
+                    this.consoleLog = window.appConfig.chess_engine.console_log;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('♟️ Configuration chargée depuis window.appConfig');
+                }
+            } else if (window.chessConfig) {
+                // Configuration secondaire: window.chessConfig (pour compatibilité)
+                if (window.chessConfig.debug !== undefined) {
+                    this.consoleLog = window.chessConfig.debug;
+                }
+                
+                if (this.consoleLog) {
+                    console.log('♟️ Configuration chargée depuis window.chessConfig (legacy)');
+                }
+            } else {
+                // Fallback: valeurs par défaut
+                if (this.consoleLog) {
+                    console.log('♟️ Configuration: valeurs par défaut utilisées');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement de la configuration:', error);
+            // Garder les valeurs par défaut en cas d'erreur
+        }
+    }
+    
+    // Méthode pour déterminer la source de la configuration
+    static getConfigSource() {
+        if (window.appConfig && window.appConfig.chess_engine) {
+            return 'window.appConfig';
+        } else if (window.chessConfig) {
+            return 'window.chessConfig (legacy)';
+        } else {
+            return 'valeur par défaut';
         }
     }
 
@@ -192,7 +250,7 @@ class PawnMoveValidator {
 
     // Vérifier si le mouvement mettrait le roi en échec
     wouldKingBeInCheckAfterMove(pieceColor, fromRow, fromCol, toRow, toCol) {
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             console.log(`    ↳ Simulation: [${fromRow},${fromCol}] → [${toRow},${toCol}]`);
         }
         
@@ -205,14 +263,14 @@ class PawnMoveValidator {
             tempBoard[toRow][toCol] = pawnPiece;
             tempBoard[fromRow][fromCol] = null;
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      Simulation créée: pion déplacé`);
             }
             
             // Générer un FEN temporaire
             const tempFEN = this.generateTempFEN(tempBoard, pieceColor);
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      FEN généré: ${tempFEN.substring(0, 30)}...`);
             }
             
@@ -221,7 +279,7 @@ class PawnMoveValidator {
             const colorCode = pieceColor === 'white' ? 'w' : 'b';
             const isInCheck = engine.isKingInCheck(colorCode);
             
-            if (this.constructor.consoleLog && this.constructor.consoleLog) {
+            if (this.constructor.consoleLog) {
                 console.log(`      Résultat: ${isInCheck ? 'ROI EN ÉCHEC ⚠️' : 'roi en sécurité ✓'}`);
             }
             
@@ -311,7 +369,7 @@ class PawnMoveValidator {
         
         const isPossible = isDoublePush && isPawnMove && isAdjacentPawn && isOpponentColor;
         
-        if (this.constructor.consoleLog && this.constructor.consoleLog) {
+        if (this.constructor.consoleLog) {
             if (lastMove) {
                 console.log(`      Dernier coup: ${lastMove.color} ${lastMove.piece} [${lastMove.from.row},${lastMove.from.col}]→[${lastMove.to.row},${lastMove.to.col}]`);
                 console.log(`      Conditions: double=${isDoublePush}, pion=${isPawnMove}, adjacent=${isAdjacentPawn}, adversaire=${isOpponentColor}`);
@@ -332,3 +390,5 @@ class PawnMoveValidator {
 PawnMoveValidator.init();
 
 window.PawnMoveValidator = PawnMoveValidator;
+
+} // Fin du if de protection
