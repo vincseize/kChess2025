@@ -391,16 +391,23 @@ class ChessGameUI {
             }
             return;
         }
-        
+
         if (this.game.gameState && this.game.gameState.currentPlayer) {
+
             const player = this.game.gameState.currentPlayer;
-            const text = player === 'white' ? 'Aux blancs de jouer' : 'Aux noirs de jouer';
-            
+
+            // 100% TRAD JSON — aucune phrase en dur
+            const t = window.appTranslations || {};
+            const text = player === 'white'
+                ? t.traitAuBlancs
+                : t.traitAuxNoirs;
+
             currentPlayerElement.textContent = text;
-            
+
             if (this.constructor.consoleLog) {
                 console.log(`📊 [ChessGameUI] Statut mis à jour: ${text}`);
             }
+
         } else {
             if (this.constructor.consoleLog) {
                 console.warn('⚠️ [ChessGameUI] GameState ou currentPlayer non disponible');
@@ -408,7 +415,6 @@ class ChessGameUI {
         }
     }
 
-    // Nouvelle méthode : afficher l'indicateur de bot
     updateBotIndicator() {
         // Mode silencieux
         if (!this.constructor.consoleLog) {
