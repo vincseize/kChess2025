@@ -195,6 +195,9 @@ class ChessGame {
     applyUrlParamsConfiguration() {
         const urlParams = this.getUrlParams();
         
+        // Ajouter lang=fr en dur aux paramètres URL
+        urlParams.lang = 'fr';
+        
         // Mode silencieux - exécuter sans logs
         if (!this.constructor.consoleLog) {
             if (Object.keys(urlParams).length === 0) {
