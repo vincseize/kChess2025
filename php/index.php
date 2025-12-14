@@ -1,5 +1,8 @@
 <?php
 // index.php - dans le dossier php/
+// DÉMARRER LA SESSION AVANT TOUT
+session_start();
+
 require_once __DIR__ . '/config-loader.php'; // Même dossier
 
 $config = loadGameConfig();
@@ -46,12 +49,15 @@ logConfigInfo($config);
             version: window.appConfig.version,
             debug_console_log: window.appConfig.debug.console_log,
             chess_engine_console_log: window.appConfig.chess_engine.console_log,
-            source: 'index.php'
+            source: 'index.php',
+            current_lang: window.appConfig.current_lang,
+            lang_code: window.appConfig.lang_code
         });
         
         alert('index.php - Configuration chargée:\n' +
               '- debug.console_log = ' + window.appConfig.debug.console_log + '\n' +
               '- chess_engine.console_log = ' + window.appConfig.chess_engine.console_log + '\n' +
+              '- Langue: ' + window.appConfig.current_lang + '\n' +
               '- Les deux doivent être FALSE pour désactiver les logs!');
         <?php endif; ?>
     </script>
