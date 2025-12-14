@@ -14,9 +14,6 @@ $targetPage = $isMobile ? 'app_mobile.php' : 'app.php';
 // Récupérer la configuration pour accéder aux langues
 require_once __DIR__ . '/config-loader.php';
 $config = loadGameConfig();
-
-// Utiliser la version depuis la config
-$version = getVersion();
 ?>
 
 <link rel="stylesheet" href="css/kchess/newGame.css?version=<?php echo $version; ?>">
@@ -185,16 +182,12 @@ document.getElementById('startGameBtn').addEventListener('click', function() {
         console.log(`🎲 Couleur aléatoire: ${finalColor}`);
     }
     
-    // Récupérer la langue actuelle depuis PHP
-    const currentLang = '<?php echo $config['current_lang']; ?>';
-    
     // Construire l'URL avec tous les paramètres harmonisés
     const params = new URLSearchParams({
         mode: selectedMode,
         level: selectedLevel,
         profondeur: selectedProfondeur,
-        color: finalColor,
-        lang: currentLang  // AJOUT : paramètre de langue
+        color: finalColor
     });
     
     url += '?' + params.toString();
@@ -217,7 +210,6 @@ document.getElementById('startGameBtn').addEventListener('click', function() {
         profondeur: selectedProfondeur,
         originalColor: selectedColor,
         finalColor: finalColor,
-        langue: currentLang,
         botName: botName,
         url: url,
         mapping: 'Niveau 0=désactivé, 1=Aléatoire, 2=CCMO'

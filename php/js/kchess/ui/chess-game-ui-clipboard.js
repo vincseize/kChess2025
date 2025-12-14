@@ -335,12 +335,17 @@ class ChessClipboardManager {
     }
 
     // NOUVELLE MÉTHODE : Copie générique vers le clipboard
-    copyToClipboard(text, type = 'texte') {
-        const typeLower = type.toLowerCase();
-        const typeUpper = type.toUpperCase();
-        
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
+copyToClipboard(text, type = 'texte') {
+    const typeLower = type.toLowerCase();
+    const typeUpper = type.toUpperCase();
+    
+    // Vérifier si l'API Clipboard est disponible
+    const clipboardAvailable = navigator.clipboard !== undefined && 
+                              typeof navigator.clipboard.writeText === 'function';
+    
+    // Mode silencieux
+    if (!this.constructor.consoleLog) {
+        if (clipboardAvailable) {
             navigator.clipboard.writeText(text).then(() => {
                 this.ui?.showNotification?.(`${typeUpper} copié dans le presse-papier !`, 'success');
             }).catch(err => {
@@ -348,24 +353,33 @@ class ChessClipboardManager {
                 this.ui?.showNotification?.(`Erreur lors de la copie du ${typeUpper}`, 'error');
                 this.fallbackCopy(text, type);
             });
-            return;
+        } else {
+            // API non disponible, utiliser directement le fallback
+            console.warn(`⚠️ Clipboard API non disponible, utilisation du fallback pour ${typeLower}`);
+            this.fallbackCopy(text, type);
         }
-        
-        // Mode debug
-        console.log(`📋 [ClipboardManager] Copie ${typeLower}...`);
-        
+        return;
+    }
+    
+    // Mode debug
+    console.log(`📋 [ClipboardManager] Copie ${typeLower}...`);
+    console.log(`📋 [ClipboardManager] Clipboard API disponible? ${clipboardAvailable ? '✅ OUI' : '❌ NON'}`);
+    
+    if (clipboardAvailable) {
         navigator.clipboard.writeText(text).then(() => {
-            console.log(`✅ [ClipboardManager] ${typeUpper} copié avec succès`);
+            console.log(`✅ [ClipboardManager] ${typeUpper} copié avec succès via Clipboard API`);
             this.ui?.showNotification?.(`${typeUpper} copié dans le presse-papier !`, 'success');
-            console.log(`📋 [ClipboardManager] Notification ${typeLower} affichée`);
             
         }).catch(err => {
-            console.log(`❌ [ClipboardManager] Erreur lors de la copie ${typeUpper}: ${err.message}`);
-            console.error(`Clipboard error (${typeLower}):`, err);
+            console.log(`❌ [ClipboardManager] Erreur Clipboard API ${typeUpper}: ${err.message}`);
             this.ui?.showNotification?.(`Erreur lors de la copie du ${typeUpper}`, 'error');
             this.fallbackCopy(text, type);
         });
+    } else {
+        console.log(`📋 [ClipboardManager] Clipboard API non disponible, utilisation du fallback`);
+        this.fallbackCopy(text, type);
     }
+}
 
     // Fallback pour les navigateurs sans clipboard API
     fallbackCopy(text, type = 'texte') {
@@ -435,51 +449,79 @@ class ChessClipboardManager {
     }
     
     // NOUVELLE MÉTHODE : Copie rapide du FEN pour debug
-    quickCopyFEN() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            try {
-                const fen = this.getFEN();
-                if (fen) {
+// NOUVELLE MÉTHODE : Copie rapide du FEN pour debug
+quickCopyFEN() {
+    // Mode silencieux
+    if (!this.constructor.consoleLog) {
+        try {
+            const fen = this.getFEN();
+            if (fen) {
+                // Vérifier si l'API est disponible
+                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
                     navigator.clipboard.writeText(fen).catch(() => {});
+                } else {
+                    // Fallback silencieux
+                    this.fallbackCopy(fen, 'FEN');
                 }
-            } catch (error) {
-                // Ignorer en mode silencieux
             }
+        } catch (error) {
+            // Ignorer en mode silencieux
+        }
+        return;
+    }
+    
+    // Mode debug
+    console.log('⚡ [ClipboardManager] Copie rapide FEN demandée...');
+    
+    try {
+        const fen = this.getFEN();
+        
+        if (!fen) {
+            console.log('❌ [ClipboardManager] Impossible de générer FEN pour copie rapide');
             return;
         }
         
-        // Mode debug
-        console.log('⚡ [ClipboardManager] Copie rapide FEN demandée...');
-        
-        try {
-            const fen = this.getFEN();
-            
-            if (!fen) {
-                console.log('❌ [ClipboardManager] Impossible de générer FEN pour copie rapide');
-                return;
-            }
-            
+        // Vérifier si l'API est disponible
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
             navigator.clipboard.writeText(fen).then(() => {
-                console.log('✅ [ClipboardManager] FEN copié silencieusement');
+                console.log('✅ [ClipboardManager] FEN copié silencieusement via Clipboard API');
             }).catch(() => {
-                // Ignorer les erreurs en mode silencieux
+                console.log('⚠️ [ClipboardManager] Échec Clipboard API, tentative fallback...');
+                this.fallbackCopy(fen, 'FEN');
             });
-        } catch (error) {
-            console.log(`❌ [ClipboardManager] Erreur copie rapide FEN: ${error.message}`);
+        } else {
+            console.log('⚠️ [ClipboardManager] Clipboard API non disponible, utilisation fallback');
+            this.fallbackCopy(fen, 'FEN');
         }
+    } catch (error) {
+        console.log(`❌ [ClipboardManager] Erreur copie rapide FEN: ${error.message}`);
     }
+}
     
     // NOUVELLE MÉTHODE : Vérifier si le clipboard est disponible
-    isClipboardAvailable() {
-        const available = navigator.clipboard !== undefined;
-        
-        if (this.constructor.consoleLog) {
-            console.log(`🔍 [ClipboardManager] Clipboard API disponible? ${available ? '✅ OUI' : '❌ NON'}`);
-        }
-        
-        return available;
+// NOUVELLE MÉTHODE : Vérifier si le clipboard est disponible
+isClipboardAvailable() {
+    // Vérifier plusieurs conditions
+    const available = navigator.clipboard !== undefined && 
+                     typeof navigator.clipboard.writeText === 'function';
+    
+    // Vérifier aussi si on est en HTTPS ou localhost (requis pour l'API)
+    const isSecureContext = window.isSecureContext || 
+                           location.protocol === 'https:' || 
+                           location.hostname === 'localhost' || 
+                           location.hostname === '127.0.0.1';
+    
+    const reallyAvailable = available && isSecureContext;
+    
+    if (this.constructor.consoleLog) {
+        console.log(`🔍 [ClipboardManager] Clipboard API disponible? ${available ? '✅ API présente' : '❌ API absente'}`);
+        console.log(`🔍 [ClipboardManager] Contexte sécurisé? ${isSecureContext ? '✅ OUI' : '❌ NON'}`);
+        console.log(`🔍 [ClipboardManager] Réellement utilisable? ${reallyAvailable ? '✅ OUI' : '❌ NON'}`);
+        console.log(`🔍 [ClipboardManager] Protocole: ${location.protocol}, Hostname: ${location.hostname}`);
     }
+    
+    return reallyAvailable;
+}
     
     // NOUVELLE MÉTHODE : Obtenir les statistiques du FEN/PNG
     getClipboardStats() {
