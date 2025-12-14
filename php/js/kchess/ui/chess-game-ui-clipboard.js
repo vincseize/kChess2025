@@ -96,10 +96,12 @@ class ChessClipboardManager {
         this.constructor.loadConfig();
         
         this.ui = ui;
+        this.game = ui?.game || null;
         
         if (this.constructor.consoleLog) {
             console.log('📋 [ClipboardManager] Gestionnaire de presse-papier initialisé');
             console.log('📋 [ClipboardManager] UI parent:', ui);
+            console.log('📋 [ClipboardManager] Game référence:', this.game);
         }
     }
 
@@ -107,22 +109,19 @@ class ChessClipboardManager {
         // Mode silencieux
         if (!this.constructor.consoleLog) {
             try {
-                const fen = window.FENGenerator ? 
-                    window.FENGenerator.generateFEN(this.ui.game.gameState, this.ui.game.board) : '';
+                // Essayer plusieurs sources pour obtenir le FEN
+                const fen = this.getFEN();
                 
                 if (!fen) {
-                    this.ui.showNotification('Erreur génération FEN', 'error');
+                    this.ui?.showNotification?.('Erreur génération FEN', 'error') || 
+                    console.error('Erreur génération FEN');
                     return;
                 }
                 
-                navigator.clipboard.writeText(fen).then(() => {
-                    this.ui.showNotification('FEN copié dans le presse-papier !', 'success');
-                }).catch(() => {
-                    this.ui.showNotification('Erreur lors de la copie du FEN', 'error');
-                    this.fallbackCopyFEN(fen);
-                });
+                this.copyToClipboard(fen, 'FEN');
             } catch (error) {
-                this.ui.showNotification('Erreur génération FEN', 'error');
+                this.ui?.showNotification?.('Erreur génération FEN', 'error') || 
+                console.error('Erreur génération FEN:', error);
             }
             return;
         }
@@ -132,38 +131,29 @@ class ChessClipboardManager {
         console.log('📄 [ClipboardManager] Début de la copie FEN...');
         
         try {
-            console.log('📄 [ClipboardManager] Génération du FEN...');
+            console.log('📄 [ClipboardManager] Tentative de génération FEN...');
             
-            const fen = window.FENGenerator ? 
-                window.FENGenerator.generateFEN(this.ui.game.gameState, this.ui.game.board) : '';
+            // Essayer plusieurs sources pour obtenir le FEN
+            const fen = this.getFEN();
             
             if (!fen) {
-                console.log('❌ [ClipboardManager] FENGenerator non disponible ou erreur de génération');
-                this.ui.showNotification('Erreur génération FEN', 'error');
+                console.log('❌ [ClipboardManager] Impossible de générer le FEN');
+                this.ui?.showNotification?.('Erreur génération FEN', 'error') || 
+                console.error('Erreur génération FEN');
                 return;
             }
             
             console.log(`📄 [ClipboardManager] FEN généré: ${fen.substring(0, 60)}...`);
             console.log('📄 [ClipboardManager] Longueur du FEN:', fen.length, 'caractères');
             
-            console.log('📄 [ClipboardManager] Copie dans le presse-papier...');
-            
-            navigator.clipboard.writeText(fen).then(() => {
-                console.log('✅ [ClipboardManager] FEN copié avec succès');
-                this.ui.showNotification('FEN copié dans le presse-papier !', 'success');
-                console.log('📄 [ClipboardManager] Notification affichée');
-                
-            }).catch(err => {
-                console.log(`❌ [ClipboardManager] Erreur lors de la copie FEN: ${err.message}`);
-                console.error('Clipboard error:', err);
-                this.ui.showNotification('Erreur lors de la copie du FEN', 'error');
-                this.fallbackCopyFEN(fen);
-            });
+            console.log('📄 [ClipboardManager] Tentative de copie...');
+            this.copyToClipboard(fen, 'FEN');
             
         } catch (error) {
             console.log(`❌ [ClipboardManager] Erreur génération FEN: ${error.message}`);
             console.error('FEN generation error:', error);
-            this.ui.showNotification('Erreur génération FEN', 'error');
+            this.ui?.showNotification?.('Erreur génération FEN', 'error') || 
+            console.error('Erreur génération FEN');
         }
         
         console.log('📄 [ClipboardManager] === FIN COPIE FEN ===\n');
@@ -173,22 +163,19 @@ class ChessClipboardManager {
         // Mode silencieux
         if (!this.constructor.consoleLog) {
             try {
-                const pgn = this.ui.game.gameState.getFullPGN ? 
-                    this.ui.game.gameState.getFullPGN() : '';
+                // Essayer plusieurs sources pour obtenir le PGN
+                const pgn = this.getPGN();
                 
                 if (!pgn) {
-                    this.ui.showNotification('Erreur génération PGN', 'error');
+                    this.ui?.showNotification?.('Erreur génération PGN', 'error') || 
+                    console.error('Erreur génération PGN');
                     return;
                 }
                 
-                navigator.clipboard.writeText(pgn).then(() => {
-                    this.ui.showNotification('PGN copié dans le presse-papier !', 'success');
-                }).catch(() => {
-                    this.ui.showNotification('Erreur lors de la copie du PGN', 'error');
-                    this.fallbackCopyPGN(pgn);
-                });
+                this.copyToClipboard(pgn, 'PGN');
             } catch (error) {
-                this.ui.showNotification('Erreur génération PGN', 'error');
+                this.ui?.showNotification?.('Erreur génération PGN', 'error') || 
+                console.error('Erreur génération PGN:', error);
             }
             return;
         }
@@ -198,108 +185,198 @@ class ChessClipboardManager {
         console.log('📜 [ClipboardManager] Début de la copie PGN...');
         
         try {
-            console.log('📜 [ClipboardManager] Génération du PGN...');
+            console.log('📜 [ClipboardManager] Tentative de génération PGN...');
             
-            const pgn = this.ui.game.gameState.getFullPGN ? 
-                this.ui.game.gameState.getFullPGN() : '';
+            // Essayer plusieurs sources pour obtenir le PGN
+            const pgn = this.getPGN();
             
             if (!pgn) {
-                console.log('❌ [ClipboardManager] Méthode getFullPGN non disponible');
-                this.ui.showNotification('Erreur génération PGN', 'error');
+                console.log('❌ [ClipboardManager] Impossible de générer le PGN');
+                this.ui?.showNotification?.('Erreur génération PGN', 'error') || 
+                console.error('Erreur génération PGN');
                 return;
             }
             
             console.log(`📜 [ClipboardManager] PGN généré: ${pgn.substring(0, 100)}...`);
             console.log('📜 [ClipboardManager] Longueur du PGN:', pgn.length, 'caractères');
             
-            const moveCount = this.ui.game.gameState.moveHistory ? 
-                this.ui.game.gameState.moveHistory.length : 0;
-            console.log(`📜 [ClipboardManager] Nombre de coups: ${moveCount}`);
+            // Compter les mouvements si possible
+            const moveCount = this.game?.gameState?.moveHistory?.length || 
+                            this.ui?.game?.gameState?.moveHistory?.length || 0;
+            console.log(`📜 [ClipboardManager] Nombre de coups estimé: ${moveCount}`);
             
-            console.log('📜 [ClipboardManager] Copie dans le presse-papier...');
-            
-            navigator.clipboard.writeText(pgn).then(() => {
-                console.log('✅ [ClipboardManager] PGN copié avec succès');
-                this.ui.showNotification('PGN copié dans le presse-papier !', 'success');
-                console.log('📜 [ClipboardManager] Notification affichée');
-                
-            }).catch(err => {
-                console.log(`❌ [ClipboardManager] Erreur lors de la copie PGN: ${err.message}`);
-                console.error('Clipboard error:', err);
-                this.ui.showNotification('Erreur lors de la copie du PGN', 'error');
-                this.fallbackCopyPGN(pgn);
-            });
+            console.log('📜 [ClipboardManager] Tentative de copie...');
+            this.copyToClipboard(pgn, 'PGN');
             
         } catch (error) {
             console.log(`❌ [ClipboardManager] Erreur génération PGN: ${error.message}`);
             console.error('PGN generation error:', error);
-            this.ui.showNotification('Erreur génération PGN', 'error');
+            this.ui?.showNotification?.('Erreur génération PGN', 'error') || 
+            console.error('Erreur génération PGN');
         }
         
         console.log('📜 [ClipboardManager] === FIN COPIE PGN ===\n');
     }
 
-    // Fallback pour les navigateurs sans clipboard API
-    fallbackCopyFEN(fen) {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            try {
-                const textarea = document.createElement('textarea');
-                textarea.value = fen;
-                textarea.style.position = 'fixed';
-                textarea.style.left = '-9999px';
-                document.body.appendChild(textarea);
-                textarea.select();
-                textarea.setSelectionRange(0, 99999);
-                
-                const success = document.execCommand('copy');
-                document.body.removeChild(textarea);
-                
-                if (success) {
-                    this.ui.showNotification('FEN copié (méthode fallback)', 'success');
-                } else {
-                    this.ui.showNotification('Impossible de copier le FEN', 'error');
-                }
-            } catch (error) {
-                // Ignorer en mode silencieux
-            }
-            return;
-        }
-        
-        // Mode debug
-        console.log('🔧 [ClipboardManager] Tentative de fallback pour copie FEN...');
-        
+    // NOUVELLE MÉTHODE : Générer le FEN depuis différentes sources
+    getFEN() {
         try {
-            const textarea = document.createElement('textarea');
-            textarea.value = fen;
-            textarea.style.position = 'fixed';
-            textarea.style.left = '-9999px';
-            document.body.appendChild(textarea);
-            textarea.select();
-            textarea.setSelectionRange(0, 99999);
-            
-            const success = document.execCommand('copy');
-            document.body.removeChild(textarea);
-            
-            if (success) {
-                console.log('✅ [ClipboardManager] Fallback FEN réussi');
-                this.ui.showNotification('FEN copié (méthode fallback)', 'success');
-            } else {
-                console.log('❌ [ClipboardManager] Fallback FEN échoué');
-                this.ui.showNotification('Impossible de copier le FEN', 'error');
+            // 1. Depuis FENGenerator global
+            if (window.FENGenerator && window.FENGenerator.generateFEN) {
+                const gameState = this.game?.gameState || this.ui?.game?.gameState;
+                const board = this.game?.board || this.ui?.game?.board;
+                
+                if (gameState && board) {
+                    return window.FENGenerator.generateFEN(gameState, board);
+                }
             }
+            
+            // 2. Depuis le jeu directement
+            if (this.game?.getFEN) {
+                return this.game.getFEN();
+            }
+            
+            if (this.ui?.game?.getFEN) {
+                return this.ui.game.getFEN();
+            }
+            
+            // 3. Depuis le core du jeu
+            if (this.game?.core?.getFEN) {
+                return this.game.core.getFEN();
+            }
+            
+            // 4. Depuis gameState
+            const gameState = this.game?.gameState || this.ui?.game?.gameState;
+            if (gameState?.getFEN) {
+                return gameState.getFEN();
+            }
+            
+            // 5. FEN statique par défaut
+            return 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+            
         } catch (error) {
-            console.log(`❌ [ClipboardManager] Erreur fallback FEN: ${error.message}`);
+            if (this.constructor.consoleLog) {
+                console.error('❌ [ClipboardManager] Erreur génération FEN:', error);
+            }
+            return null;
         }
     }
 
+    // NOUVELLE MÉTHODE : Générer le PGN depuis différentes sources
+    getPGN() {
+        try {
+            // 1. Depuis le jeu directement
+            if (this.game?.getPGN) {
+                return this.game.getPGN();
+            }
+            
+            if (this.ui?.game?.getPGN) {
+                return this.ui.game.getPGN();
+            }
+            
+            // 2. Depuis gameState
+            const gameState = this.game?.gameState || this.ui?.game?.gameState;
+            if (gameState?.getFullPGN) {
+                return gameState.getFullPGN();
+            }
+            
+            if (gameState?.getPGN) {
+                return gameState.getPGN();
+            }
+            
+            // 3. Depuis le core du jeu
+            if (this.game?.core?.getPGN) {
+                return this.game.core.getPGN();
+            }
+            
+            // 4. Construire un PGN basique depuis l'historique
+            if (gameState?.moveHistory && gameState.moveHistory.length > 0) {
+                return this.buildBasicPGN(gameState.moveHistory);
+            }
+            
+            // 5. PGN par défaut
+            return '[Event "Partie d\'échecs"]\n[Site "?"]\n[Date "????.??.??"]\n[Round "?"]\n[White "?"]\n[Black "?"]\n[Result "*"]\n\n*';
+            
+        } catch (error) {
+            if (this.constructor.consoleLog) {
+                console.error('❌ [ClipboardManager] Erreur génération PGN:', error);
+            }
+            return null;
+        }
+    }
+
+    // NOUVELLE MÉTHODE : Construire un PGN basique depuis l'historique
+    buildBasicPGN(moveHistory) {
+        try {
+            let pgn = '[Event "Partie d\'échecs"]\n';
+            pgn += '[Site "?"]\n';
+            pgn += '[Date "' + new Date().toISOString().split('T')[0] + '"]\n';
+            pgn += '[Round "?"]\n';
+            pgn += '[White "?"]\n';
+            pgn += '[Black "?"]\n';
+            pgn += '[Result "*"]\n\n';
+            
+            // Ajouter les coups
+            moveHistory.forEach((move, index) => {
+                if (index % 2 === 0) {
+                    pgn += ((index / 2) + 1) + '. ';
+                }
+                pgn += (move.san || move.notation || '??') + ' ';
+            });
+            
+            pgn += '*';
+            return pgn;
+        } catch (error) {
+            if (this.constructor.consoleLog) {
+                console.error('❌ [ClipboardManager] Erreur construction PGN:', error);
+            }
+            return '[Event "Erreur génération PGN"]\n\n*';
+        }
+    }
+
+    // NOUVELLE MÉTHODE : Copie générique vers le clipboard
+    copyToClipboard(text, type = 'texte') {
+        const typeLower = type.toLowerCase();
+        const typeUpper = type.toUpperCase();
+        
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            navigator.clipboard.writeText(text).then(() => {
+                this.ui?.showNotification?.(`${typeUpper} copié dans le presse-papier !`, 'success');
+            }).catch(err => {
+                console.error(`Erreur copie ${typeLower}:`, err);
+                this.ui?.showNotification?.(`Erreur lors de la copie du ${typeUpper}`, 'error');
+                this.fallbackCopy(text, type);
+            });
+            return;
+        }
+        
+        // Mode debug
+        console.log(`📋 [ClipboardManager] Copie ${typeLower}...`);
+        
+        navigator.clipboard.writeText(text).then(() => {
+            console.log(`✅ [ClipboardManager] ${typeUpper} copié avec succès`);
+            this.ui?.showNotification?.(`${typeUpper} copié dans le presse-papier !`, 'success');
+            console.log(`📋 [ClipboardManager] Notification ${typeLower} affichée`);
+            
+        }).catch(err => {
+            console.log(`❌ [ClipboardManager] Erreur lors de la copie ${typeUpper}: ${err.message}`);
+            console.error(`Clipboard error (${typeLower}):`, err);
+            this.ui?.showNotification?.(`Erreur lors de la copie du ${typeUpper}`, 'error');
+            this.fallbackCopy(text, type);
+        });
+    }
+
     // Fallback pour les navigateurs sans clipboard API
-    fallbackCopyPGN(pgn) {
+    fallbackCopy(text, type = 'texte') {
+        const typeLower = type.toLowerCase();
+        const typeUpper = type.toUpperCase();
+        
         // Mode silencieux
         if (!this.constructor.consoleLog) {
             try {
                 const textarea = document.createElement('textarea');
-                textarea.value = pgn;
+                textarea.value = text;
                 textarea.style.position = 'fixed';
                 textarea.style.left = '-9999px';
                 document.body.appendChild(textarea);
@@ -310,9 +387,9 @@ class ChessClipboardManager {
                 document.body.removeChild(textarea);
                 
                 if (success) {
-                    this.ui.showNotification('PGN copié (méthode fallback)', 'success');
+                    this.ui?.showNotification?.(`${typeUpper} copié (méthode fallback)`, 'success');
                 } else {
-                    this.ui.showNotification('Impossible de copier le PGN', 'error');
+                    this.ui?.showNotification?.(`Impossible de copier le ${typeUpper}`, 'error');
                 }
             } catch (error) {
                 // Ignorer en mode silencieux
@@ -321,11 +398,11 @@ class ChessClipboardManager {
         }
         
         // Mode debug
-        console.log('🔧 [ClipboardManager] Tentative de fallback pour copie PGN...');
+        console.log(`🔧 [ClipboardManager] Tentative de fallback pour copie ${typeLower}...`);
         
         try {
             const textarea = document.createElement('textarea');
-            textarea.value = pgn;
+            textarea.value = text;
             textarea.style.position = 'fixed';
             textarea.style.left = '-9999px';
             document.body.appendChild(textarea);
@@ -336,15 +413,25 @@ class ChessClipboardManager {
             document.body.removeChild(textarea);
             
             if (success) {
-                console.log('✅ [ClipboardManager] Fallback PGN réussi');
-                this.ui.showNotification('PGN copié (méthode fallback)', 'success');
+                console.log(`✅ [ClipboardManager] Fallback ${typeUpper} réussi`);
+                this.ui?.showNotification?.(`${typeUpper} copié (méthode fallback)`, 'success');
             } else {
-                console.log('❌ [ClipboardManager] Fallback PGN échoué');
-                this.ui.showNotification('Impossible de copier le PGN', 'error');
+                console.log(`❌ [ClipboardManager] Fallback ${typeUpper} échoué`);
+                this.ui?.showNotification?.(`Impossible de copier le ${typeUpper}`, 'error');
             }
         } catch (error) {
-            console.log(`❌ [ClipboardManager] Erreur fallback PGN: ${error.message}`);
+            console.log(`❌ [ClipboardManager] Erreur fallback ${typeUpper}: ${error.message}`);
         }
+    }
+
+    // Méthode existante renommée pour compatibilité
+    fallbackCopyFEN(fen) {
+        this.fallbackCopy(fen, 'FEN');
+    }
+
+    // Méthode existante renommée pour compatibilité
+    fallbackCopyPGN(pgn) {
+        this.fallbackCopy(pgn, 'PGN');
     }
     
     // NOUVELLE MÉTHODE : Copie rapide du FEN pour debug
@@ -352,8 +439,7 @@ class ChessClipboardManager {
         // Mode silencieux
         if (!this.constructor.consoleLog) {
             try {
-                const fen = window.FENGenerator ? 
-                    window.FENGenerator.generateFEN(this.ui.game.gameState, this.ui.game.board) : '';
+                const fen = this.getFEN();
                 if (fen) {
                     navigator.clipboard.writeText(fen).catch(() => {});
                 }
@@ -367,11 +453,10 @@ class ChessClipboardManager {
         console.log('⚡ [ClipboardManager] Copie rapide FEN demandée...');
         
         try {
-            const fen = window.FENGenerator ? 
-                window.FENGenerator.generateFEN(this.ui.game.gameState, this.ui.game.board) : '';
+            const fen = this.getFEN();
             
             if (!fen) {
-                console.log('❌ [ClipboardManager] FENGenerator non disponible pour copie rapide');
+                console.log('❌ [ClipboardManager] Impossible de générer FEN pour copie rapide');
                 return;
             }
             
@@ -401,20 +486,21 @@ class ChessClipboardManager {
         const stats = {
             fen: {
                 length: 0,
-                generated: false
+                generated: false,
+                source: 'none'
             },
             pgn: {
                 length: 0,
                 moveCount: 0,
-                generated: false
+                generated: false,
+                source: 'none'
             }
         };
         
         // Mode silencieux
         if (!this.constructor.consoleLog) {
             try {
-                const fen = window.FENGenerator ? 
-                    window.FENGenerator.generateFEN(this.ui.game.gameState, this.ui.game.board) : '';
+                const fen = this.getFEN();
                 if (fen) {
                     stats.fen.length = fen.length;
                     stats.fen.generated = true;
@@ -424,13 +510,12 @@ class ChessClipboardManager {
             }
             
             try {
-                const pgn = this.ui.game.gameState.getFullPGN ? 
-                    this.ui.game.gameState.getFullPGN() : '';
+                const pgn = this.getPGN();
                 if (pgn) {
                     stats.pgn.length = pgn.length;
-                    stats.pgn.moveCount = this.ui.game.gameState.moveHistory ? 
-                        this.ui.game.gameState.moveHistory.length : 0;
                     stats.pgn.generated = true;
+                    stats.pgn.moveCount = this.game?.gameState?.moveHistory?.length || 
+                                        this.ui?.game?.gameState?.moveHistory?.length || 0;
                 }
             } catch (error) {
                 // Ignorer en mode silencieux
@@ -440,35 +525,35 @@ class ChessClipboardManager {
         
         // Mode debug
         try {
-            const fen = window.FENGenerator ? 
-                window.FENGenerator.generateFEN(this.ui.game.gameState, this.ui.game.board) : '';
+            const fen = this.getFEN();
             
             if (fen) {
                 stats.fen.length = fen.length;
                 stats.fen.generated = true;
+                stats.fen.source = 'generated';
                 console.log(`📊 [ClipboardManager] FEN: ${fen.length} caractères`);
             } else {
-                console.log('❌ [ClipboardManager] FENGenerator non disponible pour stats');
+                console.log('❌ [ClipboardManager] Impossible de générer stats FEN');
             }
         } catch (error) {
-            console.log(`❌ [ClipboardManager] Impossible de générer stats FEN: ${error.message}`);
+            console.log(`❌ [ClipboardManager] Erreur génération stats FEN: ${error.message}`);
         }
         
         try {
-            const pgn = this.ui.game.gameState.getFullPGN ? 
-                this.ui.game.gameState.getFullPGN() : '';
+            const pgn = this.getPGN();
             
             if (pgn) {
                 stats.pgn.length = pgn.length;
-                stats.pgn.moveCount = this.ui.game.gameState.moveHistory ? 
-                    this.ui.game.gameState.moveHistory.length : 0;
                 stats.pgn.generated = true;
+                stats.pgn.source = 'generated';
+                stats.pgn.moveCount = this.game?.gameState?.moveHistory?.length || 
+                                    this.ui?.game?.gameState?.moveHistory?.length || 0;
                 console.log(`📊 [ClipboardManager] PGN: ${pgn.length} caractères, ${stats.pgn.moveCount} coups`);
             } else {
-                console.log('❌ [ClipboardManager] getFullPGN non disponible pour stats');
+                console.log('❌ [ClipboardManager] Impossible de générer stats PGN');
             }
         } catch (error) {
-            console.log(`❌ [ClipboardManager] Impossible de générer stats PGN: ${error.message}`);
+            console.log(`❌ [ClipboardManager] Erreur génération stats PGN: ${error.message}`);
         }
         
         return stats;
@@ -489,23 +574,99 @@ class ChessClipboardManager {
             fenGeneration: false,
             pgnGeneration: false,
             uiAvailable: !!this.ui,
-            gameAvailable: !!(this.ui && this.ui.game),
-            gameStateAvailable: !!(this.ui && this.ui.game && this.ui.game.gameState),
-            fenGeneratorAvailable: !!window.FENGenerator
+            gameAvailable: !!this.game,
+            gameStateAvailable: !!(this.game?.gameState || this.ui?.game?.gameState),
+            fenGeneratorAvailable: !!window.FENGenerator,
+            methods: {
+                copyFENToClipboard: typeof this.copyFENToClipboard === 'function',
+                copyPGNToClipboard: typeof this.copyPGNToClipboard === 'function',
+                getFEN: typeof this.getFEN === 'function',
+                getPGN: typeof this.getPGN === 'function'
+            }
         };
         
         try {
             const fenStats = this.getClipboardStats();
             results.fenGeneration = fenStats.fen.generated;
             results.pgnGeneration = fenStats.pgn.generated;
+            
+            // Tester la copie FEN (sans réellement copier)
+            console.log('🧪 [ClipboardManager] Test copie FEN...');
+            const fen = this.getFEN();
+            results.fenTest = !!fen;
+            
+            // Tester la copie PGN (sans réellement copier)
+            console.log('🧪 [ClipboardManager] Test copie PGN...');
+            const pgn = this.getPGN();
+            results.pgnTest = !!pgn;
+            
         } catch (error) {
             console.log(`❌ [ClipboardManager] Erreur lors du test: ${error.message}`);
+            results.error = error.message;
         }
         
         console.log('📊 [ClipboardManager] Résultats du test:', results);
         console.groupEnd();
         
         return results;
+    }
+
+    // NOUVELLE MÉTHODE : Diagnostiquer pourquoi copyPGN ne marche pas
+    diagnosePGNProblem() {
+        if (!this.constructor.consoleLog) return null;
+        
+        console.group('🔍 [ClipboardManager] Diagnostic problème PGN');
+        
+        const diagnosis = {
+            uiExists: !!this.ui,
+            gameExists: !!this.game,
+            gameStateExists: !!(this.game?.gameState || this.ui?.game?.gameState),
+            methodsAvailable: {
+                gameGetPGN: !!(this.game?.getPGN),
+                gameStateGetFullPGN: !!(this.game?.gameState?.getFullPGN || this.ui?.game?.gameState?.getFullPGN),
+                gameStateGetPGN: !!(this.game?.gameState?.getPGN || this.ui?.game?.gameState?.getPGN),
+                coreGetPGN: !!(this.game?.core?.getPGN)
+            },
+            moveHistoryExists: !!(this.game?.gameState?.moveHistory || this.ui?.game?.gameState?.moveHistory),
+            moveHistoryLength: this.game?.gameState?.moveHistory?.length || this.ui?.game?.gameState?.moveHistory?.length || 0
+        };
+        
+        console.log('🔍 [ClipboardManager] Diagnostic:', diagnosis);
+        
+        // Essayer d'obtenir le PGN de différentes manières
+        console.log('🔍 [ClipboardManager] Essai 1 - game.getPGN:');
+        if (this.game?.getPGN) {
+            try {
+                const pgn = this.game.getPGN();
+                console.log('✅ PGN obtenu via game.getPGN():', pgn?.substring(0, 100));
+            } catch (e) {
+                console.log('❌ Erreur:', e.message);
+            }
+        }
+        
+        console.log('🔍 [ClipboardManager] Essai 2 - gameState.getFullPGN:');
+        const gameState = this.game?.gameState || this.ui?.game?.gameState;
+        if (gameState?.getFullPGN) {
+            try {
+                const pgn = gameState.getFullPGN();
+                console.log('✅ PGN obtenu via gameState.getFullPGN():', pgn?.substring(0, 100));
+            } catch (e) {
+                console.log('❌ Erreur:', e.message);
+            }
+        }
+        
+        console.log('🔍 [ClipboardManager] Essai 3 - Construction basique:');
+        if (diagnosis.moveHistoryExists) {
+            try {
+                const pgn = this.buildBasicPGN(gameState.moveHistory);
+                console.log('✅ PGN construit basique:', pgn?.substring(0, 100));
+            } catch (e) {
+                console.log('❌ Erreur:', e.message);
+            }
+        }
+        
+        console.groupEnd();
+        return diagnosis;
     }
 }
 
@@ -564,6 +725,15 @@ window.ClipboardManagerUtils = {
         }
         console.groupEnd();
         return available;
+    },
+    
+    // Diagnostiquer les problèmes de PGN
+    diagnosePGN: (clipboardManager) => {
+        if (!clipboardManager || typeof clipboardManager.diagnosePGNProblem !== 'function') {
+            console.error('❌ ClipboardManager non disponible');
+            return null;
+        }
+        return clipboardManager.diagnosePGNProblem();
     }
 };
 
@@ -610,4 +780,36 @@ if (ChessClipboardManager.consoleLog) {
     console.log('✅ ChessClipboardManager prêt (mode debug activé)');
 } else {
     console.info('✅ ChessClipboardManager prêt (mode silencieux)');
+}
+
+// Ajouter un événement global pour tester le PGN
+if (ChessClipboardManager.consoleLog) {
+    window.addEventListener('keydown', (e) => {
+        // Ctrl+Alt+P pour diagnostiquer le PGN
+        if (e.ctrlKey && e.altKey && e.key === 'p') {
+            e.preventDefault();
+            console.log('🔧 Diagnostic PGN déclenché manuellement');
+            
+            // Trouver un ClipboardManager existant
+            const chessGameUI = window.chessGameUI;
+            if (chessGameUI?.clipboardManager) {
+                chessGameUI.clipboardManager.diagnosePGNProblem();
+            } else {
+                console.log('❌ Aucun ClipboardManager trouvé');
+            }
+        }
+        
+        // Ctrl+Alt+C pour tester la copie PGN
+        if (e.ctrlKey && e.altKey && e.key === 'c') {
+            e.preventDefault();
+            console.log('🔧 Test copie PGN déclenché manuellement');
+            
+            const chessGameUI = window.chessGameUI;
+            if (chessGameUI?.clipboardManager) {
+                chessGameUI.clipboardManager.copyPGNToClipboard();
+            } else {
+                console.log('❌ Aucun ClipboardManager trouvé pour tester');
+            }
+        }
+    });
 }

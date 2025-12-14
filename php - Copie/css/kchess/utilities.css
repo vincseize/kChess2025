@@ -1,0 +1,20 @@
+/* utilities.css */
+/* États */
+.status-check { color: #ffc107; font-weight: bold; }
+.status-checkmate { color: #dc3545; font-weight: bold; }
+.status-stalemate { color: #6c757d; font-weight: bold; }
+
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Animations */
+@keyframes piece-move {
+    from { opacity: 0.7; transform: scale(1.1); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.piece-moving {
+    animation: piece-move 0.3s ease;
+}

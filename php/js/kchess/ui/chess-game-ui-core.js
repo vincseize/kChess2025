@@ -5,25 +5,6 @@ class ChessGameUI {
     static consoleLog = true; // true par défaut pour debug
     
     static init() {
-
-
-
-        // AJOUTER CETTE VÉRIFICATION AVEC ALERT
-        alert('🔍 VÉRIFICATION DES VARIABLES JSON:\n\n' +
-              `1. window.appConfig existe ? ${!!window.appConfig}\n` +
-              `2. window.appTranslations existe ? ${!!window.appTranslations}\n` +
-              `3. window.appConfig?.lang = "${window.appConfig?.lang || 'NON DÉFINI'}"\n` +
-              `4. window.appTranslations?.new_game = "${window.appTranslations?.new_game || 'NON TROUVÉ'}"\n\n` +
-              'Voir la console (F12) pour plus de détails.');
-        
-        // Afficher plus de détails dans la console
-        console.log('🔍 === VÉRIFICATION DÉTAILLÉE ===');
-        console.log('📦 window.appConfig:', window.appConfig);
-        console.log('📚 window.appTranslations:', window.appTranslations);
-        console.log('🌍 Langue:', window.appConfig?.lang);
-
-
-
         // Charger la configuration depuis window.appConfig
         this.loadConfig();
         
@@ -391,23 +372,16 @@ class ChessGameUI {
             }
             return;
         }
-
+        
         if (this.game.gameState && this.game.gameState.currentPlayer) {
-
             const player = this.game.gameState.currentPlayer;
-
-            // 100% TRAD JSON — aucune phrase en dur
-            const t = window.appTranslations || {};
-            const text = player === 'white'
-                ? t.traitAuBlancs
-                : t.traitAuxNoirs;
-
+            const text = player === 'white' ? 'Aux blancs de jouer' : 'Aux noirs de jouer';
+            
             currentPlayerElement.textContent = text;
-
+            
             if (this.constructor.consoleLog) {
                 console.log(`📊 [ChessGameUI] Statut mis à jour: ${text}`);
             }
-
         } else {
             if (this.constructor.consoleLog) {
                 console.warn('⚠️ [ChessGameUI] GameState ou currentPlayer non disponible');
@@ -415,6 +389,7 @@ class ChessGameUI {
         }
     }
 
+    // Nouvelle méthode : afficher l'indicateur de bot
     updateBotIndicator() {
         // Mode silencieux
         if (!this.constructor.consoleLog) {

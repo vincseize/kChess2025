@@ -35,7 +35,37 @@ function loadGameConfig() {
         $config['chess_engine']['console_log'] = filter_var($config['chess_engine']['console_log'], FILTER_VALIDATE_BOOLEAN);
     }
     
+    // ========== GESTION DES LANGUES ==========
+    // Déterminer la langue actuelle
+    $config['current_lang'] = getPreferredLanguage($config);
+    
+    // Stocker le code de langue pour JavaScript
+    $config['lang_code'] = $config['current_lang'];
+    
     return $config;
+}
+
+function getPreferredLanguage($config) {
+    // 1. Vérifier si une langue est dans l'URL (paramètre ?lang=)
+    if (isset($_GET['lang'])) {
+        $lang = $_GET['lang'];
+        if (isset($config['lang'][$lang])) {
+            // Définir un cookie pour la session
+            setcookie('charlychess_lang', $lang, time() + (86400 * 30), "/");
+            return $lang;
+        }
+    }
+    
+    // 2. Vérifier si une langue est stockée dans les cookies
+    if (isset($_COOKIE['charlychess_lang'])) {
+        $lang = $_COOKIE['charlychess_lang'];
+        if (isset($config['lang'][$lang])) {
+            return $lang;
+        }
+    }
+    
+    // 3. Retourner la langue par défaut depuis la config (déjà "fr" dans votre JSON)
+    return isset($config['default_lang']) ? $config['default_lang'] : 'fr';
 }
 
 function getVersion() {
@@ -53,7 +83,9 @@ function logConfigInfo($config) {
                  ($config['debug']['console_log'] ? 'true' : 'false') . 
                  ", chess_engine: " . 
                  (isset($config['chess_engine']['console_log']) ? 
-                  ($config['chess_engine']['console_log'] ? 'true' : 'false') : 'non défini'));
+                  ($config['chess_engine']['console_log'] ? 'true' : 'false') : 'non défini') .
+                 ", langue: " . $config['current_lang'] .
+                 ", default_lang: " . $config['default_lang']);
     }
 }
 ?>

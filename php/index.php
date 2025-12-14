@@ -4,27 +4,10 @@ require_once __DIR__ . '/config-loader.php'; // Même dossier
 
 $config = loadGameConfig();
 $version = getVersion();
-
-// GESTION DE LA LANGUE - REDIRECTION AUTOMATIQUE
-// Vérifier si le paramètre lang est présent
-if (!isset($_GET['lang'])) {
-    // Rediriger automatiquement vers ?lang=fr
-    header('Location: ?lang=fr');
-    exit;
-}
-
-// Récupérer la langue depuis l'URL
-$currentLang = isset($_GET['lang']) && in_array($_GET['lang'], ['fr', 'en']) 
-    ? $_GET['lang'] 
-    : 'fr'; // Fallback vers français
-
-// Mettre à jour la configuration avec la langue
-$config['current_lang'] = $currentLang;
-
 logConfigInfo($config);
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo $currentLang; ?>">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -53,28 +36,23 @@ logConfigInfo($config);
 
     <!-- Configuration JavaScript - NORMALISÉE -->
     <script>
-        // Configuration globale normalisée
+        // Configuration globale normalisée - MÊME STRUCTURE QUE HEADER.PHP
         window.appConfig = <?php echo getAppConfigJson($config); ?>;
-        
-        // Ajouter la langue à la configuration
-        window.appConfig.lang = '<?php echo $currentLang; ?>';
-        
-        // Ajouter les traductions
-        window.appTranslations = <?php 
-            echo json_encode(isset($config['lang'][$currentLang]) 
-                ? $config['lang'][$currentLang] 
-                : $config['lang']['fr']);
-        ?>;
         
         // Log de debug si activé
         <?php if ($config['debug']['console_log'] === true): ?>
         console.log('⚙️ Configuration index.php chargée:', {
             app: window.appConfig.app_name,
             version: window.appConfig.version,
-            lang: window.appConfig.lang,
-            translations: window.appTranslations,
+            debug_console_log: window.appConfig.debug.console_log,
+            chess_engine_console_log: window.appConfig.chess_engine.console_log,
             source: 'index.php'
         });
+        
+        alert('index.php - Configuration chargée:\n' +
+              '- debug.console_log = ' + window.appConfig.debug.console_log + '\n' +
+              '- chess_engine.console_log = ' + window.appConfig.chess_engine.console_log + '\n' +
+              '- Les deux doivent être FALSE pour désactiver les logs!');
         <?php endif; ?>
     </script>
 
@@ -89,8 +67,7 @@ logConfigInfo($config);
 <body>
 
 <?php
-// Passer la langue à newGame.php
-$lang = $currentLang;
+// Inclure newGame.php - les variables $config et $version sont déjà disponibles
 require_once 'newGame.php';
 ?>
 
