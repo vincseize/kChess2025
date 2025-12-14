@@ -91,163 +91,175 @@ class ChessEventsManager {
         return this.consoleLog;
     }
 
-    // ============================================
-    // FONCTION GLOBALE POUR METTRE À JOUR LES LABELS
-    // ============================================
-    static updatePlayerLabels() {
-        // Mode silencieux
-        if (!this.consoleLog) {
-            const topLabel = document.getElementById('topPlayerLabel');
-            const bottomLabel = document.getElementById('bottomPlayerLabel');
-            
-            if (!topLabel || !bottomLabel) return;
-            
-            try {
-                let isFlipped = false;
-                if (window.chessGame && window.chessGame.core && window.chessGame.core.gameState) {
-                    isFlipped = window.chessGame.core.gameState.boardFlipped;
-                }
-                
-                const botStatus = window.chessGame && window.chessGame.getBotStatus ? 
-                                 window.chessGame.getBotStatus() : 
-                                 { active: false, level: 0, color: '' };
-                
-                let topText, bottomText, topClass, bottomClass;
-                
-                if (isFlipped) {
-                    topText = 'Blancs';
-                    bottomText = 'Noirs';
-                    
-                    if (botStatus.active && botStatus.color === 'white') {
-                        topText = `Blancs (Bot Niv.${botStatus.level})`;
-                        topClass = 'bot-player bot-color-white';
-                    }
-                    if (botStatus.active && botStatus.color === 'black') {
-                        bottomText = `Noirs (Bot Niv.${botStatus.level})`;
-                        bottomClass = 'bot-player bot-color-black';
-                    }
-                    
-                    topClass = (topClass || '') + ' badge bg-white text-dark border border-dark p-2';
-                    bottomClass = (bottomClass || '') + ' badge bg-dark text-white p-2';
-                    
-                } else {
-                    topText = 'Noirs';
-                    bottomText = 'Blancs';
-                    
-                    if (botStatus.active && botStatus.color === 'black') {
-                        topText = `Noirs (Bot Niv.${botStatus.level})`;
-                        topClass = 'bot-player bot-color-black';
-                    }
-                    if (botStatus.active && botStatus.color === 'white') {
-                        bottomText = `Blancs (Bot Niv.${botStatus.level})`;
-                        bottomClass = 'bot-player bot-color-white';
-                    }
-                    
-                    topClass = (topClass || '') + ' badge bg-dark text-white p-2';
-                    bottomClass = (bottomClass || '') + ' badge bg-white text-dark border border-dark p-2';
-                }
-                
-                const topIcon = botStatus.active && (
-                    (isFlipped && botStatus.color === 'white') || 
-                    (!isFlipped && botStatus.color === 'black')
-                ) ? '<i class="bi bi-cpu me-1"></i>' : '<i class="bi bi-person me-1"></i>';
-                
-                const bottomIcon = botStatus.active && (
-                    (isFlipped && botStatus.color === 'black') || 
-                    (!isFlipped && botStatus.color === 'white')
-                ) ? '<i class="bi bi-cpu me-1"></i>' : '<i class="bi bi-person me-1"></i>';
-                
-                topLabel.innerHTML = `${topIcon} ${topText}`;
-                topLabel.className = topClass;
-                bottomLabel.innerHTML = `${bottomIcon} ${bottomText}`;
-                bottomLabel.className = bottomClass;
-                
-            } catch (error) {
-                // Silencieux en mode production
+// ============================================
+// FONCTION GLOBALE POUR METTRE À JOUR LES LABELS
+// ============================================
+static updatePlayerLabels() {
+    // Fonction utilitaire pour récupérer les traductions
+const getTranslations = () => {
+    try {
+        if (window.appConfig && window.appConfig.lang) {
+            // Debug en mode consoleLog
+            if (this.consoleLog) {
+                console.log('🌐 [ChessEvents] Récupération traductions...');
+                console.log('🌐 [ChessEvents] current_lang config:', window.appConfig.current_lang);
+                console.log('🌐 [ChessEvents] default_lang config:', window.appConfig.default_lang);
+                console.log('🌐 [ChessEvents] Langue localStorage:', localStorage.getItem('charlychess_lang'));
             }
-            return;
+            
+            // PRIORITÉ 1: Utiliser current_lang de la config (le plus important !)
+            if (window.appConfig.current_lang && window.appConfig.lang[window.appConfig.current_lang]) {
+                if (this.consoleLog) {
+                    console.log(`🌐 [ChessEvents] Utilisation current_lang config: ${window.appConfig.current_lang}`);
+                }
+                return window.appConfig.lang[window.appConfig.current_lang];
+            }
+            
+            // PRIORITÉ 2: Vérifier localStorage
+            const savedLang = localStorage.getItem('charlychess_lang');
+            if (savedLang && window.appConfig.lang[savedLang]) {
+                if (this.consoleLog) {
+                    console.log(`🌐 [ChessEvents] Utilisation langue depuis localStorage: ${savedLang}`);
+                }
+                return window.appConfig.lang[savedLang];
+            }
+            
+            // PRIORITÉ 3: Vérifier la langue du navigateur
+            const browserLang = navigator.language || navigator.userLanguage;
+            let detectedLang = window.appConfig.default_lang || 'fr';
+            
+            if (browserLang) {
+                if (browserLang.startsWith('en')) {
+                    detectedLang = 'en';
+                } else if (browserLang.startsWith('fr')) {
+                    detectedLang = 'fr';
+                }
+            }
+            
+            if (this.consoleLog) {
+                console.log(`🌐 [ChessEvents] Langue navigateur: ${browserLang}`);
+                console.log(`🌐 [ChessEvents] Langue détectée: ${detectedLang}`);
+            }
+            
+            // PRIORITÉ 4: Vérifier si la langue détectée existe
+            if (window.appConfig.lang[detectedLang]) {
+                if (this.consoleLog) {
+                    console.log(`🌐 [ChessEvents] Utilisation langue détectée: ${detectedLang}`);
+                }
+                return window.appConfig.lang[detectedLang];
+            }
+            
+            // PRIORITÉ 5: Fallback à default_lang
+            const defaultLang = window.appConfig.default_lang || 'fr';
+            if (window.appConfig.lang[defaultLang]) {
+                if (this.consoleLog) {
+                    console.log(`🌐 [ChessEvents] Utilisation default_lang: ${defaultLang}`);
+                }
+                return window.appConfig.lang[defaultLang];
+            }
+            
+            // PRIORITÉ 6: Fallback final au français
+            if (this.consoleLog) {
+                console.log(`🌐 [ChessEvents] Fallback final au français`);
+            }
+            return window.appConfig.lang.fr || {};
+        }
+    } catch (error) {
+        if (this.consoleLog) {
+            console.error('❌ [ChessEvents] Erreur chargement traductions:', error);
+        }
+    }
+    
+    if (this.consoleLog) {
+        console.log(`🌐 [ChessEvents] Aucune configuration trouvée, retour objet vide`);
+    }
+    return {};
+};
+    
+    // Fonction pour obtenir le texte du bot
+    const getBotText = (level) => {
+        const t = getTranslations();
+        
+        // Essayer d'abord la clé spécifique (bot_level1, bot_level2, etc.)
+        const specificKey = `bot_level${level}`;
+        if (t[specificKey]) {
+            return t[specificKey];
         }
         
-        // Mode debug
-        console.log('\n🏷️ [ChessEvents] === MISE À JOUR DES LABELS ===');
+        // Sinon essayer de générer depuis bot_level1
+        if (t.bot_level1) {
+            return t.bot_level1.replace('1', level);
+        }
         
+        // Fallback très simple sans traduction codée en dur
+        return 'Bot';
+    };
+    
+    // Mode silencieux
+    if (!this.consoleLog) {
         const topLabel = document.getElementById('topPlayerLabel');
         const bottomLabel = document.getElementById('bottomPlayerLabel');
         
-        if (!topLabel || !bottomLabel) {
-            console.warn('⚠️ [ChessEvents] Labels des joueurs non trouvés');
-            return;
-        }
+        if (!topLabel || !bottomLabel) return;
         
         try {
-            // Récupérer l'état du plateau depuis le jeu
             let isFlipped = false;
-            
-            if (window.chessGame) {
-                // Essayer d'obtenir l'état depuis le core
-                if (window.chessGame.core && window.chessGame.core.gameState) {
-                    isFlipped = window.chessGame.core.gameState.boardFlipped;
-                }
+            if (window.chessGame && window.chessGame.core && window.chessGame.core.gameState) {
+                isFlipped = window.chessGame.core.gameState.boardFlipped;
             }
             
-            console.log(`🏷️ [ChessEvents] État du plateau: ${isFlipped ? 'retourné' : 'normal'}`);
-            
-            // Récupérer le statut du bot
             const botStatus = window.chessGame && window.chessGame.getBotStatus ? 
                              window.chessGame.getBotStatus() : 
                              { active: false, level: 0, color: '' };
             
-            if (botStatus.active) {
-                console.log(`🤖 [ChessEvents] Bot actif: niveau ${botStatus.level}, couleur ${botStatus.color}`);
-            }
+            // Récupérer les traductions
+            const t = getTranslations();
+            const whiteText = t.white; // PAS de fallback en dur !
+            const blackText = t.black; // PAS de fallback en dur !
             
-            // Déterminer le texte pour chaque joueur
+            // Si les traductions ne sont pas trouvées, utiliser des valeurs par défaut simples
+            const whiteLabel = whiteText || 'White';
+            const blackLabel = blackText || 'Black';
+            
             let topText, bottomText, topClass, bottomClass;
             
             if (isFlipped) {
-                // Plateau inversé: blancs en haut, noirs en bas
-                topText = 'Blancs';
-                bottomText = 'Noirs';
+                topText = whiteLabel;
+                bottomText = blackLabel;
                 
-                // Ajouter "Bot" si le bot joue cette couleur
                 if (botStatus.active && botStatus.color === 'white') {
-                    topText = `Blancs (Bot Niv.${botStatus.level})`;
+                    const botText = getBotText(botStatus.level);
+                    topText = `${whiteLabel} (${botText})`;
                     topClass = 'bot-player bot-color-white';
-                    console.log('🤖 [ChessEvents] Bot joue les blancs (en haut)');
                 }
                 if (botStatus.active && botStatus.color === 'black') {
-                    bottomText = `Noirs (Bot Niv.${botStatus.level})`;
+                    const botText = getBotText(botStatus.level);
+                    bottomText = `${blackLabel} (${botText})`;
                     bottomClass = 'bot-player bot-color-black';
-                    console.log('🤖 [ChessEvents] Bot joue les noirs (en bas)');
                 }
                 
-                // Classes CSS
                 topClass = (topClass || '') + ' badge bg-white text-dark border border-dark p-2';
                 bottomClass = (bottomClass || '') + ' badge bg-dark text-white p-2';
                 
             } else {
-                // Plateau normal: noirs en haut, blancs en bas
-                topText = 'Noirs';
-                bottomText = 'Blancs';
+                topText = blackLabel;
+                bottomText = whiteLabel;
                 
-                // Ajouter "Bot" si le bot joue cette couleur
                 if (botStatus.active && botStatus.color === 'black') {
-                    topText = `Noirs (Bot Niv.${botStatus.level})`;
+                    const botText = getBotText(botStatus.level);
+                    topText = `${blackLabel} (${botText})`;
                     topClass = 'bot-player bot-color-black';
-                    console.log('🤖 [ChessEvents] Bot joue les noirs (en haut)');
                 }
                 if (botStatus.active && botStatus.color === 'white') {
-                    bottomText = `Blancs (Bot Niv.${botStatus.level})`;
+                    const botText = getBotText(botStatus.level);
+                    bottomText = `${whiteLabel} (${botText})`;
                     bottomClass = 'bot-player bot-color-white';
-                    console.log('🤖 [ChessEvents] Bot joue les blancs (en bas)');
                 }
                 
-                // Classes CSS
                 topClass = (topClass || '') + ' badge bg-dark text-white p-2';
                 bottomClass = (bottomClass || '') + ' badge bg-white text-dark border border-dark p-2';
             }
             
-            // Mettre à jour les labels
             const topIcon = botStatus.active && (
                 (isFlipped && botStatus.color === 'white') || 
                 (!isFlipped && botStatus.color === 'black')
@@ -260,23 +272,145 @@ class ChessEventsManager {
             
             topLabel.innerHTML = `${topIcon} ${topText}`;
             topLabel.className = topClass;
-            
             bottomLabel.innerHTML = `${bottomIcon} ${bottomText}`;
             bottomLabel.className = bottomClass;
             
-            console.log('✅ [ChessEvents] Labels mis à jour avec succès:', { 
-                topText, 
-                bottomText, 
-                botActive: botStatus.active,
-                botLevel: botStatus.level,
-                botColor: botStatus.color 
-            });
-            console.log('🏷️ [ChessEvents] === FIN MISE À JOUR ===\n');
-            
         } catch (error) {
-            console.log(`❌ [ChessEvents] Erreur updatePlayerLabels: ${error.message}`);
+            // Silencieux en mode production
         }
+        return;
     }
+    
+    // Mode debug
+    console.log('\n🏷️ [ChessEvents] === MISE À JOUR DES LABELS ===');
+    
+    const topLabel = document.getElementById('topPlayerLabel');
+    const bottomLabel = document.getElementById('bottomPlayerLabel');
+    
+    if (!topLabel || !bottomLabel) {
+        console.warn('⚠️ [ChessEvents] Labels des joueurs non trouvés');
+        return;
+    }
+    
+    try {
+        // Récupérer l'état du plateau depuis le jeu
+        let isFlipped = false;
+        
+        if (window.chessGame) {
+            // Essayer d'obtenir l'état depuis le core
+            if (window.chessGame.core && window.chessGame.core.gameState) {
+                isFlipped = window.chessGame.core.gameState.boardFlipped;
+            }
+        }
+        
+        console.log(`🏷️ [ChessEvents] État du plateau: ${isFlipped ? 'retourné' : 'normal'}`);
+        
+        // Récupérer le statut du bot
+        const botStatus = window.chessGame && window.chessGame.getBotStatus ? 
+                         window.chessGame.getBotStatus() : 
+                         { active: false, level: 0, color: '' };
+        
+        if (botStatus.active) {
+            console.log(`🤖 [ChessEvents] Bot actif: niveau ${botStatus.level}, couleur ${botStatus.color}`);
+        }
+        
+        // Récupérer les traductions
+        const t = getTranslations();
+        
+        // Afficher toutes les traductions disponibles pour debug
+        console.log('🌐 [ChessEvents] Traductions disponibles:', Object.keys(t).filter(k => k.includes('white') || k.includes('black') || k.includes('bot')));
+        
+        const whiteText = t.white; // PAS de fallback en dur !
+        const blackText = t.black; // PAS de fallback en dur !
+        
+        console.log(`🏷️ [ChessEvents] Traductions: white="${whiteText}", black="${blackText}"`);
+        
+        // Si les traductions ne sont pas trouvées, utiliser des valeurs par défaut neutres
+        const whiteLabel = whiteText || 'White';
+        const blackLabel = blackText || 'Black';
+        
+        console.log(`🏷️ [ChessEvents] Labels utilisés: whiteLabel="${whiteLabel}", blackLabel="${blackLabel}"`);
+        
+        // Déterminer le texte pour chaque joueur
+        let topText, bottomText, topClass, bottomClass;
+        
+        if (isFlipped) {
+            // Plateau inversé: blancs en haut, noirs en bas
+            topText = whiteLabel;
+            bottomText = blackLabel;
+            
+            // Ajouter "Bot" si le bot joue cette couleur
+            if (botStatus.active && botStatus.color === 'white') {
+                const botText = getBotText(botStatus.level);
+                topText = `${whiteLabel} (${botText})`;
+                topClass = 'bot-player bot-color-white';
+                console.log(`🤖 [ChessEvents] Bot joue les ${whiteLabel} (en haut): ${botText}`);
+            }
+            if (botStatus.active && botStatus.color === 'black') {
+                const botText = getBotText(botStatus.level);
+                bottomText = `${blackLabel} (${botText})`;
+                bottomClass = 'bot-player bot-color-black';
+                console.log(`🤖 [ChessEvents] Bot joue les ${blackLabel} (en bas): ${botText}`);
+            }
+            
+            // Classes CSS
+            topClass = (topClass || '') + ' badge bg-white text-dark border border-dark p-2';
+            bottomClass = (bottomClass || '') + ' badge bg-dark text-white p-2';
+            
+        } else {
+            // Plateau normal: noirs en haut, blancs en bas
+            topText = blackLabel;
+            bottomText = whiteLabel;
+            
+            // Ajouter "Bot" si le bot joue cette couleur
+            if (botStatus.active && botStatus.color === 'black') {
+                const botText = getBotText(botStatus.level);
+                topText = `${blackLabel} (${botText})`;
+                topClass = 'bot-player bot-color-black';
+                console.log(`🤖 [ChessEvents] Bot joue les ${blackLabel} (en haut): ${botText}`);
+            }
+            if (botStatus.active && botStatus.color === 'white') {
+                const botText = getBotText(botStatus.level);
+                bottomText = `${whiteLabel} (${botText})`;
+                bottomClass = 'bot-player bot-color-white';
+                console.log(`🤖 [ChessEvents] Bot joue les ${whiteLabel} (en bas): ${botText}`);
+            }
+            
+            // Classes CSS
+            topClass = (topClass || '') + ' badge bg-dark text-white p-2';
+            bottomClass = (bottomClass || '') + ' badge bg-white text-dark border border-dark p-2';
+        }
+        
+        // Mettre à jour les labels
+        const topIcon = botStatus.active && (
+            (isFlipped && botStatus.color === 'white') || 
+            (!isFlipped && botStatus.color === 'black')
+        ) ? '<i class="bi bi-cpu me-1"></i>' : '<i class="bi bi-person me-1"></i>';
+        
+        const bottomIcon = botStatus.active && (
+            (isFlipped && botStatus.color === 'black') || 
+            (!isFlipped && botStatus.color === 'white')
+        ) ? '<i class="bi bi-cpu me-1"></i>' : '<i class="bi bi-person me-1"></i>';
+        
+        topLabel.innerHTML = `${topIcon} ${topText}`;
+        topLabel.className = topClass;
+        
+        bottomLabel.innerHTML = `${bottomIcon} ${bottomText}`;
+        bottomLabel.className = bottomClass;
+        
+        console.log('✅ [ChessEvents] Labels mis à jour avec succès:', { 
+            topText, 
+            bottomText, 
+            botActive: botStatus.active,
+            botLevel: botStatus.level,
+            botColor: botStatus.color 
+        });
+        console.log('🏷️ [ChessEvents] === FIN MISE À JOUR ===\n');
+        
+    } catch (error) {
+        console.log(`❌ [ChessEvents] Erreur updatePlayerLabels: ${error.message}`);
+    }
+}
 }
 
 // ============================================

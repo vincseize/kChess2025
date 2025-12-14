@@ -364,36 +364,32 @@ class ChessGameUI {
         console.log('✅ [ChessGameUI] === MISE À JOUR TERMINÉE ===\n');
     }
 
- updateGameStatus() {
-    const currentPlayerElement = document.getElementById('currentPlayer');
-    if (!currentPlayerElement) {
-        if (this.constructor.consoleLog) {
-            console.warn('⚠️ [ChessGameUI] Élément currentPlayer non trouvé');
+    updateGameStatus() {
+        const currentPlayerElement = document.getElementById('currentPlayer');
+        if (!currentPlayerElement) {
+            if (this.constructor.consoleLog) {
+                console.warn('⚠️ [ChessGameUI] Élément currentPlayer non trouvé');
+            }
+            return;
         }
-        return;
-    }
-    
-    if (this.game.gameState && this.game.gameState.currentPlayer) {
-        const player = this.game.gameState.currentPlayer;
         
-        // window.getTranslation est toujours disponible car défini dans content.php
-        const text = player === 'white' ? 
-            window.getTranslation('traitAuBlancs', 'White to move') : 
-            window.getTranslation('traitAuxNoirs', 'Black to move');
-        
-        currentPlayerElement.textContent = text;
-        
-        if (this.constructor.consoleLog) {
-            console.log(`📊 [ChessGameUI] Statut mis à jour: ${text} (joueur: ${player})`);
-        }
-    } else {
-        if (this.constructor.consoleLog) {
-            console.warn('⚠️ [ChessGameUI] GameState ou currentPlayer non disponible');
+        if (this.game.gameState && this.game.gameState.currentPlayer) {
+            const player = this.game.gameState.currentPlayer;
+            const text = player === 'white' ? 'Aux blancs de jouer' : 'Aux noirs de jouer';
+            
+            currentPlayerElement.textContent = text;
+            
+            if (this.constructor.consoleLog) {
+                console.log(`📊 [ChessGameUI] Statut mis à jour: ${text}`);
+            }
+        } else {
+            if (this.constructor.consoleLog) {
+                console.warn('⚠️ [ChessGameUI] GameState ou currentPlayer non disponible');
+            }
         }
     }
-}
 
-    // Nouvelle méthode : afficher l'indicateur de bot
+    // NOUVELLE MÉTHODE : afficher l'indicateur de bot (version traduite)
     updateBotIndicator() {
         // Mode silencieux
         if (!this.constructor.consoleLog) {
@@ -407,22 +403,40 @@ class ChessGameUI {
                 let botType = '';
                 let botIcon = '';
                 
-                switch(botStatus.level) {
-                    case 1:
-                        botType = 'Bot Niv.1 (Aléatoire)';
-                        botIcon = '🤖';
-                        break;
-                    case 2:
-                        botType = 'Bot Niv.2 (CCMO)';
-                        botIcon = '🧠';
-                        break;
-                    default:
-                        botType = `Bot Niv.${botStatus.level}`;
-                        botIcon = '🤖';
-                }
+                // Récupérer les traductions
+const t = this.getTranslations();
+
+switch(botStatus.level) {
+    case 1:
+        botType = t.bot_level1 || t.random_bot || 'Bot';
+        botIcon = '🤖';
+        break;
+    case 2:
+        botType = t.bot_level2 || t.ccmo_bot || 'Bot';
+        botIcon = '🧠';
+        break;
+    case 3:
+        botType = t.bot_level3 || 'Bot';
+        botIcon = '🤖';
+        break;
+    default:
+        // Pour les niveaux supérieurs, utilise une clé générique si disponible
+        // ou génère à partir de bot_level1
+        if (t.bot_level1) {
+            // Remplacer le chiffre 1 par le niveau actuel
+            botType = t.bot_level1.replace('1', botStatus.level);
+        } else if (t[`bot_level${botStatus.level}`]) {
+            // Si une clé spécifique existe (bot_level4, bot_level5, etc.)
+            botType = t[`bot_level${botStatus.level}`];
+        } else {
+            // Fallback simple
+            botType = 'Bot';
+        }
+        botIcon = '🤖';
+}
                 
                 botIndicatorElement.innerHTML = `
-                    <span class="bot-indicator" title="${botType} - Joue les ${botStatus.color === 'white' ? 'Blancs' : 'Noirs'}">
+                    <span class="bot-indicator" title="${botType} - ${t.plays || 'Joue'} les ${botStatus.color === 'white' ? t.white : t.black}">
                         ${botIcon} ${botType}
                     </span>
                 `;
@@ -435,7 +449,7 @@ class ChessGameUI {
                 
                 if (isBotTurn) {
                     currentPlayerElement.classList.add('bot-turn');
-                    currentPlayerElement.title = `${botType} réfléchit...`;
+                    currentPlayerElement.title = `${botType} ${t.thinking || 'réfléchit...'}`;
                 } else {
                     currentPlayerElement.classList.remove('bot-turn');
                     currentPlayerElement.title = '';
@@ -466,24 +480,54 @@ class ChessGameUI {
             let botType = '';
             let botIcon = '';
             
-            switch(botStatus.level) {
-                case 1:
-                    botType = 'Bot Niv.1 (Aléatoire)';
-                    botIcon = '🤖';
-                    break;
-                case 2:
-                    botType = 'Bot Niv.2 (CCMO)';
-                    botIcon = '🧠';
-                    break;
-                default:
-                    botType = `Bot Niv.${botStatus.level}`;
-                    botIcon = '🤖';
-            }
+            // Récupérer les traductions
+const t = this.getTranslations();
+console.log(`🤖 [ChessGameUI] Traductions chargées:`, Object.keys(t).length, 'éléments');
+
+switch(botStatus.level) {
+    case 1:
+        // Utilise bot_level1 si disponible, sinon random_bot, sinon fallback
+        botType = t.bot_level1 || t.random_bot || 'Bot';
+        botIcon = '🤖';
+        console.log(`🤖 [ChessGameUI] Niveau 1: "${t.bot_level1 || t.random_bot || 'fallback'}"`);
+        break;
+    case 2:
+        // Utilise bot_level2 si disponible, sinon ccmo_bot, sinon fallback
+        botType = t.bot_level2 || t.ccmo_bot || 'Bot';
+        botIcon = '🧠';
+        console.log(`🤖 [ChessGameUI] Niveau 2: "${t.bot_level2 || t.ccmo_bot || 'fallback'}"`);
+        break;
+    case 3:
+        // Pour le niveau 3, utilise bot_level3 si disponible
+        if (t.bot_level3) {
+            botType = t.bot_level3;
+            console.log(`🤖 [ChessGameUI] Niveau 3: "${t.bot_level3}" (depuis bot_level3)`);
+        } else if (t.bot_level1) {
+            // Utiliser bot_level1 comme base et remplacer le numéro
+            botType = t.bot_level1.replace('1', '3');
+            console.log(`🤖 [ChessGameUI] Niveau 3: "${botType}" (généré depuis bot_level1)`);
+        } else {
+            botType = 'Bot';
+            console.log(`🤖 [ChessGameUI] Niveau 3: "${botType}" (fallback)`);
+        }
+        botIcon = '🤖';
+        break;
+    default:
+        // Pour les niveaux supérieurs à 3
+        if (t.bot_level1) {
+            botType = t.bot_level1.replace('1', botStatus.level);
+            console.log(`🤖 [ChessGameUI] Niveau ${botStatus.level}: "${botType}" (généré depuis bot_level1)`);
+        } else {
+            botType = 'Bot';
+            console.log(`🤖 [ChessGameUI] Niveau ${botStatus.level}: "${botType}" (fallback)`);
+        }
+        botIcon = '🤖';
+}
             
-            console.log(`🤖 [ChessGameUI] Type bot: ${botType}`);
+            console.log(`🤖 [ChessGameUI] Type bot final: ${botType}`);
             
             botIndicatorElement.innerHTML = `
-                <span class="bot-indicator" title="${botType} - Joue les ${botStatus.color === 'white' ? 'Blancs' : 'Noirs'}">
+                <span class="bot-indicator" title="${botType} - ${t.plays || 'Joue'} les ${botStatus.color === 'white' ? t.white : t.black}">
                     ${botIcon} ${botType}
                 </span>
             `;
@@ -496,7 +540,7 @@ class ChessGameUI {
             
             if (isBotTurn) {
                 currentPlayerElement.classList.add('bot-turn');
-                currentPlayerElement.title = `${botType} réfléchit...`;
+                currentPlayerElement.title = `${botType} ${t.thinking || 'réfléchit...'}`;
                 console.log('🤖 [ChessGameUI] C\'est le tour du bot');
             } else {
                 currentPlayerElement.classList.remove('bot-turn');
@@ -568,47 +612,47 @@ class ChessGameUI {
     }
 
     // Méthode utilitaire pour les notifications
-// Méthode utilitaire pour les notifications
-showNotification(message, type = 'info') {
-    // Traduire le message si possible
-    let translatedMessage = message;
-    
-    // Si c'est un message système connu, essayer de le traduire
-    if (window.getTranslation) {
-        // Mapping des messages système vers les clés de traduction
-        const systemMessages = {
-            'Erreur génération FEN': 'fen_generation_error',
-            'FEN copié dans le presse-papier !': 'fen_copied',
-            'Erreur lors de la copie du FEN': 'copy_error_fen',
-            'Erreur génération PGN': 'pgn_generation_error', 
-            'PGN copié dans le presse-papier !': 'pgn_copied',
-            'Erreur lors de la copie du PGN': 'copy_error_pgn',
-            'Aucun coup joué pour copier': 'no_moves_to_copy',
-            'Nouvelle partie démarrée': 'new_game_started',
-            'Plateau tourné': 'board_flipped',
-            'Coup invalide': 'invalid_move',
-            'Promotion requise': 'promotion_required',
-            'Sélectionnez une promotion': 'select_promotion',
-            'FEN copié (méthode fallback)': 'fen_copied_fallback',
-            'PGN copié (méthode fallback)': 'pgn_copied_fallback',
-            'Impossible de copier le FEN': 'copy_impossible_fen',
-            'Impossible de copier le PGN': 'copy_impossible_pgn'
-        };
-        
-        if (systemMessages[message]) {
-            const translated = window.getTranslation(systemMessages[message], message);
-            if (translated !== systemMessages[message]) {
-                translatedMessage = translated;
+    showNotification(message, type = 'info') {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            if (this.game.gameStatusManager && this.game.gameStatusManager.showNotification) {
+                this.game.gameStatusManager.showNotification(message, type);
+            } else {
+                // Notification simple
+                const notification = document.createElement('div');
+                notification.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed top-0 end-0 m-3`;
+                notification.style.zIndex = '9999';
+                
+                const icon = type === 'success' ? 'bi-check-circle' : 
+                            type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle';
+                
+                notification.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi ${icon} me-2"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
             }
+            return;
         }
-    }
-    
-    // Mode silencieux
-    if (!this.constructor.consoleLog) {
+        
+        // Mode debug
+        console.log(`📢 [ChessGameUI] Notification ${type}: ${message}`);
+        
         if (this.game.gameStatusManager && this.game.gameStatusManager.showNotification) {
-            this.game.gameStatusManager.showNotification(translatedMessage, type);
+            console.log('📢 [ChessGameUI] Délégation à gameStatusManager');
+            this.game.gameStatusManager.showNotification(message, type);
         } else {
-            // Notification simple
+            console.log('📢 [ChessGameUI] Création notification simple');
+            
             const notification = document.createElement('div');
             notification.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed top-0 end-0 m-3`;
             notification.style.zIndex = '9999';
@@ -619,7 +663,7 @@ showNotification(message, type = 'info') {
             notification.innerHTML = `
                 <div class="d-flex align-items-center">
                     <i class="bi ${icon} me-2"></i>
-                    <span>${translatedMessage}</span>
+                    <span>${message}</span>
                 </div>
             `;
             
@@ -628,45 +672,11 @@ showNotification(message, type = 'info') {
             setTimeout(() => {
                 if (notification.parentNode) {
                     notification.parentNode.removeChild(notification);
+                    console.log('📢 [ChessGameUI] Notification supprimée');
                 }
             }, 3000);
         }
-        return;
     }
-    
-    // Mode debug
-    console.log(`📢 [ChessGameUI] Notification ${type}: ${translatedMessage}`);
-    
-    if (this.game.gameStatusManager && this.game.gameStatusManager.showNotification) {
-        console.log('📢 [ChessGameUI] Délégation à gameStatusManager');
-        this.game.gameStatusManager.showNotification(translatedMessage, type);
-    } else {
-        console.log('📢 [ChessGameUI] Création notification simple');
-        
-        const notification = document.createElement('div');
-        notification.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed top-0 end-0 m-3`;
-        notification.style.zIndex = '9999';
-        
-        const icon = type === 'success' ? 'bi-check-circle' : 
-                    type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle';
-        
-        notification.innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="bi ${icon} me-2"></i>
-                <span>${translatedMessage}</span>
-            </div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-                console.log('📢 [ChessGameUI] Notification supprimée');
-            }
-        }, 3000);
-    }
-}
     
     // NOUVELLE MÉTHODE : Obtenir le statut de l'UI
     getUIStatus() {
@@ -687,6 +697,50 @@ showNotification(message, type = 'info') {
         }
         
         return status;
+    }
+    
+    // Méthode utilitaire pour récupérer les traductions (AJOUTÉE)
+    getTranslations() {
+        try {
+            // Vérifier si la configuration existe
+            if (window.appConfig && window.appConfig.lang) {
+                // Récupérer la langue actuelle
+                const currentLang = localStorage.getItem('charlychess_lang') || 
+                                  this.getCurrentLanguage() || 
+                                  window.appConfig.default_lang || 
+                                  'fr';
+                
+                // Retourner les traductions pour cette langue
+                const translations = window.appConfig.lang[currentLang];
+                
+                // Si la langue spécifique n'existe pas, utiliser le français par défaut
+                return translations || window.appConfig.lang.fr || {};
+            }
+        } catch (error) {
+            if (this.constructor.consoleLog) {
+                console.error('❌ [ChessGameUI] Erreur lors du chargement des traductions:', error);
+            }
+        }
+        
+        // Retourner un objet vide si aucune traduction n'est trouvée
+        return {};
+    }
+
+    // Méthode pour déterminer la langue actuelle (AJOUTÉE)
+    getCurrentLanguage() {
+        // Vérifier dans localStorage
+        if (localStorage.getItem('charlychess_lang')) {
+            return localStorage.getItem('charlychess_lang');
+        }
+        
+        // Vérifier la langue du navigateur
+        const browserLang = navigator.language || navigator.userLanguage;
+        if (browserLang && browserLang.startsWith('en')) {
+            return 'en';
+        }
+        
+        // Par défaut, retourner français
+        return 'fr';
     }
     
     // NOUVELLE MÉTHODE : Tester toutes les fonctionnalités de l'UI
