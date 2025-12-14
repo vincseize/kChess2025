@@ -1,7 +1,7 @@
 <?php
-// config-loader.php - dans le dossier php/
+// config-loader.php - VERSION CORRIGÉE
 function loadGameConfig() {
-    $configFile = __DIR__ . '/config/game-config.json'; // Remonter d'un niveau
+    $configFile = __DIR__ . '/config/game-config.json';
     
     // Vérifier si le fichier existe
     if (!file_exists($configFile)) {
@@ -36,8 +36,13 @@ function loadGameConfig() {
     }
     
     // ========== GESTION DES LANGUES ==========
-    // Déterminer la langue actuelle
-    $config['current_lang'] = getPreferredLanguage($config);
+    // La langue est maintenant déterminée dans app.php et stockée dans $_SESSION
+    if (isset($_SESSION['charlychess_lang']) && isset($config['lang'][$_SESSION['charlychess_lang']])) {
+        $config['current_lang'] = $_SESSION['charlychess_lang'];
+    } else {
+        // Langue par défaut depuis la config
+        $config['current_lang'] = isset($config['default_lang']) ? $config['default_lang'] : 'fr';
+    }
     
     // Stocker le code de langue pour JavaScript
     $config['lang_code'] = $config['current_lang'];
@@ -45,35 +50,12 @@ function loadGameConfig() {
     return $config;
 }
 
-function getPreferredLanguage($config) {
-    // 1. Vérifier si une langue est dans l'URL (paramètre ?lang=)
-    if (isset($_GET['lang'])) {
-        $lang = $_GET['lang'];
-        if (isset($config['lang'][$lang])) {
-            // Définir un cookie pour la session
-            setcookie('charlychess_lang', $lang, time() + (86400 * 30), "/");
-            return $lang;
-        }
-    }
-    
-    // 2. Vérifier si une langue est stockée dans les cookies
-    if (isset($_COOKIE['charlychess_lang'])) {
-        $lang = $_COOKIE['charlychess_lang'];
-        if (isset($config['lang'][$lang])) {
-            return $lang;
-        }
-    }
-    
-    // 3. Retourner la langue par défaut depuis la config (déjà "fr" dans votre JSON)
-    return isset($config['default_lang']) ? $config['default_lang'] : 'fr';
-}
-
+// Les autres fonctions restent inchangées
 function getVersion() {
-    return time(); // Version basée sur le timestamp pour éviter le cache
+    return time();
 }
 
 function getAppConfigJson($config) {
-    // Convertir en JSON sécurisé pour JavaScript
     return json_encode($config, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE);
 }
 
