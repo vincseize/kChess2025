@@ -159,64 +159,64 @@ class ChessClipboardManager {
         console.log('📄 [ClipboardManager] === FIN COPIE FEN ===\n');
     }
 
-    copyPGNToClipboard() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            try {
-                // Essayer plusieurs sources pour obtenir le PGN
-                const pgn = this.getPGN();
-                
-                if (!pgn) {
-                    this.ui?.showNotification?.('Erreur génération PGN', 'error') || 
-                    console.error('Erreur génération PGN');
-                    return;
-                }
-                
-                this.copyToClipboard(pgn, 'PGN');
-            } catch (error) {
-                this.ui?.showNotification?.('Erreur génération PGN', 'error') || 
-                console.error('Erreur génération PGN:', error);
-            }
-            return;
-        }
-        
-        // Mode debug
-        console.log('\n📜 [ClipboardManager] === COPIE PGN ===');
-        console.log('📜 [ClipboardManager] Début de la copie PGN...');
-        
+copyPGNToClipboard() {
+    // Mode silencieux
+    if (!this.constructor.consoleLog) {
         try {
-            console.log('📜 [ClipboardManager] Tentative de génération PGN...');
-            
             // Essayer plusieurs sources pour obtenir le PGN
             const pgn = this.getPGN();
             
-            if (!pgn) {
-                console.log('❌ [ClipboardManager] Impossible de générer le PGN');
-                this.ui?.showNotification?.('Erreur génération PGN', 'error') || 
-                console.error('Erreur génération PGN');
+            if (!pgn || pgn.trim() === '' || pgn === this.getEmptyPGN()) {
+                this.ui?.showNotification?.('Aucun coup joué pour copier', 'info') || 
+                console.info('Aucun coup joué');
                 return;
             }
             
-            console.log(`📜 [ClipboardManager] PGN généré: ${pgn.substring(0, 100)}...`);
-            console.log('📜 [ClipboardManager] Longueur du PGN:', pgn.length, 'caractères');
-            
-            // Compter les mouvements si possible
-            const moveCount = this.game?.gameState?.moveHistory?.length || 
-                            this.ui?.game?.gameState?.moveHistory?.length || 0;
-            console.log(`📜 [ClipboardManager] Nombre de coups estimé: ${moveCount}`);
-            
-            console.log('📜 [ClipboardManager] Tentative de copie...');
             this.copyToClipboard(pgn, 'PGN');
-            
         } catch (error) {
-            console.log(`❌ [ClipboardManager] Erreur génération PGN: ${error.message}`);
-            console.error('PGN generation error:', error);
             this.ui?.showNotification?.('Erreur génération PGN', 'error') || 
-            console.error('Erreur génération PGN');
+            console.error('Erreur génération PGN:', error);
+        }
+        return;
+    }
+    
+    // Mode debug
+    console.log('\n📜 [ClipboardManager] === COPIE PGN ===');
+    console.log('📜 [ClipboardManager] Début de la copie PGN...');
+    
+    try {
+        console.log('📜 [ClipboardManager] Tentative de génération PGN...');
+        
+        // Essayer plusieurs sources pour obtenir le PGN
+        const pgn = this.getPGN();
+        
+        if (!pgn || pgn.trim() === '' || pgn === this.getEmptyPGN()) {
+            console.log('📜 [ClipboardManager] Aucun coup joué, copie annulée');
+            this.ui?.showNotification?.('Aucun coup joué pour copier', 'info') || 
+            console.info('Aucun coup joué');
+            return;
         }
         
-        console.log('📜 [ClipboardManager] === FIN COPIE PGN ===\n');
+        console.log(`📜 [ClipboardManager] PGN généré: ${pgn.substring(0, 100)}...`);
+        console.log('📜 [ClipboardManager] Longueur du PGN:', pgn.length, 'caractères');
+        
+        // Compter les mouvements si possible
+        const gameState = this.game?.gameState || this.ui?.game?.gameState;
+        const moveCount = gameState?.moveHistory?.length || 0;
+        console.log(`📜 [ClipboardManager] Nombre de coups: ${moveCount}`);
+        
+        console.log('📜 [ClipboardManager] Tentative de copie...');
+        this.copyToClipboard(pgn, 'PGN');
+        
+    } catch (error) {
+        console.log(`❌ [ClipboardManager] Erreur génération PGN: ${error.message}`);
+        console.error('PGN generation error:', error);
+        this.ui?.showNotification?.('Erreur génération PGN', 'error') || 
+        console.error('Erreur génération PGN');
     }
+    
+    console.log('📜 [ClipboardManager] === FIN COPIE PGN ===\n');
+}
 
     // NOUVELLE MÉTHODE : Générer le FEN depuis différentes sources
     getFEN() {
@@ -262,77 +262,104 @@ class ChessClipboardManager {
         }
     }
 
-    // NOUVELLE MÉTHODE : Générer le PGN depuis différentes sources
-    getPGN() {
-        try {
-            // 1. Depuis le jeu directement
-            if (this.game?.getPGN) {
-                return this.game.getPGN();
-            }
-            
-            if (this.ui?.game?.getPGN) {
-                return this.ui.game.getPGN();
-            }
-            
-            // 2. Depuis gameState
-            const gameState = this.game?.gameState || this.ui?.game?.gameState;
-            if (gameState?.getFullPGN) {
-                return gameState.getFullPGN();
-            }
-            
-            if (gameState?.getPGN) {
-                return gameState.getPGN();
-            }
-            
-            // 3. Depuis le core du jeu
-            if (this.game?.core?.getPGN) {
-                return this.game.core.getPGN();
-            }
-            
-            // 4. Construire un PGN basique depuis l'historique
-            if (gameState?.moveHistory && gameState.moveHistory.length > 0) {
-                return this.buildBasicPGN(gameState.moveHistory);
-            }
-            
-            // 5. PGN par défaut
-            return '[Event "Partie d\'échecs"]\n[Site "?"]\n[Date "????.??.??"]\n[Round "?"]\n[White "?"]\n[Black "?"]\n[Result "*"]\n\n*';
-            
-        } catch (error) {
-            if (this.constructor.consoleLog) {
-                console.error('❌ [ClipboardManager] Erreur génération PGN:', error);
-            }
-            return null;
+// NOUVELLE MÉTHODE : Générer le PGN depuis différentes sources
+getPGN() {
+    try {
+        // 1. Depuis le jeu directement
+        if (this.game?.getPGN) {
+            const pgn = this.game.getPGN();
+            if (pgn && pgn.trim() !== '') return pgn;
         }
+        
+        if (this.ui?.game?.getPGN) {
+            const pgn = this.ui.game.getPGN();
+            if (pgn && pgn.trim() !== '') return pgn;
+        }
+        
+        // 2. Depuis gameState
+        const gameState = this.game?.gameState || this.ui?.game?.gameState;
+        if (gameState?.getFullPGN) {
+            const pgn = gameState.getFullPGN();
+            if (pgn && pgn.trim() !== '') return pgn;
+        }
+        
+        if (gameState?.getPGN) {
+            const pgn = gameState.getPGN();
+            if (pgn && pgn.trim() !== '') return pgn;
+        }
+        
+        // 3. Depuis le core du jeu
+        if (this.game?.core?.getPGN) {
+            const pgn = this.game.core.getPGN();
+            if (pgn && pgn.trim() !== '') return pgn;
+        }
+        
+        // 4. Construire un PGN basique depuis l'historique
+        if (gameState?.moveHistory && Array.isArray(gameState.moveHistory) && gameState.moveHistory.length > 0) {
+            return this.buildBasicPGN(gameState.moveHistory);
+        }
+        
+        // 5. PGN vide (aucun coup joué)
+        if (this.constructor.consoleLog) {
+            console.log('📜 [ClipboardManager] Aucun coup joué, retour PGN vide');
+        }
+        return this.getEmptyPGN();
+        
+    } catch (error) {
+        if (this.constructor.consoleLog) {
+            console.error('❌ [ClipboardManager] Erreur génération PGN:', error);
+        }
+        return this.getEmptyPGN();
     }
+}
 
-    // NOUVELLE MÉTHODE : Construire un PGN basique depuis l'historique
-    buildBasicPGN(moveHistory) {
-        try {
-            let pgn = '[Event "Partie d\'échecs"]\n';
-            pgn += '[Site "?"]\n';
-            pgn += '[Date "' + new Date().toISOString().split('T')[0] + '"]\n';
-            pgn += '[Round "?"]\n';
-            pgn += '[White "?"]\n';
-            pgn += '[Black "?"]\n';
-            pgn += '[Result "*"]\n\n';
-            
-            // Ajouter les coups
-            moveHistory.forEach((move, index) => {
-                if (index % 2 === 0) {
-                    pgn += ((index / 2) + 1) + '. ';
-                }
-                pgn += (move.san || move.notation || '??') + ' ';
-            });
-            
-            pgn += '*';
-            return pgn;
-        } catch (error) {
+// NOUVELLE MÉTHODE : Construire un PGN basique depuis l'historique
+buildBasicPGN(moveHistory) {
+    try {
+        // Vérifier que moveHistory existe et a des éléments
+        if (!moveHistory || !Array.isArray(moveHistory) || moveHistory.length === 0) {
             if (this.constructor.consoleLog) {
-                console.error('❌ [ClipboardManager] Erreur construction PGN:', error);
+                console.log('📜 [ClipboardManager] Aucun coup dans l\'historique, PGN vide');
             }
-            return '[Event "Erreur génération PGN"]\n\n*';
+            return this.getEmptyPGN();
         }
+        
+        let pgn = '[Event "Partie d\'échecs"]\n';
+        pgn += '[Site "?"]\n';
+        pgn += '[Date "' + new Date().toISOString().split('T')[0] + '"]\n';
+        pgn += '[Round "?"]\n';
+        pgn += '[White "?"]\n';
+        pgn += '[Black "?"]\n';
+        pgn += '[Result "*"]\n\n';
+        
+        // Ajouter les coups
+        moveHistory.forEach((move, index) => {
+            if (index % 2 === 0) {
+                pgn += ((index / 2) + 1) + '. ';
+            }
+            pgn += (move.san || move.notation || '??') + ' ';
+        });
+        
+        pgn += '*';
+        return pgn;
+    } catch (error) {
+        if (this.constructor.consoleLog) {
+            console.error('❌ [ClipboardManager] Erreur construction PGN:', error);
+        }
+        return this.getEmptyPGN();
     }
+}
+
+// NOUVELLE MÉTHODE : PGN vide
+getEmptyPGN() {
+    return '[Event "Partie d\'échecs"]\n' +
+           '[Site "?"]\n' +
+           '[Date "' + new Date().toISOString().split('T')[0] + '"]\n' +
+           '[Round "?"]\n' +
+           '[White "?"]\n' +
+           '[Black "?"]\n' +
+           '[Result "*"]\n\n*';
+}
 
     // NOUVELLE MÉTHODE : Copie générique vers le clipboard
 copyToClipboard(text, type = 'texte') {
