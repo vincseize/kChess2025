@@ -364,30 +364,34 @@ class ChessGameUI {
         console.log('✅ [ChessGameUI] === MISE À JOUR TERMINÉE ===\n');
     }
 
-    updateGameStatus() {
-        const currentPlayerElement = document.getElementById('currentPlayer');
-        if (!currentPlayerElement) {
-            if (this.constructor.consoleLog) {
-                console.warn('⚠️ [ChessGameUI] Élément currentPlayer non trouvé');
-            }
-            return;
+ updateGameStatus() {
+    const currentPlayerElement = document.getElementById('currentPlayer');
+    if (!currentPlayerElement) {
+        if (this.constructor.consoleLog) {
+            console.warn('⚠️ [ChessGameUI] Élément currentPlayer non trouvé');
         }
+        return;
+    }
+    
+    if (this.game.gameState && this.game.gameState.currentPlayer) {
+        const player = this.game.gameState.currentPlayer;
         
-        if (this.game.gameState && this.game.gameState.currentPlayer) {
-            const player = this.game.gameState.currentPlayer;
-            const text = player === 'white' ? 'Aux blancs de jouer' : 'Aux noirs de jouer';
-            
-            currentPlayerElement.textContent = text;
-            
-            if (this.constructor.consoleLog) {
-                console.log(`📊 [ChessGameUI] Statut mis à jour: ${text}`);
-            }
-        } else {
-            if (this.constructor.consoleLog) {
-                console.warn('⚠️ [ChessGameUI] GameState ou currentPlayer non disponible');
-            }
+        // window.getTranslation est toujours disponible car défini dans content.php
+        const text = player === 'white' ? 
+            window.getTranslation('traitAuBlancs', 'White to move') : 
+            window.getTranslation('traitAuxNoirs', 'Black to move');
+        
+        currentPlayerElement.textContent = text;
+        
+        if (this.constructor.consoleLog) {
+            console.log(`📊 [ChessGameUI] Statut mis à jour: ${text} (joueur: ${player})`);
+        }
+    } else {
+        if (this.constructor.consoleLog) {
+            console.warn('⚠️ [ChessGameUI] GameState ou currentPlayer non disponible');
         }
     }
+}
 
     // Nouvelle méthode : afficher l'indicateur de bot
     updateBotIndicator() {
@@ -564,47 +568,47 @@ class ChessGameUI {
     }
 
     // Méthode utilitaire pour les notifications
-    showNotification(message, type = 'info') {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            if (this.game.gameStatusManager && this.game.gameStatusManager.showNotification) {
-                this.game.gameStatusManager.showNotification(message, type);
-            } else {
-                // Notification simple
-                const notification = document.createElement('div');
-                notification.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed top-0 end-0 m-3`;
-                notification.style.zIndex = '9999';
-                
-                const icon = type === 'success' ? 'bi-check-circle' : 
-                            type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle';
-                
-                notification.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <i class="bi ${icon} me-2"></i>
-                        <span>${message}</span>
-                    </div>
-                `;
-                
-                document.body.appendChild(notification);
-                
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 3000);
+// Méthode utilitaire pour les notifications
+showNotification(message, type = 'info') {
+    // Traduire le message si possible
+    let translatedMessage = message;
+    
+    // Si c'est un message système connu, essayer de le traduire
+    if (window.getTranslation) {
+        // Mapping des messages système vers les clés de traduction
+        const systemMessages = {
+            'Erreur génération FEN': 'fen_generation_error',
+            'FEN copié dans le presse-papier !': 'fen_copied',
+            'Erreur lors de la copie du FEN': 'copy_error_fen',
+            'Erreur génération PGN': 'pgn_generation_error', 
+            'PGN copié dans le presse-papier !': 'pgn_copied',
+            'Erreur lors de la copie du PGN': 'copy_error_pgn',
+            'Aucun coup joué pour copier': 'no_moves_to_copy',
+            'Nouvelle partie démarrée': 'new_game_started',
+            'Plateau tourné': 'board_flipped',
+            'Coup invalide': 'invalid_move',
+            'Promotion requise': 'promotion_required',
+            'Sélectionnez une promotion': 'select_promotion',
+            'FEN copié (méthode fallback)': 'fen_copied_fallback',
+            'PGN copié (méthode fallback)': 'pgn_copied_fallback',
+            'Impossible de copier le FEN': 'copy_impossible_fen',
+            'Impossible de copier le PGN': 'copy_impossible_pgn'
+        };
+        
+        if (systemMessages[message]) {
+            const translated = window.getTranslation(systemMessages[message], message);
+            if (translated !== systemMessages[message]) {
+                translatedMessage = translated;
             }
-            return;
         }
-        
-        // Mode debug
-        console.log(`📢 [ChessGameUI] Notification ${type}: ${message}`);
-        
+    }
+    
+    // Mode silencieux
+    if (!this.constructor.consoleLog) {
         if (this.game.gameStatusManager && this.game.gameStatusManager.showNotification) {
-            console.log('📢 [ChessGameUI] Délégation à gameStatusManager');
-            this.game.gameStatusManager.showNotification(message, type);
+            this.game.gameStatusManager.showNotification(translatedMessage, type);
         } else {
-            console.log('📢 [ChessGameUI] Création notification simple');
-            
+            // Notification simple
             const notification = document.createElement('div');
             notification.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed top-0 end-0 m-3`;
             notification.style.zIndex = '9999';
@@ -615,7 +619,7 @@ class ChessGameUI {
             notification.innerHTML = `
                 <div class="d-flex align-items-center">
                     <i class="bi ${icon} me-2"></i>
-                    <span>${message}</span>
+                    <span>${translatedMessage}</span>
                 </div>
             `;
             
@@ -624,11 +628,45 @@ class ChessGameUI {
             setTimeout(() => {
                 if (notification.parentNode) {
                     notification.parentNode.removeChild(notification);
-                    console.log('📢 [ChessGameUI] Notification supprimée');
                 }
             }, 3000);
         }
+        return;
     }
+    
+    // Mode debug
+    console.log(`📢 [ChessGameUI] Notification ${type}: ${translatedMessage}`);
+    
+    if (this.game.gameStatusManager && this.game.gameStatusManager.showNotification) {
+        console.log('📢 [ChessGameUI] Délégation à gameStatusManager');
+        this.game.gameStatusManager.showNotification(translatedMessage, type);
+    } else {
+        console.log('📢 [ChessGameUI] Création notification simple');
+        
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed top-0 end-0 m-3`;
+        notification.style.zIndex = '9999';
+        
+        const icon = type === 'success' ? 'bi-check-circle' : 
+                    type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle';
+        
+        notification.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="bi ${icon} me-2"></i>
+                <span>${translatedMessage}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+                console.log('📢 [ChessGameUI] Notification supprimée');
+            }
+        }, 3000);
+    }
+}
     
     // NOUVELLE MÉTHODE : Obtenir le statut de l'UI
     getUIStatus() {

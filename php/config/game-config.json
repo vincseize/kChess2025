@@ -102,7 +102,16 @@
             "config_error": "Erreur configuration",
             "plays": "Joue les",
             "bot_level1": "Bot Niveau 1",
-            "bot_level2": "Bot Niveau 2"
+            "bot_level2": "Bot Niveau 2",
+            "fen_generation_error": "Erreur génération FEN",
+            "pgn_generation_error": "Erreur génération PGN",
+            "no_moves_to_copy": "Aucun coup joué pour copier",
+            "fen_copied_fallback": "FEN copié (méthode alternative)",
+            "pgn_copied_fallback": "PGN copié (méthode alternative)",
+            "copy_impossible_fen": "Impossible de copier le FEN",
+            "copy_impossible_pgn": "Impossible de copier le PGN",
+            "copy_error_fen": "Erreur lors de la copie du FEN",
+            "copy_error_pgn": "Erreur lors de la copie du PGN"
         },
         "en": {
             "app_name": "CharlyChess",
@@ -180,7 +189,16 @@
             "config_error": "Config error",
             "plays": "Plays",
             "bot_level1": "Bot Level 1",
-            "bot_level2": "Bot Level 2"
+            "bot_level2": "Bot Level 2",
+            "fen_generation_error": "FEN generation error",
+            "pgn_generation_error": "PGN generation error",
+            "no_moves_to_copy": "No moves played to copy",
+            "fen_copied_fallback": "FEN copied (fallback method)",
+            "pgn_copied_fallback": "PGN copied (fallback method)",
+            "copy_impossible_fen": "Unable to copy FEN",
+            "copy_impossible_pgn": "Unable to copy PGN",
+            "copy_error_fen": "Error copying FEN",
+            "copy_error_pgn": "Error copying PGN"
         }
     }
 }
