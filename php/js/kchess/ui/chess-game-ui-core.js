@@ -364,30 +364,38 @@ class ChessGameUI {
         console.log('✅ [ChessGameUI] === MISE À JOUR TERMINÉE ===\n');
     }
 
-    updateGameStatus() {
-        const currentPlayerElement = document.getElementById('currentPlayer');
-        if (!currentPlayerElement) {
-            if (this.constructor.consoleLog) {
-                console.warn('⚠️ [ChessGameUI] Élément currentPlayer non trouvé');
-            }
-            return;
+updateGameStatus() {
+    const currentPlayerElement = document.getElementById('currentPlayer');
+    if (!currentPlayerElement) {
+        if (this.constructor.consoleLog) {
+            console.warn('⚠️ [ChessGameUI] Élément currentPlayer non trouvé');
         }
+        return;
+    }
+    
+    if (this.game.gameState && this.game.gameState.currentPlayer) {
+        const player = this.game.gameState.currentPlayer;
         
-        if (this.game.gameState && this.game.gameState.currentPlayer) {
-            const player = this.game.gameState.currentPlayer;
-            const text = player === 'white' ? 'Aux blancs de jouer' : 'Aux noirs de jouer';
-            
-            currentPlayerElement.textContent = text;
-            
-            if (this.constructor.consoleLog) {
-                console.log(`📊 [ChessGameUI] Statut mis à jour: ${text}`);
-            }
-        } else {
-            if (this.constructor.consoleLog) {
-                console.warn('⚠️ [ChessGameUI] GameState ou currentPlayer non disponible');
-            }
+        // Récupérer les traductions
+        const t = this.getTranslations();
+        
+        // Utiliser les traductions depuis le JSON
+        const whiteTurnText = t.traitAuBlancs || 'Aux blancs de jouer';
+        const blackTurnText = t.traitAuxNoirs || 'Aux noirs de jouer';
+        
+        const text = player === 'white' ? whiteTurnText : blackTurnText;
+        
+        currentPlayerElement.textContent = text;
+        
+        if (this.constructor.consoleLog) {
+            console.log(`📊 [ChessGameUI] Statut mis à jour: ${text}`);
+        }
+    } else {
+        if (this.constructor.consoleLog) {
+            console.warn('⚠️ [ChessGameUI] GameState ou currentPlayer non disponible');
         }
     }
+}
 
     // NOUVELLE MÉTHODE : afficher l'indicateur de bot (version traduite)
     updateBotIndicator() {
@@ -700,31 +708,88 @@ switch(botStatus.level) {
     }
     
     // Méthode utilitaire pour récupérer les traductions (AJOUTÉE)
-    getTranslations() {
-        try {
-            // Vérifier si la configuration existe
-            if (window.appConfig && window.appConfig.lang) {
-                // Récupérer la langue actuelle
-                const currentLang = localStorage.getItem('charlychess_lang') || 
-                                  this.getCurrentLanguage() || 
-                                  window.appConfig.default_lang || 
-                                  'fr';
-                
-                // Retourner les traductions pour cette langue
-                const translations = window.appConfig.lang[currentLang];
-                
-                // Si la langue spécifique n'existe pas, utiliser le français par défaut
-                return translations || window.appConfig.lang.fr || {};
-            }
-        } catch (error) {
+// Méthode utilitaire pour récupérer les traductions (CORRIGÉE)
+getTranslations() {
+    try {
+        // Vérifier si la configuration existe
+        if (window.appConfig && window.appConfig.lang) {
+            // DEBUG: Afficher les infos de langue
             if (this.constructor.consoleLog) {
-                console.error('❌ [ChessGameUI] Erreur lors du chargement des traductions:', error);
+                console.log('🌐 [ChessGameUI] Récupération traductions...');
+                console.log('🌐 [ChessGameUI] current_lang config:', window.appConfig.current_lang);
+                console.log('🌐 [ChessGameUI] default_lang config:', window.appConfig.default_lang);
+                console.log('🌐 [ChessGameUI] localStorage lang:', localStorage.getItem('charlychess_lang'));
             }
+            
+            // PRIORITÉ 1: Utiliser current_lang de la config
+            if (window.appConfig.current_lang && window.appConfig.lang[window.appConfig.current_lang]) {
+                if (this.constructor.consoleLog) {
+                    console.log(`🌐 [ChessGameUI] Utilisation current_lang: ${window.appConfig.current_lang}`);
+                }
+                return window.appConfig.lang[window.appConfig.current_lang];
+            }
+            
+            // PRIORITÉ 2: Vérifier localStorage
+            const savedLang = localStorage.getItem('charlychess_lang');
+            if (savedLang && window.appConfig.lang[savedLang]) {
+                if (this.constructor.consoleLog) {
+                    console.log(`🌐 [ChessGameUI] Utilisation localStorage: ${savedLang}`);
+                }
+                return window.appConfig.lang[savedLang];
+            }
+            
+            // PRIORITÉ 3: Utiliser getCurrentLanguage()
+            const detectedLang = this.getCurrentLanguage();
+            if (detectedLang && window.appConfig.lang[detectedLang]) {
+                if (this.constructor.consoleLog) {
+                    console.log(`🌐 [ChessGameUI] Utilisation langue détectée: ${detectedLang}`);
+                }
+                return window.appConfig.lang[detectedLang];
+            }
+            
+            // PRIORITÉ 4: Fallback à default_lang
+            const defaultLang = window.appConfig.default_lang || 'fr';
+            if (window.appConfig.lang[defaultLang]) {
+                if (this.constructor.consoleLog) {
+                    console.log(`🌐 [ChessGameUI] Utilisation default_lang: ${defaultLang}`);
+                }
+                return window.appConfig.lang[defaultLang];
+            }
+            
+            // PRIORITÉ 5: Fallback final au français
+            if (this.constructor.consoleLog) {
+                console.log(`🌐 [ChessGameUI] Fallback final au français`);
+            }
+            return window.appConfig.lang.fr || {};
         }
-        
-        // Retourner un objet vide si aucune traduction n'est trouvée
-        return {};
+    } catch (error) {
+        if (this.constructor.consoleLog) {
+            console.error('❌ [ChessGameUI] Erreur lors du chargement des traductions:', error);
+        }
     }
+    
+    if (this.constructor.consoleLog) {
+        console.log(`🌐 [ChessGameUI] Aucune configuration trouvée`);
+    }
+    return {};
+}
+
+// Méthode pour déterminer la langue actuelle (AJOUTÉE)
+getCurrentLanguage() {
+    // Vérifier dans localStorage
+    if (localStorage.getItem('charlychess_lang')) {
+        return localStorage.getItem('charlychess_lang');
+    }
+    
+    // Vérifier la langue du navigateur
+    const browserLang = navigator.language || navigator.userLanguage;
+    if (browserLang && browserLang.startsWith('en')) {
+        return 'en';
+    }
+    
+    // Par défaut, retourner français
+    return 'fr';
+}
 
     // Méthode pour déterminer la langue actuelle (AJOUTÉE)
     getCurrentLanguage() {
