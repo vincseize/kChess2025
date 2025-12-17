@@ -227,95 +227,90 @@ class ChessPatEngine extends ChessEngine {
         return moves;
     }
 
-    // Vérifier si un mouvement est légal (ne met pas le roi en échec)
-    isMoveLegal(color, fromRow, fromCol, toRow, toCol) {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            // Créer une copie du plateau pour simulation
-            const tempBoard = this.createTempBoard();
-            const piece = tempBoard[fromRow][fromCol];
-            
-            // Exécuter le mouvement temporairement
-            tempBoard[toRow][toCol] = piece;
-            tempBoard[fromRow][fromCol] = null;
-            
-            // Vérifier si le roi est toujours en échec après le mouvement
-            const tempEngine = new ChessPatEngine(this.generateFENFromBoard(tempBoard, color));
-            return !tempEngine.isKingInCheck(color);
-        }
-        
-        // Mode debug
-        if (this.constructor.consoleLog) {
-            console.log(`♟️🔍 Vérification légalité coup: [${fromRow},${fromCol}] → [${toRow},${toCol}]`);
-        }
-        
-        // Créer une copie du plateau pour simulation
-        const tempBoard = this.createTempBoard();
-        const piece = tempBoard[fromRow][fromCol];
-        
-        // Exécuter le mouvement temporairement
-        tempBoard[toRow][toCol] = piece;
-        tempBoard[fromRow][fromCol] = null;
-        
-        // Vérifier si le roi est toujours en échec après le mouvement
-        const tempEngine = new ChessPatEngine(this.generateFENFromBoard(tempBoard, color));
-        const isLegal = !tempEngine.isKingInCheck(color);
-        
-        if (this.constructor.consoleLog) {
-            console.log(`♟️ ${isLegal ? '✅ Légal' : '❌ Illégal'} - Échec après coup: ${!isLegal}`);
-        }
-        
-        return isLegal;
+isMoveLegal(color, fromRow, fromCol, toRow, toCol) {
+    if (ChessEngine.consoleLog) {
+        console.log(`\n🔍 isMoveLegal: ${color} [${fromRow},${fromCol}] -> [${toRow},${toCol}]`);
     }
-
-    // Créer une copie temporaire du plateau
-    createTempBoard() {
-        const tempBoard = Array(8).fill().map(() => Array(8).fill(null));
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                tempBoard[row][col] = this.board[row][col];
-            }
-        }
-        return tempBoard;
-    }
-
-    // Générer un FEN à partir d'un plateau temporaire
-    generateFENFromBoard(tempBoard, currentPlayer) {
-        let fen = '';
+    
+    // Vérifier si c'est un roi qui bouge
+    const piece = this.getPiece(fromRow, fromCol);
+    if (piece && piece.toLowerCase() === 'k') {
+        // Vérifier la proximité avec le roi adverse
+        const opponentColor = color === 'w' ? 'b' : 'w';
+        const opponentKingPos = this.findKing(opponentColor);
         
-        // Partie plateau
-        for (let row = 0; row < 8; row++) {
-            let emptyCount = 0;
+        if (opponentKingPos) {
+            const rowDiff = Math.abs(toRow - opponentKingPos.row);
+            const colDiff = Math.abs(toCol - opponentKingPos.col);
+            const isAdjacentToOpponentKing = rowDiff <= 1 && colDiff <= 1;
             
-            for (let col = 0; col < 8; col++) {
-                const piece = tempBoard[row][col];
-                
-                if (piece === null) {
-                    emptyCount++;
-                } else {
-                    if (emptyCount > 0) {
-                        fen += emptyCount;
-                        emptyCount = 0;
-                    }
-                    fen += piece;
+            if (isAdjacentToOpponentKing) {
+                if (ChessEngine.consoleLog) {
+                    console.log(`❌ Mouvement illégal: roi ne peut pas être adjacent au roi adverse`);
                 }
+                return false;
             }
+        }
+    }
+    
+    // Créer une copie du plateau pour simulation
+    const tempBoard = this.createTempBoard();
+    
+    // Vérifier si la case d'arrivée est occupée par une pièce de la même couleur
+    const targetPiece = tempBoard[toRow][toCol];
+    if (targetPiece && this.isPieceColor(targetPiece, color)) {
+        return false;
+    }
+    
+    // Exécuter le mouvement
+    tempBoard[toRow][toCol] = tempBoard[fromRow][fromCol];
+    tempBoard[fromRow][fromCol] = null;
+    
+    // Vérifier si le roi est en échec après le mouvement
+    const fen = this.generateFENFromBoard(tempBoard, color); // Garder la même couleur
+    const tempEngine = new ChessEngine(fen);
+    
+    // Vérifier si le roi qui a joué est en échec
+    const isInCheck = tempEngine.isKingInCheck(color);
+    
+    if (ChessEngine.consoleLog) {
+        console.log(`  FEN après mouvement: ${fen}`);
+        console.log(`  Roi ${color} en échec après mouvement: ${isInCheck}`);
+        console.log(`  Mouvement légal: ${!isInCheck}`);
+    }
+    
+    return !isInCheck;
+}
+
+generateFENFromBoard(tempBoard, currentPlayer) {
+    let fen = '';
+    
+    for (let row = 0; row < 8; row++) {
+        let emptyCount = 0;
+        
+        for (let col = 0; col < 8; col++) {
+            const piece = tempBoard[row][col];
             
-            if (emptyCount > 0) {
-                fen += emptyCount;
-            }
-            
-            if (row < 7) {
-                fen += '/';
+            if (!piece) {
+                emptyCount++;
+            } else {
+                if (emptyCount > 0) {
+                    fen += emptyCount;
+                    emptyCount = 0;
+                }
+                fen += piece;
             }
         }
         
-        // Tour actuel (inversé car on teste les coups de l'adversaire)
-        const nextPlayer = currentPlayer === 'w' ? 'b' : 'w';
-        fen += ` ${nextPlayer} KQkq - 0 1`;
-        
-        return fen;
+        if (emptyCount > 0) fen += emptyCount;
+        if (row < 7) fen += '/';
     }
+    
+    // CORRECTION UNIFIÉE : Garder le même joueur pour la vérification
+    fen += ` ${currentPlayer} KQkq - 0 1`;
+    
+    return fen;
+}
 
     // Méthodes de génération des mouvements
     getPawnMoves(moves, piece, row, col) {

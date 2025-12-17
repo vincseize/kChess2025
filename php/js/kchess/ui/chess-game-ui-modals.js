@@ -1,711 +1,676 @@
-// ui/chess-game-ui-modals.js - Version utilisant la configuration JSON comme priorité
+// ui/chess-game-ui-modals.js - VERSION CORRIGÉE COMPLÈTE
 class ChessModalManager {
     
-    // Valeur par défaut - sera écrasée par la config JSON si disponible
-    static consoleLog = true; // true par défaut pour debug
+    static consoleLog = true;
     
     static init() {
-        // Charger la configuration depuis window.appConfig
         this.loadConfig();
         
-        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('🎭 ui/chess-game-ui-modals.js chargé');
-            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
-        } else {
-            // Message silencieux si debug désactivé
-            console.info('🎭 ChessModalManager: Mode silencieux activé (debug désactivé dans config)');
+            console.log('🎭 ChessModalManager chargé - VERSION CORRIGÉE COMPLÈTE');
         }
     }
     
-    // Méthode pour charger la configuration
     static loadConfig() {
         try {
-            // Vérifier si la configuration globale existe
-            if (window.appConfig && window.appConfig.debug) {
-                const configValue = window.appConfig.debug.console_log;
+            if (window.appConfig?.debug?.console_log !== undefined) {
+                const val = window.appConfig.debug.console_log;
+                this.consoleLog = val === "false" ? false : Boolean(val);
                 
-                // CONVERSION CORRECTE - Gérer les string "false" et "true"
-                if (configValue === "false") {
-                    this.consoleLog = false;
-                    if (configValue !== "false") {
-                        console.info('🔧 ChessModalManager: console_log désactivé via config JSON');
-                    }
-                } else if (configValue === false) {
-                    this.consoleLog = false;
-                } else if (configValue === "true") {
-                    this.consoleLog = true;
-                } else if (configValue === true) {
-                    this.consoleLog = true;
-                } else {
-                    // Pour toute autre valeur, utiliser Boolean()
-                    this.consoleLog = Boolean(configValue);
-                }
-                
-                // Log de confirmation (uniquement en mode debug)
                 if (this.consoleLog) {
-                    console.log(`⚙️ ChessModalManager: Configuration chargée - console_log = ${this.consoleLog} (valeur brute: "${configValue}")`);
+                    console.log(`🎭 ModalManager config: console_log = ${this.consoleLog} (valeur brute: "${val}")`);
                 }
-                return true;
             }
-            
-            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
-            if (typeof window.getConfig === 'function') {
-                const configValue = window.getConfig('debug.console_log', 'true');
-                
-                if (configValue === "false") {
-                    this.consoleLog = false;
-                } else if (configValue === false) {
-                    this.consoleLog = false;
-                } else {
-                    this.consoleLog = Boolean(configValue);
-                }
-                return true;
-            }
-            
-            // Si rien n'est disponible, garder la valeur par défaut
-            if (this.consoleLog) {
-                console.warn('⚠️ ChessModalManager: Aucune configuration trouvée, utilisation de la valeur par défaut (true)');
-            }
-            return false;
-            
+            return true;
         } catch (error) {
-            console.error('❌ ChessModalManager: Erreur lors du chargement de la config:', error);
+            console.error('❌ ChessModalManager config error:', error);
             return false;
         }
-    }
-    
-    // Méthode pour déterminer la source de la configuration
-    static getConfigSource() {
-        if (window.appConfig) {
-            return 'JSON config';
-        } else if (typeof window.getConfig === 'function') {
-            return 'fonction getConfig';
-        } else {
-            return 'valeur par défaut';
-        }
-    }
-    
-    // Méthode pour vérifier si on est en mode debug
-    static isDebugMode() {
-        return this.consoleLog;
     }
 
     constructor(ui) {
-        // Vérifier que la configuration est à jour
-        this.constructor.loadConfig();
-        
         this.ui = ui;
+        this.currentResultModal = null;
         
-        if (this.constructor.consoleLog) {
-            console.log('🎭 [ModalManager] Gestionnaire de modals initialisé');
-            console.log('🎭 [ModalManager] UI parent:', ui);
+        if (ChessModalManager.consoleLog) {
+            console.log('🎭 ModalManager initialisé avec UI:', ui ? 'oui' : 'non');
         }
     }
 
+    // ✅ MÉTHODE NOUVELLE PARTIE (AJOUTÉE)
     confirmNewGame() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            // Arrêter le timer
-            this.ui.timerManager?.stopTimer?.();
-            
-            // Essayer de créer une modal custom
-            if (this.createConfirmationModal()) {
-                return true;
+        if (ChessModalManager.consoleLog) {
+            console.log('\n🎭 confirmNewGame appelée');
+        }
+        
+        return this.showConfirmModal(
+            'Nouvelle partie',
+            'Voulez-vous vraiment commencer une nouvelle partie ?<br><br><strong>La partie actuelle sera perdue.</strong>',
+            {
+                confirmText: 'Nouvelle Partie',
+                cancelText: 'Annuler',
+                confirmColor: '#28a745',
+                cancelColor: '#6c757d'
             }
-            
-            // Fallback vers alert() natif
-            const isConfirmed = confirm('Êtes-vous sûr de vouloir commencer une nouvelle partie ?\n\nLa partie en cours sera perdue.');
-            
-            if (isConfirmed) {
-                this.executeNewGame();
-                return true;
+        ).then(result => {
+            if (result) {
+                if (ChessModalManager.consoleLog) {
+                    console.log('🎭 Utilisateur accepte nouvelle partie');
+                }
+                this.startNewGame();
             } else {
-                this.ui.timerManager?.resumeTimer?.();
-                return false;
+                if (ChessModalManager.consoleLog) {
+                    console.log('🎭 Utilisateur annule nouvelle partie');
+                }
             }
+            return result;
+        });
+    }
+
+    // ✅ MÉTHODE PRINCIPALE : Afficher résultat
+    showGameOver(result, reason = null) {
+        if (ChessModalManager.consoleLog) {
+            console.log(`\n🎭 showGameOver appelé: result=${result}, reason=${reason}`);
         }
         
-        // Mode debug
-        console.log('\n🔄 [ModalManager] === DEMANDE NOUVELLE PARTIE ===');
-        console.log('🔄 [ModalManager] Ouverture de la confirmation de nouvelle partie...');
+        // Déterminer le type de fin
+        let gameStatus, winner;
         
-        // Arrêter le timer
-        console.log('⏱️ [ModalManager] Arrêt du timer...');
-        this.ui.timerManager?.stopTimer?.();
-        
-        // Essayer de créer une modal custom
-        console.log('🎭 [ModalManager] Tentative de création de modal custom...');
-        
-        if (this.createConfirmationModal()) {
-            console.log('✅ [ModalManager] Modal custom créée avec succès');
-            return true;
-        }
-        
-        // Fallback vers alert() natif
-        console.log('⚠️ [ModalManager] Fallback vers confirm() natif');
-        
-        const isConfirmed = confirm('Êtes-vous sûr de vouloir commencer une nouvelle partie ?\n\nLa partie en cours sera perdue.');
-        
-        if (isConfirmed) {
-            console.log('✅ [ModalManager] Confirmation acceptée via confirm()');
-            this.executeNewGame();
-            return true;
+        if (result === 'draw' || result === 'stalemate') {
+            gameStatus = result === 'stalemate' ? 'stalemate' : 'draw';
+            winner = null;
         } else {
-            console.log('❌ [ModalManager] Confirmation annulée via confirm()');
-            console.log('⏱️ [ModalManager] Reprise du timer...');
-            
-            this.ui.timerManager?.resumeTimer?.();
-            return false;
+            gameStatus = 'checkmate';
+            winner = result === 'white' ? 'Les Blancs' : 'Les Noirs';
         }
+        
+        if (ChessModalManager.consoleLog) {
+            console.log(`🎭 Détails: gameStatus=${gameStatus}, winner=${winner}`);
+        }
+        
+        // Afficher la modal
+        return this.showGameResult(gameStatus, winner, reason);
     }
 
-    createConfirmationModal() {
-        // Vérifier si la modal existe déjà
-        if (document.getElementById('chessConfirmationModal')) {
-            if (this.constructor.consoleLog) {
-                console.log('🎭 [ModalManager] Modal existe déjà');
-            }
-            return true;
+    // ✅ Afficher le résultat avec la bonne modal
+    showGameResult(gameStatus, winner = null, details = null) {
+        if (this.currentResultModal) {
+            this.removeResultModal();
         }
         
-        if (this.constructor.consoleLog) {
-            console.log('🎭 [ModalManager] Création de la modal de confirmation...');
+        if (ChessModalManager.consoleLog) {
+            console.log(`🎭 Création modal: ${gameStatus}, winner=${winner}`);
         }
         
-        try {
-            // Créer l'élément modal
-            const modal = document.createElement('div');
-            modal.id = 'chessConfirmationModal';
-            
-            // Styles de la modal
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.7);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 10000;
-                font-family: Arial, sans-serif;
-                animation: modalFadeIn 0.3s ease;
-            `;
-            
-            // Contenu HTML de la modal
-            modal.innerHTML = `
-                <div class="modal-content" style="
-                    background: white;
-                    padding: 30px;
-                    border-radius: 15px;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                    text-align: center;
-                    max-width: 400px;
-                    width: 90%;
-                    animation: modalSlideIn 0.3s ease;
-                ">
-                    <h3 style="margin: 0 0 15px 0; color: #333;">Nouvelle partie</h3>
-                    <p style="margin: 0 0 25px 0; color: #666; line-height: 1.5;">
-                        Êtes-vous sûr de vouloir commencer une nouvelle partie ?<br>
-                        <strong>La partie en cours sera perdue.</strong>
-                    </p>
-                    <div style="display: flex; gap: 15px; justify-content: center;">
-                        <button id="confirmNewGame" class="modal-btn confirm-btn" style="
-                            padding: 12px 25px;
-                            background: #dc3545;
-                            color: white;
-                            border: none;
-                            border-radius: 8px;
-                            cursor: pointer;
-                            font-size: 16px;
-                            font-weight: bold;
-                            transition: background 0.3s;
-                        ">Nouvelle Partie</button>
-                        <button id="cancelNewGame" class="modal-btn cancel-btn" style="
-                            padding: 12px 25px;
-                            background: #6c757d;
-                            color: white;
-                            border: none;
-                            border-radius: 8px;
-                            cursor: pointer;
-                            font-size: 16px;
-                            transition: background 0.3s;
-                        ">Annuler</button>
-                    </div>
-                </div>
-            `;
-            
-            // Ajouter les styles d'animation
-            if (!document.querySelector('#modal-animation-styles')) {
-                const style = document.createElement('style');
-                style.id = 'modal-animation-styles';
-                style.textContent = `
-                    @keyframes modalFadeIn {
-                        from { opacity: 0; }
-                        to { opacity: 1; }
-                    }
-                    @keyframes modalSlideIn {
-                        from { 
-                            transform: translateY(-20px); 
-                            opacity: 0; 
-                        }
-                        to { 
-                            transform: translateY(0); 
-                            opacity: 1; 
-                        }
-                    }
-                    .modal-btn:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-                    }
-                    .confirm-btn:hover {
-                        background: #c82333 !important;
-                    }
-                    .cancel-btn:hover {
-                        background: #5a6268 !important;
-                    }
-                `;
-                document.head.appendChild(style);
-            }
-            
-            // Ajouter la modal au DOM
-            document.body.appendChild(modal);
-            
-            if (this.constructor.consoleLog) {
-                console.log('✅ [ModalManager] Modal créée et ajoutée au DOM');
-            }
-            
-            // Configuration des événements
-            this.setupModalEvents();
-            
-            return true;
-            
-        } catch (error) {
-            if (this.constructor.consoleLog) {
-                console.log(`❌ [ModalManager] Erreur création modal: ${error.message}`);
-                console.error('Modal creation error:', error);
-            }
-            return false;
+        // Arrêter les timers
+        if (this.ui && this.ui.timerManager) {
+            this.ui.timerManager.stopTimer();
         }
+        
+        // Créer la modal
+        const modal = this.createResultModal(gameStatus, winner, details);
+        document.body.appendChild(modal);
+        this.currentResultModal = modal;
+        
+        // Configurer les événements
+        this.setupResultModalEvents();
+        
+        return true;
     }
 
-    setupModalEvents() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            // Bouton Confirmer
-            const confirmBtn = document.getElementById('confirmNewGame');
-            if (confirmBtn) {
-                confirmBtn.addEventListener('click', () => {
-                    this.removeConfirmationModal();
-                    this.executeNewGame();
-                });
-            }
+    // ✅ MODALE DE CONFIRMATION (AJOUTÉE)
+    showConfirmModal(title, message, options = {}) {
+        return new Promise((resolve) => {
+            const modal = this.createConfirmModal(title, message, options);
             
-            // Bouton Annuler
-            const cancelBtn = document.getElementById('cancelNewGame');
-            if (cancelBtn) {
-                cancelBtn.addEventListener('click', () => {
-                    this.removeConfirmationModal();
-                    this.ui.timerManager?.resumeTimer?.();
-                });
-            }
+            // Gestionnaires d'événements
+            const confirmBtn = modal.querySelector('#modalConfirmBtn');
+            const cancelBtn = modal.querySelector('#modalCancelBtn');
             
-            // Fermeture en cliquant sur le fond
-            const modal = document.getElementById('chessConfirmationModal');
-            if (modal) {
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        this.removeConfirmationModal();
-                        this.ui.timerManager?.resumeTimer?.();
-                    }
-                });
-            }
-            
-            // Fermeture avec Échap
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && document.getElementById('chessConfirmationModal')) {
-                    this.removeConfirmationModal();
-                    this.ui.timerManager?.resumeTimer?.();
-                }
-            });
-            return;
-        }
-        
-        // Mode debug
-        console.log('🎭 [ModalManager] Configuration des événements de la modal...');
-        
-        // Bouton Confirmer
-        document.getElementById('confirmNewGame')?.addEventListener('click', () => {
-            console.log('✅ [ModalManager] Bouton confirmation cliqué');
-            this.removeConfirmationModal();
-            this.executeNewGame();
-        });
-        
-        // Bouton Annuler
-        document.getElementById('cancelNewGame')?.addEventListener('click', () => {
-            console.log('❌ [ModalManager] Bouton annulation cliqué');
-            this.removeConfirmationModal();
-            console.log('⏱️ [ModalManager] Reprise du timer...');
-            this.ui.timerManager?.resumeTimer?.();
-        });
-        
-        // Fermeture en cliquant sur le fond
-        const modal = document.getElementById('chessConfirmationModal');
-        if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    console.log('❌ [ModalManager] Fermeture par clic sur fond');
-                    this.removeConfirmationModal();
-                    console.log('⏱️ [ModalManager] Reprise du timer...');
-                    this.ui.timerManager?.resumeTimer?.();
-                }
-            });
-        }
-        
-        // Fermeture avec Échap
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && document.getElementById('chessConfirmationModal')) {
-                console.log('❌ [ModalManager] Fermeture avec touche Échap');
-                this.removeConfirmationModal();
-                console.log('⏱️ [ModalManager] Reprise du timer...');
-                this.ui.timerManager?.resumeTimer?.();
-            }
-        });
-        
-        console.log('✅ [ModalManager] Événements configurés');
-    }
-
-    removeConfirmationModal() {
-        const modal = document.getElementById('chessConfirmationModal');
-        if (!modal) {
-            if (this.constructor.consoleLog) {
-                console.log('ℹ️ [ModalManager] Aucune modal à supprimer');
-            }
-            return;
-        }
-        
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            // Animation de fermeture
-            modal.style.animation = 'modalFadeOut 0.3s ease';
-            const content = modal.querySelector('.modal-content');
-            if (content) {
-                content.style.animation = 'modalSlideOut 0.3s ease';
-            }
-            
-            // Ajouter l'animation de fermeture si elle n'existe pas
-            if (!document.querySelector('#modal-animation-out-styles')) {
-                const style = document.createElement('style');
-                style.id = 'modal-animation-out-styles';
-                style.textContent = `
-                    @keyframes modalFadeOut {
-                        from { opacity: 1; }
-                        to { opacity: 0; }
-                    }
-                    @keyframes modalSlideOut {
-                        from { 
-                            transform: translateY(0); 
-                            opacity: 1; 
-                        }
-                        to { 
-                            transform: translateY(-20px); 
-                            opacity: 0; 
-                        }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
-            
-            // Supprimer après l'animation
-            setTimeout(() => {
+            const cleanup = () => {
                 modal.remove();
-                
-                // Nettoyer les styles si plus de modal
-                if (!document.getElementById('chessConfirmationModal')) {
-                    const outStyle = document.querySelector('#modal-animation-out-styles');
-                    if (outStyle) outStyle.remove();
+                document.removeEventListener('keydown', handleEscape);
+            };
+            
+            const handleConfirm = () => {
+                cleanup();
+                resolve(true);
+            };
+            
+            const handleCancel = () => {
+                cleanup();
+                resolve(false);
+            };
+            
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    handleCancel();
                 }
-            }, 300);
-            return;
+            };
+            
+            const handleClickOutside = (e) => {
+                if (e.target === modal) {
+                    handleCancel();
+                }
+            };
+            
+            confirmBtn.addEventListener('click', handleConfirm);
+            cancelBtn.addEventListener('click', handleCancel);
+            modal.addEventListener('click', handleClickOutside);
+            document.addEventListener('keydown', handleEscape);
+            
+            document.body.appendChild(modal);
+        });
+    }
+
+    // ✅ Créer la modal de confirmation (AJOUTÉE)
+    createConfirmModal(title, message, options) {
+        const modal = document.createElement('div');
+        modal.id = 'chessConfirmModal';
+        
+        const {
+            confirmText = 'Confirmer',
+            cancelText = 'Annuler',
+            confirmColor = '#28a745',
+            cancelColor = '#6c757d'
+        } = options;
+        
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        modal.innerHTML = `
+            <div class="confirm-modal-content" style="
+                background: white;
+                padding: 30px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                text-align: center;
+                max-width: 400px;
+                width: 90%;
+                animation: slideIn 0.3s ease;
+            ">
+                <h3 style="margin: 0 0 15px 0; color: #333; font-size: 24px; font-weight: bold;">
+                    ${title}
+                </h3>
+                <div style="margin: 0 0 25px 0; color: #666; line-height: 1.5; font-size: 16px;">
+                    ${message}
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="modalCancelBtn" class="modal-btn" style="
+                        padding: 12px 25px;
+                        background: ${cancelColor};
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        transition: all 0.3s;
+                        flex: 1;
+                        min-width: 120px;
+                    ">${cancelText}</button>
+                    <button id="modalConfirmBtn" class="modal-btn" style="
+                        padding: 12px 25px;
+                        background: ${confirmColor};
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        font-weight: bold;
+                        transition: all 0.3s;
+                        flex: 1;
+                        min-width: 120px;
+                    ">${confirmText}</button>
+                </div>
+            </div>
+        `;
+        
+        this.addModalStyles();
+        return modal;
+    }
+
+    // ✅ Créer la modal de résultat
+    createResultModal(gameStatus, winner, details) {
+        const modal = document.createElement('div');
+        modal.id = 'chessGameResultModal';
+        
+        const { title, message, icon, color } = this.getResultDetails(gameStatus, winner, details);
+        
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        modal.innerHTML = `
+            <div class="modal-content" style="
+                background: white;
+                padding: 40px;
+                border-radius: 20px;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+                text-align: center;
+                max-width: 500px;
+                width: 90%;
+                border: 5px solid ${color};
+                animation: slideIn 0.5s ease;
+            ">
+                <div style="font-size: 70px; margin-bottom: 20px; line-height: 1;">
+                    ${icon}
+                </div>
+                <h2 style="margin: 0 0 15px 0; color: #333; font-size: 32px; font-weight: bold;">
+                    ${title}
+                </h2>
+                <div style="margin: 0 0 30px 0; color: #666; line-height: 1.6; font-size: 18px;">
+                    ${message}
+                </div>
+                ${details ? `<div style="margin: 0 0 20px 0; color: #888; font-size: 14px; font-style: italic;">
+                    ${details}
+                </div>` : ''}
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button id="newGameBtn" class="modal-btn primary-btn" style="
+                        padding: 15px 30px;
+                        background: #28a745;
+                        color: white;
+                        border: none;
+                        border-radius: 10px;
+                        cursor: pointer;
+                        font-size: 18px;
+                        font-weight: bold;
+                        transition: all 0.3s;
+                        flex: 1;
+                        min-width: 150px;
+                    ">Nouvelle Partie</button>
+                    <button id="closeModalBtn" class="modal-btn secondary-btn" style="
+                        padding: 15px 30px;
+                        background: #6c757d;
+                        color: white;
+                        border: none;
+                        border-radius: 10px;
+                        cursor: pointer;
+                        font-size: 18px;
+                        transition: all 0.3s;
+                        flex: 1;
+                        min-width: 150px;
+                    ">Continuer à Regarder</button>
+                </div>
+                <div style="margin-top: 25px; font-size: 13px; color: #aaa;">
+                    Appuyez sur Échap ou cliquez en dehors pour fermer
+                </div>
+            </div>
+        `;
+        
+        this.addModalStyles();
+        return modal;
+    }
+
+    // ✅ Détails selon le type de fin
+    getResultDetails(gameStatus, winner, details) {
+        let title, message, icon, color;
+        
+        switch(gameStatus) {
+            case 'checkmate':
+                title = '🎯 ÉCHEC ET MAT !';
+                message = winner ? 
+                    `<strong style="color: #dc3545;">${winner}</strong> remportent la victoire !<br>Le roi adverse est mat.` :
+                    'Échec et mat ! La partie est terminée.';
+                icon = '♔⚔️🏆';
+                color = '#dc3545';
+                break;
+                
+            case 'stalemate':
+                title = '⚖️ PAT !';
+                message = 'Match nul par pat !<br>Le roi n\'a aucun coup légal sans être en échec.';
+                icon = '⚖️🤝♟️';
+                color = '#ffc107';
+                break;
+                
+            case 'draw':
+                title = '🤝 MATCH NUL';
+                message = 'La partie se termine par un match nul.';
+                icon = '🤝🎯⚖️';
+                color = '#17a2b8';
+                break;
+                
+            default:
+                title = '🏁 PARTIE TERMINÉE';
+                message = 'La partie est terminée.';
+                icon = '🏁🎮';
+                color = '#6c757d';
         }
         
-        // Mode debug
-        console.log('🎭 [ModalManager] Suppression de la modal...');
+        return { title, message, icon, color };
+    }
+
+    // ✅ Configurer les événements
+    setupResultModalEvents() {
+        // Nouvelle partie
+        document.getElementById('newGameBtn')?.addEventListener('click', () => {
+            if (ChessModalManager.consoleLog) {
+                console.log('🎮 Nouvelle partie demandée depuis modal résultat');
+            }
+            this.removeResultModal();
+            this.startNewGame();
+        });
         
-        // Animation de fermeture
-        modal.style.animation = 'modalFadeOut 0.3s ease';
-        const content = modal.querySelector('.modal-content');
-        if (content) {
-            content.style.animation = 'modalSlideOut 0.3s ease';
+        // Fermer
+        document.getElementById('closeModalBtn')?.addEventListener('click', () => {
+            this.removeResultModal();
+        });
+        
+        // Échap
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.currentResultModal) {
+                this.removeResultModal();
+            }
+        });
+        
+        // Clic sur fond
+        if (this.currentResultModal) {
+            this.currentResultModal.addEventListener('click', (e) => {
+                if (e.target === this.currentResultModal) {
+                    this.removeResultModal();
+                }
+            });
+        }
+    }
+
+    // ✅ Supprimer la modal
+    removeResultModal() {
+        if (!this.currentResultModal) return;
+        
+        const modal = this.currentResultModal;
+        modal.style.animation = 'fadeOut 0.3s ease';
+        
+        setTimeout(() => {
+            modal.remove();
+            this.currentResultModal = null;
+            
+            if (ChessModalManager.consoleLog) {
+                console.log('🎭 Modal résultat supprimée');
+            }
+        }, 300);
+    }
+
+    // ✅ Lancer nouvelle partie
+    startNewGame() {
+        if (ChessModalManager.consoleLog) {
+            console.log('🎭 Démarrage nouvelle partie...');
         }
         
-        // Ajouter l'animation de fermeture si elle n'existe pas
-        if (!document.querySelector('#modal-animation-out-styles')) {
+        // Essayer de redémarrer le jeu si possible
+        if (window.chessGame && typeof window.chessGame.restartGame === 'function') {
+            window.chessGame.restartGame();
+        } else if (window.chessGame && window.chessGame.core && typeof window.chessGame.core.restartGame === 'function') {
+            window.chessGame.core.restartGame();
+        } else {
+            // Fallback: redirection
+            setTimeout(() => {
+                window.location.href = 'index.php';
+            }, 500);
+        }
+    }
+
+    // ✅ MODALE DE PROMOTION (AJOUTÉE)
+    showPromotionModal(color, callback) {
+        if (ChessModalManager.consoleLog) {
+            console.log(`🎭 Promotion demandée pour ${color}`);
+        }
+        
+        const modal = document.createElement('div');
+        modal.id = 'chessPromotionModal';
+        
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9998;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        const pieces = [
+            { type: 'queen', symbol: '♕', name: 'Dame' },
+            { type: 'rook', symbol: '♖', name: 'Tour' },
+            { type: 'bishop', symbol: '♗', name: 'Fou' },
+            { type: 'knight', symbol: '♘', name: 'Cavalier' }
+        ];
+        
+        const pieceColor = color === 'white' ? 'white' : 'black';
+        
+        modal.innerHTML = `
+            <div class="promotion-modal-content" style="
+                background: white;
+                padding: 20px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                text-align: center;
+                animation: slideIn 0.3s ease;
+            ">
+                <h3 style="margin: 0 0 20px 0; color: #333; font-size: 20px;">
+                    Promotion du pion
+                </h3>
+                <p style="margin: 0 0 20px 0; color: #666; font-size: 16px;">
+                    Choisissez la pièce de promotion
+                </p>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    ${pieces.map(piece => `
+                        <button class="promotion-piece" data-type="${piece.type}" style="
+                            width: 80px;
+                            height: 80px;
+                            background: ${pieceColor === 'white' ? '#f8f9fa' : '#343a40'};
+                            color: ${pieceColor === 'white' ? '#333' : '#fff'};
+                            border: 3px solid ${pieceColor === 'white' ? '#ddd' : '#555'};
+                            border-radius: 10px;
+                            font-size: 40px;
+                            cursor: pointer;
+                            transition: all 0.3s;
+                        ">
+                            ${piece.symbol}
+                        </button>
+                    `).join('')}
+                </div>
+                <div style="margin-top: 10px; font-size: 12px; color: #999;">
+                    Cliquez sur une pièce pour promouvoir
+                </div>
+            </div>
+        `;
+        
+        // Gestionnaires d'événements
+        const piecesButtons = modal.querySelectorAll('.promotion-piece');
+        piecesButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const pieceType = button.dataset.type;
+                modal.remove();
+                if (callback) callback(pieceType);
+            });
+        });
+        
+        // Clic sur fond pour annuler (choisir dame par défaut)
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+                if (callback) callback('queen');
+            }
+        });
+        
+        // Échap pour annuler
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                document.removeEventListener('keydown', handleEscape);
+                modal.remove();
+                if (callback) callback('queen');
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+        
+        document.body.appendChild(modal);
+        
+        // Nettoyage après suppression
+        modal.addEventListener('remove', () => {
+            document.removeEventListener('keydown', handleEscape);
+        });
+    }
+
+    // ✅ MODALE D'ÉCHEC (AJOUTÉE)
+    showCheckModal(color) {
+        if (ChessModalManager.consoleLog) {
+            console.log(`🎭 Échec détecté pour ${color}`);
+        }
+        
+        const modal = document.createElement('div');
+        modal.id = 'chessCheckModal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${color === 'white' ? '#dc3545' : '#343a40'};
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 9997;
+            animation: slideInRight 0.5s ease, fadeOut 0.5s ease 2s forwards;
+            font-weight: bold;
+            font-size: 16px;
+        `;
+        
+        const player = color === 'white' ? 'Blancs' : 'Noirs';
+        modal.innerHTML = `⚠️ Échec ! Roi ${player} en danger`;
+        
+        document.body.appendChild(modal);
+        
+        // Auto-suppression après 2.5 secondes
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.remove();
+            }
+        }, 2500);
+    }
+
+    // ✅ Ajouter styles
+    addModalStyles() {
+        if (!document.querySelector('#chess-modal-styles')) {
             const style = document.createElement('style');
-            style.id = 'modal-animation-out-styles';
+            style.id = 'chess-modal-styles';
             style.textContent = `
-                @keyframes modalFadeOut {
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes fadeOut {
                     from { opacity: 1; }
                     to { opacity: 0; }
                 }
-                @keyframes modalSlideOut {
+                @keyframes slideIn {
                     from { 
-                        transform: translateY(0); 
-                        opacity: 1; 
-                    }
-                    to { 
-                        transform: translateY(-20px); 
+                        transform: translateY(-50px) scale(0.9); 
                         opacity: 0; 
                     }
+                    to { 
+                        transform: translateY(0) scale(1); 
+                        opacity: 1; 
+                    }
+                }
+                @keyframes slideInRight {
+                    from { 
+                        transform: translateX(100%); 
+                        opacity: 0; 
+                    }
+                    to { 
+                        transform: translateX(0); 
+                        opacity: 1; 
+                    }
+                }
+                .modal-btn:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+                }
+                .modal-btn:active {
+                    transform: translateY(-1px);
+                }
+                .primary-btn:hover {
+                    background: #218838 !important;
+                }
+                .secondary-btn:hover {
+                    background: #5a6268 !important;
+                }
+                .promotion-piece:hover {
+                    transform: scale(1.1);
+                    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+                    border-color: #28a745 !important;
                 }
             `;
             document.head.appendChild(style);
         }
-        
-        // Supprimer après l'animation
-        setTimeout(() => {
-            modal.remove();
-            
-            // Nettoyer les styles si plus de modal
-            if (!document.getElementById('chessConfirmationModal')) {
-                const outStyle = document.querySelector('#modal-animation-out-styles');
-                if (outStyle) outStyle.remove();
-            }
-            
-            console.log('✅ [ModalManager] Modal supprimée');
-        }, 300);
     }
 
-    executeNewGame() {
-        // Mode silencieux
-        if (!this.constructor.consoleLog) {
-            // Arrêter définitivement le timer
-            this.ui.timerManager?.stopTimer?.();
-            
-            // Redirection vers la page de démarrage
-            setTimeout(() => {
-                window.location.href = 'index.php';
-            }, 500);
-            return;
-        }
-        
-        // Mode debug
-        console.log('\n🎮 [ModalManager] === EXÉCUTION NOUVELLE PARTIE ===');
-        console.log('🎮 [ModalManager] Lancement d\'une nouvelle partie...');
-        
-        // Arrêter définitivement le timer
-        this.ui.timerManager?.stopTimer?.();
-        
-        // Redirection vers la page de démarrage
-        setTimeout(() => {
-            console.log('🔄 [ModalManager] Redirection vers index.php...');
-            window.location.href = 'index.php';
-        }, 500);
-        
-        console.log('✅ [ModalManager] === NOUVELLE PARTIE INITIÉE ===\n');
-    }
-    
-    // NOUVELLE MÉTHODE : Vérifier si une modal est ouverte
-    isModalOpen() {
-        const isOpen = !!document.getElementById('chessConfirmationModal');
-        
-        if (this.constructor.consoleLog) {
-            console.log(`🔍 [ModalManager] Modal ouverte? ${isOpen ? '✅ OUI' : '❌ NON'}`);
-        }
-        
-        return isOpen;
-    }
-    
-    // NOUVELLE MÉTHODE : Fermer toutes les modals
-    closeAllModals() {
-        const modal = document.getElementById('chessConfirmationModal');
-        if (modal) {
-            // Mode silencieux
-            if (!this.constructor.consoleLog) {
-                this.removeConfirmationModal();
-                return true;
-            }
-            
-            // Mode debug
-            console.log('🎭 [ModalManager] Fermeture de toutes les modals...');
-            this.removeConfirmationModal();
-            return true;
-        }
-        
-        return false;
-    }
-    
-    // NOUVELLE MÉTHODE : Tester la création et gestion des modals
-    testModalSystem() {
-        // Mode silencieux - retourner un statut simple
-        if (!this.constructor.consoleLog) {
-            return {
-                modalCreation: false,
-                eventsSetup: false,
-                canCreateModal: false
-            };
-        }
-        
-        // Mode debug
-        console.group('🧪 [ModalManager] Test du système de modals');
-        
-        const testResults = {
-            modalCreation: false,
-            eventsSetup: false,
-            canCreateModal: false,
-            animationStyles: false,
-            domManipulation: false
+    // ✅ MÉTHODES UTILITAIRES (AJOUTÉES)
+    showSimpleModal(title, message, type = 'info') {
+        const colors = {
+            info: '#17a2b8',
+            success: '#28a745',
+            warning: '#ffc107',
+            error: '#dc3545'
         };
         
-        try {
-            // Test de création de modal
-            testResults.canCreateModal = this.createConfirmationModal();
-            console.log(`✅ Modal création: ${testResults.canCreateModal ? 'SUCCÈS' : 'ÉCHEC'}`);
-            
-            // Vérifier si la modal a été créée
-            testResults.modalCreation = !!document.getElementById('chessConfirmationModal');
-            console.log(`✅ Modal présente dans DOM: ${testResults.modalCreation ? 'OUI' : 'NON'}`);
-            
-            // Vérifier les événements
-            const confirmBtn = document.getElementById('confirmNewGame');
-            const cancelBtn = document.getElementById('cancelNewGame');
-            testResults.eventsSetup = !!(confirmBtn && cancelBtn);
-            console.log(`✅ Boutons configurés: ${testResults.eventsSetup ? 'OUI' : 'NON'}`);
-            
-            // Vérifier les styles d'animation
-            testResults.animationStyles = !!document.querySelector('#modal-animation-styles');
-            console.log(`✅ Styles animation: ${testResults.animationStyles ? 'PRÉSENTS' : 'ABSENTS'}`);
-            
-            // Nettoyer après le test
-            if (testResults.modalCreation) {
-                this.removeConfirmationModal();
-                console.log('✅ Modal nettoyée après test');
-            }
-            
-            testResults.domManipulation = true;
-            
-        } catch (error) {
-            console.log(`❌ Erreur test modals: ${error.message}`);
-            testResults.error = error.message;
-        }
-        
-        console.log('📊 Résultats du test:', testResults);
-        console.groupEnd();
-        
-        return testResults;
+        return this.showConfirmModal(title, message, {
+            confirmText: 'OK',
+            cancelText: null,
+            confirmColor: colors[type]
+        });
+    }
+    
+    showError(message) {
+        return this.showSimpleModal('Erreur', message, 'error');
+    }
+    
+    showSuccess(message) {
+        return this.showSimpleModal('Succès', message, 'success');
+    }
+    
+    showInfo(message) {
+        return this.showSimpleModal('Information', message, 'info');
     }
 }
 
 // Initialisation statique
 ChessModalManager.init();
 
-// Exposer la classe globalement
-window.ChessModalManager = ChessModalManager;
-
-// Ajouter des fonctions utilitaires globales
-window.ModalManagerUtils = {
-    // Forcer le rechargement de la config
-    reloadConfig: () => ChessModalManager.reloadConfig(),
+// Attendre le DOM
+document.addEventListener('DOMContentLoaded', () => {
+    // Exposer globalement
+    window.ChessModalManager = ChessModalManager;
     
-    // Obtenir l'état actuel
-    getState: () => ({
-        consoleLog: ChessModalManager.consoleLog,
-        source: ChessModalManager.getConfigSource(),
-        debugMode: ChessModalManager.isDebugMode(),
-        configValue: window.appConfig?.debug?.console_log
-    }),
-    
-    // Activer/désactiver manuellement (temporaire)
-    setConsoleLog: (value) => {
-        const oldValue = ChessModalManager.consoleLog;
-        ChessModalManager.consoleLog = Boolean(value);
-        console.log(`🔧 ChessModalManager: consoleLog changé manuellement: ${oldValue} → ${ChessModalManager.consoleLog}`);
-        return ChessModalManager.consoleLog;
-    },
-    
-    // Tester la création d'un ModalManager
-    testModalManager: (ui) => {
-        console.group('🧪 Test ChessModalManager');
-        const modalManager = new ChessModalManager(ui);
-        console.log('ModalManager créé:', modalManager);
-        console.log('Statut config:', ChessModalManager.getConfigStatus());
-        console.groupEnd();
-        return modalManager;
-    },
-    
-    // Tester la fonction de confirmation
-    testConfirmation: (modalManager) => {
-        console.group('🧪 Test Confirmation Modal');
-        if (!modalManager || !modalManager.confirmNewGame) {
-            console.log('❌ ModalManager ou méthode confirmNewGame non disponible');
-            console.groupEnd();
-            return false;
-        }
-        
-        console.log('Démarrage test confirmation...');
-        // Note: Cette fonction ouvre réellement la modal
-        const result = modalManager.confirmNewGame();
-        console.log('Résultat test confirmation:', result);
-        console.groupEnd();
-        return result;
-    },
-    
-    // Fermer toutes les modals
-    closeModals: () => {
-        const modal = document.getElementById('chessConfirmationModal');
-        if (modal) {
-            modal.remove();
-            console.log('✅ Modal fermée manuellement');
-            return true;
-        }
-        console.log('ℹ️ Aucune modal à fermer');
-        return false;
+    if (ChessModalManager.consoleLog) {
+        console.log('✅ ChessModalManager prêt et global');
     }
-};
+});
 
-// Méthode statique pour obtenir le statut de la configuration
-ChessModalManager.getConfigStatus = function() {
-    return {
-        consoleLog: this.consoleLog,
-        source: this.getConfigSource(),
-        debugMode: this.isDebugMode(),
-        appConfigAvailable: !!window.appConfig,
-        configValue: window.appConfig?.debug?.console_log
-    };
-};
-
-// Méthode statique pour forcer la mise à jour de la configuration
-ChessModalManager.reloadConfig = function() {
-    const oldValue = this.consoleLog;
-    this.loadConfig();
-    
-    if (this.consoleLog && oldValue !== this.consoleLog) {
-        console.log(`🔄 ChessModalManager: Configuration rechargée: ${oldValue} → ${this.consoleLog}`);
-    }
-    return this.consoleLog;
-};
-
-// Vérifier la configuration après le chargement complet de la page
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            ChessModalManager.loadConfig();
-            if (ChessModalManager.consoleLog) {
-                console.log('✅ ChessModalManager: Configuration vérifiée après chargement du DOM');
-            }
-        }, 100);
-    });
-} else {
-    setTimeout(() => {
-        ChessModalManager.loadConfig();
-    }, 100);
-}
-
-// Message final basé sur la configuration
-if (ChessModalManager.consoleLog) {
-    console.log('✅ ChessModalManager prêt (mode debug activé)');
-} else {
-    console.info('✅ ChessModalManager prêt (mode silencieux)');
+// Exporter pour les modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ChessModalManager;
 }

@@ -477,19 +477,20 @@ class KingMoveValidator {
     }
 
     // Vérifier si une case est attaquée
-    isSquareAttacked(row, col, attackerColor) {
-        try {
-            const tempBoard = this.createTempBoard();
-            const tempFEN = this.generateTempFEN(tempBoard, attackerColor === 'white' ? 'black' : 'white');
-            const engine = new ChessEngine(tempFEN);
-            return engine.isSquareAttacked(row, col, attackerColor === 'white' ? 'w' : 'b');
-        } catch (error) {
-            if (this.constructor.consoleLog) {
-                console.error('❌ Erreur dans isSquareAttacked:', error);
-            }
-            return true; // En cas d'erreur, considérer comme attaqué pour sécurité
-        }
+// Simplification de votre isSquareAttacked dans moveValidator
+isSquareAttacked(row, col, attackerColor) {
+    try {
+        // Normalisation de la couleur : 'white' -> 'w', 'black' -> 'b'
+        const colorCode = attackerColor.startsWith('w') ? 'w' : 'b';
+        const currentFEN = this.gameState.getCurrentFEN(); // Utilisez le FEN actuel plutôt qu'un temp
+        const engine = new ChessEngine(currentFEN);
+        
+        return engine.isSquareAttacked(row, col, colorCode);
+    } catch (error) {
+        console.error('❌ Erreur critique isSquareAttacked:', error);
+        return true; 
     }
+}
 
     // Vérifier si le roi est en échec
     isKingInCheck(color) {

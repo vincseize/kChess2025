@@ -1,6 +1,6 @@
 {
     "app_name": "CharlyChess",
-    "version": "0.95.f1509a6",
+    "version": "0.96",
     "author": "Karlova",
     "author2": "von Vincseize",
     "default_theme": "classic",
@@ -19,10 +19,10 @@
         "capture_indicator": "#ff4444"
     },
     "debug": {
-        "console_log": false
+        "console_log": true
     },
     "chess_engine": {
-        "console_log": false
+        "console_log": true
     },
     "lang": {
         "fr": {

@@ -280,43 +280,35 @@ class ChessMateEngine extends ChessEngine {
         return tempBoard;
     }
 
-    // Générer un FEN à partir d'un plateau temporaire
-    generateFENFromBoard(tempBoard, currentPlayer) {
-        let fen = '';
+generateFENFromBoard(tempBoard, currentPlayer) {
+    let fen = '';
+    
+    for (let row = 0; row < 8; row++) {
+        let emptyCount = 0;
         
-        // Partie plateau
-        for (let row = 0; row < 8; row++) {
-            let emptyCount = 0;
+        for (let col = 0; col < 8; col++) {
+            const piece = tempBoard[row][col];
             
-            for (let col = 0; col < 8; col++) {
-                const piece = tempBoard[row][col];
-                
-                if (piece === null) {
-                    emptyCount++;
-                } else {
-                    if (emptyCount > 0) {
-                        fen += emptyCount;
-                        emptyCount = 0;
-                    }
-                    fen += piece;
+            if (!piece) {
+                emptyCount++;
+            } else {
+                if (emptyCount > 0) {
+                    fen += emptyCount;
+                    emptyCount = 0;
                 }
-            }
-            
-            if (emptyCount > 0) {
-                fen += emptyCount;
-            }
-            
-            if (row < 7) {
-                fen += '/';
+                fen += piece;
             }
         }
         
-        // Tour actuel (inversé car on teste les coups)
-        const nextPlayer = currentPlayer === 'w' ? 'b' : 'w';
-        fen += ` ${nextPlayer} KQkq - 0 1`;
-        
-        return fen;
+        if (emptyCount > 0) fen += emptyCount;
+        if (row < 7) fen += '/';
     }
+    
+    // CORRECTION UNIFIÉE : Garder le même joueur pour la vérification
+    fen += ` ${currentPlayer} KQkq - 0 1`;
+    
+    return fen;
+}
 
     // Méthodes de génération des mouvements par type de pièce
     getPawnMoves(moves, piece, row, col) {

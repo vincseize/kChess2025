@@ -728,82 +728,77 @@ function confirmNewGame() {
     // Mode silencieux
     if (!ChessEventsManager.consoleLog) {
         if (window.chessGame) {
-            // Nouvelle architecture modulaire
-            if (window.chessGame.core && window.chessGame.core.ui && window.chessGame.core.ui.modalManager) {
-                const result = window.chessGame.core.ui.modalManager.confirmNewGame();
-                if (result) {
-                    setTimeout(() => {
-                        ChessEventsManager.updatePlayerLabels();
-                    }, 800);
+            // Nouvelle architecture: modalManager
+            if (window.chessGame.core && window.chessGame.core.ui && 
+                window.chessGame.core.ui.modalManager) {
+                
+                // Utiliser la méthode confirmNewGame si elle existe
+                if (typeof window.chessGame.core.ui.modalManager.confirmNewGame === 'function') {
+                    return window.chessGame.core.ui.modalManager.confirmNewGame()
+                        .then(result => {
+                            if (result) {
+                                setTimeout(() => {
+                                    ChessEventsManager.updatePlayerLabels();
+                                }, 800);
+                            }
+                            return result;
+                        });
                 }
-                return result;
             }
-            // Ancienne architecture
-            else if (window.chessGame.core && window.chessGame.core.ui && typeof window.chessGame.core.ui.confirmNewGame === 'function') {
-                const result = window.chessGame.core.ui.confirmNewGame();
-                if (result) {
-                    setTimeout(() => {
-                        ChessEventsManager.updatePlayerLabels();
-                    }, 800);
-                }
-                return result;
+            
+            // Fallback simple
+            if (confirm('Nouvelle partie ?\n\nLa partie actuelle sera perdue.')) {
+                window.location.href = 'index.php';
+                return true;
             }
-            // Fallback
-            else {
-                redirectToIndex();
-                return false;
-            }
-        } else {
-            redirectToIndex();
             return false;
         }
+        return false;
     }
     
     // Mode debug
     console.log('\n🆕 [ChessEvents] === NOUVELLE PARTIE ===');
     
-    if (window.chessGame) {
-        // Nouvelle architecture modulaire
-        if (window.chessGame.core && window.chessGame.core.ui && window.chessGame.core.ui.modalManager) {
-            const result = window.chessGame.core.ui.modalManager.confirmNewGame();
+    if (window.chessGame && window.chessGame.core && window.chessGame.core.ui && 
+        window.chessGame.core.ui.modalManager) {
+        
+        console.log('🎭 ModalManager disponible');
+        
+        // Vérifier si la méthode existe
+        if (typeof window.chessGame.core.ui.modalManager.confirmNewGame === 'function') {
+            console.log('✅ confirmNewGame trouvée dans modalManager');
             
-            console.log(`✅ [ChessEvents] ModalManager confirmNewGame: ${result ? 'accepted' : 'canceled'}`);
-            
-            if (result) {
-                setTimeout(() => {
-                    ChessEventsManager.updatePlayerLabels();
-                    console.log('✅ [ChessEvents] Labels mis à jour après nouvelle partie');
+            return window.chessGame.core.ui.modalManager.confirmNewGame()
+                .then(result => {
+                    console.log(`✅ Résultat: ${result ? 'acceptée' : 'annulée'}`);
+                    
+                    if (result) {
+                        setTimeout(() => {
+                            ChessEventsManager.updatePlayerLabels();
+                            console.log('✅ Labels mis à jour');
+                        }, 800);
+                    }
+                    
                     console.log('🆕 [ChessEvents] === FIN NOUVELLE PARTIE ===\n');
-                }, 800);
-            }
-            return result;
+                    return result;
+                })
+                .catch(error => {
+                    console.error('❌ Erreur confirmNewGame:', error);
+                    return false;
+                });
+        } else {
+            console.warn('⚠️ confirmNewGame non trouvée dans modalManager');
+            console.log('🔍 Méthodes disponibles:', Object.keys(window.chessGame.core.ui.modalManager));
         }
-        // Ancienne architecture
-        else if (window.chessGame.core && window.chessGame.core.ui && typeof window.chessGame.core.ui.confirmNewGame === 'function') {
-            const result = window.chessGame.core.ui.confirmNewGame();
-            
-            console.log(`✅ [ChessEvents] UI confirmNewGame: ${result ? 'accepted' : 'canceled'}`);
-            
-            if (result) {
-                setTimeout(() => {
-                    ChessEventsManager.updatePlayerLabels();
-                    console.log('✅ [ChessEvents] Labels mis à jour après nouvelle partie');
-                    console.log('🆕 [ChessEvents] === FIN NOUVELLE PARTIE ===\n');
-                }, 800);
-            }
-            return result;
-        }
-        // Fallback
-        else {
-            console.log('❌ [ChessEvents] Aucune méthode confirmNewGame disponible');
-            redirectToIndex();
-            return false;
-        }
-    } else {
-        console.log('❌ [ChessEvents] Jeu non initialisé');
-        redirectToIndex();
-        return false;
     }
+    
+    // Fallback
+    console.log('🔄 Utilisation fallback simple');
+    if (confirm('Nouvelle partie ?\n\nLa partie actuelle sera perdue.')) {
+        window.location.href = 'index.php';
+        return true;
+    }
+    return false;
 }
 
 // ============================================
