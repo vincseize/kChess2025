@@ -3,9 +3,6 @@
 // Ordre de chargement : CORE -> CHECK -> VALIDATORS -> BOTS -> FIX -> UI -> EVENTS
 ?>
 
-<script src="js/kchess/core/app-log-manager.js?version=<?php echo $version; ?>"></script>
-
-
 <script src="js/kchess/core/pieces.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/core/game-state.js?version=<?php echo $version; ?>"></script>
 <script src="js/kchess/core/chess-board.js?version=<?php echo $version; ?>"></script>
