@@ -1,394 +1,217 @@
-// validators/move-pieces/move-validator-pawn.js - Version avec protection contre double déclaration
+// validators/move-pieces/move-validator-pawn.js
 if (typeof PawnMoveValidator !== 'undefined') {
-    console.warn('⚠️ PawnMoveValidator existe déjà. Vérifiez les doublons dans les imports.');
-    // On pourrait aussi simplement ignorer : throw new Error('PawnMoveValidator déjà déclaré');
+    console.warn('⚠️ PawnMoveValidator existe déjà.');
 } else {
 
 class PawnMoveValidator {
     
-    // Valeur par défaut - sera écrasée par la config JSON si disponible
-    static consoleLog = true; // true par défaut pour debug
+    static consoleLog = true; 
     
     static init() {
-        // Charger la configuration depuis window.appConfig
         this.loadConfig();
-        
-        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('♟️ validators/move-pieces/move-validator-pawn.js chargé');
-            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
-        } else {
-            // Message silencieux si debug désactivé
-            console.info('♟️ PawnMoveValidator: Mode silencieux activé (debug désactivé dans config)');
+            console.log('♟️ PawnMoveValidator: Système initialisé');
         }
     }
     
-    // Méthode pour charger la configuration
     static loadConfig() {
         try {
-            if (window.appConfig && window.appConfig.chess_engine) {
-                // Configuration prioritaire: window.appConfig
-                if (window.appConfig.chess_engine.console_log !== undefined) {
-                    this.consoleLog = window.appConfig.chess_engine.console_log;
-                }
-                
-                if (this.consoleLog) {
-                    console.log('♟️ Configuration chargée depuis window.appConfig');
-                }
-            } else if (window.chessConfig) {
-                // Configuration secondaire: window.chessConfig (pour compatibilité)
-                if (window.chessConfig.debug !== undefined) {
-                    this.consoleLog = window.chessConfig.debug;
-                }
-                
-                if (this.consoleLog) {
-                    console.log('♟️ Configuration chargée depuis window.chessConfig (legacy)');
-                }
-            } else {
-                // Fallback: valeurs par défaut
-                if (this.consoleLog) {
-                    console.log('♟️ Configuration: valeurs par défaut utilisées');
-                }
+            if (window.appConfig?.chess_engine) {
+                this.consoleLog = window.appConfig.chess_engine.console_log ?? true;
             }
-        } catch (error) {
-            console.error('❌ Erreur lors du chargement de la configuration:', error);
-            // Garder les valeurs par défaut en cas d'erreur
-        }
-    }
-    
-    // Méthode pour déterminer la source de la configuration
-    static getConfigSource() {
-        if (window.appConfig && window.appConfig.chess_engine) {
-            return 'window.appConfig';
-        } else if (window.chessConfig) {
-            return 'window.chessConfig (legacy)';
-        } else {
-            return 'valeur par défaut';
-        }
+        } catch (error) { this.consoleLog = true; }
     }
 
     constructor(board, gameState) {
         this.board = board;
         this.gameState = gameState;
-        
-        if (this.constructor.consoleLog) {
-            console.log('🔧 PawnMoveValidator initialisé');
-            console.log(`  - Board: ${board ? '✓' : '✗'}`);
-            console.log(`  - GameState: ${gameState ? '✓' : '✗'}`);
+
+        // --- PONT DE COMPATIBILITÉ (INDISPENSABLE) ---
+        if (this.board && !this.board.getPiece) {
+            this.board.getPiece = (r, c) => {
+                if (typeof this.board.getSquare === 'function') {
+                    const square = this.board.getSquare(r, c);
+                    return square ? square.piece : null;
+                }
+                return null;
+            };
         }
     }
 
     getPossibleMoves(piece, row, col) {
         if (this.constructor.consoleLog) {
-            console.log(`\n♟️🔍 Recherche mouvements pour pion ${piece.color} en [${row},${col}]`);
+            console.group(`\n♟️🔍 Analyse Pion ${piece.color} en [${row},${col}]`);
         }
-        
-        const moves = [];
+
+        const rawMoves = [];
         const direction = piece.color === 'white' ? -1 : 1;
         const startRow = piece.color === 'white' ? 6 : 1;
-        const enPassantRow = piece.color === 'white' ? 3 : 4;
         const promotionRow = piece.color === 'white' ? 0 : 7;
-
         const pieceColor = piece.color;
 
-        if (this.constructor.consoleLog) {
-            console.log(`♟️ Configuration:`);
-            console.log(`  - Direction: ${direction > 0 ? '▼ vers le bas' : '▲ vers le haut'}`);
-            console.log(`  - Rang de départ: ${startRow}`);
-            console.log(`  - Rang en passant: ${enPassantRow}`);
-            console.log(`  - Rang de promotion: ${promotionRow}`);
+        // 1. MOUVEMENTS VERS L'AVANT
+        const forwardRow = row + direction;
+        if (this.isValidSquare(forwardRow, col) && !this.board.getPiece(forwardRow, col)) {
+            const isPromotion = forwardRow === promotionRow;
+            rawMoves.push({ row: forwardRow, col: col, type: 'move', isPromotion });
+
+            // Double pas initial
+            const doubleForwardRow = row + (2 * direction);
+            if (row === startRow && this.isValidSquare(doubleForwardRow, col) && !this.board.getPiece(doubleForwardRow, col)) {
+                rawMoves.push({ row: doubleForwardRow, col: col, type: 'move', isDoublePush: true });
+            }
         }
 
-        // Mouvement vers l'avant
-        if (this.isValidSquare(row + direction, col) && !this.board.getPiece(row + direction, col)) {
-            const isPromotion = (row + direction) === promotionRow;
-            
-            moves.push({ 
-                row: row + direction, 
-                col: col, 
-                type: 'move',
-                isPromotion: isPromotion
-            });
-            
-            if (this.constructor.consoleLog) {
-                console.log(`♟️▲ Avancée simple: [${row + direction},${col}]${isPromotion ? ' (PROMOTION!)' : ''}`);
-            }
-            
-            // Double mouvement depuis la position initiale
-            if (row === startRow && !this.board.getPiece(row + 2 * direction, col)) {
-                moves.push({ 
-                    row: row + 2 * direction, 
-                    col: col, 
-                    type: 'move',
-                    isDoublePush: true
-                });
-                
-                if (this.constructor.consoleLog) {
-                    console.log(`♟️▲▲ Double avancée: [${row + 2 * direction},${col}] (depuis rang de départ)`);
-                }
-            }
-        } else if (this.constructor.consoleLog) {
-            console.log(`♟️❌ Avancée bloquée`);
-        }
-
-        // Prises en diagonale normales
-        [-1, 1].forEach(offset => {
+        // 2. CAPTURES DIAGONALES
+        [1, -1].forEach(colOffset => {
             const targetRow = row + direction;
-            const targetCol = col + offset;
+            const targetCol = col + colOffset;
             
             if (this.isValidSquare(targetRow, targetCol)) {
                 const targetPiece = this.board.getPiece(targetRow, targetCol);
                 if (targetPiece && targetPiece.color !== pieceColor) {
-                    const isPromotion = targetRow === promotionRow;
-                    
-                    moves.push({ 
-                        row: targetRow, 
-                        col: targetCol, 
-                        type: 'capture',
-                        isPromotion: isPromotion
+                    rawMoves.push({ 
+                        row: targetRow, col: targetCol, 
+                        type: 'capture', 
+                        isPromotion: targetRow === promotionRow 
                     });
-                    
-                    if (this.constructor.consoleLog) {
-                        const side = offset === -1 ? 'gauche ↙️' : 'droite ↘️';
-                        console.log(`♟️⚔️ Prise ${side}: [${targetRow},${targetCol}] ${targetPiece.color} ${targetPiece.type}${isPromotion ? ' (PROMOTION!)' : ''}`);
-                    }
-                } else if (this.constructor.consoleLog) {
-                    const side = offset === -1 ? 'gauche' : 'droite';
-                    console.log(`♟️❌ Pas de prise ${side}: case [${targetRow},${targetCol}] ${targetPiece ? 'alliée' : 'vide'}`);
                 }
-            } else if (this.constructor.consoleLog) {
-                const side = offset === -1 ? 'gauche' : 'droite';
-                console.log(`♟️❌ Prise ${side}: hors plateau`);
             }
         });
 
-        // Prise en passant
-        if (row === enPassantRow) {
-            if (this.constructor.consoleLog) {
-                console.log(`♟️🎯 Vérification prise en passant (rang ${enPassantRow})`);
-            }
-            
-            [-1, 1].forEach(offset => {
-                const targetCol = col + offset;
-                const targetRow = row + direction;
-                const isPromotion = targetRow === promotionRow;
-                
+        // 3. PRISE EN PASSANT (Optimisée pour éviter le faux MAT)
+        const epRow = piece.color === 'white' ? 3 : 4;
+        if (row === epRow) {
+            [1, -1].forEach(colOffset => {
+                const targetCol = col + colOffset;
                 if (this.isValidSquare(row, targetCol)) {
-                    const adjacentPiece = this.board.getPiece(row, targetCol);
-                    
-                    if (adjacentPiece && 
-                        adjacentPiece.type === 'pawn' && 
-                        adjacentPiece.color !== pieceColor &&
-                        this.isEnPassantPossible(row, targetCol, pieceColor)) {
-                        
-                        moves.push({
-                            row: targetRow,
+                    if (this.isEnPassantPossible(row, targetCol, pieceColor)) {
+                        rawMoves.push({
+                            row: row + direction,
                             col: targetCol,
                             type: 'en-passant',
-                            capturedPawn: { row: row, col: targetCol },
-                            isPromotion: isPromotion
+                            capturedPawn: { row: row, col: targetCol }
                         });
-                        
                         if (this.constructor.consoleLog) {
-                            console.log(`♟️⚔️ En passant! Pion ${adjacentPiece.color} en [${row},${targetCol}] → capture en [${targetRow},${targetCol}]${isPromotion ? ' (PROMOTION!)' : ''}`);
+                            console.log(`✨ En Passant détecté vers [${row + direction},${targetCol}]`);
                         }
-                    } else if (this.constructor.consoleLog) {
-                        const side = offset === -1 ? 'gauche' : 'droite';
-                        const reason = !adjacentPiece ? 'pas de pion' : 
-                                     adjacentPiece.type !== 'pawn' ? 'pas un pion' : 
-                                     adjacentPiece.color === pieceColor ? 'allié' : 
-                                     'pas de double poussée récente';
-                        console.log(`♟️❌ Pas d'en passant ${side}: ${reason}`);
                     }
                 }
             });
         }
 
-        // Filtrer les mouvements qui mettraient le roi en échec
-        if (this.constructor.consoleLog) {
-            console.log(`\n♟️🛡️ Vérification échec au roi pour ${pieceColor}`);
-        }
-        
-        const validMoves = moves.filter(move => {
-            const wouldBeInCheck = this.wouldKingBeInCheckAfterMove(pieceColor, row, col, move.row, move.col);
-            
-            if (this.constructor.consoleLog) {
-                if (wouldBeInCheck) {
-                    console.log(`  ❌ Mouvement [${row},${col}]->[${move.row},${move.col}] → mettrait le roi en échec`);
-                } else {
-                    const moveType = move.type === 'en-passant' ? 'en passant' : move.type;
-                    console.log(`  ✓ Mouvement [${row},${col}]->[${move.row},${move.col}] (${moveType}) → sûr`);
-                }
-            }
-            
-            return !wouldBeInCheck;
+        // 4. FILTRAGE DES COUPS QUI METTENT LE ROI EN ÉCHEC
+        const validMoves = rawMoves.filter(move => {
+            return !this.wouldKingBeInCheckAfterMove(pieceColor, row, col, move);
         });
 
         if (this.constructor.consoleLog) {
-            const filteredCount = moves.length - validMoves.length;
-            console.log(`\n♟️✅ FINAL: Pion ${pieceColor} en [${row},${col}]`);
-            console.log(`  - Mouvements bruts: ${moves.length}`);
-            console.log(`  - Mouvements valides: ${validMoves.length}`);
-            console.log(`  - Mouvements filtrés: ${filteredCount}`);
-            
-            if (validMoves.length > 0) {
-                console.log(`  Mouvements valides:`);
-                validMoves.forEach((move, index) => {
-                    const typeIcon = move.type === 'capture' ? '⚔️' : 
-                                   move.type === 'en-passant' ? '🎯' : ' ';
-                    const promotion = move.isPromotion ? ' ♛' : '';
-                    const double = move.isDoublePush ? ' (double)' : '';
-                    console.log(`  ${index + 1}. [${move.row},${move.col}] ${typeIcon}${promotion}${double}`);
-                });
-            } else {
-                console.log(`  ⚠️ Aucun mouvement valide disponible`);
-            }
+            console.log(`♟️ Total: ${validMoves.length} valides.`);
+            console.groupEnd();
         }
         
         return validMoves;
     }
 
-    // Vérifier si le mouvement mettrait le roi en échec
-    wouldKingBeInCheckAfterMove(pieceColor, fromRow, fromCol, toRow, toCol) {
-        if (this.constructor.consoleLog) {
-            console.log(`    ↳ Simulation: [${fromRow},${fromCol}] → [${toRow},${toCol}]`);
-        }
+    isEnPassantPossible(row, targetCol, attackerColor) {
+        const history = this.gameState?.moveHistory || [];
+        if (history.length === 0) return false;
+
+        const lastMove = history[history.length - 1];
+        if (!lastMove) return false;
         
+        // CORRECTION : Vérification plus souple de la pièce (objet ou string)
+        const pieceType = (typeof lastMove.piece === 'object') ? lastMove.piece.type : lastMove.piece;
+        
+        const isPawn = pieceType === 'pawn';
+        const isDoublePush = Math.abs(lastMove.from.row - lastMove.to.row) === 2;
+        const isAdjacent = lastMove.to.row === row && lastMove.to.col === targetCol;
+        const isOpponent = lastMove.color !== attackerColor;
+
+        return isPawn && isDoublePush && isAdjacent && isOpponent;
+    }
+
+    wouldKingBeInCheckAfterMove(pieceColor, fromRow, fromCol, move) {
         try {
-            // Créer une simulation du plateau
+            // Création d'un plateau virtuel pour simuler le coup
             const tempBoard = this.createTempBoard();
+            const movingPiece = tempBoard[fromRow][fromCol];
             
-            // Déplacer le pion temporairement
-            const pawnPiece = tempBoard[fromRow][fromCol];
-            tempBoard[toRow][toCol] = pawnPiece;
+            if (!movingPiece) return false; 
+
+            // Simulation du déplacement du pion qui attaque
+            tempBoard[move.row][move.col] = movingPiece;
             tempBoard[fromRow][fromCol] = null;
-            
-            if (this.constructor.consoleLog) {
-                console.log(`      Simulation créée: pion déplacé`);
-            }
-            
-            // Générer un FEN temporaire
-            const tempFEN = this.generateTempFEN(tempBoard, pieceColor);
-            
-            if (this.constructor.consoleLog) {
-                console.log(`      FEN généré: ${tempFEN.substring(0, 30)}...`);
-            }
-            
-            // Vérifier l'échec
-            const engine = new ChessEngine(tempFEN);
-            const colorCode = pieceColor === 'white' ? 'w' : 'b';
-            const isInCheck = engine.isKingInCheck(colorCode);
-            
-            if (this.constructor.consoleLog) {
-                console.log(`      Résultat: ${isInCheck ? 'ROI EN ÉCHEC ⚠️' : 'roi en sécurité ✓'}`);
-            }
-            
-            return isInCheck;
-            
-        } catch (error) {
-            if (this.constructor.consoleLog) {
-                console.error(`❌ Erreur dans wouldKingBeInCheckAfterMove:`, error);
-            }
-            return true; // En cas d'erreur, on bloque le mouvement par sécurité
-        }
-    }
 
-    // Créer une copie temporaire du plateau
-    createTempBoard() {
-        const tempBoard = Array(8).fill().map(() => Array(8).fill(null));
-        
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                const square = this.board.getSquare(row, col);
-                tempBoard[row][col] = square.piece ? {...square.piece} : null;
-            }
-        }
-        return tempBoard;
-    }
-
-    // Générer un FEN temporaire
-    generateTempFEN(tempBoard, currentPlayer) {
-        let fen = '';
-        
-        for (let row = 0; row < 8; row++) {
-            let emptyCount = 0;
-            
-            for (let col = 0; col < 8; col++) {
-                const piece = tempBoard[row][col];
-                
-                if (!piece) {
-                    emptyCount++;
-                } else {
-                    if (emptyCount > 0) {
-                        fen += emptyCount;
-                        emptyCount = 0;
-                    }
-                    fen += this.pieceToFEN(piece);
+            // --- CORRECTIF CRITIQUE POUR LE "EN PASSANT" ---
+            // Si c'est une prise en passant, on doit AUSSI vider la case du pion adverse capturé
+            // Sinon le simulateur croit que le pion adverse est toujours là et menace le roi.
+            if (move.type === 'en-passant' && move.capturedPawn) {
+                tempBoard[move.capturedPawn.row][move.capturedPawn.col] = null;
+                if (this.constructor.consoleLog && false) { // Log interne discret
+                     console.log("Simu: Suppression du pion capturé en passant");
                 }
             }
+
+            // Génération d'un FEN temporaire
+            const tempFEN = this.generateTempFEN(tempBoard, pieceColor);
             
-            if (emptyCount > 0) {
-                fen += emptyCount;
+            if (typeof ChessEngine !== 'undefined') {
+                const engine = new ChessEngine(tempFEN);
+                // Le coup est valide UNIQUEMENT si notre roi n'est plus en échec
+                return engine.isKingInCheck(pieceColor === 'white' ? 'w' : 'b');
             }
             
-            if (row < 7) {
-                fen += '/';
-            }
+            return false;
+        } catch (e) {
+            console.error("❌ Erreur simulation échec:", e);
+            return true; 
         }
-        
-        const nextPlayer = currentPlayer === 'white' ? 'b' : 'w';
-        fen += ` ${nextPlayer} KQkq - 0 1`;
-        
-        return fen;
     }
 
-    // Convertir une pièce en notation FEN
-    pieceToFEN(piece) {
-        const pieceMap = {
-            'king': 'k',
-            'queen': 'q',
-            'rook': 'r', 
-            'bishop': 'b',
-            'knight': 'n',
-            'pawn': 'p'
+    createTempBoard() {
+        const temp = Array(8).fill().map(() => Array(8).fill(null));
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const p = this.board.getPiece(r, c);
+                if (p) temp[r][c] = { type: p.type, color: p.color };
+            }
+        }
+        return temp;
+    }
+
+    generateTempFEN(board, currentPlayer) {
+        let rows = [];
+        const pieceChars = {
+            'king': 'k', 'queen': 'q', 'rook': 'r', 
+            'bishop': 'b', 'knight': 'n', 'pawn': 'p'
         };
-        
-        const fenCode = pieceMap[piece.type] || '?';
-        return piece.color === 'white' ? fenCode.toUpperCase() : fenCode;
-    }
 
-    isEnPassantPossible(pawnRow, pawnCol, attackerColor) {
-        const lastMove = this.gameState.moveHistory[this.gameState.moveHistory.length - 1];
-        
-        if (!lastMove) return false;
-
-        const isDoublePush = Math.abs(lastMove.from.row - lastMove.to.row) === 2;
-        const isPawnMove = lastMove.piece === 'pawn';
-        const isAdjacentPawn = lastMove.to.row === pawnRow && lastMove.to.col === pawnCol;
-        const isOpponentColor = lastMove.color !== attackerColor;
-        
-        const isPossible = isDoublePush && isPawnMove && isAdjacentPawn && isOpponentColor;
-        
-        if (this.constructor.consoleLog) {
-            if (lastMove) {
-                console.log(`      Dernier coup: ${lastMove.color} ${lastMove.piece} [${lastMove.from.row},${lastMove.from.col}]→[${lastMove.to.row},${lastMove.to.col}]`);
-                console.log(`      Conditions: double=${isDoublePush}, pion=${isPawnMove}, adjacent=${isAdjacentPawn}, adversaire=${isOpponentColor}`);
-                console.log(`      En passant possible: ${isPossible ? 'OUI' : 'NON'}`);
+        for (let r = 0; r < 8; r++) {
+            let rowStr = "", empty = 0;
+            for (let c = 0; c < 8; c++) {
+                const p = board[r][c];
+                if (!p) {
+                    empty++;
+                } else {
+                    if (empty > 0) { rowStr += empty; empty = 0; }
+                    let char = pieceChars[p.type] || 'p';
+                    rowStr += (p.color === 'white') ? char.toUpperCase() : char;
+                }
             }
+            if (empty > 0) rowStr += empty;
+            rows.push(rowStr);
         }
-        
-        return isPossible;
+        // FEN simplifié : positions et trait au joueur actuel
+        return `${rows.join('/')} ${currentPlayer === 'white' ? 'w' : 'b'} - - 0 1`;
     }
 
-    isValidSquare(row, col) {
-        const isValid = row >= 0 && row < 8 && col >= 0 && col < 8;
-        return isValid;
+    isValidSquare(r, c) {
+        return r >= 0 && r < 8 && c >= 0 && c < 8;
     }
 }
 
-// Initialisation statique
 PawnMoveValidator.init();
-
 window.PawnMoveValidator = PawnMoveValidator;
 
-} // Fin du if de protection
+}

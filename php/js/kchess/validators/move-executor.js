@@ -1,444 +1,240 @@
-// validators/move-executor.js - Version utilisant la configuration JSON comme priorité
+// validators/move-executor.js
 if (typeof MoveExecutor !== 'undefined') {
-    console.warn('⚠️ MoveExecutor existe déjà. Vérifiez les doublons dans les imports.');
+    console.warn('⚠️ MoveExecutor existe déjà.');
 } else {
 
 class MoveExecutor {
     
-    // Valeur par défaut - sera écrasée par la config JSON si disponible
-    static consoleLog = true; // true par défaut pour debug
+    static consoleLog = true; 
     
     static init() {
-        // Charger la configuration depuis window.appConfig
         this.loadConfig();
-        
-        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('🚀 validators/move-executor.js chargé');
-            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
-        } else {
-            // Message silencieux si debug désactivé
-            console.info('🚀 MoveExecutor: Mode silencieux activé (debug désactivé dans config)');
+            console.log('🚀 MoveExecutor: Moteur d\'exécution prêt');
         }
     }
     
-    // Méthode pour charger la configuration
     static loadConfig() {
         try {
-            if (window.appConfig && window.appConfig.chess_engine) {
-                // Configuration prioritaire: window.appConfig
-                if (window.appConfig.chess_engine.console_log !== undefined) {
-                    this.consoleLog = window.appConfig.chess_engine.console_log;
-                }
-                
-                if (this.consoleLog) {
-                    console.log('🚀 Configuration chargée depuis window.appConfig');
-                }
-            } else if (window.chessConfig) {
-                // Configuration secondaire: window.chessConfig (pour compatibilité)
-                if (window.chessConfig.debug !== undefined) {
-                    this.consoleLog = window.chessConfig.debug;
-                }
-                
-                if (this.consoleLog) {
-                    console.log('🚀 Configuration chargée depuis window.chessConfig (legacy)');
-                }
-            } else {
-                // Fallback: valeurs par défaut
-                if (this.consoleLog) {
-                    console.log('🚀 Configuration: valeurs par défaut utilisées');
-                }
+            if (window.appConfig?.chess_engine) {
+                this.consoleLog = window.appConfig.chess_engine.console_log ?? true;
             }
-        } catch (error) {
-            console.error('❌ Erreur lors du chargement de la configuration:', error);
-            // Garder les valeurs par défaut en cas d'erreur
-        }
-    }
-    
-    // Méthode pour déterminer la source de la configuration
-    static getConfigSource() {
-        if (window.appConfig && window.appConfig.chess_engine) {
-            return 'window.appConfig';
-        } else if (window.chessConfig) {
-            return 'window.chessConfig (legacy)';
-        } else {
-            return 'valeur par défaut';
-        }
+        } catch (error) { this.consoleLog = true; }
     }
 
     constructor(game) {
         this.game = game;
-        
-        if (this.constructor.consoleLog) {
-            console.log('🔧 MoveExecutor initialisé');
-            console.log(`  - Game: ${game ? '✓' : '✗'}`);
-            console.log(`  - Configuration: console_log = ${this.constructor.consoleLog}`);
-        }
     }
 
     prepareMoveExecution(toRow, toCol) {
+        if (!this.game.selectedPiece) return null;
+        
         const selectedPiece = { ...this.game.selectedPiece };
         const fromSquare = this.game.board.getSquare(selectedPiece.row, selectedPiece.col);
         const toSquare = this.game.board.getSquare(toRow, toCol);
-        const move = this.game.possibleMoves.find(m => m.row === toRow && m.col === toCol);
         
-        if (!fromSquare || !toSquare) {
-            if (this.constructor.consoleLog) {
-                console.error('❌ Cases source/destination non trouvées');
-            }
-            return null;
-        }
+        const move = this.game.possibleMoves ? 
+            this.game.possibleMoves.find(m => m.row === toRow && m.col === toCol) : null;
+        
+        if (!fromSquare || !toSquare) return null;
 
         const pieceElement = fromSquare.element.querySelector('.chess-piece');
-        if (!pieceElement) {
-            if (this.constructor.consoleLog) {
-                console.error('❌ Élément pièce non trouvé');
-            }
-            return null;
-        }
-        
-        if (this.constructor.consoleLog) {
-            console.log(`\n🎯 Préparation exécution mouvement:`);
-            console.log(`  - Pièce: ${selectedPiece.piece.color} ${selectedPiece.piece.type}`);
-            console.log(`  - De: [${selectedPiece.row},${selectedPiece.col}]`);
-            console.log(`  - Vers: [${toRow},${toCol}]`);
-            console.log(`  - Move trouvé: ${move ? '✓' : '✗'}`);
-            if (move) {
-                console.log(`  - Type de mouvement: ${move.type || 'standard'}`);
-                if (move.isDoublePush) console.log(`  - Double poussée: OUI`);
-                if (move.isPromotion) console.log(`  - Promotion: OUI`);
-            }
-        }
         
         return { selectedPiece, fromSquare, toSquare, move, pieceElement };
     }
 
     executeNormalMove(fromSquare, toSquare, selectedPiece, move, toRow, toCol) {
-        if (this.constructor.consoleLog) {
-            console.log(`\n🚀 EXÉCUTION MOUVEMENT NORMAL:`);
-            console.log(`  ${selectedPiece.piece.color} ${selectedPiece.piece.type} de [${selectedPiece.row},${selectedPiece.col}] vers [${toRow},${toCol}]`);
-        }
-        
         const pieceElement = fromSquare.element.querySelector('.chess-piece');
+        if (!pieceElement) return;
+
+        const isCapture = toSquare.piece !== null || move?.type === 'en-passant';
+
+        if (this.constructor.consoleLog) {
+            console.group(`🎯 Action : ${selectedPiece.piece.type} -> [${toRow},${toCol}] ${isCapture ? '(Capture)' : ''}`);
+        }
+
+        // 1. GESTION DU ROQUE
+        if (move?.type === 'castling') {
+            this.executeCastlingRookMove(move);
+        }
+
+        // 2. GESTION PRISE EN PASSANT (CORRECTION CRITIQUE)
+        if (move?.type === 'en-passant') {
+            // On supprime le pion capturé physiquement et logiquement
+            const capRow = move.capturedPawn.row;
+            const capCol = move.capturedPawn.col;
+            this.clearSquare(capRow, capCol);
+            
+            if (this.constructor.consoleLog) {
+                console.log(`🗡️ En Passant : Pion supprimé en [${capRow},${capCol}]`);
+            }
+        }
+
+        // 3. TRANSFERT PHYSIQUE
         this.transferPieceElement(pieceElement, fromSquare, toSquare, selectedPiece.piece);
         
-        this.updateGameStateForMove(selectedPiece.piece, selectedPiece.row, selectedPiece.col, toRow, toCol);
+        // 4. MISE À JOUR DES DRAPEAUX
+        this.updateMoveFlags(selectedPiece.piece, selectedPiece.row, selectedPiece.col, toRow, toCol);
 
-        // Gestion promotion
-        if (move && this.shouldPromote(move, selectedPiece.piece)) {
-            if (this.constructor.consoleLog) {
-                console.log(`👑 DÉTECTION PROMOTION`);
-            }
-            this.handlePromotion(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement);
-            return;
+        // 5. PROMOTION OU FINALISATION
+        if (move?.isPromotion || this.checkManualPromotion(selectedPiece.piece, toRow)) {
+            this.handlePromotion(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement, isCapture);
+        } else {
+            this.finalizeMove(toRow, toCol, move, selectedPiece, isCapture);
         }
+
+        if (this.constructor.consoleLog) console.groupEnd();
+    }
+
+    // Nouvelle méthode utilitaire pour nettoyer une case (DOM + Logique)
+    clearSquare(row, col) {
+        const square = this.game.board.getSquare(row, col);
+        if (square) {
+            square.piece = null;
+            square.element.innerHTML = '';
+        }
+    }
+
+    executeCastlingRookMove(move) {
+        const rookFrom = move.rookFrom;
+        const rookTo = move.rookTo;
+        const fromSq = this.game.board.getSquare(rookFrom.row, rookFrom.col);
+        const toSq = this.game.board.getSquare(rookTo.row, rookTo.col);
+        const rookEl = fromSq.element.querySelector('.chess-piece');
         
-        this.finalizeNormalMove(toRow, toCol, move, selectedPiece);
+        if (rookEl) {
+            this.transferPieceElement(rookEl, fromSq, toSq, fromSq.piece);
+            if (this.constructor.consoleLog) console.log("🏰 Tour déplacée pour le roque");
+        }
     }
 
     transferPieceElement(pieceElement, fromSquare, toSquare, piece) {
-        toSquare.element.innerHTML = '';
+        toSquare.element.innerHTML = ''; 
         toSquare.element.appendChild(pieceElement);
         toSquare.piece = piece;
         fromSquare.piece = null;
-        
-        if (this.constructor.consoleLog) {
-            console.log(`  🔄 Pièce transférée de ${fromSquare.element.className} vers ${toSquare.element.className}`);
-        }
+        fromSquare.element.innerHTML = ''; 
     }
 
-    shouldPromote(move, piece) {
-        const shouldPromote = move && this.game.promotionManager.checkPromotion(move, piece);
-        
-        if (this.constructor.consoleLog) {
-            console.log(`  🔍 Vérification promotion: ${shouldPromote ? 'OUI' : 'NON'}`);
-            if (shouldPromote) {
-                console.log(`    ↳ Condition de promotion remplie pour ${piece.color} ${piece.type}`);
-            }
-        }
-        
-        return shouldPromote;
+    checkManualPromotion(piece, toRow) {
+        return piece.type === 'pawn' && (toRow === 0 || toRow === 7);
     }
 
-    handlePromotion(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement) {
-        this.game.moveHandler.isPromoting = true;
-        this.game.clearSelection();
-        
-        if (this.constructor.consoleLog) {
-            console.log(`🎭 Démarrage processus de promotion`);
-        }
-        
+    handlePromotion(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement, isCapture) {
         this.game.promotionManager.handlePromotion(
             toRow, toCol, selectedPiece.piece.color,
-            (promotedPieceType) => {
-                if (promotedPieceType) {
-                    if (this.constructor.consoleLog) {
-                        console.log(`✅ Promotion choisie: ${promotedPieceType}`);
-                    }
-                    this.finalizePromotion(toRow, toCol, promotedPieceType, move, selectedPiece);
+            (promotedType) => {
+                if (promotedType) {
+                    this.finalizePromotion(toRow, toCol, promotedType, move, selectedPiece, isCapture);
                 } else {
-                    if (this.constructor.consoleLog) {
-                        console.log(`❌ Promotion annulée`);
-                    }
-                    this.undoPromotionMove(fromSquare, toSquare, pieceElement, selectedPiece);
+                    this.undoMoveVisual(fromSquare, toSquare, pieceElement, selectedPiece);
                 }
-                this.game.moveHandler.isPromoting = false;
             }
         );
     }
 
-    finalizeNormalMove(toRow, toCol, move, selectedPiece) {
-        if (this.constructor.consoleLog) {
-            console.log(`\n✅ Mouvement normal finalisé`);
-        }
-        
-        if (move) {
+    finalizeMove(toRow, toCol, move, selectedPiece, isCapture) {
+        // Mise à jour de la cible En Passant dans le Validator (pour le prochain tour)
+        if (this.game.moveValidator && typeof this.game.moveValidator.updateEnPassantTarget === 'function') {
             this.game.moveValidator.updateEnPassantTarget(
                 { 
+                    row: toRow, col: toCol,
                     from: { row: selectedPiece.row, col: selectedPiece.col },
-                    to: { row: toRow, col: toCol },
-                    isDoublePush: move.isDoublePush
+                    isDoublePush: move?.isDoublePush || false
                 },
                 selectedPiece.piece
             );
-            
-            if (this.constructor.consoleLog && move.isDoublePush) {
-                console.log(`🎯 Cible en passant définie pour prochain coup`);
-            }
-        }
-
-        this.updateCastlingRights(selectedPiece, toRow, toCol);
-
-        this.game.gameState.recordMove(
-            selectedPiece.row, 
-            selectedPiece.col, 
-            toRow, 
-            toCol,
-            selectedPiece.piece
-        );
-
-        this.game.gameState.switchPlayer();
-        this.game.clearSelection();
-        this.game.updateUI();
-        
-        if (this.constructor.consoleLog) {
-            console.log(`  🔄 Joueur actuel changé: ${this.game.gameState.currentPlayer}`);
-            console.log(`  📝 Coup enregistré dans l'historique`);
-        }
-    }
-
-    finalizePromotion(toRow, toCol, promotedPieceType, move, selectedPiece) {
-        const toSquare = this.game.board.getSquare(toRow, toCol);
-        if (!toSquare) return;
-        
-        const newPiece = {
-            type: promotedPieceType,
-            color: selectedPiece.piece.color
-        };
-        
-        toSquare.piece = newPiece;
-        toSquare.element.innerHTML = '';
-        const newPieceElement = this.createPieceElement(newPiece);
-        toSquare.element.appendChild(newPieceElement);
-
-        if (this.constructor.consoleLog) {
-            console.log(`👑 Promotion finalisée: ${selectedPiece.piece.color} ${selectedPiece.piece.type} → ${promotedPieceType}`);
         }
 
         this.game.gameState.recordMove(
-            selectedPiece.row, 
-            selectedPiece.col, 
-            toRow, 
-            toCol,
+            selectedPiece.row, selectedPiece.col, 
+            toRow, toCol, 
             selectedPiece.piece,
-            promotedPieceType
+            null,
+            move?.type,
+            isCapture
         );
 
-        this.game.gameState.switchPlayer();
-        this.game.clearSelection();
-        this.game.updateUI();
-        
-        if (this.constructor.consoleLog) {
-            console.log(`  🔄 Joueur actuel changé après promotion: ${this.game.gameState.currentPlayer}`);
-        }
+        this.completeTurn();
     }
 
-    undoPromotionMove(fromSquare, toSquare, pieceElement, selectedPiece) {
+    finalizePromotion(toRow, toCol, type, move, selectedPiece, isCapture) {
+        const toSquare = this.game.board.getSquare(toRow, toCol);
+        const promotedPiece = { type: type, color: selectedPiece.piece.color };
+        
+        toSquare.piece = promotedPiece;
+        toSquare.element.innerHTML = '';
+        toSquare.element.appendChild(this.createPieceElement(promotedPiece));
+
+        this.game.gameState.recordMove(
+            selectedPiece.row, selectedPiece.col, 
+            toRow, toCol, 
+            selectedPiece.piece, 
+            type,
+            move?.type,
+            isCapture
+        );
+
+        this.completeTurn();
+    }
+
+    undoMoveVisual(fromSquare, toSquare, pieceElement, selectedPiece) {
         toSquare.element.innerHTML = '';
         toSquare.piece = null;
-        
         fromSquare.element.appendChild(pieceElement);
         fromSquare.piece = selectedPiece.piece;
-        
         this.game.clearSelection();
-        
-        if (this.constructor.consoleLog) {
-            console.log(`↩️ Promotion annulée - retour à la position initiale`);
-        }
     }
 
-    updateGameStateForMove(piece, fromRow, fromCol, toRow, toCol) {
-        if (this.constructor.consoleLog) {
-            console.log(`\n🔄 Mise à jour gameState pour ${piece.color} ${piece.type}`);
-        }
-        
-        if (!this.game.gameState.hasKingMoved) {
-            this.game.gameState.hasKingMoved = { white: false, black: false };
-        }
-        
-        if (!this.game.gameState.hasRookMoved) {
-            this.game.gameState.hasRookMoved = {
-                white: { kingside: false, queenside: false },
-                black: { kingside: false, queenside: false }
-            };
-        }
-
-        if (piece.type === 'king') {
-            this.game.gameState.hasKingMoved[piece.color] = true;
-            
-            if (this.constructor.consoleLog) {
-                console.log(`  👑 Roi ${piece.color} marqué comme ayant bougé`);
-            }
-        }
-        
-        if (piece.type === 'rook') {
-            const rookState = this.game.gameState.hasRookMoved[piece.color];
-            
-            if (fromCol === 7) {
-                rookState.kingside = true;
-                
-                if (this.constructor.consoleLog) {
-                    console.log(`  🏰 Tour côté roi ${piece.color} marquée comme ayant bougé`);
-                }
-            } else if (fromCol === 0) {
-                rookState.queenside = true;
-                
-                if (this.constructor.consoleLog) {
-                    console.log(`  🏰 Tour côté dame ${piece.color} marquée comme ayant bougé`);
-                }
-            }
-        }
+    completeTurn() {
+        this.game.gameState.switchPlayer();
+        if (this.game.clearSelection) this.game.clearSelection();
+        if (this.game.updateUI) this.game.updateUI();
     }
 
-    updateCastlingRights(selectedPiece, toRow, toCol) {
-        const piece = selectedPiece.piece;
+    updateMoveFlags(piece, fromRow, fromCol, toRow, toCol) {
+        const state = this.game.gameState;
         const color = piece.color;
 
-        if (piece.type === 'king') {
-            if (!this.game.gameState.castlingRights[color]) {
-                this.game.gameState.castlingRights[color] = {
-                    kingside: false,
-                    queenside: false
-                };
-            }
-            this.game.gameState.castlingRights[color] = {
-                kingside: false,
-                queenside: false
-            };
-            
-            if (this.constructor.consoleLog) {
-                console.log(`  🏰 Roques désactivés pour ${color} (roi a bougé)`);
-            }
-        }
+        if (!state.hasKingMoved) state.hasKingMoved = { white: false, black: false };
+        if (!state.hasRookMoved) state.hasRookMoved = { 
+            white: { kingside: false, queenside: false }, 
+            black: { kingside: false, queenside: false } 
+        };
+
+        if (piece.type === 'king') state.hasKingMoved[color] = true;
 
         if (piece.type === 'rook') {
-            const startRow = color === 'white' ? 7 : 0;
-            
-            if (selectedPiece.col === 7 && selectedPiece.row === startRow) {
-                if (!this.game.gameState.castlingRights[color]) {
-                    this.game.gameState.castlingRights[color] = {
-                        kingside: true,
-                        queenside: true
-                    };
-                }
-                this.game.gameState.castlingRights[color].kingside = false;
-                
-                if (this.constructor.consoleLog) {
-                    console.log(`  🏰 Roque côté roi désactivé pour ${color}`);
-                }
-            }
-            
-            if (selectedPiece.col === 0 && selectedPiece.row === startRow) {
-                if (!this.game.gameState.castlingRights[color]) {
-                    this.game.gameState.castlingRights[color] = {
-                        kingside: true,
-                        queenside: true
-                    };
-                }
-                this.game.gameState.castlingRights[color].queenside = false;
-                
-                if (this.constructor.consoleLog) {
-                    console.log(`  🏰 Roque côté dame désactivé pour ${color}`);
-                }
+            if (fromCol === 0) state.hasRookMoved[color].queenside = true;
+            else if (fromCol === 7) state.hasRookMoved[color].kingside = true;
+        }
+        
+        if (toRow === 0 || toRow === 7) {
+            const opponentColor = color === 'white' ? 'black' : 'white';
+            const rookRow = opponentColor === 'white' ? 7 : 0;
+            if (toRow === rookRow) {
+                if (toCol === 0) state.hasRookMoved[opponentColor].queenside = true;
+                if (toCol === 7) state.hasRookMoved[opponentColor].kingside = true;
             }
         }
     }
 
     createPieceElement(piece) {
-        const pieceElement = document.createElement('div');
-        pieceElement.className = `chess-piece ${piece.color}`;
+        const el = document.createElement('div');
+        el.className = `chess-piece ${piece.color}`;
+        el.dataset.piece = piece.type;
+        el.dataset.color = piece.color;
         
-        const prefix = piece.color === 'white' ? 'w' : 'b';
-        const pieceCodes = {
-            'king': 'K',
-            'queen': 'Q',
-            'rook': 'R',
-            'bishop': 'B',
-            'knight': 'N',
-            'pawn': 'P'
-        };
-        
+        const codes = { king:'K', queen:'Q', rook:'R', bishop:'B', knight:'N', pawn:'P' };
         const img = document.createElement('img');
-        img.src = `img/chesspieces/wikipedia/${prefix}${pieceCodes[piece.type]}.png`;
-        img.alt = `${piece.type} ${piece.color}`;
+        img.src = `img/chesspieces/wikipedia/${piece.color[0]}${codes[piece.type]}.png`;
         img.className = 'chess-piece-img';
         
-        pieceElement.appendChild(img);
-        pieceElement.setAttribute('data-piece', piece.type);
-        pieceElement.setAttribute('data-color', piece.color);
-        
-        return pieceElement;
-    }
-
-    // NOUVELLE MÉTHODE : Afficher le résumé de l'exécution
-    displayExecutionSummary(selectedPiece, toRow, toCol, move) {
-        if (!this.constructor.consoleLog) return;
-        
-        console.log(`\n📊 RÉSUMÉ EXÉCUTION MOUVEMENT:`);
-        console.log(`  Pièce: ${selectedPiece.piece.color} ${selectedPiece.piece.type}`);
-        console.log(`  De: [${selectedPiece.row},${selectedPiece.col}]`);
-        console.log(`  Vers: [${toRow},${toCol}]`);
-        console.log(`  Type: ${move ? move.type || 'standard' : 'inconnu'}`);
-        
-        if (move) {
-            console.log(`  Spécial: ${move.isDoublePush ? 'Double poussée' : move.isPromotion ? 'Promotion' : 'Normal'}`);
-        }
-        
-        console.log(`  Cible en passant: ${this.game.moveValidator.enPassantTarget ? 
-            `[${this.game.moveValidator.enPassantTarget.row},${this.game.moveValidator.enPassantTarget.col}]` : 'Aucune'}`);
-        
-        console.log(`  Joueur suivant: ${this.game.gameState.currentPlayer}`);
-    }
-
-    // NOUVELLE MÉTHODE : Vérifier l'état du MoveExecutor
-    checkState() {
-        if (!this.constructor.consoleLog) return;
-        
-        console.log(`\n🔍 ÉTAT MOVE EXECUTOR:`);
-        console.log(`  Game connecté: ${this.game ? '✓' : '✗'}`);
-        console.log(`  Configuration: console_log = ${this.constructor.consoleLog}`);
-        
-        if (this.game) {
-            console.log(`  GameState: ${this.game.gameState ? '✓' : '✗'}`);
-            console.log(`  MoveValidator: ${this.game.moveValidator ? '✓' : '✗'}`);
-            console.log(`  PromotionManager: ${this.game.promotionManager ? '✓' : '✗'}`);
-        }
+        el.appendChild(img);
+        return el;
     }
 }
 
-// Initialisation statique
 MoveExecutor.init();
-
 window.MoveExecutor = MoveExecutor;
-
-} // Fin du if de protection
+}

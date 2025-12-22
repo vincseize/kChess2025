@@ -14,17 +14,14 @@ class ChessEngine {
     
     static loadConfig() {
         try {
-            // Priorité 1: chess_engine.console_log
             if (window.appConfig?.chess_engine?.console_log !== undefined) {
                 const val = window.appConfig.chess_engine.console_log;
                 this.consoleLog = val === "false" ? false : Boolean(val);
             }
-            // Priorité 2: debug.console_log
             else if (window.appConfig?.debug?.console_log !== undefined) {
                 const val = window.appConfig.debug.console_log;
                 this.consoleLog = val === "false" ? false : Boolean(val);
             }
-            
             return true;
         } catch (error) {
             console.error('❌ ChessEngine: Erreur config:', error);
@@ -36,7 +33,7 @@ class ChessEngine {
         this.fen = fen;
         this.board = this.parseFEN(fen);
         const parts = fen.split(' ');
-        this.turn = parts[1];
+        this.turn = parts[1]; // 'w' ou 'b'
         
         if (ChessEngine.consoleLog) {
             console.log('🔧 ChessEngine créé avec FEN:', fen);
@@ -69,10 +66,13 @@ class ChessEngine {
     }
 
     findKing(color) {
-        const king = color === 'w' ? 'K' : 'k';
+        // Normalisation : 'white' -> 'w', 'black' -> 'b'
+        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
+        const kingChar = side === 'w' ? 'K' : 'k';
+        
         for (let row = 0; row < 8; row++) {
             for (let col = 0; col < 8; col++) {
-                if (this.board[row][col] === king) {
+                if (this.board[row][col] === kingChar) {
                     return { row, col };
                 }
             }
@@ -80,201 +80,157 @@ class ChessEngine {
         return null;
     }
 
-isSquareAttacked(row, col, attackerColor) {
-    const directions = {
-        rook: [[-1, 0], [1, 0], [0, -1], [0, 1]],
-        bishop: [[-1, -1], [-1, 1], [1, -1], [1, 1]],
-        knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
-        king: [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]] // AJOUTÉ
-    };
+    isSquareAttacked(row, col, attackerColor) {
+        // Normalisation de la couleur de l'attaquant
+        const att = (attackerColor === 'white' || attackerColor === 'w') ? 'w' : 'b';
+        
+        const directions = {
+            rook: [[-1, 0], [1, 0], [0, -1], [0, 1]],
+            bishop: [[-1, -1], [-1, 1], [1, -1], [1, 1]],
+            knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
+            king: [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+        };
 
-    // 1. VÉRIFIER LE ROI (Indispensable pour le Mat)
-    for (const [dr, dc] of directions.king) {
-        const r = row + dr, c = col + dc;
-        if (r >= 0 && r < 8 && c >= 0 && c < 8) {
-            const piece = this.getPiece(r, c);
-            const enemyKing = attackerColor === 'w' ? 'K' : 'k';
-            if (piece === enemyKing) return true;
-        }
-    }
-
-    // 2. VÉRIFIER LES PIONS
-    const pawnAttacks = attackerColor === 'w' ? [[1, -1], [1, 1]] : [[-1, -1], [-1, 1]];
-    for (const [dr, dc] of pawnAttacks) {
-        const r = row + dr, c = col + dc;
-        if (r >= 0 && r < 8 && c >= 0 && c < 8) {
-            const piece = this.getPiece(r, c);
-            const enemyPawn = attackerColor === 'w' ? 'P' : 'p';
-            if (piece === enemyPawn) return true;
-        }
-    }
-
-    // 3. VÉRIFIER LES CAVALIERS
-    for (const [dr, dc] of directions.knight) {
-        const r = row + dr, c = col + dc;
-        if (r >= 0 && r < 8 && c >= 0 && c < 8) {
-            const piece = this.getPiece(r, c);
-            const enemyKnight = attackerColor === 'w' ? 'N' : 'n';
-            if (piece === enemyKnight) return true;
-        }
-    }
-
-    // 4. VÉRIFIER LES PIÈCES GLISSANTES (Tours, Fous, Dames)
-    const slidingConfigs = [
-        { dirs: directions.rook, targets: attackerColor === 'w' ? ['R', 'Q'] : ['r', 'q'] },
-        { dirs: directions.bishop, targets: attackerColor === 'w' ? ['B', 'Q'] : ['b', 'q'] }
-    ];
-
-    for (const config of slidingConfigs) {
-        for (const [dr, dc] of config.dirs) {
-            let r = row + dr, c = col + dc;
-            while (r >= 0 && r < 8 && c >= 0 && c < 8) {
+        // 1. ROI
+        for (const [dr, dc] of directions.king) {
+            const r = row + dr, c = col + dc;
+            if (this.isValidSquare(r, c)) {
                 const piece = this.getPiece(r, c);
-                if (piece) {
-                    if (config.targets.includes(piece)) return true;
-                    break; // Bloqué par une pièce (ami ou ennemi)
-                }
-                r += dr;
-                c += dc;
+                if (piece === (att === 'w' ? 'K' : 'k')) return true;
             }
         }
-    }
 
-    return false;
-}
+        // 2. PIONS
+        // Si on cherche si une case est attaquée par un pion blanc, 
+        // on regarde en "bas" (row + 1) s'il y a un pion blanc (pour un board standard 0-7)
+        const pawnAttacks = att === 'w' ? [[1, -1], [1, 1]] : [[-1, -1], [-1, 1]];
+        for (const [dr, dc] of pawnAttacks) {
+            const r = row + dr, c = col + dc;
+            if (this.isValidSquare(r, c)) {
+                const piece = this.getPiece(r, c);
+                if (piece === (att === 'w' ? 'P' : 'p')) return true;
+            }
+        }
+
+        // 3. CAVALIERS
+        for (const [dr, dc] of directions.knight) {
+            const r = row + dr, c = col + dc;
+            if (this.isValidSquare(r, c)) {
+                const piece = this.getPiece(r, c);
+                if (piece === (att === 'w' ? 'N' : 'n')) return true;
+            }
+        }
+
+        // 4. PIÈCES GLISSANTES (Tours, Fous, Dames)
+        const slidingConfigs = [
+            { dirs: directions.rook, targets: att === 'w' ? ['R', 'Q'] : ['r', 'q'] },
+            { dirs: directions.bishop, targets: att === 'w' ? ['B', 'Q'] : ['b', 'q'] }
+        ];
+
+        for (const config of slidingConfigs) {
+            for (const [dr, dc] of config.dirs) {
+                let r = row + dr, c = col + dc;
+                while (this.isValidSquare(r, c)) {
+                    const piece = this.getPiece(r, c);
+                    if (piece) {
+                        if (config.targets.includes(piece)) return true;
+                        break; 
+                    }
+                    r += dr; c += dc;
+                }
+            }
+        }
+        return false;
+    }
 
     isKingInCheck(color) {
-        const kingPos = this.findKing(color);
+        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
+        const kingPos = this.findKing(side);
         if (!kingPos) return false;
         
-        const attackerColor = color === 'w' ? 'b' : 'w';
-        return this.isSquareAttacked(kingPos.row, kingPos.col, attackerColor);
+        const opponent = side === 'w' ? 'b' : 'w';
+        return this.isSquareAttacked(kingPos.row, kingPos.col, opponent);
     }
 
-    // MÉTHODE CRITIQUE: Vérifier l'échec et mat AVANT le pat
     checkGameStatus(color = null) {
         const playerColor = color || this.turn;
         
         if (ChessEngine.consoleLog) {
-            console.log(`\n🎮 VÉRIFICATION STATUT JEU (${playerColor === 'w' ? 'Blancs' : 'Noirs'})`);
-            console.log(`🎮 ORDRE: 1. Mat → 2. Pat → 3. Nulle`);
+            console.log(`\n🎮 VÉRIFICATION STATUT (${playerColor === 'w' ? 'Blancs' : 'Noirs'})`);
         }
         
-        // 1. Vérifier l'échec et mat
-        const isMate = this.isCheckmate(playerColor);
-        if (isMate) {
-            if (ChessEngine.consoleLog) {
-                console.log(`🎮✅ ÉCHEC ET MAT!`);
-            }
-            return 'checkmate';
-        }
-        
-        // 2. Vérifier le pat
-        const isStalemate = this.isStalemate(playerColor);
-        if (isStalemate) {
-            if (ChessEngine.consoleLog) {
-                console.log(`🎮⚖️ PAT! Match nul`);
-            }
-            return 'stalemate';
-        }
+        if (this.isCheckmate(playerColor)) return 'checkmate';
+        if (this.isStalemate(playerColor)) return 'stalemate';
         
         return 'in_progress';
     }
 
-    // NOUVELLE IMPLÉMENTATION UNIFIÉE pour isCheckmate
     isCheckmate(color = null) {
-        const playerColor = color || this.turn;
-        
-        if (ChessEngine.consoleLog) {
-            console.log(`\n♔ Vérification échec et mat pour ${playerColor === 'w' ? 'blancs' : 'noirs'}`);
-        }
-        
-        // 1. Le roi doit être en échec
-        const isInCheck = this.isKingInCheck(playerColor);
-        if (!isInCheck) {
-            if (ChessEngine.consoleLog) {
-                console.log(`♔❌ Pas en échec → pas mat`);
-            }
-            return false;
-        }
-        
-        // 2. Aucun coup légal disponible
-        const hasLegalMoves = this.hasAnyLegalMoves(playerColor);
-        
-        if (ChessEngine.consoleLog) {
-            console.log(`♔✅ Roi en échec, coups légaux: ${hasLegalMoves ? 'OUI' : 'NON'}`);
-        }
-        
-        return !hasLegalMoves;
+        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
+        if (!this.isKingInCheck(side)) return false;
+        return !this.hasAnyLegalMoves(side);
     }
 
-    // NOUVELLE IMPLÉMENTATION UNIFIÉE pour isStalemate
     isStalemate(color = null) {
-        const playerColor = color || this.turn;
-        
-        if (ChessEngine.consoleLog) {
-            console.log(`\n⚖️ Vérification pat pour ${playerColor === 'w' ? 'blancs' : 'noirs'}`);
-        }
-        
-        // 1. Le roi ne doit PAS être en échec
-        const isInCheck = this.isKingInCheck(playerColor);
-        if (isInCheck) {
-            if (ChessEngine.consoleLog) {
-                console.log(`⚖️❌ Roi en échec → pas pat (serait mat)`);
-            }
-            return false;
-        }
-        
-        // 2. Aucun coup légal disponible
-        const hasLegalMoves = this.hasAnyLegalMoves(playerColor);
-        
-        if (ChessEngine.consoleLog) {
-            console.log(`⚖️✅ Pas en échec, coups légaux: ${hasLegalMoves ? 'OUI' : 'NON'}`);
-        }
-        
-        return !hasLegalMoves;
+        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
+        if (this.isKingInCheck(side)) return false;
+        return !this.hasAnyLegalMoves(side);
     }
 
-    // MÉTHODE UNIFIÉE pour vérifier s'il y a des coups légaux
     hasAnyLegalMoves(color) {
-        const playerColor = color;
-        let legalMoveFound = false;
+        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
         
-        // Parcourir toutes les pièces de la couleur
         for (let row = 0; row < 8; row++) {
             for (let col = 0; col < 8; col++) {
                 const piece = this.getPiece(row, col);
-                
-                if (piece && this.isPieceColor(piece, playerColor)) {
-                    // Générer les mouvements possibles pour cette pièce
+                if (piece && this.isPieceColor(piece, side)) {
                     const possibleMoves = this.getPossibleMovesForPiece(piece, row, col);
-                    
-                    // Vérifier si au moins un mouvement est légal
                     for (const move of possibleMoves) {
-                        if (this.isMoveLegal(playerColor, row, col, move.row, move.col)) {
-                            if (ChessEngine.consoleLog) {
-                                console.log(`♟️✅ Coup légal trouvé: ${piece} [${row},${col}] → [${move.row},${move.col}]`);
-                            }
+                        if (this.isMoveLegal(side, row, col, move.row, move.col)) {
                             return true;
                         }
                     }
                 }
             }
         }
-        
         return false;
     }
 
     isPieceColor(piece, color) {
+        if (!piece) return false;
         const isWhite = piece === piece.toUpperCase();
-        return (color === 'w' && isWhite) || (color === 'b' && !isWhite);
+        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
+        return (side === 'w' && isWhite) || (side === 'b' && !isWhite);
+    }
+
+    isMoveLegal(color, fromRow, fromCol, toRow, toCol) {
+        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
+        const opponent = side === 'w' ? 'b' : 'w';
+
+        // Simulation
+        const originalTarget = this.board[toRow][toCol];
+        const originalSource = this.board[fromRow][fromCol];
+
+        this.board[toRow][toCol] = originalSource;
+        this.board[fromRow][fromCol] = null;
+
+        const kingPos = this.findKing(side);
+        let stillInCheck = false;
+        if (kingPos) {
+            stillInCheck = this.isSquareAttacked(kingPos.row, kingPos.col, opponent);
+        }
+
+        // Backtrack
+        this.board[fromRow][fromCol] = originalSource;
+        this.board[toRow][toCol] = originalTarget;
+
+        return !stillInCheck;
     }
 
     getPossibleMovesForPiece(piece, row, col) {
-        const pieceType = piece.toLowerCase();
+        const type = piece.toLowerCase();
         const moves = [];
-        
-        switch(pieceType) {
+        switch(type) {
             case 'p': this.getPawnMoves(moves, piece, row, col); break;
             case 'n': this.getKnightMoves(moves, row, col); break;
             case 'b': this.getBishopMoves(moves, row, col); break;
@@ -282,218 +238,78 @@ isSquareAttacked(row, col, attackerColor) {
             case 'q': this.getQueenMoves(moves, row, col); break;
             case 'k': this.getKingMoves(moves, row, col); break;
         }
-        
         return moves;
     }
 
-isMoveLegal(color, fromRow, fromCol, toRow, toCol) {
-    // Créer une copie du plateau pour simulation
-    const tempBoard = this.createTempBoard();
-    const piece = tempBoard[fromRow][fromCol];
-    
-    // Vérifier si la case d'arrivée est occupée par une pièce de la même couleur
-    const targetPiece = tempBoard[toRow][toCol];
-    if (targetPiece && this.isPieceColor(targetPiece, color)) {
-        return false;
-    }
-    
-    // Exécuter le mouvement
-    tempBoard[toRow][toCol] = piece;
-    tempBoard[fromRow][fromCol] = null;
-    
-    // Vérifier si le roi est en échec après le mouvement
-    // Après le mouvement, c'est au tour de l'adversaire
-    const fen = this.generateFENFromBoard(tempBoard, color === 'w' ? 'b' : 'w');
-    const tempEngine = new ChessEngine(fen);
-    
-    // Le roi qui pourrait être en échec est celui de la couleur qui vient de jouer
-    return !tempEngine.isKingInCheck(color);
-}
-
-    createTempBoard() {
-        return this.board.map(row => [...row]);
-    }
-
-generateFENFromBoard(tempBoard, currentPlayer) {
-    let fen = '';
-    
-    for (let row = 0; row < 8; row++) {
-        let emptyCount = 0;
-        
-        for (let col = 0; col < 8; col++) {
-            const piece = tempBoard[row][col];
-            
-            if (!piece) {
-                emptyCount++;
-            } else {
-                if (emptyCount > 0) {
-                    fen += emptyCount;
-                    emptyCount = 0;
-                }
-                fen += piece;
-            }
-        }
-        
-        if (emptyCount > 0) fen += emptyCount;
-        if (row < 7) fen += '/';
-    }
-    
-    // CORRECTION UNIFIÉE : Garder le même joueur pour la vérification
-    fen += ` ${currentPlayer} KQkq - 0 1`;
-    
-    return fen;
-}
-
-    // Méthodes de génération des mouvements
+    // --- Générateurs de mouvements simplifiés pour la simulation ---
     getPawnMoves(moves, piece, row, col) {
-        const direction = piece === 'P' ? -1 : 1;
-        const startRow = piece === 'P' ? 6 : 1;
-        
-        // Avance d'une case
-        if (this.isValidSquare(row + direction, col) && !this.getPiece(row + direction, col)) {
-            moves.push({ row: row + direction, col: col });
-            
-            // Avance de deux cases
-            if (row === startRow && !this.getPiece(row + 2 * direction, col)) {
-                moves.push({ row: row + 2 * direction, col: col });
-            }
+        const dir = (piece === 'P') ? -1 : 1;
+        const start = (piece === 'P') ? 6 : 1;
+        if (this.isValidSquare(row + dir, col) && !this.getPiece(row + dir, col)) {
+            moves.push({ row: row + dir, col: col });
+            if (row === start && !this.getPiece(row + 2 * dir, col)) moves.push({ row: row + 2 * dir, col: col });
         }
-        
-        // Prises
-        const captureDirections = [[direction, -1], [direction, 1]];
-        for (const [dr, dc] of captureDirections) {
-            const newRow = row + dr;
-            const newCol = col + dc;
-            if (this.isValidSquare(newRow, newCol)) {
-                const target = this.getPiece(newRow, newCol);
-                if (target && this.isPieceColor(target, piece === 'P' ? 'b' : 'w')) {
-                    moves.push({ row: newRow, col: newCol });
-                }
+        [[dir, -1], [dir, 1]].forEach(([dr, dc]) => {
+            const nr = row + dr, nc = col + dc;
+            if (this.isValidSquare(nr, nc)) {
+                const target = this.getPiece(nr, nc);
+                if (target && !this.isPieceColor(target, piece === 'P' ? 'w' : 'b')) moves.push({ row: nr, col: nc });
             }
-        }
+        });
     }
 
     getKnightMoves(moves, row, col) {
-        const directions = [
-            [-2, -1], [-2, 1], [-1, -2], [-1, 2],
-            [1, -2], [1, 2], [2, -1], [2, 1]
-        ];
-        
-        for (const [dr, dc] of directions) {
-            const newRow = row + dr;
-            const newCol = col + dc;
-            if (this.isValidSquare(newRow, newCol)) {
-                const target = this.getPiece(newRow, newCol);
-                if (!target || this.isPieceColor(target, this.getPiece(row, col) === this.getPiece(row, col).toUpperCase() ? 'b' : 'w')) {
-                    moves.push({ row: newRow, col: newCol });
-                }
+        [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr, dc]) => {
+            const nr = row + dr, nc = col + dc;
+            if (this.isValidSquare(nr, nc)) {
+                const target = this.getPiece(nr, nc);
+                if (!target || !this.isPieceColor(target, this.isPieceColor(this.getPiece(row, col), 'w') ? 'w' : 'b')) moves.push({ row: nr, col: nc });
             }
-        }
-    }
-
-    getBishopMoves(moves, row, col) {
-        this.getSlidingMoves(moves, row, col, [[-1, -1], [-1, 1], [1, -1], [1, 1]]);
-    }
-
-    getRookMoves(moves, row, col) {
-        this.getSlidingMoves(moves, row, col, [[-1, 0], [1, 0], [0, -1], [0, 1]]);
-    }
-
-    getQueenMoves(moves, row, col) {
-        this.getSlidingMoves(moves, row, col, [
-            [-1, -1], [-1, 1], [1, -1], [1, 1],
-            [-1, 0], [1, 0], [0, -1], [0, 1]
-        ]);
-    }
-
-    getKingMoves(moves, row, col) {
-        const directions = [
-            [1, 0], [-1, 0], [0, 1], [0, -1],
-            [1, 1], [1, -1], [-1, 1], [-1, -1]
-        ];
-        
-        for (const [dr, dc] of directions) {
-            const newRow = row + dr;
-            const newCol = col + dc;
-            if (this.isValidSquare(newRow, newCol)) {
-                const target = this.getPiece(newRow, newCol);
-                const pieceColor = this.getPiece(row, col) === this.getPiece(row, col).toUpperCase() ? 'w' : 'b';
-                if (!target || this.isPieceColor(target, pieceColor === 'w' ? 'b' : 'w')) {
-                    moves.push({ row: newRow, col: newCol });
-                }
-            }
-        }
+        });
     }
 
     getSlidingMoves(moves, row, col, directions) {
-        const pieceColor = this.getPiece(row, col) === this.getPiece(row, col).toUpperCase() ? 'w' : 'b';
-        
-        for (const [dr, dc] of directions) {
-            let newRow = row + dr;
-            let newCol = col + dc;
-            
-            while (this.isValidSquare(newRow, newCol)) {
-                const target = this.getPiece(newRow, newCol);
-                
-                if (!target) {
-                    moves.push({ row: newRow, col: newCol });
-                } else {
-                    if (this.isPieceColor(target, pieceColor === 'w' ? 'b' : 'w')) {
-                        moves.push({ row: newRow, col: newCol });
-                    }
+        const side = this.isPieceColor(this.getPiece(row, col), 'w') ? 'w' : 'b';
+        directions.forEach(([dr, dc]) => {
+            let nr = row + dr, nc = col + dc;
+            while (this.isValidSquare(nr, nc)) {
+                const target = this.getPiece(nr, nc);
+                if (!target) moves.push({ row: nr, col: nc });
+                else {
+                    if (!this.isPieceColor(target, side)) moves.push({ row: nr, col: nc });
                     break;
                 }
-                
-                newRow += dr;
-                newCol += dc;
+                nr += dr; nc += dc;
             }
-        }
+        });
     }
 
-    isValidSquare(row, col) {
-        return row >= 0 && row < 8 && col >= 0 && col < 8;
+    getBishopMoves(moves, row, col) { this.getSlidingMoves(moves, row, col, [[-1,-1],[-1,1],[1,-1],[1,1]]); }
+    getRookMoves(moves, row, col) { this.getSlidingMoves(moves, row, col, [[-1,0],[1,0],[0,-1],[0,1]]); }
+    getQueenMoves(moves, row, col) { this.getSlidingMoves(moves, row, col, [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]); }
+    getKingMoves(moves, row, col) {
+        [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dr, dc]) => {
+            const nr = row + dr, nc = col + dc;
+            if (this.isValidSquare(nr, nc)) {
+                const target = this.getPiece(nr, nc);
+                if (!target || !this.isPieceColor(target, this.isPieceColor(this.getPiece(row, col), 'w') ? 'w' : 'b')) moves.push({ row: nr, col: nc });
+            }
+        });
     }
+
+    isValidSquare(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
 
     displayBoard() {
         if (!ChessEngine.consoleLog) return;
-        
         console.log('\n📊 PLATEAU:');
-        console.log('   a b c d e f g h');
-        for (let row = 0; row < 8; row++) {
-            let line = `${8 - row} `;
-            for (let col = 0; col < 8; col++) {
-                const piece = this.getPiece(row, col);
-                line += (piece || '.') + ' ';
-            }
-            console.log(line + ` ${8 - row}`);
+        for (let r = 0; r < 8; r++) {
+            let line = `${8-r} `;
+            for (let c = 0; c < 8; c++) line += (this.getPiece(r,c) || '.') + ' ';
+            console.log(line);
         }
-        console.log('   a b c d e f g h');
+        console.log('  a b c d e f g h');
     }
 }
 
-// Initialisation
 ChessEngine.init();
 window.ChessEngine = ChessEngine;
-
-// Ajout d'une fonction de test spécifique pour votre bug
-window.testOrderBug = function() {
-    console.log('\n🔍🔍🔍 TEST DE L ORDRE MAT/PAT 🔍🔍🔍');
-    
-    // Position d'échec et mat
-    const mateFEN = "1R4k1/8/6K1/4p3/1p2P2P/1P1P4/2P2PP1/1NB3N1 b - - 22 37";
-    console.log('\n1. Test position MAT (devrait retourner "checkmate"):');
-    const mateEngine = new ChessEngine(mateFEN);
-    console.log('Résultat:', mateEngine.checkGameStatus());
-    
-    // Position de pat
-    const staleFEN = "k7/8/8/8/8/8/8/R1K5 w - - 0 1";
-    console.log('\n2. Test position PAT (devrait retourner "stalemate"):');
-    const staleEngine = new ChessEngine(staleFEN);
-    console.log('Résultat:', staleEngine.checkGameStatus());
-    
-    // Position normale
-    const normalFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    console.log('\n3. Test position normale (devrait retourner "in_progress"):');
-    const normalEngine = new ChessEngine(normalFEN);
-    console.log('Résultat:', normalEngine.checkGameStatus());
-};

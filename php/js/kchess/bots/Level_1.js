@@ -107,162 +107,81 @@ class Level_1 {
         }
     }
 
-    getMove(fen) {
-        // Vérifier la configuration avant chaque appel
-        if (!this.constructor.consoleLog && window.appConfig) {
-            this.constructor.loadConfig();
-        }
+// bots/Level_1.js
+// Dans bots/Level_1.js
+getMove(fen) {
+    this.constructor.loadConfig();
+    const isDebug = this.constructor.consoleLog;
+
+    try {
+        // Tentative de récupération de l'instance par plusieurs chemins possibles
+        const game = window.chessGame || window.gameInstance || (window.ChessApp ? window.ChessApp.game : null);
         
-        // Si debug désactivé, exécuter silencieusement
-        if (!this.constructor.consoleLog) {
-            try {
-                const game = window.chessGame;
-                if (!game || !game.core || !game.core.moveValidator) {
-                    return null;
-                }
-
-                const validMoves = [];
-                const currentPlayer = game.gameState.currentPlayer;
-
-                // Parcourir toutes les pièces
-                for (let fromRow = 0; fromRow < 8; fromRow++) {
-                    for (let fromCol = 0; fromCol < 8; fromCol++) {
-                        const square = game.board.getSquare(fromRow, fromCol);
-                        
-                        if (square && square.piece && square.piece.color === currentPlayer) {
-                            const possibleMoves = game.core.moveValidator.getPossibleMoves(
-                                square.piece, 
-                                fromRow, 
-                                fromCol
-                            );
-                            
-                            possibleMoves.forEach(move => {
-                                validMoves.push({
-                                    fromRow: fromRow,
-                                    fromCol: fromCol,
-                                    toRow: move.row,
-                                    toCol: move.col,
-                                    piece: square.piece
-                                });
-                            });
-                        }
-                    }
-                }
-
-                if (validMoves.length === 0) {
-                    return null;
-                }
-
-                // Choisir aléatoirement
-                const randomIndex = Math.floor(Math.random() * validMoves.length);
-                return validMoves[randomIndex];
-
-            } catch (error) {
-                // En mode silencieux, on ne logue pas l'erreur
-                return null;
-            }
-        }
-        
-        // Mode debug activé - avec logs
-        if (this.constructor.consoleLog) {
-            console.log(`🎲 [Level_1] Début calcul du coup pour FEN: ${fen}`);
-            console.log(`⚪ [Level_1] Joueur actuel: ${window.chessGame?.gameState?.currentPlayer || 'inconnu'}`);
+        // Vérification ultra-précise de la chaîne de dépendances
+        if (!game) {
+            console.error("❌ [Level_1] Instance globale du jeu introuvable.");
+            return null;
         }
 
-        try {
-            const game = window.chessGame;
-            if (!game || !game.core || !game.core.moveValidator) {
-                if (this.constructor.consoleLog) {
-                    console.log(`❌ [Level_1] Jeu ou moteur de mouvement non disponible`);
-                }
-                return null;
-            }
+        // On cherche le moveValidator là où il se trouve réellement
+        const validator = game.moveValidator || (game.core ? game.core.moveValidator : null);
 
-            const validMoves = [];
-            const currentPlayer = game.gameState.currentPlayer;
+        if (!validator) {
+            console.error("❌ [Level_1] MoveValidator introuvable dans l'instance.", game);
+            return null;
+        }
 
-            if (this.constructor.consoleLog) {
-                console.log(`🔍 [Level_1] Recherche des coups valides pour ${currentPlayer === 'white' ? 'Blancs' : 'Noirs'}`);
-            }
+        const validMoves = [];
+        const currentPlayer = game.gameState ? game.gameState.currentPlayer : (fen.split(' ')[1] === 'w' ? 'white' : 'black');
 
-            // Parcourir toutes les pièces
-            for (let fromRow = 0; fromRow < 8; fromRow++) {
-                for (let fromCol = 0; fromCol < 8; fromCol++) {
-                    const square = game.board.getSquare(fromRow, fromCol);
-                    
-                    if (square && square.piece && square.piece.color === currentPlayer) {
-                        const pieceType = square.piece.type;
-                        const pieceChar = pieceType.charAt(0).toUpperCase();
-                        
-                        if (this.constructor.consoleLog) {
-                            console.log(`  👉 [Level_1] Pièce ${pieceChar} en [${fromRow},${fromCol}] (${currentPlayer})`);
-                        }
-                        
-                        const possibleMoves = game.core.moveValidator.getPossibleMoves(
-                            square.piece, 
-                            fromRow, 
-                            fromCol
-                        );
-                        
-                        if (this.constructor.consoleLog && possibleMoves.length > 0) {
-                            console.log(`    📍 [Level_1] ${possibleMoves.length} mouvement(s) possible(s)`);
-                        }
-                        
-                        possibleMoves.forEach(move => {
-                            validMoves.push({
-                                fromRow: fromRow,
-                                fromCol: fromCol,
-                                toRow: move.row,
-                                toCol: move.col,
-                                piece: square.piece
-                            });
-                            
-                            if (this.constructor.consoleLog) {
-                                console.log(`      → [${fromRow},${fromCol}] → [${move.row},${move.col}]`);
-                            }
-                        });
-                    }
-                }
-            }
+        if (isDebug) console.group(`🤖 Tour du Bot (${currentPlayer})`);
 
-            if (this.constructor.consoleLog) {
-                console.log(`📊 [Level_1] Total coups valides trouvés: ${validMoves.length}`);
-            }
-
-            if (validMoves.length === 0) {
-                if (this.constructor.consoleLog) {
-                    console.log(`🚫 [Level_1] Aucun coup valide disponible!`);
-                }
-                return null;
-            }
-
-            // Choisir aléatoirement
-            const randomIndex = Math.floor(Math.random() * validMoves.length);
-            const selectedMove = validMoves[randomIndex];
-            
-            if (this.constructor.consoleLog) {
-                console.log(`🎯 [Level_1] Coup sélectionné (aléatoire):`);
-                console.log(`    📍 Départ: [${selectedMove.fromRow},${selectedMove.fromCol}]`);
-                console.log(`    📍 Arrivée: [${selectedMove.toRow},${selectedMove.toCol}]`);
-                console.log(`    ♟️ Pièce: ${selectedMove.piece.type} (${selectedMove.piece.color})`);
-                console.log(`    🎲 Index choisi: ${randomIndex + 1}/${validMoves.length}`);
+        // Parcours de l'échiquier
+        for (let fromRow = 0; fromRow < 8; fromRow++) {
+            for (let fromCol = 0; fromCol < 8; fromCol++) {
+                // Accès sécurisé à la pièce
+                const piece = game.board.getPiece(fromRow, fromCol);
                 
-                // Convertir en notation échecs si possible
-                const colToLetter = col => String.fromCharCode(97 + col);
-                const rowToNumber = row => 8 - row;
-                console.log(`    📝 Notation: ${colToLetter(selectedMove.fromCol)}${rowToNumber(selectedMove.fromRow)} → ${colToLetter(selectedMove.toCol)}${rowToNumber(selectedMove.toRow)}`);
+                if (piece && piece.color === currentPlayer) {
+                    // Utilisation du validateur trouvé
+                    const moves = validator.getPossibleMoves(piece, fromRow, fromCol);
+                    
+                    moves.forEach(m => {
+                        validMoves.push({
+                            fromRow, fromCol,
+                            toRow: m.row,
+                            toCol: m.col,
+                            piece: piece,
+                            notation: `${String.fromCharCode(97 + fromCol)}${8 - fromRow} → ${String.fromCharCode(97 + m.col)}${8 - m.row}`
+                        });
+                    });
+                }
             }
+        }
 
-            return selectedMove;
-
-        } catch (error) {
-            if (this.constructor.consoleLog) {
-                console.log(`❌ [Level_1] ERREUR lors du calcul du coup: ${error.message}`);
-                console.error('Level_1 error:', error);
+        if (validMoves.length === 0) {
+            if (isDebug) {
+                console.warn(`⚠️ Aucun coup légal trouvé pour ${currentPlayer}`);
+                console.groupEnd();
             }
             return null;
         }
+
+        const selectedMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+
+        if (isDebug) {
+            console.log(`🎯 Choisi: ${selectedMove.notation}`);
+            console.groupEnd();
+        }
+
+        return selectedMove;
+
+    } catch (error) {
+        console.error(`⛔ [Level_1] Crash lors de la recherche de coups:`, error);
+        if (isDebug) console.groupEnd();
+        return null;
     }
+}
     
     // Méthode : Obtenir le statut du bot
     getStatus() {

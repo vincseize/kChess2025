@@ -10,51 +10,61 @@ class ChessStatusController {
     static loadConfig() {
         try {
             if (window.appConfig?.debug?.console_log !== undefined) {
-                this.consoleLog = window.appConfig.debug.console_log !== "false";
+                const val = window.appConfig.debug.console_log;
+                this.consoleLog = val === "false" ? false : Boolean(val);
             }
         } catch (e) {}
     }
 
     /**
-     * LOGIQUE DE DÉCISION CRITIQUE
+     * LOGIQUE DE DÉCISION UNIQUE
+     * Centralise l'appel aux différents moteurs pour déterminer l'état de la partie
      */
     static checkGameStatus(fen, color = null) {
+        // 1. On utilise le moteur de base (qui est maintenant robuste)
         const engine = new ChessEngine(fen);
         const playerColor = color || engine.turn;
         
-        // ÉTAPE 1 : Le roi est-il en échec ?
+        // 2. Récupération des états clés
         const isCheck = engine.isKingInCheck(playerColor);
-        
-        // ÉTAPE 2 : Le joueur a-t-il des coups légaux ?
-        // On simule pour voir s'il reste une issue
-        const hasLegalMoves = engine.generateLegalMoves(playerColor).length > 0;
+        const hasLegalMoves = engine.hasAnyLegalMoves(playerColor); 
 
         if (this.consoleLog) {
-            console.log(`🔍 Analyse ${playerColor}: enÉchec=${isCheck}, coupsDispo=${hasLegalMoves}`);
+            console.log(`🔍 Analyse ${playerColor === 'w' ? 'Blancs' : 'Noirs'}: Check=${isCheck}, hasMoves=${hasLegalMoves}`);
         }
 
-        // --- ORDRE DE PRIORITÉ ---
+        // --- ORDRE DE PRIORITÉ DES RÈGLES ---
 
-        // 1. ÉCHEC ET MAT : En échec ET aucun coup possible
+        // 1. ÉCHEC ET MAT
         if (isCheck && !hasLegalMoves) {
-            return { status: 'checkmate', reason: 'Le roi est en échec et mat.' };
+            return { 
+                status: 'checkmate', 
+                reason: 'Échec et mat ! Le roi ne peut plus s\'échapper.',
+                winner: playerColor === 'w' ? 'black' : 'white'
+            };
         }
 
-        // 2. PAT (STALEMATE) : PAS en échec MAIS aucun coup possible
+        // 2. PAT (STALEMATE)
         if (!isCheck && !hasLegalMoves) {
-            return { status: 'stalemate', reason: 'Pat : aucun coup possible mais pas d\'échec.' };
+            return { 
+                status: 'stalemate', 
+                reason: 'Pat ! Aucun coup possible, la partie est nulle.' 
+            };
         }
 
-        // 3. ÉCHEC SIMPLE : En échec MAIS a des coups possibles
+        // 3. ÉCHEC SIMPLE
         if (isCheck) {
-            return { status: 'check', reason: 'Le roi est en échec.' };
+            return { 
+                status: 'check', 
+                reason: 'Le roi est en échec !' 
+            };
         }
 
-        // 4. NULLE TECHNIQUE (Optionnel si vous avez ChessNulleEngine)
+        // 4. VÉRIFICATION DES NULLES TECHNIQUES (Matériel insuffisant, etc.)
         if (typeof ChessNulleEngine !== 'undefined') {
             const nulleEngine = new ChessNulleEngine(fen);
             const drawCheck = nulleEngine.isDraw();
-            if (drawCheck.isDraw) {
+            if (drawCheck && drawCheck.isDraw) {
                 return { status: 'draw', reason: drawCheck.reason };
             }
         }
@@ -62,28 +72,8 @@ class ChessStatusController {
         // 5. JEU EN COURS
         return { status: 'in_progress', reason: '' };
     }
-
-    static getGameStatus(fen, currentPlayerColor) {
-        // Conversion 'white' -> 'w'
-        const colorKey = currentPlayerColor === 'white' ? 'w' : 'b';
-        const result = this.checkGameStatus(fen, colorKey);
-        
-        const labels = {
-            'checkmate': 'Échec et mat',
-            'stalemate': 'Pat (Nulle)',
-            'draw': 'Match nul',
-            'check': 'Échec',
-            'in_progress': 'Jeu en cours'
-        };
-
-        return {
-            status: result.status,
-            message: labels[result.status],
-            reason: result.reason,
-            isGameOver: ['checkmate', 'stalemate', 'draw'].includes(result.status),
-            isCheck: result.status === 'check' || result.status === 'checkmate'
-        };
-    }
 }
+
+// Initialisation
 ChessStatusController.init();
 window.ChessStatusController = ChessStatusController;

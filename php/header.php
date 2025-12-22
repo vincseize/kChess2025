@@ -48,13 +48,7 @@ logConfigInfo($config);
             source: 'header.php'
         });
         
-        // ALERT pour debug (à enlever en production)
-        <?php if ($config['debug']['console_log'] === true): ?>
-        alert('header.php - Configuration chargée:\n' +
-              '- debug.console_log = ' + window.appConfig.debug.console_log + '\n' +
-              '- chess_engine.console_log = ' + window.appConfig.chess_engine.console_log + '\n' +
-              '- Les deux doivent être FALSE pour désactiver les logs!');
-        <?php endif; ?>
+
     </script>
 
     <!-- CSS Chess réorganisé - AVEC VERSION POUR CACHE -->

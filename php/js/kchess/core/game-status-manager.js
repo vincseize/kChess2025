@@ -1,25 +1,51 @@
-// core/game-status-manager.js - VERSION FINALE CORRIGÉE (ORDRE ET HANDLEMATE)
+/**
+ * core/game-status-manager.js
+ * Version 1.2.1 - Sécurisée contre les FEN vides
+ */
 class GameStatusManager {
     
+    static VERSION = '1.2.1';
     static consoleLog = true;
+    static logHistory = [];
+    static MAX_LOGS = 100;
+
+    /**
+     * Système de journalisation interne
+     */
+    static log(message, type = 'info', data = null) {
+        if (!this.consoleLog && type === 'info') return;
+
+        const timestamp = new Date().toLocaleTimeString();
+        const entry = { timestamp, type, message, data };
+        
+        this.logHistory.push(entry);
+        if (this.logHistory.length > this.MAX_LOGS) this.logHistory.shift();
+
+        const icons = { 
+            info: '🔍', success: '✅', warn: '⚠️', 
+            error: '❌', critical: '🚨', death: '💀' 
+        };
+        const icon = icons[type] || '⚪';
+        
+        console.log(`${icon} [GameStatusManager ${timestamp}] ${message}`);
+        if (data && this.consoleLog) console.dir(data);
+    }
     
     static init() {
         this.loadConfig();
+        this.log(`Initialisé - Version ${this.VERSION}`, 'success');
         
-        if (this.consoleLog) {
-            console.log('🛡️ GameStatusManager chargé - VERSION FINALE CORRIGÉE');
-        }
+        // Exposer les outils de debug
+        window.debugStatus = () => {
+            console.table(this.logHistory);
+        };
     }
     
     static loadConfig() {
         try {
-            if (window.appConfig?.chess_engine?.console_log !== undefined) {
-                const val = window.appConfig.chess_engine.console_log;
-                this.consoleLog = val === "false" ? false : Boolean(val);
-            }
-            else if (window.appConfig?.debug?.console_log !== undefined) {
-                const val = window.appConfig.debug.console_log;
-                this.consoleLog = val === "false" ? false : Boolean(val);
+            const config = window.appConfig?.chess_engine || window.appConfig?.debug;
+            if (config?.console_log !== undefined) {
+                this.consoleLog = String(config.console_log).toLowerCase() !== "false";
             }
             return true;
         } catch (error) {
@@ -31,220 +57,125 @@ class GameStatusManager {
     constructor(chessGame) {
         this.chessGame = chessGame;
         this.lastCheckAlert = null;
-        
-        if (GameStatusManager.consoleLog) {
-            console.log('🛡️ [GameStatusManager] Initialisé avec ordre corrigé');
-        }
+        GameStatusManager.log('Nouvelle instance créée pour ChessGame', 'info');
     }
 
-    // ✅✅✅ MÉTHODE PRINCIPALE CORRIGÉE
+    /**
+     * MÉTHODE PRINCIPALE : Cycle de vérification
+     * Priorité : Mat > Pat > Nulle > Échec
+     */
     updateGameStatus() {
-        if (GameStatusManager.consoleLog) {
-            console.log('\n🔍 [GameStatusManager] === VÉRIFICATION STATUT ===');
-            console.log('🔍 [GameStatusManager] ORDRE CORRECT: 1. Mat → 2. Pat → 3. Nulle → 4. Échec');
-        }
+        GameStatusManager.log('=== DÉBUT VÉRIFICATION STATUT ===', 'info');
         
-        // Nettoyer les surbrillances
-        this.chessGame.board.squares.forEach(square => {
-            square.element.classList.remove('king-in-check', 'checkmate', 'stalemate');
-        });
+        // 1. Nettoyage UI
+        this.cleanUIEffects();
 
-        // NOTE: FENGenerator et ChessMateEngine doivent être définis globalement ou importés
+        // 2. Vérification des dépendances
         if (typeof FENGenerator === 'undefined' || typeof ChessMateEngine === 'undefined') {
-            console.error('FATAL: FENGenerator ou ChessMateEngine manquant. Arrêt de la vérification du statut.');
+            GameStatusManager.log('Dépendances manquantes (FENGenerator/ChessMateEngine)', 'critical');
             return;
         }
 
+        // 3. Génération et Validation de la FEN
         const currentFEN = FENGenerator.generateFEN(this.chessGame.gameState, this.chessGame.board);
         
-        if (GameStatusManager.consoleLog) {
-            console.log(`📄 FEN actuel: ${currentFEN}`);
-            console.log(`📊 Tour actuel: ${this.chessGame.gameState.currentPlayer}`);
+        // SÉCURITÉ CRITIQUE : Si la FEN est vide ou corrompue, on ne valide PAS le statut.
+        // Cela empêche le bug du "Pat au bout d'un coup" dû à un plateau non lu.
+        if (!currentFEN || currentFEN.includes('8/8/8/8/8/8/8/8')) {
+            GameStatusManager.log('FEN invalide ou plateau vide détecté. Analyse annulée pour éviter un faux Pat.', 'error');
+            return;
         }
-        
-        // ✅✅✅ ORDRE CORRECT DES VÉRIFICATIONS
-        
-        // 1. VÉRIFIER ÉCHEC ET MAT D'ABORD (PRIORITÉ ABSOLUE)
-        if (GameStatusManager.consoleLog) {
-            console.log('\n🔍 ÉTAPE 1: Vérification échec et mat');
-        }
-        
-        // La couleur matée est la couleur qui doit jouer
+
+        const currentPlayer = this.chessGame.gameState.currentPlayer;
+        const fenSide = currentFEN.split(' ')[1]; // 'w' ou 'b'
+
+        GameStatusManager.log(`Analyse FEN: ${currentFEN}`, 'info', { player: currentPlayer, side: fenSide });
+
+        // --- ORDRE DE PRIORITÉ ABSOLU ---
+
+        // ÉTAPE 1: ÉCHEC ET MAT
         const checkmateStatus = this.checkForCheckmate(currentFEN);
         if (checkmateStatus.found) {
-            if (GameStatusManager.consoleLog) {
-                console.log('💀 ÉCHEC ET MAT détecté pour', checkmateStatus.color);
-            }
+            GameStatusManager.log(`MAT DÉTECTÉ pour ${checkmateStatus.color}`, 'death');
             this.handleCheckmate(checkmateStatus.color);
-            return; // ARRÊTER ICI
+            return; 
         }
-        
-        // 2. VÉRIFIER PAT (seulement si pas de mat)
-        if (GameStatusManager.consoleLog) {
-            console.log('\n🔍 ÉTAPE 2: Vérification pat');
-        }
-        
-        // La couleur patée est la couleur qui doit jouer
+
+        // ÉTAPE 2: PAT (Stalemate)
         const stalemateStatus = this.checkForStalemate(currentFEN);
         if (stalemateStatus.found) {
-            if (GameStatusManager.consoleLog) {
-                console.log('⚖️ PAT détecté pour', stalemateStatus.color);
-            }
+            GameStatusManager.log(`PAT DÉTECTÉ pour ${stalemateStatus.color}`, 'warn');
             this.handleStalemate(stalemateStatus.color);
-            return; // ARRÊTER ICI
+            return;
         }
-        
-        // 3. VÉRIFIER AUTRES NULLITÉS (optionnel: 50 coups, répétition, matériel insuffisant)
+
+        // ÉTAPE 3: AUTRES NULLITÉS (Matériel insuffisant...)
         const drawResult = this.checkForDraw(currentFEN);
         if (drawResult.isDraw) {
-            if (GameStatusManager.consoleLog) {
-                console.log('🤝 NULLITÉ détectée:', drawResult.reason);
-            }
+            GameStatusManager.log(`NULLITÉ: ${drawResult.reason}`, 'warn');
             this.handleDraw(drawResult.reason);
-            return; // ARRÊTER ICI
+            return;
         }
-        
-        // 4. VÉRIFIER ÉCHEC SIMPLE (seulement si pas mat/pat/nulle)
-        if (GameStatusManager.consoleLog) {
-            console.log('\n🔍 ÉTAPE 4: Vérification échec simple');
-        }
-        
+
+        // ÉTAPE 4: ÉCHEC SIMPLE
         const checkStatus = this.checkForCheck(currentFEN);
-        if (checkStatus.whiteInCheck) {
-            this.handleCheck('white');
-        }
-        if (checkStatus.blackInCheck) {
-            this.handleCheck('black');
-        }
+        if (checkStatus.whiteInCheck) this.handleCheck('white');
+        if (checkStatus.blackInCheck) this.handleCheck('black');
+
+        // ÉTAPE 5: TOUR DU BOT
+        this.triggerBotIfNeeded();
         
-        // 5. Bot turn si jeu en cours
-        if (this.chessGame.botManager && this.chessGame.botManager.isBotTurn()) {
-            this.chessGame.botManager.playBotMove();
-        }
+        GameStatusManager.log('Fin de vérification - Jeu en cours', 'info');
     }
 
-    // ✅ NOUVELLE MÉTHODE : Vérifier échec et mat
+    // --- LOGIQUE DE DÉTECTION (Appels Moteur) ---
+
     checkForCheckmate(fen) {
         const engine = new ChessMateEngine(fen);
-        const currentPlayer = fen.split(' ')[1];
-        const color = currentPlayer === 'w' ? 'white' : 'black';
-        
-        // isCheckmate() doit vérifier si le joueur courant est en échec ET n'a pas de coup légal.
-        const isMate = engine.isCheckmate(currentPlayer);
-        
-        if (GameStatusManager.consoleLog) {
-            console.log(`♔ Vérification mat ${color}: ${isMate ? 'OUI' : 'NON'}`);
-        }
-        
-        return {
-            found: isMate,
-            color: color
-        };
+        const side = fen.split(' ')[1]; // On vérifie le joueur dont c'est le tour
+        const isMate = engine.isCheckmate(side);
+        return { found: isMate, color: side === 'w' ? 'white' : 'black' };
     }
 
-    // ✅ NOUVELLE MÉTHODE : Vérifier pat
     checkForStalemate(fen) {
         const engine = new ChessMateEngine(fen);
-        const currentPlayer = fen.split(' ')[1];
-        const color = currentPlayer === 'w' ? 'white' : 'black';
-        
-        // isStalemate() doit vérifier si le joueur courant N'EST PAS en échec ET n'a pas de coup légal.
-        const isStale = engine.isStalemate(currentPlayer);
-        
-        if (GameStatusManager.consoleLog) {
-            console.log(`⚖️ Vérification pat ${color}: ${isStale ? 'OUI' : 'NON'}`);
-        }
-        
-        return {
-            found: isStale,
-            color: color
-        };
+        const side = fen.split(' ')[1];
+        const isStale = engine.isStalemate(side);
+        return { found: isStale, color: side === 'w' ? 'white' : 'black' };
     }
 
-    // ✅ NOUVELLE MÉTHODE : Vérifier échec simple
     checkForCheck(fen) {
         const engine = new ChessMateEngine(fen);
-        
-        const whiteInCheck = engine.isKingInCheck('w');
-        const blackInCheck = engine.isKingInCheck('b');
-        
-        if (GameStatusManager.consoleLog) {
-            console.log(`⚠️ Vérification échec: blanc=${whiteInCheck}, noir=${blackInCheck}`);
-        }
-        
         return {
-            whiteInCheck,
-            blackInCheck
+            whiteInCheck: engine.isKingInCheck('w'),
+            blackInCheck: engine.isKingInCheck('b')
         };
     }
 
-    // ✅ NOUVELLE MÉTHODE : Vérifier nullité
     checkForDraw(fen) {
-        // Logique de nullité (répétition, 50 coups, matériel)
-        // Ceci nécessiterait d'accéder à l'historique des FENs et de l'état du jeu.
-        // Si ces vérifications ne sont pas implémentées dans ChessMateEngine, elles doivent être ajoutées ici.
-        
-        // Exemple de vérification (à implémenter)
-        // const engine = new ChessMateEngine(fen);
-        // if (engine.isThreefoldRepetition()) return { isDraw: true, reason: 'triple-répétition' };
-        // if (engine.isFiftyMoveRule()) return { isDraw: true, reason: 'règle-50-coups' };
-        // if (engine.isInsufficientMaterial()) return { isDraw: true, reason: 'matériel-insuffisant' };
-        
-        return {
-            isDraw: false,
-            reason: null
-        };
+        // Logique extensible : Matériel insuffisant ou règle des 50 coups
+        return { isDraw: false, reason: null };
     }
 
-    // ✅ MÉTHODES DE TRAITEMENT
+    // --- TRAITEMENTS ET UI ---
+
     handleCheck(kingColor) {
-        const kingPos = this.findKingPosition(kingColor);
-        if (kingPos) {
-            const kingSquare = this.chessGame.board.getSquare(kingPos.row, kingPos.col);
-            kingSquare.element.classList.add('king-in-check');
-            this.showCheckAlert(kingColor);
-        }
+        this.highlightKing(kingColor, 'king-in-check');
+        this.showCheckAlert(kingColor);
     }
 
     handleCheckmate(kingColor) {
-        if (GameStatusManager.consoleLog) {
-            console.log(`💀 TRAITEMENT MAT pour ${kingColor}`);
-        }
-        
-        const kingPos = this.findKingPosition(kingColor);
-        if (kingPos) {
-            const kingSquare = this.chessGame.board.getSquare(kingPos.row, kingPos.col);
-            kingSquare.element.classList.add('checkmate');
-        }
-        
-        // Le GAGNANT est la couleur opposée au roi maté
+        this.highlightKing(kingColor, 'checkmate');
         const winner = kingColor === 'white' ? 'black' : 'white';
-        const winnerText = winner === 'white' ? 'blancs' : 'noirs';
+        const winnerName = winner === 'white' ? 'blancs' : 'noirs';
         
-        this.showNotification(
-            `Échec et mat ! Les ${winnerText} gagnent !`, 
-            'danger'
-        );
-        
-        // Terminer la partie en indiquant le GAGNANT
+        this.showNotification(`Échec et mat ! Les ${winnerName} gagnent !`, 'danger');
         this.endGame(winner, 'checkmate'); 
     }
 
     handleStalemate(kingColor) {
-        if (GameStatusManager.consoleLog) {
-            console.log(`⚖️ TRAITEMENT PAT pour ${kingColor}`);
-        }
-        
-        const kingPos = this.findKingPosition(kingColor);
-        if (kingPos) {
-            const kingSquare = this.chessGame.board.getSquare(kingPos.row, kingPos.col);
-            kingSquare.element.classList.add('stalemate');
-        }
-        
-        const kingText = kingColor === 'white' ? 'blanc' : 'noir';
-        this.showNotification(`Pat ! Roi ${kingText} pat. Partie nulle.`, 'warning');
-        
-        // Terminer la partie en indiquant 'draw'
+        this.highlightKing(kingColor, 'stalemate');
+        this.showNotification(`Pat ! Partie nulle.`, 'warning');
         this.endGame('draw', 'stalemate');
     }
 
@@ -253,44 +184,60 @@ class GameStatusManager {
         this.endGame('draw', reason);
     }
 
+    highlightKing(color, className) {
+        const pos = this.findKingPosition(color);
+        if (pos) {
+            const square = this.chessGame.board.getSquare(pos.row, pos.col);
+            if (square && square.element) {
+                square.element.classList.add(className);
+            }
+        }
+    }
+
+    cleanUIEffects() {
+        if (!this.chessGame.board?.squares) return;
+        this.chessGame.board.squares.forEach(sq => {
+            if (sq.element) {
+                sq.element.classList.remove('king-in-check', 'checkmate', 'stalemate');
+            }
+        });
+    }
+
     showCheckAlert(kingColor) {
         if (this.lastCheckAlert === kingColor) return;
         this.lastCheckAlert = kingColor;
         
-        const kingText = kingColor === 'white' ? 'blanc' : 'noir';
-        this.showNotification(`Roi ${kingText} en échec !`);
+        const colorName = kingColor === 'white' ? 'blanc' : 'noir';
+        this.showNotification(`Roi ${colorName} en échec !`);
         
-        setTimeout(() => {
-            this.lastCheckAlert = null;
-        }, 2000);
+        setTimeout(() => { this.lastCheckAlert = null; }, 2000);
     }
 
-    endGame(result, reason = null) {
+    triggerBotIfNeeded() {
+        if (this.chessGame.botManager && this.chessGame.botManager.isBotTurn()) {
+            GameStatusManager.log('Activation du mouvement Bot', 'info');
+            // Petit délai pour laisser l'UI respirer
+            setTimeout(() => {
+                this.chessGame.botManager.playBotMove();
+            }, 250);
+        }
+    }
+
+    endGame(result, reason) {
+        GameStatusManager.log(`FIN DE PARTIE : ${result} (${reason})`, 'critical');
         this.chessGame.gameState.gameActive = false;
         
-        if (this.chessGame.ui && this.chessGame.ui.stopPlayerTimer) {
-            this.chessGame.ui.stopPlayerTimer();
-        }
-        
-        if (this.chessGame.ui && this.chessGame.ui.showGameOver) {
-            // C'est l'appel à votre ChessModalManager qui gère l'affichage final
-            this.chessGame.ui.showGameOver(result, reason); 
-        }
-        
-        if (this.chessGame.botManager) {
-            this.chessGame.botManager.isBotThinking = false;
-        }
+        if (this.chessGame.ui?.stopPlayerTimer) this.chessGame.ui.stopPlayerTimer();
+        if (this.chessGame.ui?.showGameOver) this.chessGame.ui.showGameOver(result, reason);
+        if (this.chessGame.botManager) this.chessGame.botManager.isBotThinking = false;
     }
 
     findKingPosition(color) {
-        const kingType = 'king';
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                const square = this.chessGame.board.getSquare(row, col);
-                if (square.piece && 
-                    square.piece.type === kingType && 
-                    square.piece.color === color) {
-                    return { row, col };
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const sq = this.chessGame.board.getSquare(r, c);
+                if (sq?.piece?.type === 'king' && sq?.piece?.color === color) {
+                    return { row: r, col: c };
                 }
             }
         }
@@ -298,20 +245,19 @@ class GameStatusManager {
     }
 
     showNotification(message, type = 'info') {
-        // Votre implémentation existante
-        console.log(`🔔 Notification ${type}: ${message}`);
-        
         const notification = document.createElement('div');
         notification.className = `chess-notification chess-notification-${type}`;
         notification.textContent = message;
         document.body.appendChild(notification);
         
+        // Auto-suppression après 5 secondes
         setTimeout(() => {
-            notification.remove();
-        }, 5000);
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 500);
+        }, 4500);
     }
 }
 
-// Initialisation
+// Initialisation globale
 GameStatusManager.init();
 window.GameStatusManager = GameStatusManager;

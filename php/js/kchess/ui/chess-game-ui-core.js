@@ -1,76 +1,71 @@
-// ui/chess-game-ui-core.js - Version corrigée et complète
+// ui/chess-game-ui-core.js - Version utilisant la configuration JSON comme priorité
 class ChessGameUI {
     
     // Valeur par défaut - sera écrasée par la config JSON si disponible
-    static consoleLog = true; 
+    static consoleLog = true; // true par défaut pour debug
     
-    /**
-     * Système de log centralisé sécurisé
-     * Remplace les console.log directs pour éviter les erreurs de type
-     */
-    static log(message, type = 'log', data = null) {
-        if (!this.consoleLog && type !== 'error' && type !== 'warn') return;
-        
-        const emojis = {
-            log: '🎨', warn: '⚠️', error: '❌', info: '🌐',
-            success: '✅', bot: '🤖', timer: '⏱️', event: '🎮', config: '⚙️'
-        };
-
-        const methodMap = {
-            log: 'log', success: 'log', bot: 'log', timer: 'log',
-            event: 'log', config: 'log', info: 'info', warn: 'warn', error: 'error'
-        };
-
-        const method = methodMap[type] || 'log';
-        const prefix = `[ChessGameUI]`;
-        const emoji = emojis[type] || emojis.log;
-        const output = `${emoji} ${prefix} ${message}`;
-
-        if (data) {
-            console[method](output, data);
-        } else {
-            console[method](output);
-        }
-    }
-
     static init() {
+        // Charger la configuration depuis window.appConfig
         this.loadConfig();
+        
+        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            this.log('Fichier chargé', 'log');
-            this.log(`Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`, 'config');
+            console.log('🎨 ui/chess-game-ui-core.js chargé');
+            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
         } else {
+            // Message silencieux si debug désactivé
             console.info('🎨 ChessGameUI: Mode silencieux activé (debug désactivé dans config)');
         }
     }
     
+    // Méthode pour charger la configuration
     static loadConfig() {
         try {
+            // Vérifier si la configuration globale existe
             if (window.appConfig && window.appConfig.debug) {
                 const configValue = window.appConfig.debug.console_log;
                 
-                // Gérer les types string et boolean
-                if (configValue === "false" || configValue === false) {
+                // CONVERSION CORRECTE - Gérer les string "false" et "true"
+                if (configValue === "false") {
                     this.consoleLog = false;
-                } else if (configValue === "true" || configValue === true) {
+                    if (configValue !== "false") {
+                        console.info('🔧 ChessGameUI: console_log désactivé via config JSON');
+                    }
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else if (configValue === "true") {
+                    this.consoleLog = true;
+                } else if (configValue === true) {
                     this.consoleLog = true;
                 } else {
+                    // Pour toute autre valeur, utiliser Boolean()
                     this.consoleLog = Boolean(configValue);
                 }
                 
+                // Log de confirmation (uniquement en mode debug)
                 if (this.consoleLog) {
-                    this.log(`Configuration chargée (valeur brute: "${configValue}")`, 'config');
+                    console.log(`⚙️ ChessGameUI: Configuration chargée - console_log = ${this.consoleLog} (valeur brute: "${configValue}")`);
                 }
                 return true;
             }
             
+            // Si window.appConfig n'existe pas, essayer de le charger via fonction utilitaire
             if (typeof window.getConfig === 'function') {
                 const configValue = window.getConfig('debug.console_log', 'true');
-                this.consoleLog = !(configValue === "false" || configValue === false);
+                
+                if (configValue === "false") {
+                    this.consoleLog = false;
+                } else if (configValue === false) {
+                    this.consoleLog = false;
+                } else {
+                    this.consoleLog = Boolean(configValue);
+                }
                 return true;
             }
             
+            // Si rien n'est disponible, garder la valeur par défaut
             if (this.consoleLog) {
-                this.log('Aucune configuration trouvée, utilisation du mode debug par défaut', 'warn');
+                console.warn('⚠️ ChessGameUI: Aucune configuration trouvée, utilisation de la valeur par défaut (true)');
             }
             return false;
             
@@ -80,21 +75,39 @@ class ChessGameUI {
         }
     }
     
+    // Méthode pour déterminer la source de la configuration
     static getConfigSource() {
-        if (window.appConfig) return 'JSON config';
-        if (typeof window.getConfig === 'function') return 'fonction getConfig';
-        return 'valeur par défaut';
+        if (window.appConfig) {
+            return 'JSON config';
+        } else if (typeof window.getConfig === 'function') {
+            return 'fonction getConfig';
+        } else {
+            return 'valeur par défaut';
+        }
     }
     
+    // Méthode pour vérifier si on est en mode debug
     static isDebugMode() {
         return this.consoleLog;
     }
 
     constructor(game) {
+        // Vérifier que la configuration est à jour
         this.constructor.loadConfig();
         
-        this.constructor.log('=== INITIALISATION UI ===', 'log');
+        // Mode debug
+        if (this.constructor.consoleLog) {
+            console.log('\n🎨 [ChessGameUI] === INITIALISATION UI ===');
+            console.log('🎨 [ChessGameUI] Création de l\'interface utilisateur...');
+            console.log('🎨 [ChessGameUI] Game instance:', game);
+        }
+        
         this.game = game;
+        
+        // Initialiser les modules
+        if (this.constructor.consoleLog) {
+            console.log('🎨 [ChessGameUI] Initialisation des modules...');
+        }
         
         try {
             this.timerManager = new ChessTimerManager(this);
@@ -103,181 +116,958 @@ class ChessGameUI {
             this.clipboardManager = new ChessClipboardManager(this);
             this.styleManager = new ChessStyleManager(this);
             
-            this.constructor.log('Modules initialisés', 'success');
+            if (this.constructor.consoleLog) {
+                console.log('✅ [ChessGameUI] Modules initialisés:');
+                console.log('   • TimerManager:', this.timerManager);
+                console.log('   • ModalManager:', this.modalManager);
+                console.log('   • MoveHistoryManager:', this.moveHistoryManager);
+                console.log('   • ClipboardManager:', this.clipboardManager);
+                console.log('   • StyleManager:', this.styleManager);
+            }
         } catch (error) {
-            this.constructor.log(`Erreur initialisation modules: ${error.message}`, 'error');
-            this.timerManager = this.modalManager = this.moveHistoryManager = 
-            this.clipboardManager = this.styleManager = null;
+            if (this.constructor.consoleLog) {
+                console.log(`❌ [ChessGameUI] Erreur initialisation modules: ${error.message}`);
+            }
+            
+            // Initialiser avec des valeurs null si les classes ne sont pas disponibles
+            this.timerManager = null;
+            this.modalManager = null;
+            this.moveHistoryManager = null;
+            this.clipboardManager = null;
+            this.styleManager = null;
         }
         
-        if (this.styleManager?.initAllStyles) {
+        // Initialiser les styles
+        if (this.constructor.consoleLog) {
+            console.log('🎨 [ChessGameUI] Initialisation des styles...');
+        }
+        
+        if (this.styleManager && this.styleManager.initAllStyles) {
             this.styleManager.initAllStyles();
-            this.constructor.log('Styles initialisés', 'success');
+            if (this.constructor.consoleLog) {
+                console.log('✅ [ChessGameUI] Styles initialisés');
+            }
+        } else {
+            if (this.constructor.consoleLog) {
+                console.warn('⚠️ [ChessGameUI] StyleManager non disponible');
+            }
         }
         
+        // Démarrer le timer après un court délai
         setTimeout(() => {
-            if (this.timerManager?.startTimer) {
+            if (this.timerManager && this.timerManager.startTimer) {
+                if (this.constructor.consoleLog) {
+                    console.log('⏱️ [ChessGameUI] Démarrage du timer...');
+                }
+                
                 this.timerManager.startTimer();
-                this.constructor.log('Timer démarré', 'timer');
+                
+                if (this.constructor.consoleLog) {
+                    console.log('✅ [ChessGameUI] Timer démarré');
+                }
+            } else {
+                if (this.constructor.consoleLog) {
+                    console.warn('⚠️ [ChessGameUI] TimerManager non disponible');
+                }
             }
         }, 1000);
         
-        this.constructor.log('=== INITIALISATION TERMINÉE ===', 'log');
+        if (this.constructor.consoleLog) {
+            console.log('🎨 [ChessGameUI] === INITIALISATION TERMINÉE ===\n');
+        }
     }
 
     setupEventListeners() {
-        this.constructor.log('=== CONFIGURATION DES ÉVÉNEMENTS ===', 'event');
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            // Boutons desktop
+            document.getElementById('newGame')?.addEventListener('click', () => {
+                this.modalManager?.confirmNewGame?.();
+            });
+            
+            document.getElementById('flipBoard')?.addEventListener('click', () => {
+                this.game?.flipBoard?.();
+            });
+            
+            document.getElementById('copyFEN')?.addEventListener('click', () => {
+                this.clipboardManager?.copyFENToClipboard?.();
+            });
+            
+            document.getElementById('copyPGN')?.addEventListener('click', () => {
+                this.clipboardManager?.copyPGNToClipboard?.();
+            });
+            
+            // Boutons mobiles
+            document.getElementById('newGameMobile')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.modalManager?.confirmNewGame?.();
+            });
+            
+            document.getElementById('flipBoardMobile')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.game?.flipBoard?.();
+            });
+            
+            // Événements du plateau
+            this.setupBoardEventListeners();
+            return;
+        }
         
-        const attachClick = (id, callback, logMsg) => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('click', (e) => {
-                    if (this.constructor.consoleLog) this.constructor.log(logMsg, 'event');
-                    callback(e);
-                });
-            }
-        };
-
-        // Desktop & Mobile
-        attachClick('newGame', () => this.modalManager?.confirmNewGame?.(), 'Bouton nouvelle partie');
-        attachClick('newGameMobile', (e) => { e.preventDefault(); this.modalManager?.confirmNewGame?.(); }, 'Bouton nouvelle partie mobile');
-        attachClick('flipBoard', () => this.game?.flipBoard?.(), 'Bouton flip board');
-        attachClick('flipBoardMobile', (e) => { e.preventDefault(); this.game?.flipBoard?.(); }, 'Bouton flip board mobile');
-        attachClick('copyFEN', () => this.clipboardManager?.copyFENToClipboard?.(), 'Bouton copier FEN');
-        attachClick('copyPGN', () => this.clipboardManager?.copyPGNToClipboard?.(), 'Bouton copier PGN');
-
+        // Mode debug
+        console.log('\n🎮 [ChessGameUI] === CONFIGURATION DES ÉVÉNEMENTS ===');
+        console.log('🎮 [ChessGameUI] Configuration des écouteurs d\'événements...');
+        
+        // Boutons desktop
+        console.log('🖥️ [ChessGameUI] Configuration boutons desktop...');
+        
+        document.getElementById('newGame')?.addEventListener('click', () => {
+            console.log('🎮 [ChessGameUI] Bouton nouvelle partie desktop cliqué');
+            this.modalManager?.confirmNewGame?.();
+        });
+        
+        document.getElementById('flipBoard')?.addEventListener('click', () => {
+            console.log('🔄 [ChessGameUI] Bouton flip board desktop cliqué');
+            this.game?.flipBoard?.();
+        });
+        
+        document.getElementById('copyFEN')?.addEventListener('click', () => {
+            console.log('📋 [ChessGameUI] Bouton copier FEN cliqué');
+            this.clipboardManager?.copyFENToClipboard?.();
+        });
+        
+        document.getElementById('copyPGN')?.addEventListener('click', () => {
+            console.log('📋 [ChessGameUI] Bouton copier PGN cliqué');
+            this.clipboardManager?.copyPGNToClipboard?.();
+        });
+        
+        // Boutons mobiles
+        console.log('📱 [ChessGameUI] Configuration boutons mobiles...');
+        
+        document.getElementById('newGameMobile')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('🎮 [ChessGameUI] Bouton nouvelle partie mobile touché');
+            this.modalManager?.confirmNewGame?.();
+        });
+        
+        document.getElementById('flipBoardMobile')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('🔄 [ChessGameUI] Bouton flip board mobile touché');
+            this.game?.flipBoard?.();
+        });
+        
+        // Événements du plateau
+        console.log('🎯 [ChessGameUI] Configuration événements plateau...');
         this.setupBoardEventListeners();
+        
+        console.log('✅ [ChessGameUI] === ÉVÉNEMENTS CONFIGURÉS ===\n');
     }
 
     setupBoardEventListeners() {
         const chessBoard = document.getElementById('chessBoard');
         if (!chessBoard) {
-            this.constructor.log('Élément chessBoard non trouvé', 'warn');
+            if (this.constructor.consoleLog) {
+                console.warn('⚠️ [ChessGameUI] Élément chessBoard non trouvé');
+            }
             return;
         }
         
-        const handleInteraction = (e) => {
+        if (this.constructor.consoleLog) {
+            console.log('🎯 [ChessGameUI] Configuration écouteurs plateau:', chessBoard);
+        }
+        
+        // Clic souris
+        chessBoard.addEventListener('click', (e) => {
             const square = e.target.closest('.chess-square');
             if (square) {
                 const displayRow = parseInt(square.dataset.displayRow);
                 const displayCol = parseInt(square.dataset.displayCol);
-                this.constructor.log(`Interaction case [${displayRow},${displayCol}]`, 'event');
+                
+                if (this.constructor.consoleLog) {
+                    console.log(`🎯 [ChessGameUI] Clic sur case [${displayRow},${displayCol}]`);
+                }
+                
                 this.game.moveHandler?.handleSquareClick?.(displayRow, displayCol);
             }
-        };
+        });
 
-        chessBoard.addEventListener('click', handleInteraction);
+        // Touch mobile
         chessBoard.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleInteraction(e);
+            const square = e.target.closest('.chess-square');
+            if (square) {
+                e.preventDefault();
+                const displayRow = parseInt(square.dataset.displayRow);
+                const displayCol = parseInt(square.dataset.displayCol);
+                
+                if (this.constructor.consoleLog) {
+                    console.log(`📱 [ChessGameUI] Touch sur case [${displayRow},${displayCol}]`);
+                }
+                
+                this.game.moveHandler?.handleSquareClick?.(displayRow, displayCol);
+            }
         }, { passive: false });
-    }
-
-    updateUI() {
-        this.constructor.log('=== MISE À JOUR COMPLÈTE UI ===', 'log');
-        this.timerManager?.updateTimerDisplay?.();
-        this.moveHistoryManager?.updateMoveHistory?.();
-        this.updateGameStatus();
-        this.updateBotIndicator();
-        this.updatePlayerLabelsWithBot();
-    }
-
-    updateGameStatus() {
-        const currentPlayerElement = document.getElementById('currentPlayer');
-        if (!currentPlayerElement) return;
         
-        if (this.game.gameState?.currentPlayer) {
-            const t = this.getTranslations();
-            const player = this.game.gameState.currentPlayer;
-            const text = player === 'white' ? (t.traitAuBlancs || 'Aux blancs') : (t.traitAuxNoirs || 'Aux noirs');
-            currentPlayerElement.textContent = text;
+        if (this.constructor.consoleLog) {
+            console.log('✅ [ChessGameUI] Écouteurs plateau configurés');
         }
     }
 
+    // Mettre à jour l'UI complète
+    updateUI() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            // Mise à jour du timer
+            this.timerManager?.updateTimerDisplay?.();
+            
+            // Mise à jour de l'historique
+            this.moveHistoryManager?.updateMoveHistory?.();
+            
+            // Mise à jour du statut
+            this.updateGameStatus();
+            
+            // Mise à jour de l'indicateur bot
+            this.updateBotIndicator();
+            
+            // Mise à jour des labels des joueurs
+            this.updatePlayerLabelsWithBot();
+            return;
+        }
+        
+        // Mode debug
+        console.log('\n🔄 [ChessGameUI] === MISE À JOUR COMPLÈTE UI ===');
+        
+        // Mise à jour du timer
+        console.log('⏱️ [ChessGameUI] Mise à jour du timer...');
+        this.timerManager?.updateTimerDisplay?.();
+        
+        // Mise à jour de l'historique
+        console.log('📜 [ChessGameUI] Mise à jour de l\'historique...');
+        this.moveHistoryManager?.updateMoveHistory?.();
+        
+        // Mise à jour du statut
+        console.log('📊 [ChessGameUI] Mise à jour du statut...');
+        this.updateGameStatus();
+        
+        // Mise à jour de l'indicateur bot
+        console.log('🤖 [ChessGameUI] Mise à jour indicateur bot...');
+        this.updateBotIndicator();
+        
+        // Mise à jour des labels des joueurs
+        console.log('🏷️ [ChessGameUI] Mise à jour des labels...');
+        this.updatePlayerLabelsWithBot();
+        
+        console.log('✅ [ChessGameUI] === MISE À JOUR TERMINÉE ===\n');
+    }
+
+updateGameStatus() {
+    const currentPlayerElement = document.getElementById('currentPlayer');
+    if (!currentPlayerElement) return;
+
+    // SÉCURITÉ : Récupérer le FEN de manière robuste
+    let fen = "";
+    if (typeof this.game.getFEN === 'function') {
+        fen = this.game.getFEN();
+    } else if (this.game.core && typeof this.game.core.getFEN === 'function') {
+        fen = this.game.core.getFEN();
+    } else if (window.FENGenerator && typeof window.FENGenerator.generate === 'function') {
+        // Fallback sur le générateur global si présent
+        fen = window.FENGenerator.generate(this.game.board, this.game.gameState);
+    } else {
+        if (this.constructor.consoleLog) console.warn("⚠️ Impossible de générer le FEN pour le statut");
+        return; 
+    }
+
+    // Vérification du statut via le contrôleur (Echec, Mat, etc.)
+    const statusInfo = ChessStatusController.checkGameStatus(fen);
+    
+    const t = this.getTranslations();
+    let statusText = this.game.gameState.currentPlayer === 'white' ? 
+                     (t.traitAuBlancs || 'Aux blancs') : 
+                     (t.traitAuxNoirs || 'Aux noirs');
+
+    // Mise à jour visuelle si échec
+    if (statusInfo.status === 'check') {
+        statusText += ` - ⚠️ ${t.check || 'ÉCHEC'}`;
+        currentPlayerElement.style.color = 'red';
+        currentPlayerElement.style.fontWeight = 'bold';
+    } else {
+        currentPlayerElement.style.color = '';
+        currentPlayerElement.style.fontWeight = 'normal';
+    }
+
+    currentPlayerElement.textContent = statusText;
+}
+
+    // NOUVELLE MÉTHODE : afficher l'indicateur de bot (version traduite)
     updateBotIndicator() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            const botStatus = this.game.getBotStatus ? this.game.getBotStatus() : { active: false };
+            const currentPlayerElement = document.getElementById('currentPlayer');
+            const botIndicatorElement = document.getElementById('botIndicator') || this.createBotIndicator();
+            
+            if (!currentPlayerElement) return;
+            
+            if (botStatus.active) {
+                let botType = '';
+                let botIcon = '';
+                
+                // Récupérer les traductions
+const t = this.getTranslations();
+
+switch(botStatus.level) {
+    case 1:
+        botType = t.bot_level1 || t.random_bot || 'Bot';
+        botIcon = '🤖';
+        break;
+    case 2:
+        botType = t.bot_level2 || t.ccmo_bot || 'Bot';
+        botIcon = '🧠';
+        break;
+    case 3:
+        botType = t.bot_level3 || 'Bot';
+        botIcon = '🤖';
+        break;
+    default:
+        // Pour les niveaux supérieurs, utilise une clé générique si disponible
+        // ou génère à partir de bot_level1
+        if (t.bot_level1) {
+            // Remplacer le chiffre 1 par le niveau actuel
+            botType = t.bot_level1.replace('1', botStatus.level);
+        } else if (t[`bot_level${botStatus.level}`]) {
+            // Si une clé spécifique existe (bot_level4, bot_level5, etc.)
+            botType = t[`bot_level${botStatus.level}`];
+        } else {
+            // Fallback simple
+            botType = 'Bot';
+        }
+        botIcon = '🤖';
+}
+                
+                botIndicatorElement.innerHTML = `
+                    <span class="bot-indicator" title="${botType} - ${t.plays || 'Joue'} les ${botStatus.color === 'white' ? t.white : t.black}">
+                        ${botIcon} ${botType}
+                    </span>
+                `;
+                
+                currentPlayerElement.classList.add('bot-active');
+                
+                const isBotTurn = this.game.core && this.game.core.botManager && 
+                                this.game.core.botManager.isBotTurn && 
+                                this.game.core.botManager.isBotTurn();
+                
+                if (isBotTurn) {
+                    currentPlayerElement.classList.add('bot-turn');
+                    currentPlayerElement.title = `${botType} ${t.thinking || 'réfléchit...'}`;
+                } else {
+                    currentPlayerElement.classList.remove('bot-turn');
+                    currentPlayerElement.title = '';
+                }
+            } else {
+                botIndicatorElement.innerHTML = '';
+                currentPlayerElement.classList.remove('bot-active', 'bot-turn');
+                currentPlayerElement.title = '';
+            }
+            return;
+        }
+        
+        // Mode debug
+        console.log('🤖 [ChessGameUI] Mise à jour indicateur bot...');
+        
         const botStatus = this.game.getBotStatus ? this.game.getBotStatus() : { active: false };
         const currentPlayerElement = document.getElementById('currentPlayer');
-        let botIndicatorElement = document.getElementById('botIndicator') || this.createBotIndicator();
+        const botIndicatorElement = document.getElementById('botIndicator') || this.createBotIndicator();
         
-        if (!currentPlayerElement || !botIndicatorElement) return;
+        if (!currentPlayerElement) {
+            console.warn('⚠️ [ChessGameUI] Élément currentPlayer non trouvé');
+            return;
+        }
         
         if (botStatus.active) {
-            const t = this.getTranslations();
-            let botType = t[`bot_level${botStatus.level}`] || t.bot_level1?.replace('1', botStatus.level) || 'Bot';
-            let botIcon = botStatus.level === 2 ? '🧠' : '🤖';
+            console.log(`🤖 [ChessGameUI] Bot actif: niveau ${botStatus.level}, couleur ${botStatus.color}`);
+            
+            let botType = '';
+            let botIcon = '';
+            
+            // Récupérer les traductions
+const t = this.getTranslations();
+console.log(`🤖 [ChessGameUI] Traductions chargées:`, Object.keys(t).length, 'éléments');
+
+switch(botStatus.level) {
+    case 1:
+        // Utilise bot_level1 si disponible, sinon random_bot, sinon fallback
+        botType = t.bot_level1 || t.random_bot || 'Bot';
+        botIcon = '🤖';
+        console.log(`🤖 [ChessGameUI] Niveau 1: "${t.bot_level1 || t.random_bot || 'fallback'}"`);
+        break;
+    case 2:
+        // Utilise bot_level2 si disponible, sinon ccmo_bot, sinon fallback
+        botType = t.bot_level2 || t.ccmo_bot || 'Bot';
+        botIcon = '🧠';
+        console.log(`🤖 [ChessGameUI] Niveau 2: "${t.bot_level2 || t.ccmo_bot || 'fallback'}"`);
+        break;
+    case 3:
+        // Pour le niveau 3, utilise bot_level3 si disponible
+        if (t.bot_level3) {
+            botType = t.bot_level3;
+            console.log(`🤖 [ChessGameUI] Niveau 3: "${t.bot_level3}" (depuis bot_level3)`);
+        } else if (t.bot_level1) {
+            // Utiliser bot_level1 comme base et remplacer le numéro
+            botType = t.bot_level1.replace('1', '3');
+            console.log(`🤖 [ChessGameUI] Niveau 3: "${botType}" (généré depuis bot_level1)`);
+        } else {
+            botType = 'Bot';
+            console.log(`🤖 [ChessGameUI] Niveau 3: "${botType}" (fallback)`);
+        }
+        botIcon = '🤖';
+        break;
+    default:
+        // Pour les niveaux supérieurs à 3
+        if (t.bot_level1) {
+            botType = t.bot_level1.replace('1', botStatus.level);
+            console.log(`🤖 [ChessGameUI] Niveau ${botStatus.level}: "${botType}" (généré depuis bot_level1)`);
+        } else {
+            botType = 'Bot';
+            console.log(`🤖 [ChessGameUI] Niveau ${botStatus.level}: "${botType}" (fallback)`);
+        }
+        botIcon = '🤖';
+}
+            
+            console.log(`🤖 [ChessGameUI] Type bot final: ${botType}`);
             
             botIndicatorElement.innerHTML = `
-                <span class="bot-indicator" title="${botType} - ${t.plays || 'Joue'} ${botStatus.color}">
+                <span class="bot-indicator" title="${botType} - ${t.plays || 'Joue'} les ${botStatus.color === 'white' ? t.white : t.black}">
                     ${botIcon} ${botType}
-                </span>`;
+                </span>
+            `;
             
             currentPlayerElement.classList.add('bot-active');
-            const isBotTurn = this.game.core?.botManager?.isBotTurn?.();
+            
+            const isBotTurn = this.game.core && this.game.core.botManager && 
+                            this.game.core.botManager.isBotTurn && 
+                            this.game.core.botManager.isBotTurn();
             
             if (isBotTurn) {
                 currentPlayerElement.classList.add('bot-turn');
                 currentPlayerElement.title = `${botType} ${t.thinking || 'réfléchit...'}`;
+                console.log('🤖 [ChessGameUI] C\'est le tour du bot');
             } else {
                 currentPlayerElement.classList.remove('bot-turn');
+                currentPlayerElement.title = '';
             }
+            
         } else {
+            console.log('🤖 [ChessGameUI] Bot inactif');
+            
             botIndicatorElement.innerHTML = '';
             currentPlayerElement.classList.remove('bot-active', 'bot-turn');
+            currentPlayerElement.title = '';
         }
     }
     
+    // Créer l'élément indicateur de bot s'il n'existe pas
     createBotIndicator() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            const container = document.querySelector('.player-info') || document.getElementById('currentPlayer')?.parentElement;
+            if (!container) return document.createElement('div');
+            
+            const botIndicator = document.createElement('div');
+            botIndicator.id = 'botIndicator';
+            botIndicator.className = 'bot-indicator-container';
+            container.appendChild(botIndicator);
+            
+            return botIndicator;
+        }
+        
+        // Mode debug
+        console.log('🏗️ [ChessGameUI] Création élément indicateur bot...');
+        
         const container = document.querySelector('.player-info') || document.getElementById('currentPlayer')?.parentElement;
-        if (!container) return null;
+        if (!container) {
+            console.warn('⚠️ [ChessGameUI] Conteneur pour indicateur bot non trouvé');
+            return document.createElement('div');
+        }
+        
         const botIndicator = document.createElement('div');
         botIndicator.id = 'botIndicator';
         botIndicator.className = 'bot-indicator-container';
         container.appendChild(botIndicator);
+        
+        console.log('✅ [ChessGameUI] Indicateur bot créé');
+        
         return botIndicator;
     }
     
+    // Méthode pour mettre à jour les labels des joueurs avec info bot
     updatePlayerLabelsWithBot() {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            if (typeof window.updatePlayerLabels === 'function') {
+                window.updatePlayerLabels();
+            }
+            return;
+        }
+        
+        // Mode debug
+        console.log('🏷️ [ChessGameUI] Mise à jour labels avec info bot...');
+        
         if (typeof window.updatePlayerLabels === 'function') {
             window.updatePlayerLabels();
+            console.log('✅ [ChessGameUI] Fonction updatePlayerLabels appelée');
+        } else {
+            console.warn('⚠️ [ChessGameUI] Fonction updatePlayerLabels non disponible');
         }
     }
 
+    // Méthode utilitaire pour les notifications
     showNotification(message, type = 'info') {
-        this.constructor.log(`Notification ${type}: ${message}`, 'info');
-        if (this.game.gameStatusManager?.showNotification) {
+        // Mode silencieux
+        if (!this.constructor.consoleLog) {
+            if (this.game.gameStatusManager && this.game.gameStatusManager.showNotification) {
+                this.game.gameStatusManager.showNotification(message, type);
+            } else {
+                // Notification simple
+                const notification = document.createElement('div');
+                notification.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed top-0 end-0 m-3`;
+                notification.style.zIndex = '9999';
+                
+                const icon = type === 'success' ? 'bi-check-circle' : 
+                            type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle';
+                
+                notification.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi ${icon} me-2"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
+            }
+            return;
+        }
+        
+        // Mode debug
+        console.log(`📢 [ChessGameUI] Notification ${type}: ${message}`);
+        
+        if (this.game.gameStatusManager && this.game.gameStatusManager.showNotification) {
+            console.log('📢 [ChessGameUI] Délégation à gameStatusManager');
             this.game.gameStatusManager.showNotification(message, type);
         } else {
-            const notif = document.createElement('div');
-            notif.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed top-0 end-0 m-3`;
-            notif.style.zIndex = '9999';
-            notif.innerHTML = `<span>${message}</span>`;
-            document.body.appendChild(notif);
-            setTimeout(() => notif.remove(), 3000);
+            console.log('📢 [ChessGameUI] Création notification simple');
+            
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed top-0 end-0 m-3`;
+            notification.style.zIndex = '9999';
+            
+            const icon = type === 'success' ? 'bi-check-circle' : 
+                        type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle';
+            
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="bi ${icon} me-2"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                    console.log('📢 [ChessGameUI] Notification supprimée');
+                }
+            }, 3000);
         }
     }
-
-    getTranslations() {
-        try {
-            if (window.appConfig?.lang) {
-                const lang = window.appConfig.current_lang || this.getCurrentLanguage();
-                return window.appConfig.lang[lang] || window.appConfig.lang.fr || {};
-            }
-        } catch (e) {
-            this.constructor.log('Erreur traductions', 'error');
-        }
-        return {};
-    }
-
-    getCurrentLanguage() {
-        return localStorage.getItem('charlychess_lang') || 
-               (navigator.language.startsWith('en') ? 'en' : 'fr');
-    }
-
+    
+    // NOUVELLE MÉTHODE : Obtenir le statut de l'UI
     getUIStatus() {
+        const status = {
+            hasTimerManager: !!this.timerManager,
+            hasModalManager: !!this.modalManager,
+            hasMoveHistoryManager: !!this.moveHistoryManager,
+            hasClipboardManager: !!this.clipboardManager,
+            hasStyleManager: !!this.styleManager,
+            hasGame: !!this.game,
+            isGameActive: this.game?.gameState?.gameActive || false,
+            currentPlayer: this.game?.gameState?.currentPlayer || 'unknown',
+            botStatus: this.game?.getBotStatus ? this.game.getBotStatus() : { active: false }
+        };
+        
+        if (this.constructor.consoleLog) {
+            console.log('📊 [ChessGameUI] Statut UI:', status);
+        }
+        
+        return status;
+    }
+    
+    // Méthode utilitaire pour récupérer les traductions (AJOUTÉE)
+// Méthode utilitaire pour récupérer les traductions (CORRIGÉE)
+getTranslations() {
+    try {
+        // Vérifier si la configuration existe
+        if (window.appConfig && window.appConfig.lang) {
+            // DEBUG: Afficher les infos de langue
+            if (this.constructor.consoleLog) {
+                console.log('🌐 [ChessGameUI] Récupération traductions...');
+                console.log('🌐 [ChessGameUI] current_lang config:', window.appConfig.current_lang);
+                console.log('🌐 [ChessGameUI] default_lang config:', window.appConfig.default_lang);
+                console.log('🌐 [ChessGameUI] localStorage lang:', localStorage.getItem('charlychess_lang'));
+            }
+            
+            // PRIORITÉ 1: Utiliser current_lang de la config
+            if (window.appConfig.current_lang && window.appConfig.lang[window.appConfig.current_lang]) {
+                if (this.constructor.consoleLog) {
+                    console.log(`🌐 [ChessGameUI] Utilisation current_lang: ${window.appConfig.current_lang}`);
+                }
+                return window.appConfig.lang[window.appConfig.current_lang];
+            }
+            
+            // PRIORITÉ 2: Vérifier localStorage
+            const savedLang = localStorage.getItem('charlychess_lang');
+            if (savedLang && window.appConfig.lang[savedLang]) {
+                if (this.constructor.consoleLog) {
+                    console.log(`🌐 [ChessGameUI] Utilisation localStorage: ${savedLang}`);
+                }
+                return window.appConfig.lang[savedLang];
+            }
+            
+            // PRIORITÉ 3: Utiliser getCurrentLanguage()
+            const detectedLang = this.getCurrentLanguage();
+            if (detectedLang && window.appConfig.lang[detectedLang]) {
+                if (this.constructor.consoleLog) {
+                    console.log(`🌐 [ChessGameUI] Utilisation langue détectée: ${detectedLang}`);
+                }
+                return window.appConfig.lang[detectedLang];
+            }
+            
+            // PRIORITÉ 4: Fallback à default_lang
+            const defaultLang = window.appConfig.default_lang || 'fr';
+            if (window.appConfig.lang[defaultLang]) {
+                if (this.constructor.consoleLog) {
+                    console.log(`🌐 [ChessGameUI] Utilisation default_lang: ${defaultLang}`);
+                }
+                return window.appConfig.lang[defaultLang];
+            }
+            
+            // PRIORITÉ 5: Fallback final au français
+            if (this.constructor.consoleLog) {
+                console.log(`🌐 [ChessGameUI] Fallback final au français`);
+            }
+            return window.appConfig.lang.fr || {};
+        }
+    } catch (error) {
+        if (this.constructor.consoleLog) {
+            console.error('❌ [ChessGameUI] Erreur lors du chargement des traductions:', error);
+        }
+    }
+    
+    if (this.constructor.consoleLog) {
+        console.log(`🌐 [ChessGameUI] Aucune configuration trouvée`);
+    }
+    return {};
+}
+
+// Méthode pour déterminer la langue actuelle (AJOUTÉE)
+getCurrentLanguage() {
+    // Vérifier dans localStorage
+    if (localStorage.getItem('charlychess_lang')) {
+        return localStorage.getItem('charlychess_lang');
+    }
+    
+    // Vérifier la langue du navigateur
+    const browserLang = navigator.language || navigator.userLanguage;
+    if (browserLang && browserLang.startsWith('en')) {
+        return 'en';
+    }
+    
+    // Par défaut, retourner français
+    return 'fr';
+}
+
+    // Méthode pour déterminer la langue actuelle (AJOUTÉE)
+    getCurrentLanguage() {
+        // Vérifier dans localStorage
+        if (localStorage.getItem('charlychess_lang')) {
+            return localStorage.getItem('charlychess_lang');
+        }
+        
+        // Vérifier la langue du navigateur
+        const browserLang = navigator.language || navigator.userLanguage;
+        if (browserLang && browserLang.startsWith('en')) {
+            return 'en';
+        }
+        
+        // Par défaut, retourner français
+        return 'fr';
+    }
+    
+    // NOUVELLE MÉTHODE : Tester toutes les fonctionnalités de l'UI
+    testUIFeatures() {
+        // Mode silencieux - retourner le statut sans logs
+        if (!this.constructor.consoleLog) {
+            return this.getUIStatus();
+        }
+        
+        // Mode debug
+        console.group('🧪 [ChessGameUI] Test des fonctionnalités UI');
+        
+        const status = this.getUIStatus();
+        
+        // Tester chaque module
+        const tests = {
+            timerManager: this.testTimerManager(),
+            modalManager: this.testModalManager(),
+            clipboardManager: this.testClipboardManager(),
+            styleManager: this.testStyleManager(),
+            moveHistoryManager: this.testMoveHistoryManager(),
+            eventListeners: this.testEventListeners(),
+            notifications: this.testNotifications()
+        };
+        
+        console.log('📊 [ChessGameUI] Résultats des tests:', tests);
+        console.groupEnd();
+        
         return {
-            hasTimer: !!this.timerManager,
-            botActive: this.game?.getBotStatus?.().active || false,
-            lang: this.getCurrentLanguage()
+            status: status,
+            tests: tests
         };
     }
+    
+    testTimerManager() {
+        if (!this.timerManager) return { available: false, error: 'TimerManager non disponible' };
+        
+        try {
+            const methods = ['startTimer', 'stopTimer', 'updateTimerDisplay', 'getElapsedTime'];
+            const availableMethods = methods.filter(method => typeof this.timerManager[method] === 'function');
+            
+            return {
+                available: true,
+                methodsAvailable: availableMethods.length,
+                totalMethods: methods.length,
+                allMethodsAvailable: availableMethods.length === methods.length
+            };
+        } catch (error) {
+            return { available: false, error: error.message };
+        }
+    }
+    
+    testModalManager() {
+        if (!this.modalManager) return { available: false, error: 'ModalManager non disponible' };
+        
+        try {
+            const methods = ['confirmNewGame', 'showPromotionModal'];
+            const availableMethods = methods.filter(method => typeof this.modalManager[method] === 'function');
+            
+            return {
+                available: true,
+                methodsAvailable: availableMethods.length,
+                totalMethods: methods.length
+            };
+        } catch (error) {
+            return { available: false, error: error.message };
+        }
+    }
+    
+    testClipboardManager() {
+        if (!this.clipboardManager) return { available: false, error: 'ClipboardManager non disponible' };
+        
+        try {
+            const methods = ['copyFENToClipboard', 'copyPGNToClipboard', 'isClipboardAvailable'];
+            const availableMethods = methods.filter(method => typeof this.clipboardManager[method] === 'function');
+            
+            return {
+                available: true,
+                methodsAvailable: availableMethods.length,
+                totalMethods: methods.length,
+                clipboardAvailable: this.clipboardManager.isClipboardAvailable ? 
+                    this.clipboardManager.isClipboardAvailable() : false
+            };
+        } catch (error) {
+            return { available: false, error: error.message };
+        }
+    }
+    
+    testStyleManager() {
+        if (!this.styleManager) return { available: false, error: 'StyleManager non disponible' };
+        
+        try {
+            const methods = ['initAllStyles', 'applyBoardStyle', 'applySquareColors'];
+            const availableMethods = methods.filter(method => typeof this.styleManager[method] === 'function');
+            
+            return {
+                available: true,
+                methodsAvailable: availableMethods.length,
+                totalMethods: methods.length
+            };
+        } catch (error) {
+            return { available: false, error: error.message };
+        }
+    }
+    
+    testMoveHistoryManager() {
+        if (!this.moveHistoryManager) return { available: false, error: 'MoveHistoryManager non disponible' };
+        
+        try {
+            const methods = ['updateMoveHistory'];
+            const availableMethods = methods.filter(method => typeof this.moveHistoryManager[method] === 'function');
+            
+            return {
+                available: true,
+                methodsAvailable: availableMethods.length,
+                totalMethods: methods.length
+            };
+        } catch (error) {
+            return { available: false, error: error.message };
+        }
+    }
+    
+    testEventListeners() {
+        try {
+            const elements = {
+                newGame: document.getElementById('newGame'),
+                flipBoard: document.getElementById('flipBoard'),
+                copyFEN: document.getElementById('copyFEN'),
+                copyPGN: document.getElementById('copyPGN'),
+                newGameMobile: document.getElementById('newGameMobile'),
+                flipBoardMobile: document.getElementById('flipBoardMobile'),
+                chessBoard: document.getElementById('chessBoard')
+            };
+            
+            const elementsFound = Object.entries(elements).filter(([name, el]) => !!el).length;
+            
+            return {
+                elementsFound: elementsFound,
+                totalElements: Object.keys(elements).length,
+                chessBoardAvailable: !!elements.chessBoard
+            };
+        } catch (error) {
+            return { error: error.message };
+        }
+    }
+    
+    testNotifications() {
+        try {
+            // Test simple - vérifier si la méthode existe
+            const canShowNotification = typeof this.showNotification === 'function';
+            
+            return {
+                canShowNotification: canShowNotification,
+                gameStatusManagerAvailable: !!(this.game && this.game.gameStatusManager)
+            };
+        } catch (error) {
+            return { error: error.message };
+        }
+    }
+}
+
+// Initialisation statique
+ChessGameUI.init();
+
+// Exposer la classe globalement
+window.ChessGameUI = ChessGameUI;
+
+// Ajouter des fonctions utilitaires globales
+window.ChessGameUIUtils = {
+    // Forcer le rechargement de la config
+    reloadConfig: () => ChessGameUI.reloadConfig(),
+    
+    // Obtenir l'état actuel
+    getState: () => ({
+        consoleLog: ChessGameUI.consoleLog,
+        source: ChessGameUI.getConfigSource(),
+        debugMode: ChessGameUI.isDebugMode(),
+        configValue: window.appConfig?.debug?.console_log
+    }),
+    
+    // Activer/désactiver manuellement (temporaire)
+    setConsoleLog: (value) => {
+        const oldValue = ChessGameUI.consoleLog;
+        ChessGameUI.consoleLog = Boolean(value);
+        console.log(`🔧 ChessGameUI: consoleLog changé manuellement: ${oldValue} → ${ChessGameUI.consoleLog}`);
+        return ChessGameUI.consoleLog;
+    },
+    
+    // Tester la création d'un ChessGameUI
+    testChessGameUI: (game) => {
+        console.group('🧪 Test ChessGameUI');
+        const chessGameUI = new ChessGameUI(game);
+        console.log('ChessGameUI créé:', chessGameUI);
+        console.log('Statut UI:', chessGameUI.getUIStatus());
+        console.log('Statut config:', ChessGameUI.getConfigStatus());
+        console.groupEnd();
+        return chessGameUI;
+    },
+    
+    // Tester toutes les fonctionnalités
+    testAllFeatures: (chessGameUI) => {
+        console.group('🧪 Test complet ChessGameUI');
+        if (!chessGameUI || !chessGameUI.testUIFeatures) {
+            console.log('❌ ChessGameUI ou méthode testUIFeatures non disponible');
+            console.groupEnd();
+            return null;
+        }
+        
+        const results = chessGameUI.testUIFeatures();
+        console.log('Résultats complets:', results);
+        console.groupEnd();
+        return results;
+    }
+};
+
+// Méthode statique pour obtenir le statut de la configuration
+ChessGameUI.getConfigStatus = function() {
+    return {
+        consoleLog: this.consoleLog,
+        source: this.getConfigSource(),
+        debugMode: this.isDebugMode(),
+        appConfigAvailable: !!window.appConfig,
+        configValue: window.appConfig?.debug?.console_log
+    };
+};
+
+// Méthode statique pour forcer la mise à jour de la configuration
+ChessGameUI.reloadConfig = function() {
+    const oldValue = this.consoleLog;
+    this.loadConfig();
+    
+    if (this.consoleLog && oldValue !== this.consoleLog) {
+        console.log(`🔄 ChessGameUI: Configuration rechargée: ${oldValue} → ${this.consoleLog}`);
+    }
+    return this.consoleLog;
+};
+
+// Vérifier la configuration après le chargement complet de la page
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            ChessGameUI.loadConfig();
+            if (ChessGameUI.consoleLog) {
+                console.log('✅ ChessGameUI: Configuration vérifiée après chargement du DOM');
+            }
+        }, 100);
+    });
+} else {
+    setTimeout(() => {
+        ChessGameUI.loadConfig();
+    }, 100);
+}
+
+// Message final basé sur la configuration
+if (ChessGameUI.consoleLog) {
+    console.log('✅ ChessGameUI prêt (mode debug activé)');
+} else {
+    console.info('✅ ChessGameUI prêt (mode silencieux)');
 }

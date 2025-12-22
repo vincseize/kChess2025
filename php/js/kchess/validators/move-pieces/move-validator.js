@@ -1,69 +1,25 @@
-// validators/move-pieces/move-validator.js - Version utilisant la configuration JSON comme priorité
+// validators/move-pieces/move-validator.js
 if (typeof MoveValidator !== 'undefined') {
     console.warn('⚠️ MoveValidator existe déjà. Vérifiez les doublons dans les imports.');
 } else {
 
 class MoveValidator {
     
-    // Valeur par défaut - sera écrasée par la config JSON si disponible
-    static consoleLog = true; // true par défaut pour debug
+    static consoleLog = true; 
     
     static init() {
-        // Charger la configuration depuis window.appConfig
         this.loadConfig();
-        
-        // Ne loguer que si consoleLog est true (déterminé par la config)
         if (this.consoleLog) {
-            console.log('✅ validators/move-pieces/move-validator.js chargé');
-            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
-        } else {
-            // Message silencieux si debug désactivé
-            console.info('✅ MoveValidator: Mode silencieux activé (debug désactivé dans config)');
+            console.log('✅ MoveValidator (Master) : Système de coordination prêt');
         }
     }
     
-    // Méthode pour charger la configuration
     static loadConfig() {
         try {
-            if (window.appConfig && window.appConfig.chess_engine) {
-                // Configuration prioritaire: window.appConfig
-                if (window.appConfig.chess_engine.console_log !== undefined) {
-                    this.consoleLog = window.appConfig.chess_engine.console_log;
-                }
-                
-                if (this.consoleLog) {
-                    console.log('✅ Configuration chargée depuis window.appConfig');
-                }
-            } else if (window.chessConfig) {
-                // Configuration secondaire: window.chessConfig (pour compatibilité)
-                if (window.chessConfig.debug !== undefined) {
-                    this.consoleLog = window.chessConfig.debug;
-                }
-                
-                if (this.consoleLog) {
-                    console.log('✅ Configuration chargée depuis window.chessConfig (legacy)');
-                }
-            } else {
-                // Fallback: valeurs par défaut
-                if (this.consoleLog) {
-                    console.log('✅ Configuration: valeurs par défaut utilisées');
-                }
+            if (window.appConfig?.chess_engine) {
+                this.consoleLog = window.appConfig.chess_engine.console_log ?? true;
             }
-        } catch (error) {
-            console.error('❌ Erreur lors du chargement de la configuration:', error);
-            // Garder les valeurs par défaut en cas d'erreur
-        }
-    }
-    
-    // Méthode pour déterminer la source de la configuration
-    static getConfigSource() {
-        if (window.appConfig && window.appConfig.chess_engine) {
-            return 'window.appConfig';
-        } else if (window.chessConfig) {
-            return 'window.chessConfig (legacy)';
-        } else {
-            return 'valeur par défaut';
-        }
+        } catch (error) { this.consoleLog = true; }
     }
 
     constructor(board, gameState) {
@@ -71,250 +27,153 @@ class MoveValidator {
         this.gameState = gameState;
         this.enPassantTarget = null;
         
-        if (this.constructor.consoleLog) {
-            console.log('🔧 MoveValidator initialisé');
-            console.log(`  - Board: ${board ? '✓' : '✗'}`);
-            console.log(`  - GameState: ${gameState ? '✓' : '✗'}`);
+        // --- PONT DE COMPATIBILITÉ BOARD ---
+        if (this.board && !this.board.getPiece) {
+            this.board.getPiece = (r, c) => {
+                if (typeof this.board.getSquare === 'function') {
+                    const square = this.board.getSquare(r, c);
+                    return square ? square.piece : null;
+                }
+                return (this.board[r] && this.board[r][c]) ? this.board[r][c] : null;
+            };
         }
-        
-        // Initialisation des validateurs spécialisés
-        this.pieceValidators = {
-            'pawn': new PawnMoveValidator(this.board, this.gameState),
-            'knight': new KnightMoveValidator(this.board, this.gameState),
-            'bishop': new BishopMoveValidator(this.board, this.gameState),
-            'rook': new RookMoveValidator(this.board, this.gameState),
-            'queen': new QueenMoveValidator(this.board, this.gameState),
-            'king': new KingMoveValidator(this.board, this.gameState)
-        };
+
+        this.initializePieceValidators();
         
         if (this.constructor.consoleLog) {
-            console.log(`  - Validateurs initialisés: ${Object.keys(this.pieceValidators).join(', ')}`);
+            console.log('🔧 Master MoveValidator initialisé (Architecture modulaire)');
         }
     }
 
-    getPossibleMoves(piece, fromRow, fromCol) {
-        if (this.constructor.consoleLog) {
-            console.log(`🔍 Recherche mouvements possibles pour ${piece.color} ${piece.type} en [${fromRow},${fromCol}]`);
-        }
+    /**
+     * Instancie les validateurs spécifiques
+     */
+    initializePieceValidators() {
+        const params = [this.board, this.gameState];
         
+        this.pieceValidators = {
+            'pawn':   typeof PawnMoveValidator !== 'undefined'   ? new PawnMoveValidator(...params)   : null,
+            'knight': typeof KnightMoveValidator !== 'undefined' ? new KnightMoveValidator(...params) : null,
+            'bishop': typeof BishopMoveValidator !== 'undefined' ? new BishopMoveValidator(...params) : null,
+            'rook':   typeof RookMoveValidator !== 'undefined'   ? new RookMoveValidator(...params)   : null,
+            'queen':  typeof QueenMoveValidator !== 'undefined'  ? new QueenMoveValidator(...params)  : null,
+            'king':   typeof KingMoveValidator !== 'undefined'   ? new KingMoveValidator(...params)   : null
+        };
+
+        if (this.constructor.consoleLog) {
+            const active = Object.keys(this.pieceValidators).filter(k => this.pieceValidators[k]);
+            const missing = Object.keys(this.pieceValidators).filter(k => !this.pieceValidators[k]);
+            console.log(`📦 Validateurs chargés: ${active.join(', ')}`);
+            if (missing.length > 0) console.warn(`⚠️ Validateurs manquants: ${missing.join(', ')}`);
+        }
+    }
+
+    /**
+     * Point d'entrée principal pour l'UI
+     * Récupère TOUS les coups valides pour une pièce donnée
+     */
+    getPossibleMoves(piece, fromRow, fromCol) {
+        // Sécurité si l'objet pièce n'est pas passé
+        if (!piece || !piece.type) {
+            piece = this.board.getPiece(fromRow, fromCol);
+        }
+
+        if (!piece || !piece.type) return [];
+
         const validator = this.pieceValidators[piece.type];
         if (!validator) {
-            if (this.constructor.consoleLog) {
-                console.log(`❌ Aucun validateur trouvé pour le type: ${piece.type}`);
-            }
+            console.error(`❌ Aucun validateur trouvé pour le type: ${piece.type}`);
             return [];
         }
         
-        const moves = validator.getPossibleMoves(piece, fromRow, fromCol);
-        
-        if (this.constructor.consoleLog) {
-            console.log(`✅ ${moves.length} mouvements possibles trouvés`);
-            if (moves.length > 0) {
-                console.log(`  Détail des mouvements:`);
-                moves.forEach((move, index) => {
-                    const typeIcon = move.type === 'capture' ? '⚔️' : 
-                                   move.type === 'en-passant' ? '🎯' : 
-                                   move.type === 'castle' ? '🏰' : '➡️';
-                    const typeText = move.type ? ` (${move.type})` : '';
-                    console.log(`  ${index + 1}. → [${move.row},${move.col}] ${typeIcon}${typeText}`);
-                });
+        // Délégation au validateur spécifique
+        return validator.getPossibleMoves(piece, fromRow, fromCol);
+    }
+
+    /**
+     * Vérifie si le roi d'une couleur donnée est actuellement attaqué
+     */
+    isKingInCheck(color) {
+        // 1. Localiser le roi sur le plateau
+        let kingPos = null;
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const p = this.board.getPiece(r, c);
+                if (p && p.type === 'king' && p.color === color) {
+                    kingPos = { r, c };
+                    break;
+                }
+            }
+            if (kingPos) break;
+        }
+
+        if (!kingPos) return false;
+
+        // 2. Vérifier si une pièce adverse peut capturer sur cette case
+        const opponentColor = (color === 'white') ? 'black' : 'white';
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const p = this.board.getPiece(r, c);
+                if (p && p.color === opponentColor) {
+                    const validator = this.pieceValidators[p.type];
+                    if (validator) {
+                        // On vérifie les coups possibles de l'adversaire
+                        const moves = validator.getPossibleMoves(p, r, c);
+                        if (moves.some(m => m.row === kingPos.r && m.col === kingPos.c)) {
+                            return true;
+                        }
+                    }
+                }
             }
         }
-        
-        return moves;
+        return false;
     }
 
-    isValidSquare(row, col) {
-        const isValid = row >= 0 && row < 8 && col >= 0 && col < 8;
-        
-        if (this.constructor.consoleLog) {
-            console.log(`  ↳ Validation case [${row},${col}]: ${isValid ? '✓ valide' : '✗ hors plateau'}`);
-        }
-        
-        return isValid;
-    }
-
-    isMoveValid(piece, fromRow, fromCol, toRow, toCol) {
-        if (this.constructor.consoleLog) {
-            console.log(`\n✅🔍 Validation mouvement: ${piece.color} ${piece.type} de [${fromRow},${fromCol}] vers [${toRow},${toCol}]`);
-        }
-        
-        const possibleMoves = this.getPossibleMoves(piece, fromRow, fromCol);
-        const isValid = possibleMoves.some(move => 
-            move.row === toRow && move.col === toCol
-        );
-        
-        if (this.constructor.consoleLog) {
-            if (isValid) {
-                const move = possibleMoves.find(m => m.row === toRow && m.col === toCol);
-                const moveType = move ? move.type : 'standard';
-                console.log(`✅✅✅ MOUVEMENT VALIDE (${moveType})`);
-            } else {
-                console.log(`❌❌❌ MOUVEMENT INVALIDE`);
-                console.log(`  Mouvements possibles:`);
-                possibleMoves.forEach((move, index) => {
-                    const typeIcon = move.type === 'capture' ? '⚔️' : 
-                                   move.type === 'en-passant' ? '🎯' : 
-                                   move.type === 'castle' ? '🏰' : ' ';
-                    console.log(`  ${index + 1}. → [${move.row},${move.col}] ${typeIcon}`);
-                });
-            }
-        }
-        
-        return isValid;
-    }
-
-    // Gestion de la prise en passant
+    /**
+     * Met à jour la cible "En Passant" après un double pas de pion
+     */
     updateEnPassantTarget(move, piece) {
-        if (piece.type === 'pawn' && move.isDoublePush) {
-            const direction = piece.color === 'white' ? -1 : 1;
+        if (piece?.type === 'pawn' && move.isDoublePush) {
+            const direction = piece.color === 'white' ? 1 : -1;
             this.enPassantTarget = {
-                row: move.to.row + direction,
-                col: move.to.col
+                row: move.row + direction, 
+                col: move.col
             };
-            
-            if (this.constructor.consoleLog) {
-                console.log(`🎯 Cible en passant définie: [${this.enPassantTarget.row},${this.enPassantTarget.col}]`);
-            }
+            if (this.constructor.consoleLog) console.log("♟️ Cible En Passant active en:", this.enPassantTarget);
         } else {
             this.enPassantTarget = null;
-            
-            if (this.constructor.consoleLog && move) {
-                console.log(`🎯 Cible en passant réinitialisée (pas de double poussée de pion)`);
-            }
         }
     }
 
+    /**
+     * Logique de nettoyage pour la capture en passant
+     */
     executeEnPassant(move) {
-        if (move.type === 'en-passant' && move.capturedPawn) {
-            if (this.constructor.consoleLog) {
-                console.log(`⚔️ Exécution prise en passant sur pion en [${move.capturedPawn.row},${move.capturedPawn.col}]`);
-            }
+        if (move.type === 'en-passant') {
+            const capRow = move.capturedPawn?.row;
+            const capCol = move.capturedPawn?.col;
             
-            const capturedSquare = this.board.getSquare(move.capturedPawn.row, move.capturedPawn.col);
-            if (capturedSquare && capturedSquare.piece) {
-                capturedSquare.piece = null;
-                capturedSquare.element.innerHTML = '';
-                
-                if (this.constructor.consoleLog) {
-                    console.log(`⚔️✅ Pion capturé en [${move.capturedPawn.row},${move.capturedPawn.col}]`);
-                }
-            } else {
-                if (this.constructor.consoleLog) {
-                    console.log(`⚔️❌ Pion non trouvé à la position de capture`);
+            if (capRow !== undefined && capCol !== undefined) {
+                const square = this.board.getSquare ? this.board.getSquare(capRow, capCol) : null;
+                if (square) {
+                    square.piece = null;
+                    if (square.element) square.element.innerHTML = '';
+                    if (this.constructor.consoleLog) console.log(`🔪 Capture En Passant en [${capRow},${capCol}]`);
                 }
             }
         }
     }
 
-    // NOUVELLE MÉTHODE : Valider et exécuter un mouvement complet
-    validateAndExecute(piece, fromRow, fromCol, toRow, toCol) {
-        if (this.constructor.consoleLog) {
-            console.log(`\n🎮🔍 VALIDATION ET EXÉCUTION COMPLÈTE`);
-            console.log(`Pièce: ${piece.color} ${piece.type}`);
-            console.log(`De: [${fromRow},${fromCol}] → [${toRow},${toCol}]`);
-        }
-        
-        // 1. Valider le mouvement de base
-        if (!this.isMoveValid(piece, fromRow, fromCol, toRow, toCol)) {
-            if (this.constructor.consoleLog) {
-                console.log(`❌❌❌ MOUVEMENT REFUSÉ: Invalide selon les règles`);
-            }
-            return { success: false, reason: 'invalid_move' };
-        }
-        
-        // 2. Vérifier les collisions (sera fait par les validateurs spécialisés)
-        // 3. Vérifier l'échec (sera fait par le moteur de jeu)
-        
-        if (this.constructor.consoleLog) {
-            console.log(`✅✅✅ MOUVEMENT ACCEPTÉ`);
-        }
-        
-        return { success: true };
-    }
-
-    // NOUVELLE MÉTHODE : Obtenir le validateur pour un type de pièce
-    getValidator(pieceType) {
-        const validator = this.pieceValidators[pieceType];
-        
-        if (this.constructor.consoleLog) {
-            console.log(`🔍 Validateur pour ${pieceType}: ${validator ? '✓ trouvé' : '✗ non trouvé'}`);
-        }
-        
-        return validator;
-    }
-
-    // NOUVELLE MÉTHODE : Afficher le résumé des validateurs
-    displayValidatorsSummary() {
-        if (!this.constructor.consoleLog) return;
-        
-        console.log('\n📋📋📋 RÉSUMÉ DES VALIDATEURS:');
-        console.log(`Cible en passant: ${this.enPassantTarget ? 
-            `[${this.enPassantTarget.row},${this.enPassantTarget.col}]` : 'Aucune'}`);
-        
-        console.log(`Validateurs disponibles:`);
-        Object.entries(this.pieceValidators).forEach(([type, validator]) => {
-            const status = validator ? '✓ actif' : '✗ inactif';
-            const validatorClass = validator ? validator.constructor.name : 'Non trouvé';
-            console.log(`  - ${type}: ${status} (${validatorClass})`);
-        });
-        
-        console.log(`\nPlateau: ${this.board ? '✓ connecté' : '✗ non connecté'}`);
-        console.log(`État du jeu: ${this.gameState ? '✓ connecté' : '✗ non connecté'}`);
-    }
-
-    // NOUVELLE MÉTHODE : Vérifier la disponibilité des validateurs
-    checkValidatorsAvailability() {
-        if (!this.constructor.consoleLog) return;
-        
-        console.log('\n🔍 VÉRIFICATION DISPONIBILITÉ VALIDATEURS:');
-        
-        const requiredValidators = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'];
-        let allAvailable = true;
-        
-        requiredValidators.forEach(type => {
-            const validator = this.pieceValidators[type];
-            const isAvailable = validator !== undefined && validator !== null;
-            const status = isAvailable ? '✓ disponible' : '❌ manquant';
-            
-            console.log(`  ${type}: ${status}`);
-            
-            if (!isAvailable) {
-                allAvailable = false;
-                console.warn(`    ⚠️ Le validateur ${type} n'est pas disponible!`);
-            }
-        });
-        
-        console.log(`\nRésultat: ${allAvailable ? '✅ Tous les validateurs sont disponibles' : '❌ Certains validateurs sont manquants'}`);
-        return allAvailable;
-    }
-
-    // NOUVELLE MÉTHODE : Réinitialiser les validateurs
-    resetValidators() {
-        if (this.constructor.consoleLog) {
-            console.log('🔄 Réinitialisation des validateurs...');
-        }
-        
-        this.pieceValidators = {
-            'pawn': new PawnMoveValidator(this.board, this.gameState),
-            'knight': new KnightMoveValidator(this.board, this.gameState),
-            'bishop': new BishopMoveValidator(this.board, this.gameState),
-            'rook': new RookMoveValidator(this.board, this.gameState),
-            'queen': new QueenMoveValidator(this.board, this.gameState),
-            'king': new KingMoveValidator(this.board, this.gameState)
-        };
-        
-        if (this.constructor.consoleLog) {
-            console.log('✅ Validateurs réinitialisés');
-        }
-        
-        return this.pieceValidators;
+    /**
+     * Méthode utilitaire rapide pour l'UI (booléen)
+     */
+    isMoveValid(piece, fromRow, fromCol, toRow, toCol) {
+        const moves = this.getPossibleMoves(piece, fromRow, fromCol);
+        return moves.some(m => m.row === toRow && m.col === toCol);
     }
 }
 
-// Initialisation statique
 MoveValidator.init();
-
 window.MoveValidator = MoveValidator;
 
-} // Fin du if de protection
+}
