@@ -1,6 +1,10 @@
 <?php
-// header.php
-$version = time(); // ou $config['version'] si vous voulez une version stable
+// header.php - dans le dossier php/
+require_once __DIR__ . '/config-loader.php'; // Même dossier
+
+$config = loadGameConfig();
+$version = getVersion();
+logConfigInfo($config);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -30,6 +34,23 @@ $version = time(); // ou $config['version'] si vous voulez une version stable
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/bootstrap-icons.css">
 
+    <!-- Configuration JavaScript - NORMALISÉE -->
+    <script>
+        // Configuration globale normalisée - MÊME STRUCTURE POUR TOUTES LES PAGES
+        window.appConfig = <?php echo getAppConfigJson($config); ?>;
+        
+        // Vérification et log de la configuration
+        console.log('⚙️ Configuration header.php chargée:', {
+            app: window.appConfig.app_name,
+            version: window.appConfig.version,
+            debug_console_log: window.appConfig.debug.console_log,
+            chess_engine_console_log: window.appConfig.chess_engine.console_log,
+            source: 'header.php'
+        });
+        
+
+    </script>
+
     <!-- CSS Chess réorganisé - AVEC VERSION POUR CACHE -->
     <link href="css/kchess/variables.css?version=<?php echo $version; ?>" rel="stylesheet">
     <link href="css/kchess/layout.css?version=<?php echo $version; ?>" rel="stylesheet">
@@ -44,4 +65,7 @@ $version = time(); // ou $config['version'] si vous voulez une version stable
     <link href="css/kchess/chess-pieces.css?version=<?php echo $version; ?>" rel="stylesheet">
     <link href="css/kchess/responsive.css?version=<?php echo $version; ?>" rel="stylesheet">
     <link href="css/kchess/promotion-modal.css?version=<?php echo $version; ?>" rel="stylesheet">
+
+
+
 </head>

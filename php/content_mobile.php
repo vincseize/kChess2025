@@ -1,5 +1,5 @@
 <?php
-// content.php - Layout avec menu à gauche
+// content_mobile.php - Layout avec menu à gauche
 // Charger la configuration pour accéder aux traductions
 require_once __DIR__ . '/config-loader.php';
 $config = loadGameConfig();
@@ -51,7 +51,7 @@ $translations = $config['lang'][$lang];
         <!-- Colonne du milieu - Échiquier (légèrement réduite) -->
         <div class="col-xxl-8 col-xl-6 col-lg-6 col-md-8 col-12">
             <div class="chess-container bg-light rounded-3 p-2 h-100 position-relative">
-                <!-- Label JOUEUR ORDINATEUR en haut à gauche - AVEC ID -->
+                <!-- Label JOUEUR ORDINATEUR en haut à gauche -->
                 <div class="position-absolute top-0 start-0 m-2">
                     <span id="topPlayerLabel" class="badge bg-dark text-white p-2">
                         <i class="bi bi-cpu me-1"></i> 
@@ -60,7 +60,7 @@ $translations = $config['lang'][$lang];
                     </span>
                 </div>
                 
-                <!-- Label MOI en bas à gauche - AVEC ID -->
+                <!-- Label MOI en bas à gauche -->
                 <div class="position-absolute bottom-0 start-0 m-2">
                     <span id="bottomPlayerLabel" class="badge bg-white text-dark border border-dark p-2">
                         <i class="bi bi-person me-1"></i> 
@@ -166,7 +166,7 @@ $translations = $config['lang'][$lang];
     </div>
 </footer>
 
-<!-- Script pour gérer la traduction dynamique -->
+<!-- Script pour gérer la traduction dynamique (identique à content.php) -->
 <script>
 // Exposer les traductions à JavaScript
 window.translations = <?php echo json_encode($translations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE); ?>;
@@ -250,13 +250,26 @@ function formatTime(seconds) {
 
 // Initialiser au chargement
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🌐 Langue chargée:', '<?php echo $lang; ?>');
-    console.log('🌐 Traductions disponibles:', Object.keys(window.translations));
+    console.log('📱 content_mobile.php - Langue chargée:', '<?php echo $lang; ?>');
     
     // Mettre à jour les labels par défaut (humain vs humain)
     window.updatePlayerLabels();
     
-
+    // Ajouter un sélecteur de langue optionnel (en bas à droite)
+    const langSelector = `
+        <div style="position: fixed; bottom: 10px; right: 10px; z-index: 9999; background: white; padding: 5px; border-radius: 5px; border: 1px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+            <select id="langSelect" class="form-select form-select-sm" onchange="changeLanguage(this.value)">
+                <option value="fr" <?php echo $lang === 'fr' ? 'selected' : ''; ?>>🇫🇷 Français</option>
+                <option value="en" <?php echo $lang === 'en' ? 'selected' : ''; ?>>🇬🇧 English</option>
+            </select>
+        </div>
+    `;
+    
+    // Insérer le sélecteur de langue
+    document.body.insertAdjacentHTML('beforeend', langSelector);
+    
+    // Adaptations spécifiques pour mobile
+    adaptForMobile();
 });
 
 // Fonction pour changer de langue
@@ -266,4 +279,70 @@ window.changeLanguage = function(langCode) {
     url.searchParams.set('lang', langCode);
     window.location.href = url.toString();
 };
+
+// Fonction d'adaptation pour mobile
+function adaptForMobile() {
+    // Réduire la taille des badges des joueurs sur mobile
+    if (window.innerWidth < 768) {
+        const playerBadges = document.querySelectorAll('#topPlayerLabel, #bottomPlayerLabel');
+        playerBadges.forEach(badge => {
+            badge.classList.add('small');
+        });
+        
+        // Ajuster la taille de la police pour le statut du jeu
+        const currentPlayerElement = document.getElementById('currentPlayer');
+        if (currentPlayerElement) {
+            currentPlayerElement.classList.add('small');
+        }
+        
+        // Ajuster les boutons d'action mobile
+        const mobileButtons = document.querySelectorAll('#newGameMobile, #flipBoardMobile');
+        mobileButtons.forEach(btn => {
+            btn.classList.add('py-1');
+        });
+    }
+}
 </script>
+
+<!-- CSS spécifique mobile -->
+<style>
+@media (max-width: 768px) {
+    /* Adaptations pour mobile */
+    .player-badge-small {
+        font-size: 0.7rem;
+        padding: 3px 6px !important;
+    }
+    
+    .chess-container {
+        padding: 5px !important;
+    }
+    
+    .chess-board-container {
+        max-width: 95vw;
+        max-height: 95vw;
+    }
+    
+    .game-status .small {
+        font-size: 0.8rem;
+    }
+    
+    .move-history {
+        max-height: 200px !important;
+        font-size: 0.8rem;
+    }
+    
+    /* Cacher le sélecteur de langue sur très petits écrans */
+    @media (max-width: 350px) {
+        #langSelect {
+            display: none;
+        }
+    }
+}
+
+/* Style pour le sélecteur de langue mobile */
+#langSelect {
+    font-size: 0.9rem;
+    padding: 2px 5px;
+    max-width: 120px;
+}
+</style>
