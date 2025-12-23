@@ -1,5 +1,4 @@
 <?php
-// index.php - dans le dossier php/
 session_start();
 require_once __DIR__ . '/config-loader.php'; 
 
@@ -20,120 +19,90 @@ logConfigInfo($config);
     <link rel="stylesheet" href="css/bootstrap-icons.css">
 
     <style>
-        /* 1. VERROUILLAGE TOTAL DE L'ÉCRAN */
+        :root {
+            --marge-entre-blocs: clamp(2px, 1.5vh, 15px); 
+            --hauteur-input: clamp(30px, 5vh, 45px);
+            --taille-police-label: clamp(0.7rem, 1.8vh, 1rem);
+            --padding-card: clamp(10px, 3vh, 25px);
+        }
+
+        /* STRUCTURE */
         html, body {
-            height: 100%;
-            height: 100dvh;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            width: 100vw;
-            background: #f8f9fa;
+            height: 100% !important; margin: 0 !important; padding: 0 !important;
+            overflow: hidden !important; background: #f8f9fa;
         }
+        body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 
-        body {
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            top: 0;
-            left: 0;
+        /* STYLE DU SPLASH (Gardé ici pour éviter le flash blanc au chargement) */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
+            background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 1000000; color: white; text-align: center;
+            transition: opacity 0.8s ease-out, visibility 0.8s;
         }
+        #snow-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+        #splash-content { position: relative; z-index: 2; }
+        #splash-content h1 { font-size: 3.2rem; font-weight: 800; margin: 10px 0 0 0; }
+        #splash-content h2 { font-size: 1.6rem; font-weight: 300; opacity: 0.95; font-style: italic; }
 
-        /* 2. NETTOYAGE RADICAL DES MARGES (On écrase tout) */
-        #gameWrapper {
-            flex: 1;
-            width: 100%;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+        @keyframes treeSway {
+            0% { transform: rotate(-8deg); }
+            50% { transform: rotate(8deg); }
+            100% { transform: rotate(-8deg); }
         }
+        .tree-anim { display: inline-block; animation: treeSway 2.5s ease-in-out infinite; }
 
-        /* Supprime les espaces au dessus/dessous du contenu principal */
-        #gameWrapper main, 
-        #gameWrapper .container, 
-        #gameWrapper .container-fluid {
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
-        }
-
-        /* Réduit l'espace des lignes Bootstrap */
-        #gameWrapper .row {
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-
-        /* Compresse la div blanche (Card) */
+        /* JEU & CARTE */
+        #gameWrapper { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; }
         #gameWrapper .card {
-            margin-top: 5px !important; /* Juste un micro-espace en haut */
-            margin-bottom: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
+            height: 90dvh !important; width: 95%; max-width: 500px;
+            background: white !important; border-radius: 25px !important;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2) !important;
+            display: flex !important; flex-direction: column !important;
+            border: none !important; overflow: hidden;
         }
-
         #gameWrapper .card-body {
-            padding: 10px !important; /* On serre le contenu interne */
+            flex: 1 !important; display: flex !important; flex-direction: column !important;
+            justify-content: space-between !important; padding: var(--padding-card) !important;
+            overflow-y: auto;
         }
 
-        /* On écrase les marges de tous les éléments de formulaire/texte */
-        #gameWrapper h1, #gameWrapper h2, #gameWrapper h3, #gameWrapper h4,
-        #gameWrapper p, #gameWrapper div, #gameWrapper section {
-            margin-top: 0 !important;
-            /* margin-bottom géré au cas par cas si besoin */
+        #gameWrapper .form-label { font-size: var(--taille-police-label); font-weight: 600; color: #333; }
+        #gameWrapper .form-select, #gameWrapper .form-control { 
+            height: var(--hauteur-input) !important; margin-bottom: var(--marge-entre-blocs) !important;
+            border-radius: 12px; 
+        }
+        #gameWrapper .btn-lg { 
+            width: 100%; padding: clamp(12px, 2.5vh, 22px) !important;
+            font-weight: 800; text-transform: uppercase; border-radius: 15px;
         }
 
-        /* Force le bouton à remonter */
-        #gameWrapper .mt-4, #gameWrapper .mt-3, #gameWrapper .py-3 {
-            margin-top: 5px !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-        }
-
-        /* 3. TAG VERSION */
         .version-tag {
-            position: fixed;
-            bottom: 4px;
-            right: 8px;
-            font-size: 0.6rem;
-            color: #ffffff !important;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 1px 5px;
-            border-radius: 3px;
-            z-index: 99999;
-            pointer-events: none;
-            font-family: monospace;
+            position: fixed; bottom: 5px; right: 10px; font-size: 0.65rem;
+            color: rgba(255,255,255,0.7); z-index: 99999; font-family: monospace;
         }
     </style>
 </head>
 <body>
 
-<div class="version-tag">
-    v<?php echo htmlspecialchars($config['version']); ?>
-</div>
+    <?php include 'splashscreens/splashscreen1.php'; ?>
 
-<div id="gameWrapper">
-    <?php require_once 'newGame.php'; ?>
-</div>
+    <div class="version-tag">v<?php echo htmlspecialchars($config['version']); ?></div>
 
-<script>
-    window.appConfig = <?php echo getAppConfigJson($config); ?>;
+    <div id="gameWrapper">
+        <?php require_once 'newGame.php'; ?>
+    </div>
 
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js');
-        });
-    }
+    <script>
+        window.appConfig = <?php echo getAppConfigJson($config); ?>;
 
-    // Désactive le scroll "élastique" qui fait apparaître du blanc
-    document.body.addEventListener('touchmove', function(e) {
-        e.preventDefault();
-    }, { passive: false });
-    
-    // Réactive le scroll uniquement pour la zone de jeu
-    document.getElementById('gameWrapper').addEventListener('touchmove', function(e) {
-        e.stopPropagation();
-    }, { passive: true });
-</script>
+        // --- SECURITE MOBILE ---
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+        document.body.addEventListener('touchmove', (e) => {
+            if (!e.target.closest('.card-body')) e.preventDefault();
+        }, { passive: false });
+    </script>
 
 </body>
 </html>
