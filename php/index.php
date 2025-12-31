@@ -78,10 +78,20 @@ logConfigInfo($config);
             font-weight: 800; text-transform: uppercase; border-radius: 15px;
         }
 
-        .version-tag {
-            position: fixed; bottom: 5px; right: 10px; font-size: 0.65rem;
-            color: rgba(255,255,255,0.7); z-index: 99999; font-family: monospace;
-        }
+.version-tag {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.7);
+    z-index: 99999;
+    font-family: monospace;
+    
+    /* Fond noir opaque avec bords arrondis */
+    background-color: #000000;
+    padding: 4px 8px;
+    border-radius: 8px;
+}
     </style>
 </head>
 <body>

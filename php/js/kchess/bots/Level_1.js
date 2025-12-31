@@ -108,43 +108,38 @@ class Level_1 {
     }
 
 // bots/Level_1.js
-// Dans bots/Level_1.js
 getMove(fen) {
     this.constructor.loadConfig();
     const isDebug = this.constructor.consoleLog;
 
     try {
-        // Tentative de récupération de l'instance par plusieurs chemins possibles
-        const game = window.chessGame || window.gameInstance || (window.ChessApp ? window.ChessApp.game : null);
-        
-        // Vérification ultra-précise de la chaîne de dépendances
-        if (!game) {
-            console.error("❌ [Level_1] Instance globale du jeu introuvable.");
-            return null;
-        }
-
-        // On cherche le moveValidator là où il se trouve réellement
-        const validator = game.moveValidator || (game.core ? game.core.moveValidator : null);
-
-        if (!validator) {
-            console.error("❌ [Level_1] MoveValidator introuvable dans l'instance.", game);
+        const game = window.chessGame;
+        if (!game || !game.core || !game.core.moveValidator) {
+            console.error("❌ [Level_1] Moteur inaccessible.");
             return null;
         }
 
         const validMoves = [];
-        const currentPlayer = game.gameState ? game.gameState.currentPlayer : (fen.split(' ')[1] === 'w' ? 'white' : 'black');
+        const currentPlayer = game.gameState.currentPlayer;
 
         if (isDebug) console.group(`🤖 Tour du Bot (${currentPlayer})`);
 
-        // Parcours de l'échiquier
+        // SÉCURITÉ : On s'assure que le board possède les méthodes attendues par les validateurs
+        // Si getPiece manque, on la polyfill temporairement pour ce tour
+        if (game.board && !game.board.getPiece) {
+            game.board.getPiece = function(r, c) {
+                const sq = this.getSquare(r, c);
+                return sq ? sq.piece : null;
+            };
+        }
+
         for (let fromRow = 0; fromRow < 8; fromRow++) {
             for (let fromCol = 0; fromCol < 8; fromCol++) {
-                // Accès sécurisé à la pièce
+                // Utilisation de la méthode sécurisée
                 const piece = game.board.getPiece(fromRow, fromCol);
                 
                 if (piece && piece.color === currentPlayer) {
-                    // Utilisation du validateur trouvé
-                    const moves = validator.getPossibleMoves(piece, fromRow, fromCol);
+                    const moves = game.core.moveValidator.getPossibleMoves(piece, fromRow, fromCol);
                     
                     moves.forEach(m => {
                         validMoves.push({
@@ -161,7 +156,7 @@ getMove(fen) {
 
         if (validMoves.length === 0) {
             if (isDebug) {
-                console.warn(`⚠️ Aucun coup légal trouvé pour ${currentPlayer}`);
+                console.warn(`⚠️ Aucun coup trouvé pour ${currentPlayer}`);
                 console.groupEnd();
             }
             return null;
@@ -177,7 +172,7 @@ getMove(fen) {
         return selectedMove;
 
     } catch (error) {
-        console.error(`⛔ [Level_1] Crash lors de la recherche de coups:`, error);
+        console.error(`⛔ [Level_1] Crash:`, error);
         if (isDebug) console.groupEnd();
         return null;
     }

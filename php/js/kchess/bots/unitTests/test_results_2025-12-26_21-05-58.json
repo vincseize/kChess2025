@@ -1,0 +1,9 @@
+[
+    {
+        "id": 1,
+        "totalMoves": 10,
+        "finalFen": "r1bqkb1r\/1ppppppp\/7n\/p1n5\/8\/3PPP1P\/PPP1B1P1\/RNBQK1NR w KQkq - 1 6",
+        "status": "ok",
+        "error": null
+    }
+]
