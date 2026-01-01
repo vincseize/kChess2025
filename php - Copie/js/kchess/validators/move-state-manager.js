@@ -1,7 +1,4 @@
-/**
- * validators/move-state-manager.js
- * Gère l'état visuel du plateau : sélections, suggestions de coups et historique du dernier mouvement.
- */
+// validators/move-state-manager.js
 if (typeof MoveStateManager !== 'undefined') {
     console.warn('⚠️ MoveStateManager existe déjà.');
 } else {
@@ -11,7 +8,7 @@ class MoveStateManager {
     
     static init() {
         this.loadConfig();
-        if (this.consoleLog) console.log('📋 MoveStateManager : Prêt (v2.0 - Highlight Focus)');
+        if (this.consoleLog) console.log('📋 MoveStateManager : Prêt');
     }
     
     static loadConfig() {
@@ -25,25 +22,21 @@ class MoveStateManager {
 
     constructor(game) {
         this.game = game;
-        // Stocke les éléments DOM ayant des classes de suggestion (points, cercles)
+        // On garde une trace des cases marquées pour un nettoyage rapide
         this.highlightedSquares = []; 
     }
 
-    // ========== GESTION DE LA SÉLECTION (TEMP) ==========
+    // ========== GESTION DE LA SÉLECTION ==========
 
-    /**
-     * Gère la sélection d'une pièce et affiche les suggestions
-     */
     handlePieceSelection(row, col, square) {
         const currentPlayer = this.game.gameState.currentPlayer;
         
         if (square.piece && square.piece.color === currentPlayer) {
-            // On nettoie les suggestions précédentes avant d'en afficher de nouvelles
             this.clearSelection(); 
             
             this.game.selectedPiece = { row, col, piece: square.piece };
             
-            // Calcul des mouvements légaux via le validateur
+            // Calcul des mouvements légaux
             try {
                 this.game.possibleMoves = this.game.moveValidator.getPossibleMoves(square.piece, row, col);
             } catch (error) {
@@ -51,22 +44,21 @@ class MoveStateManager {
                 this.game.possibleMoves = [];
             }
             
-            // Applique le style de sélection
+            // Visuel : Case sélectionnée
             square.element.classList.add('selected');
             this.highlightedSquares.push(square.element);
 
-            // Affiche les points/cercles de destination
+            // Visuel : Points de destination
             this.highlightPossibleMoves();
             
             if (this.constructor.consoleLog) {
-                console.log(`✅ Sélection : ${square.piece.type} (${this.game.possibleMoves.length} coups possibles)`);
+                console.log(`✅ Sélection : ${square.piece.type} (${this.game.possibleMoves.length} coups)`);
             }
         }
     }
 
-    /**
-     * Ajoute les classes CSS pour les suggestions de coups
-     */
+    // ========== LOGIQUE VISUELLE (CSS) ==========
+
     highlightPossibleMoves() {
         if (!this.game.possibleMoves || !this.game.board) return;
 
@@ -75,14 +67,13 @@ class MoveStateManager {
             if (!square || !square.element) return;
 
             const el = square.element;
+            el.classList.add('possible-move');
             
-            // Ajout des classes selon le type de mouvement (défini dans ton CSS)
+            // Typage précis pour le CSS (ex: cercle rouge pour capture)
             if (move.type === 'capture' || move.type === 'en-passant') {
                 el.classList.add('possible-capture');
             } else if (move.type === 'castling') {
                 el.classList.add('possible-castle');
-            } else {
-                el.classList.add('possible-move');
             }
 
             this.highlightedSquares.push(el);
@@ -90,9 +81,10 @@ class MoveStateManager {
     }
 
     /**
-     * Nettoyage chirurgical : supprime uniquement les suggestions de coups
+     * Nettoyage chirurgical des styles CSS
      */
     clearSelection() {
+        // Au lieu de boucler sur 64 cases, on ne nettoie que celles qu'on a touchées
         this.highlightedSquares.forEach(el => {
             el.classList.remove(
                 'selected', 
@@ -103,55 +95,31 @@ class MoveStateManager {
             );
         });
         
+        // Reset de la liste de suivi
         this.highlightedSquares = [];
+
+        // Reset des données logiques
         this.game.selectedPiece = null;
         this.game.possibleMoves = [];
     }
 
-    // ========== GESTION DU DERNIER COUP (PERSISTANT) ==========
-
-    /**
-     * Marque visuellement d'où vient la pièce et où elle arrive.
-     * Appelé juste après l'exécution d'un coup.
-     */
-    highlightLastMove(fromRow, fromCol, toRow, toCol) {
-        // 1. Supprime les anciens highlights de mouvement sur tout le plateau
-        const boardEl = document.getElementById('chessBoard') || document.querySelector('.chess-board');
-        if (boardEl) {
-            boardEl.querySelectorAll('.last-move-source, .last-move-dest').forEach(el => {
-                el.classList.remove('last-move-source', 'last-move-dest');
-            });
-        }
-
-        // 2. Récupère les nouvelles cases
-        const startSq = this.game.board.getSquare(fromRow, fromCol);
-        const endSq = this.game.board.getSquare(toRow, toCol);
-
-        // 3. Applique les classes (Source = départ, Dest = arrivée)
-        if (startSq?.element) startSq.element.classList.add('last-move-source');
-        if (endSq?.element) endSq.element.classList.add('last-move-dest');
-        
-        // 4. On s'assure que les points de suggestion sont effacés
-        this.clearSelection();
-    }
-
-    // ========== UTILITAIRES ==========
+    // ========== ERGONOMIE ==========
 
     isMovePossible(toRow, toCol) {
         return this.game.possibleMoves?.some(m => m.row === toRow && m.col === toCol) ?? false;
     }
 
     /**
-     * Analyse si on change de pièce sélectionnée ou si on annule tout
+     * Analyse si on doit changer de sélection ou tout annuler
      */
     handleInvalidMove(toRow, toCol, toSquare) {
         const isOwnPiece = toSquare.piece?.color === this.game.gameState.currentPlayer;
         
         if (isOwnPiece) {
-            // Change la sélection vers la nouvelle pièce alliée
+            // L'utilisateur a cliqué sur une autre de ses pièces : on change le focus
             this.handlePieceSelection(toRow, toCol, toSquare);
         } else {
-            // Clic dans le vide ou ennemi invalide : on nettoie
+            // Clic dans le vide ou sur l'adversaire (hors mouvement possible) : on annule
             this.clearSelection();
         }
     }

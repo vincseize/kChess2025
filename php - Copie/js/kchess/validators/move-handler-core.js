@@ -1,7 +1,4 @@
-/**
- * validators/move-handler-core.js
- * Gère l'aiguillage des clics utilisateur et la coordination avec les états visuels.
- */
+// validators/move-handler-core.js
 if (typeof ChessGameMoveHandler !== 'undefined') {
     console.warn('⚠️ ChessGameMoveHandler existe déjà.');
 } else {
@@ -27,24 +24,17 @@ class ChessGameMoveHandler {
         this.game = game;
         this.isPromoting = false; 
         
-        // Initialisation de l'exécuteur de mouvement
-        this.moveExecutor = new MoveExecutor(game);
+        // Utiliser l'exécuteur déjà présent dans le core s'il existe, sinon en créer un
+        this.moveExecutor = game.moveExecutor || new MoveExecutor(game);
         
-        // Liaison avec le gestionnaire d'états visuels (Highlights)
         this.moveStateManager = (typeof MoveStateManager !== 'undefined') ? new MoveStateManager(game) : null;
     }
 
     // ========== GESTION DES CLICS ==========
 
-    /**
-     * @param {number} displayRow 
-     * @param {number} displayCol 
-     * @param {boolean} isDirect - true si coordonnée logique (Bot), false si coordonnée visuelle (Humain)
-     */
     handleSquareClick(displayRow, displayCol, isDirect = false) {
         if (!this.validateGameState()) return;
         
-        // On récupère les coordonnées réelles (gestion du Flip plateau)
         const { actualRow, actualCol, square } = this.getActualSquare(displayRow, displayCol, isDirect);
         
         if (!square) return;
@@ -55,12 +45,9 @@ class ChessGameMoveHandler {
 
         const selectedPiece = this.game.selectedPiece;
 
-        // Logique à deux phases :
         if (selectedPiece) {
-            // Phase 2 : Une pièce est sélectionnée, on tente de jouer
             this.handleMovementPhase(actualRow, actualCol, square);
         } else {
-            // Phase 1 : Rien n'est sélectionné, on cherche une pièce à soi
             this.handleSelectionPhase(actualRow, actualCol, square);
         }
 
@@ -71,7 +58,6 @@ class ChessGameMoveHandler {
         const piece = square.piece;
         const currentPlayer = this.game.gameState.currentPlayer;
         
-        // Vérifie si le joueur clique sur l'une de ses propres pièces
         if (piece && piece.color === currentPlayer) {
             if (this.constructor.consoleLog) console.log(`✅ Sélection : ${piece.color} ${piece.type}`);
             
@@ -79,7 +65,6 @@ class ChessGameMoveHandler {
                 this.moveStateManager.handlePieceSelection(row, col, square);
             }
         } else {
-            if (this.constructor.consoleLog) console.log("🚫 Case vide ou pièce adverse");
             this.clearSelection();
         }
     }
@@ -87,35 +72,21 @@ class ChessGameMoveHandler {
     handleMovementPhase(row, col, square) {
         const selectedPiece = this.game.selectedPiece;
 
-        // 1. Désélection si clic sur la même case
         if (selectedPiece.row === row && selectedPiece.col === col) {
             this.clearSelection();
             return;
         }
 
-        // 2. Changement de sélection (clic sur une autre pièce de sa couleur)
         if (square.piece && square.piece.color === this.game.gameState.currentPlayer) {
-            if (this.constructor.consoleLog) console.log("🔄 Changement de pièce");
             this.handleSelectionPhase(row, col, square);
             return;
         }
 
-        // 3. Tentative de mouvement
         const isPossible = this.game.possibleMoves?.some(m => m.row === row && m.col === col);
         
         if (isPossible) {
-            // On mémorise les coordonnées de départ avant l'exécution
-            const fromRow = selectedPiece.row;
-            const fromCol = selectedPiece.col;
-            
             this.executeMove(row, col);
-
-            // --- NOUVEAU : On active le highlight de fin de coup ---
-            if (this.moveStateManager) {
-                this.moveStateManager.highlightLastMove(fromRow, fromCol, row, col);
-            }
         } else {
-            if (this.constructor.consoleLog) console.log("❌ Mouvement non autorisé");
             this.clearSelection();
         }
     }
@@ -123,6 +94,12 @@ class ChessGameMoveHandler {
     // ========== EXÉCUTION ==========
 
     executeMove(toRow, toCol) {
+        // Sécurité : Vérifier si la fonction existe sur l'instance
+        if (typeof this.moveExecutor.prepareMoveExecution !== 'function') {
+            console.error("❌ Erreur critique : prepareMoveExecution introuvable sur MoveExecutor.", this.moveExecutor);
+            return;
+        }
+
         const moveData = this.moveExecutor.prepareMoveExecution(toRow, toCol);
         
         if (moveData) {
@@ -138,7 +115,7 @@ class ChessGameMoveHandler {
                     toCol
                 );
             } finally {
-                // Si ce n'est pas une promotion, on libère le verrou immédiatement
+                // On ne débloque le drapeau que si ce n'est pas une promotion (qui attend un clic modale)
                 if (!moveData.move?.isPromotion) {
                     this.isPromoting = false;
                 }
@@ -150,10 +127,7 @@ class ChessGameMoveHandler {
 
     validateGameState() {
         if (!this.game.gameState?.gameActive) return false;
-        if (this.isPromoting) {
-            if (this.constructor.consoleLog) console.warn("⏳ Promotion en cours...");
-            return false;
-        }
+        if (this.isPromoting) return false;
         return true;
     }
 
@@ -161,7 +135,6 @@ class ChessGameMoveHandler {
         let actualRow = displayRow;
         let actualCol = displayCol;
 
-        // Transformation si le plateau est inversé (Vue vs Logique)
         if (!isDirect && this.game.gameState.boardFlipped) {
             actualRow = 7 - displayRow;
             actualCol = 7 - displayCol;
@@ -172,9 +145,7 @@ class ChessGameMoveHandler {
     }
 
     clearSelection() {
-        // Reset logique du jeu
         this.game.clearSelection?.(); 
-        // Reset visuel (points et sélection)
         if (this.moveStateManager?.clearSelection) {
             this.moveStateManager.clearSelection();
         }

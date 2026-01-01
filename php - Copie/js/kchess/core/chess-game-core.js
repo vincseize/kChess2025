@@ -69,13 +69,7 @@ class ChessGameCore {
     clearSelection() {
         this.selectedPiece = null;
         this.possibleMoves = [];
-        
-        // On nettoie les highlights temporaires via le MoveHandler ou l'UI
-        if (this.moveHandler?.stateManager) {
-            this.moveHandler.stateManager.clearSelection();
-        } else if (this.ui?.clearHighlights) {
-            this.ui.clearHighlights();
-        }
+        if (this.ui?.clearHighlights) this.ui.clearHighlights();
     }
 
     updateUI() {
@@ -103,12 +97,6 @@ class ChessGameCore {
         );
 
         if (success) {
-            // --- MODIFICATION : Highlight des cases départ/arrivée uniquement ---
-            // On appelle le StateManager pour marquer le dernier coup
-            if (this.moveHandler?.stateManager) {
-                this.moveHandler.stateManager.highlightLastMove(fromRow, fromCol, toRow, toCol);
-            }
-
             this.gameState.recordMove(fromRow, fromCol, toRow, toCol, piece, promotionPiece);
             this.gameState.switchPlayer();
             this.updateUI(); 
@@ -141,11 +129,6 @@ class ChessGameCore {
 
     newGame() {
         this.clearSelection();
-        // Reset des highlights de mouvement au début d'une nouvelle partie
-        document.querySelectorAll('.last-move-source, .last-move-dest').forEach(el => {
-            el.classList.remove('last-move-source', 'last-move-dest');
-        });
-
         if (this.botManager) this.botManager.isBotThinking = false;
         this.updateUI();
     }
