@@ -166,74 +166,69 @@ $translations = $config['lang'][$lang];
     </div>
 </footer>
 
-<!-- Script pour gérer la traduction dynamique -->
 <script>
-// Exposer les traductions à JavaScript
+// 1. Exposer les traductions à JavaScript
 window.translations = <?php echo json_encode($translations, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE); ?>;
 
-// Fonction pour obtenir une traduction
+// 2. Fonction pour obtenir une traduction
 window.getTranslation = function(key, defaultValue = '') {
     return window.translations && window.translations[key] ? window.translations[key] : defaultValue;
 };
 
-// Fonction pour mettre à jour les labels des joueurs dynamiquement
+// 3. Fonction pour mettre à jour les labels des joueurs dynamiquement
 window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLevel = null) {
     const topPlayerLabel = document.getElementById('topPlayerLabel');
     const bottomPlayerLabel = document.getElementById('bottomPlayerLabel');
     
     if (!topPlayerLabel || !bottomPlayerLabel) return;
     
-    // Par défaut: humain vs humain
-    let topPlayerName = window.getTranslation('human_player', 'Human');
-    let topPlayerColor = window.getTranslation('black_player', 'Black');
-    let bottomPlayerName = window.getTranslation('human_player', 'Human');
-    let bottomPlayerColor = window.getTranslation('white_player', 'White');
+    // Conversion forcée en nombre pour le test (car l'URL donne une String)
+    const levelNum = botLevel !== null ? Number(botLevel) : null;
     
-    // Si c'est une partie contre un bot
+    // Valeurs par défaut (Humain vs Humain)
+    let topName = window.getTranslation('human_player', 'Humain');
+    let topColorLabel = window.getTranslation('black_player', 'Noirs');
+    let bottomName = window.getTranslation('human_player', 'Humain');
+    let bottomColorLabel = window.getTranslation('white_player', 'Blancs');
+    
     if (isBotGame && botColor) {
+        // Déterminer le texte du Bot selon le niveau
+        let botText = window.getTranslation('computer_player', 'Bot');
+        if (levelNum === 1) {
+            botText = window.getTranslation('bot_level1', 'Niveau 1');
+        } else if (levelNum === 2) {
+            botText = window.getTranslation('bot_level2', 'Niveau 2');
+        }
+
         if (botColor === 'black') {
-            // Bot en haut (noir), humain en bas (blanc)
-            topPlayerName = window.getTranslation('computer_player', 'Bot');
-            topPlayerColor = window.getTranslation('black_player', 'Black');
-            bottomPlayerName = window.getTranslation('human_player', 'Human');
-            bottomPlayerColor = window.getTranslation('white_player', 'White');
-            
-            // Ajouter le niveau du bot si disponible
-            if (botLevel) {
-                topPlayerName = window.getTranslation(botLevel === 1 ? 'bot_level1' : 'bot_level2', `Bot Level ${botLevel}`);
-            }
+            topName = botText;
+            topColorLabel = window.getTranslation('black_player', 'Noirs');
+            bottomName = window.getTranslation('human_player', 'Humain');
+            bottomColorLabel = window.getTranslation('white_player', 'Blancs');
         } else {
-            // Bot en bas (blanc), humain en haut (noir)
-            topPlayerName = window.getTranslation('human_player', 'Human');
-            topPlayerColor = window.getTranslation('black_player', 'Black');
-            bottomPlayerName = window.getTranslation('computer_player', 'Bot');
-            bottomPlayerColor = window.getTranslation('white_player', 'White');
-            
-            // Ajouter le niveau du bot si disponible
-            if (botLevel) {
-                bottomPlayerName = window.getTranslation(botLevel === 1 ? 'bot_level1' : 'bot_level2', `Bot Level ${botLevel}`);
-            }
+            topName = window.getTranslation('human_player', 'Humain');
+            topColorLabel = window.getTranslation('black_player', 'Noirs');
+            bottomName = botText;
+            bottomColorLabel = window.getTranslation('white_player', 'Blancs');
         }
     }
     
-    // Mettre à jour les labels
-    topPlayerLabel.innerHTML = `<i class="bi ${isBotGame && botColor === 'black' ? 'bi-cpu' : 'bi-person'} me-1"></i> ${topPlayerName} ${topPlayerColor}`;
-    bottomPlayerLabel.innerHTML = `<i class="bi ${isBotGame && botColor === 'white' ? 'bi-cpu' : 'bi-person'} me-1"></i> ${bottomPlayerName} ${bottomPlayerColor}`;
+    // Rendu HTML
+    topPlayerLabel.innerHTML = `<i class="bi ${isBotGame && botColor === 'black' ? 'bi-cpu' : 'bi-person'} me-1"></i> ${topName} (${topColorLabel})`;
+    bottomPlayerLabel.innerHTML = `<i class="bi ${isBotGame && botColor === 'white' ? 'bi-cpu' : 'bi-person'} me-1"></i> ${bottomName} (${bottomColorLabel})`;
 };
 
-// Fonction pour mettre à jour le statut du tour
+// 4. Fonction pour mettre à jour le statut du tour
 window.updateGameStatus = function(currentPlayer) {
     const currentPlayerElement = document.getElementById('currentPlayer');
     if (!currentPlayerElement) return;
     
-    if (currentPlayer === 'white') {
-        currentPlayerElement.textContent = window.getTranslation('traitAuBlancs', 'White to move');
-    } else {
-        currentPlayerElement.textContent = window.getTranslation('traitAuxNoirs', 'Black to move');
-    }
+    const key = (currentPlayer === 'white') ? 'traitAuBlancs' : 'traitAuxNoirs';
+    const def = (currentPlayer === 'white') ? 'Trait aux Blancs' : 'Trait aux Noirs';
+    currentPlayerElement.textContent = window.getTranslation(key, def);
 };
 
-// Fonction pour mettre à jour le temps
+// 5. Fonction pour mettre à jour le temps
 window.updateTimeDisplay = function(whiteTime, blackTime) {
     const whiteTimeElement = document.getElementById('whiteTime');
     const blackTimeElement = document.getElementById('blackTime');
@@ -248,20 +243,41 @@ function formatTime(seconds) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-// Initialiser au chargement
+// 6. INITIALISATION ET SURVEILLANCE
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🌐 Langue chargée:', '<?php echo $lang; ?>');
-    console.log('🌐 Traductions disponibles:', Object.keys(window.translations));
-    
-    // Mettre à jour les labels par défaut (humain vs humain)
-    window.updatePlayerLabels();
-    
 
+    // Récupérer les paramètres de l'URL pour un affichage immédiat
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    const level = params.get('level');
+    const color = params.get('color');
+
+    // Mettre à jour immédiatement l'UI selon l'URL
+    if (mode === 'bot') {
+        const botColor = (color === 'white') ? 'black' : 'white';
+        window.updatePlayerLabels(true, botColor, level);
+    } else {
+        window.updatePlayerLabels(false);
+    }
+
+    // SURVEILLANCE : Synchronisation avec le moteur ChessGame quand il est prêt
+    const engineCheck = setInterval(() => {
+        if (window.chessGame && typeof window.chessGame.getBotStatus === 'function') {
+            const status = window.chessGame.getBotStatus();
+            if (status.active) {
+                window.updatePlayerLabels(true, status.color, status.level);
+            }
+            clearInterval(engineCheck);
+        }
+    }, 200);
+
+    // Arrêter la recherche après 5 secondes
+    setTimeout(() => clearInterval(engineCheck), 5000);
 });
 
-// Fonction pour changer de langue
+// 7. Fonction pour changer de langue
 window.changeLanguage = function(langCode) {
-    // Rediriger avec le nouveau paramètre de langue
     const url = new URL(window.location.href);
     url.searchParams.set('lang', langCode);
     window.location.href = url.toString();

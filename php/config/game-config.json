@@ -1,6 +1,6 @@
 {
     "app_name": "CharlyChess",
-    "version": "0.96",
+    "version": "0.97",
     "author": "Karlova",
     "author2": "von Vincseize",
     "default_theme": "classic",
@@ -47,7 +47,6 @@
             "Level": "Niveau",
             "bot_random_desc": "Bot : Coups aléatoires",
             "bot_ecmo_desc": "Bot : Échec, Capture, Menace, Optimisation",
-            "bot_ccto_desc": "Bot : Échec, Capture, Menace, Optimisation",
             "unknown": "Inconnu",
             "computer_player": "Bot",
             "human_player": "Humain",
