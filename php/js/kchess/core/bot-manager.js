@@ -1,250 +1,133 @@
 /**
- * BotManager - Gère l'initialisation, la configuration et le cycle de vie des bots
- * Supporte le mode debug dynamique via window.appConfig.debug.console_log
+ * BotManager - Gère le cycle de vie de l'IA
+ * Version 2.3.6 - Correction Flip/Vue Coordonnées
  */
 class BotManager {
     
-    // Propriétés statiques pour la configuration globale
     static consoleLog = true;
     static initialized = false;
 
-    /**
-     * Initialise le manager et charge la configuration
-     */
     static init() {
         this.loadConfig();
         this.initialized = true;
-        
-        if (this.consoleLog) {
-            console.log('🚀 [BotManager] Système initialisé (Mode Debug)');
-        } else {
-            console.info('🔇 [BotManager] Système initialisé (Mode Silencieux)');
-        }
+        this.log(`Système prêt`, null, 'success');
     }
 
-    /**
-     * Charge et convertit la configuration JSON
-     */
     static loadConfig() {
         try {
-            let configValue = true; // Valeur par défaut
-
-            // 1. Priorité au window.appConfig
-            if (window.appConfig && window.appConfig.debug) {
-                configValue = window.appConfig.debug.console_log;
-            } 
-            // 2. Repli sur la fonction utilitaire si existante
-            else if (typeof window.getConfig === 'function') {
-                configValue = window.getConfig('debug.console_log', true);
-            }
-
-            // Conversion stricte (gère les types String et Boolean)
-            if (configValue === "false" || configValue === false) {
-                this.consoleLog = false;
-            } else {
-                this.consoleLog = true;
-            }
-
-            return true;
-        } catch (error) {
-            console.error('❌ [BotManager] Erreur critique lors du chargement de la config:', error);
-            return false;
-        }
+            const config = window.appConfig?.debug?.console_log ?? true;
+            this.consoleLog = (config === true || config === "true");
+        } catch (e) { this.consoleLog = true; }
     }
 
-    /**
-     * Logger interne intelligent
-     */
     static log(message, data = null, type = 'log') {
         if (!this.consoleLog && type === 'log') return;
-        
-        const prefix = '🤖 [BotManager] ';
-        if (data) {
-            console[type](prefix + message, data);
-        } else {
-            console[type](prefix + message);
-        }
+        const icons = { log: '🤖', info: 'ℹ️', warn: '⚠️', error: '❌', success: '✅' };
+        const msg = `${icons[type] || '⚪'} [BotManager] ${message}`;
+        console[type === 'success' ? 'log' : type === 'warn' ? 'warn' : type === 'error' ? 'error' : 'log'](msg, data || "");
     }
 
-    // --- Méthodes d'instance ---
-
     constructor(chessGame) {
-        this.chessGame = chessGame;
+        this.chessGame = chessGame; 
         this.bot = null;
         this.botLevel = 0;
         this.botColor = 'black';
         this.isBotThinking = false;
-        this.moveCount = 0;
-        this.maxRetries = 3;
-        this.retryCount = 0;
-
-        BotManager.log('Gestionnaire instancié pour une nouvelle partie');
+        this.isActive = false;
+        this._moveTimeout = null;
+        this._setupGameStateHook();
     }
 
-    /**
-     * Configure le niveau du bot et sa couleur
-     */
-    setBotLevel(level, color = 'black') {
-        BotManager.loadConfig(); // Rafraîchissement de la config avant action
-        
-        const newLevel = parseInt(level);
-        BotManager.log(`Configuration : Niveau ${newLevel}, Couleur ${color}`);
-
-        this.botLevel = newLevel;
-        this.botColor = color;
-        this.moveCount = 0;
-        this.retryCount = 0;
-        this.bot = null;
-
-        if (newLevel === 0) {
-            BotManager.log('Bot désactivé', null, 'info');
-        } else {
-            this._instantiateBot(newLevel);
+    _setupGameStateHook() {
+        const state = this.chessGame?.gameState || window.chessGame?.gameState;
+        if (!state) {
+            setTimeout(() => this._setupGameStateHook(), 100);
+            return;
         }
 
-        // Si c'est au bot de jouer immédiatement
-        this._triggerDelayedMove();
-        
-        return this.bot;
+        const originalSwitch = state.switchPlayer.bind(state);
+        state.switchPlayer = () => {
+            originalSwitch();
+            if (this.isBotTurn()) this._triggerDelayedMove();
+        };
     }
 
-    /**
-     * Instanciation dynamique selon le niveau
-     */
+    setBotLevel(level, color = 'black') {
+        this.botLevel = parseInt(level);
+        this.botColor = color;
+        this.isActive = (this.botLevel > 0);
+
+        if (this.isActive) {
+            this._instantiateBot(this.botLevel);
+        } else {
+            this.bot = null;
+        }
+
+        if (this.isBotTurn()) this._triggerDelayedMove();
+    }
+
     _instantiateBot(level) {
         const botClassName = `Level_${level}`;
-        if (window[botClassName]) {
+        if (typeof window[botClassName] === 'function') {
             this.bot = new window[botClassName]();
-            BotManager.log(`Bot ${botClassName} activé (${this.bot.name})`, null, 'info');
+            BotManager.log(`${botClassName} activé (${this.botColor})`, null, 'success');
         } else {
-            BotManager.log(`Classe ${botClassName} introuvable !`, null, 'error');
+            BotManager.log(`Classe ${botClassName} manquante !`, null, 'error');
+            this.isActive = false;
         }
     }
 
-    /**
-     * Vérifie si les conditions sont réunies pour que le bot joue
-     */
     isBotTurn() {
-        try {
-            if (!this.chessGame?.gameState || !this.bot || this.botLevel === 0) return false;
-            
-            const state = this.chessGame.gameState;
-            const isTurn = state.gameActive && 
-                           state.currentPlayer === this.botColor && 
-                           !this.isBotThinking;
-
-            return isTurn;
-        } catch (e) {
-            return false;
-        }
+        const state = this.chessGame?.gameState || window.chessGame?.gameState;
+        if (!state || !this.bot || !this.isActive) return false;
+        return state.gameActive && state.currentPlayer === this.botColor && !this.isBotThinking;
     }
 
-    /**
-     * Logique principale d'exécution du coup
-     */
     async playBotMove() {
+        // Accès robuste au core
+        const core = this.chessGame?.core || this.chessGame || window.chessGame?.core;
+        
         if (!this.isBotTurn() || this.isBotThinking) return;
 
         this.isBotThinking = true;
-        BotManager.log(`Réflexion en cours (Coup n°${this.moveCount + 1})...`);
-
+        BotManager.log("L'IA réfléchit...");
+        
         try {
-            // Simulation d'un temps de réflexion humain (50ms - 250ms)
-            await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 200));
+            await new Promise(r => setTimeout(r, 600));
 
-            // Vérification de sécurité après le délai
-            if (this.chessGame.gameState.currentPlayer !== this.botColor) {
-                throw new Error("Le tour a changé pendant la réflexion");
-            }
+            let currentFEN = "";
+            const gen = window.FENGenerator;
+            if (gen) currentFEN = gen.generate(core.board, core.gameState);
 
-            // 1. Génération du FEN via l'utilitaire global
-            const currentFEN = FENGenerator.generateFEN(this.chessGame.gameState, this.chessGame.board);
-            
-            // 2. Calcul du coup par le Bot
             const botMove = this.bot.getMove(currentFEN);
 
-            if (!botMove) {
-                this._handleMoveFailure("Aucun coup trouvé par l'IA");
-                return;
+            if (botMove) {
+                BotManager.log(`Coup décidé : ${this._getNotation(botMove)}`, null, 'success');
+                
+                // IMPORTANT : On passe true pour 'isDirect' pour ignorer le Flip
+                core.handleSquareClick(botMove.fromRow, botMove.fromCol, true);
+                
+                await new Promise(r => setTimeout(r, 300));
+                
+                core.handleSquareClick(botMove.toRow, botMove.toCol, true);
             }
-
-            // 3. Exécution du coup sur le moteur de jeu
-            const success = this.chessGame.handleMove(
-                botMove.fromRow, botMove.fromCol, 
-                botMove.toRow, botMove.toCol
-            );
-
-            if (success) {
-                this.moveCount++;
-                this.retryCount = 0;
-                BotManager.log(`Coup réussi : ${this._getNotation(botMove)}`);
-            } else {
-                this._handleMoveFailure("Le moteur de jeu a refusé le coup");
-            }
-
         } catch (error) {
-            BotManager.log(`Erreur playBotMove: ${error.message}`, null, 'error');
+            BotManager.log(`Erreur : ${error.message}`, error, 'error');
         } finally {
             this.isBotThinking = false;
         }
     }
 
-    _handleMoveFailure(reason) {
-        this.retryCount++;
-        BotManager.log(`Échec : ${reason} (Tentative ${this.retryCount}/${this.maxRetries})`, null, 'warn');
-        
-        if (this.retryCount < this.maxRetries) {
-            setTimeout(() => this.playBotMove(), 200);
-        }
-    }
-
     _triggerDelayedMove() {
-        setTimeout(() => {
-            if (this.isBotTurn()) this.playBotMove();
-        }, 600);
+        if (this._moveTimeout) clearTimeout(this._moveTimeout);
+        this._moveTimeout = setTimeout(() => this.playBotMove(), 500);
     }
 
     _getNotation(move) {
         const files = 'abcdefgh';
-        const rows = '87654321';
-        return `${files[move.fromCol]}${rows[move.fromRow]} ⮕ ${files[move.toCol]}${rows[move.toRow]}`;
-    }
-
-    /**
-     * Méthodes de contrôle public
-     */
-    setBotColor(color) {
-        this.botColor = color;
-        BotManager.log(`Nouvelle couleur assignée: ${color}`, null, 'info');
-        this._triggerDelayedMove();
-    }
-
-    getStatus() {
-        return {
-            level: this.botLevel,
-            color: this.botColor,
-            thinking: this.isBotThinking,
-            moveCount: this.moveCount,
-            active: this.botLevel > 0 && !!this.bot
-        };
+        return `${files[move.fromCol]}${8 - move.fromRow} ➔ ${files[move.toCol]}${8 - move.toRow}`;
     }
 }
 
-// Initialisation au chargement du script
 BotManager.init();
-
-// Exportation globale
 window.BotManager = BotManager;
-
-// Utilitaires de Debug Console
-window.BotUtils = {
-    test: () => {
-        BotManager.loadConfig();
-        console.table({
-            "Mode Debug": BotManager.consoleLog ? "✅ ON" : "🔇 OFF",
-            "Config Source": window.appConfig ? "JSON window.appConfig" : "Default/Fallbacks",
-            "Version": "2.1.0 (Logger-Centralized)"
-        });
-    },
-    forceReload: () => BotManager.loadConfig()
-};

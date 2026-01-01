@@ -8,7 +8,7 @@ $version = getVersion();
 <head>
     <meta charset="UTF-8">
     <title>🧪 Stress Test Bot L1</title>
-    <link rel="stylesheet" href="stress-test.css?v=<?php echo $version; ?>">
+    <link rel="stylesheet" href="css/stress-test.css?v=<?php echo $version; ?>">
     <style>
         .config-group { margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px; }
         .config-group label { display: block; font-size: 11px; color: #8b949e; margin-bottom: 5px; text-transform: uppercase; }
@@ -73,7 +73,7 @@ $version = getVersion();
                 <span id="errors" class="stat-value" style="color: #f85149">0</span>
             </div>
 
-            <button id="startBtn" class="btn-test">DÉMARRER LA SESSION</button>
+            <button id="startBtn" class="btn-test">START unitTests</button>
         </div>
     </div>
 
@@ -84,6 +84,6 @@ $version = getVersion();
     echo str_replace('src="js/', 'src="../../../../js/', $engineScripts);
     ?>
 
-    <script src="stress-test-bot-l1.js?v=<?php echo $version; ?>"></script>
+    <script src="js/stress-test-bot-l1.js?v=<?php echo $version; ?>"></script>
 </body>
 </html>

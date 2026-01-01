@@ -9,7 +9,7 @@ class ChessGameMoveHandler {
     
     static init() {
         this.loadConfig();
-        if (this.consoleLog) console.log('🎮 ChessGameMoveHandler: Système de contrôle prêt');
+        if (this.consoleLog) console.log('🎮 ChessGameMoveHandler: Système prêt');
     }
     
     static loadConfig() {
@@ -22,35 +22,42 @@ class ChessGameMoveHandler {
 
     constructor(game) {
         this.game = game;
-        this.isPromoting = false; // Bloque les clics pendant le choix de la pièce
+        this.isPromoting = false; 
         
-        // Modules délégués
+        // Initialisation de l'exécuteur
         this.moveExecutor = new MoveExecutor(game);
         
-        // Modules optionnels avec fallback
+        // Modules optionnels
         this.moveStateManager = (typeof MoveStateManager !== 'undefined') ? new MoveStateManager(game) : null;
-        this.validatorInterface = (typeof ValidatorInterface !== 'undefined') ? new ValidatorInterface(game) : null;
-
-        if (this.constructor.consoleLog) {
-            console.log('🔧 MoveHandler initialisé (Modules: Executor, State, Interface)');
-        }
     }
 
     // ========== GESTION DES CLICS ==========
 
-    handleSquareClick(displayRow, displayCol) {
+    /**
+     * @param {number} displayRow 
+     * @param {number} displayCol 
+     * @param {boolean} isDirect - true si coordonnée logique (Bot), false si coordonnée visuelle (Humain)
+     */
+    handleSquareClick(displayRow, displayCol, isDirect = false) {
         if (!this.validateGameState()) return;
         
-        const { actualRow, actualCol, square } = this.getActualSquare(displayRow, displayCol);
+        // On récupère les coordonnées réelles en tenant compte du paramètre isDirect
+        const { actualRow, actualCol, square } = this.getActualSquare(displayRow, displayCol, isDirect);
+        
         if (!square) return;
 
         if (this.constructor.consoleLog) {
-            console.group(`🎯 Clic sur [${actualRow}, ${actualCol}]`);
+            console.group(`🎯 Clic [${actualRow}, ${actualCol}] (Origine: ${isDirect ? 'IA' : 'Humain'})`);
         }
 
-        if (this.game.selectedPiece) {
+        const selectedPiece = this.game.selectedPiece;
+
+        // Logique à deux états :
+        if (selectedPiece) {
+            // État 2 : Une pièce est déjà sélectionnée, on tente un mouvement ou une autre sélection
             this.handleMovementPhase(actualRow, actualCol, square);
         } else {
+            // État 1 : Rien n'est sélectionné, on cherche une pièce alliée
             this.handleSelectionPhase(actualRow, actualCol, square);
         }
 
@@ -59,22 +66,23 @@ class ChessGameMoveHandler {
 
     handleSelectionPhase(row, col, square) {
         const piece = square.piece;
+        const currentPlayer = this.game.gameState.currentPlayer;
         
-        // On ne peut sélectionner que ses propres pièces
-        if (piece && piece.color === this.game.gameState.currentPlayer) {
-            if (this.constructor.consoleLog) console.log(`✅ Sélection : ${piece.type}`);
+        // Sécurité : Vérifier que c'est bien une pièce de la couleur du tour
+        if (piece && piece.color === currentPlayer) {
+            if (this.constructor.consoleLog) console.log(`✅ Sélection : ${piece.color} ${piece.type}`);
             
-            // On délègue au state manager le stockage et l'affichage des points de mouvement
             if (this.moveStateManager) {
                 this.moveStateManager.handlePieceSelection(row, col, square);
             }
         } else {
             if (this.constructor.consoleLog) console.log("🚫 Case vide ou pièce adverse");
+            this.clearSelection();
         }
     }
 
     handleMovementPhase(row, col, square) {
-        const { selectedPiece } = this.game;
+        const selectedPiece = this.game.selectedPiece;
 
         // 1. Désélection si clic sur la même case
         if (selectedPiece.row === row && selectedPiece.col === col) {
@@ -82,20 +90,21 @@ class ChessGameMoveHandler {
             return;
         }
 
-        // 2. Changement de pièce (clic sur une autre pièce alliée)
+        // 2. Changement de sélection (clic sur une autre pièce de la même couleur)
         if (square.piece && square.piece.color === this.game.gameState.currentPlayer) {
+            if (this.constructor.consoleLog) console.log("🔄 Changement de pièce sélectionnée");
             this.handleSelectionPhase(row, col, square);
             return;
         }
 
-        // 3. Vérification de la légalité du coup
-        // On vérifie dans la liste des mouvements possibles pré-calculés
+        // 3. Tentative de mouvement
+        // On vérifie si les coordonnées (row, col) sont présentes dans les coups possibles
         const isPossible = this.game.possibleMoves?.some(m => m.row === row && m.col === col);
         
         if (isPossible) {
             this.executeMove(row, col);
         } else {
-            if (this.constructor.consoleLog) console.log("❌ Coup illégal ou non autorisé");
+            if (this.constructor.consoleLog) console.log("❌ Mouvement non autorisé");
             this.clearSelection();
         }
     }
@@ -103,42 +112,66 @@ class ChessGameMoveHandler {
     // ========== EXÉCUTION ==========
 
     executeMove(toRow, toCol) {
-        // Le MoveExecutor prépare les données (fromSquare, toSquare, type de coup)
         const moveData = this.moveExecutor.prepareMoveExecution(toRow, toCol);
-        if (!moveData) return;
+        
+        if (moveData) {
+            this.isPromoting = true; 
 
-        const { fromSquare, toSquare, selectedPiece, move } = moveData;
-
-        // Le MoveExecutor gère maintenant l'aiguillage entre :
-        // - Coup normal
-        // - Capture
-        // - Roque
-        // - En passant
-        // - Promotion
-        this.moveExecutor.executeNormalMove(fromSquare, toSquare, selectedPiece, move, toRow, toCol);
+            try {
+                this.moveExecutor.executeNormalMove(
+                    moveData.fromSquare, 
+                    moveData.toSquare, 
+                    moveData.selectedPiece, 
+                    moveData.move, 
+                    toRow, 
+                    toCol
+                );
+            } finally {
+                if (!moveData.move?.isPromotion) {
+                    this.isPromoting = false;
+                }
+            }
+        }
     }
 
     // ========== UTILITAIRES ==========
 
     validateGameState() {
-        // Empêche de jouer si mat, pat ou promotion en cours
-        if (!this.game.gameState.gameActive) return false;
-        if (this.isPromoting) return false;
+        if (!this.game.gameState?.gameActive) return false;
+        if (this.isPromoting) {
+            if (this.constructor.consoleLog) console.warn("⏳ Action bloquée : Promotion en cours");
+            return false;
+        }
         return true;
     }
 
-    getActualSquare(displayRow, displayCol) {
-        // Gère l'inversion du plateau (vue noire vs vue blanche)
-        const coords = this.game.board.getActualCoordinates(displayRow, displayCol);
-        const square = this.game.board.getSquare(coords.actualRow, coords.actualCol);
-        return { ...coords, square };
+    /**
+     * Calcule les coordonnées réelles en fonction du Flip
+     * @param {number} displayRow
+     * @param {number} displayCol
+     * @param {boolean} isDirect - Si true, on ignore l'inversion car le bot donne déjà la bonne coordonnée
+     */
+    getActualSquare(displayRow, displayCol, isDirect = false) {
+        let actualRow = displayRow;
+        let actualCol = displayCol;
+
+        // Si c'est un humain (!isDirect) et que le plateau est inversé, on transforme
+        if (!isDirect && this.game.gameState.boardFlipped) {
+            actualRow = 7 - displayRow;
+            actualCol = 7 - displayCol;
+            if (this.constructor.consoleLog) {
+                console.log(`🔄 Conversion Vue -> Logique: [${displayRow},${displayCol}] vers [${actualRow},${actualCol}]`);
+            }
+        }
+
+        const square = this.game.board.getSquare(actualRow, actualCol);
+        return { actualRow, actualCol, square };
     }
 
     clearSelection() {
-        if (this.constructor.consoleLog) console.log("🧹 Clear");
-        this.game.clearSelection(); // Nettoyage visuel (points bleus, etc.)
-        if (this.moveStateManager) {
-            this.moveStateManager.clearSelection(); // Nettoyage logique
+        this.game.clearSelection?.(); 
+        if (this.moveStateManager?.clearSelection) {
+            this.moveStateManager.clearSelection();
         }
     }
 }

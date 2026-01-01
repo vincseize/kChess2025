@@ -8,13 +8,14 @@ class PromotionManager {
 
     static init() {
         this.loadConfig();
-        if (this.consoleLog) console.log('👑 PromotionManager : Prêt pour le couronnement');
+        if (this.consoleLog) console.log('👑 PromotionManager : Prêt');
     }
 
     static loadConfig() {
         try {
-            if (window.appConfig?.chess_engine) {
-                this.consoleLog = window.appConfig.chess_engine.console_log ?? true;
+            const config = window.appConfig?.chess_engine || window.appConfig?.debug;
+            if (config?.console_log !== undefined) {
+                this.consoleLog = String(config.console_log).toLowerCase() !== "false";
             }
         } catch (e) { this.consoleLog = true; }
     }
@@ -25,62 +26,50 @@ class PromotionManager {
     }
 
     /**
-     * Détecte si un mouvement de pion déclenche une promotion.
-     * Logique : Rang 0 pour Blancs, Rang 7 pour Noirs (en coordonnées 0-indexed).
+     * Vérifie si la destination déclenche une promotion
      */
-    checkPromotion(move, piece) {
+    checkPromotion(targetRow, piece) {
         if (!piece || piece.type !== 'pawn') return false;
-        
-        const isPromotion = (piece.color === 'white' && move.row === 0) || 
-                            (piece.color === 'black' && move.row === 7);
-        
-        if (isPromotion && this.constructor.consoleLog) {
-            console.log(`🎉 Promotion détectée pour ${piece.color} en [${move.row},${move.col}]`);
-        }
-        return isPromotion;
+        return (piece.color === 'white' && targetRow === 0) || 
+               (piece.color === 'black' && targetRow === 7);
     }
 
     /**
-     * Gère le cycle de vie de la promotion : Bloquer UI -> Afficher Modal -> Callback -> Débloquer UI
+     * Cycle de promotion asynchrone
      */
-    handlePromotion(row, col, color, callback) {
-        // 1. Verrouiller le MoveHandler pour empêcher d'autres clics sur le plateau
-        if (this.game.moveHandler) {
-            this.game.moveHandler.isPromoting = true;
-        }
-        
-        // 2. Ouvrir l'interface de choix
-        this.showPromotionModal(color, (selectedPiece) => {
-            // 3. Déverrouiller le MoveHandler
-            if (this.game.moveHandler) {
-                this.game.moveHandler.isPromoting = false;
-            }
-            
-            if (selectedPiece) {
-                this.promotionHistory[selectedPiece]++;
-                if (this.constructor.consoleLog) console.log(`👑 Choix validé : ${selectedPiece}`);
-                callback(selectedPiece);
-            } else {
-                // Si l'utilisateur a fermé la modal sans choisir, on annule le mouvement
-                if (this.constructor.consoleLog) console.log("🔄 Promotion annulée par l'utilisateur");
-                callback(null);
-            }
+    async askPromotionPiece(color) {
+        if (this.game.moveHandler) this.game.moveHandler.isPromoting = true;
+
+        // On transforme la modal en Promesse pour une utilisation propre avec await
+        return new Promise((resolve) => {
+            this.showPromotionModal(color, (selectedPiece) => {
+                if (this.game.moveHandler) this.game.moveHandler.isPromoting = false;
+                
+                if (selectedPiece) {
+                    this.promotionHistory[selectedPiece]++;
+                    resolve(selectedPiece);
+                } else {
+                    // Si annulé, on retourne 'null' pour que le MoveExecutor annule le coup
+                    resolve(null);
+                }
+            });
         });
     }
 
-    /**
-     * Crée et injecte la modal de promotion dans le DOM
-     */
     showPromotionModal(color, callback) {
+        // Suppression d'une éventuelle modal résiduelle
+        const oldModal = document.querySelector('.promotion-modal');
+        if (oldModal) oldModal.remove();
+
         const modal = document.createElement('div');
         modal.className = 'promotion-modal';
         
-        // Utilisation de backticks pour un template HTML propre
         modal.innerHTML = `
             <div class="promotion-overlay">
                 <div class="promotion-content">
-                    <h4><i class="bi bi-stars"></i> Promotion</h4>
-                    <p>Choisissez votre nouvelle pièce :</p>
+                    <div class="promotion-header">
+                        <h4><i class="bi bi-stars"></i> Promotion</h4>
+                    </div>
                     <div class="promotion-options">
                         ${['queen', 'rook', 'bishop', 'knight'].map(p => `
                             <div class="promotion-option" data-piece="${p}">
@@ -89,57 +78,61 @@ class PromotionManager {
                             </div>
                         `).join('')}
                     </div>
+                    <div class="promotion-footer">
+                        <small>Appuyez sur Échap pour annuler le mouvement</small>
+                    </div>
                 </div>
             </div>
         `;
 
         document.body.appendChild(modal);
 
-        // --- Gestion des événements ---
-
-        // Sélection d'une pièce
-        modal.querySelectorAll('.promotion-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const piece = option.getAttribute('data-piece');
-                modal.remove();
-                callback(piece);
-            });
-        });
-
-        // Fermeture par clic extérieur (Annulation)
-        modal.querySelector('.promotion-overlay').addEventListener('click', (e) => {
-            if (e.target.classList.contains('promotion-overlay')) {
-                modal.remove();
-                callback(null);
-            }
-        });
-
-        // Touche Echap pour annuler
-        const handleEsc = (e) => {
-            if (e.key === 'Escape') {
-                document.removeEventListener('keydown', handleEsc);
-                modal.remove();
-                callback(null);
-            }
+        // --- Événements ---
+        const closeModal = (result) => {
+            document.removeEventListener('keydown', handleEsc);
+            modal.remove();
+            callback(result);
         };
+
+        modal.querySelectorAll('.promotion-option').forEach(opt => {
+            opt.onclick = () => closeModal(opt.dataset.piece);
+        });
+
+        const handleEsc = (e) => { if (e.key === 'Escape') closeModal(null); };
         document.addEventListener('keydown', handleEsc);
+
+        modal.querySelector('.promotion-overlay').onclick = (e) => {
+            if (e.target.classList.contains('promotion-overlay')) closeModal(null);
+        };
     }
 
-    // ========== UTILITAIRES ==========
+    // ========== LOGIQUE PHYSIQUE (Appelée par MoveExecutor) ==========
+
+    promotePawn(square, newType) {
+        if (!square || !square.piece) return;
+        
+        const piece = square.piece;
+        piece.type = newType;
+        
+        // Mise à jour visuelle immédiate de la pièce sur le plateau
+        if (this.game.board && typeof this.game.board.placePiece === 'function') {
+            this.game.board.placePiece(piece, square);
+        }
+
+        if (PromotionManager.consoleLog) {
+            console.log(`✨ Pion promu en ${newType} sur ${square.row}:${square.col}`);
+        }
+    }
 
     getPieceLetter(type) {
-        const letters = { queen: 'Q', rook: 'R', bishop: 'B', knight: 'N' };
-        return letters[type] || 'Q';
+        return { queen: 'Q', rook: 'R', bishop: 'B', knight: 'N' }[type] || 'Q';
     }
 
     getPieceNameFr(type) {
-        const names = { queen: 'Dame', rook: 'Tour', bishop: 'Fou', knight: 'Cavalier' };
-        return names[type] || type;
+        return { queen: 'Dame', rook: 'Tour', bishop: 'Fou', knight: 'Cavalier' }[type] || type;
     }
 }
 
 PromotionManager.init();
 window.PromotionManager = PromotionManager;
-
 }

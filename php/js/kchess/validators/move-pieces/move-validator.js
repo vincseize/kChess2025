@@ -1,8 +1,6 @@
-// validators/move-pieces/move-validator.js
-if (typeof MoveValidator !== 'undefined') {
-    console.warn('⚠️ MoveValidator existe déjà. Vérifiez les doublons dans les imports.');
-} else {
-
+/**
+ * validators/move-pieces/move-validator.js
+ */
 class MoveValidator {
     
     static consoleLog = true; 
@@ -10,7 +8,7 @@ class MoveValidator {
     static init() {
         this.loadConfig();
         if (this.consoleLog) {
-            console.log('✅ MoveValidator (Master) : Système de coordination prêt');
+            console.log('✅ MoveValidator (Master) : Système prêt');
         }
     }
     
@@ -25,30 +23,23 @@ class MoveValidator {
     constructor(board, gameState) {
         this.board = board;
         this.gameState = gameState;
-        this.enPassantTarget = null;
         
-        // --- PONT DE COMPATIBILITÉ BOARD ---
-        if (this.board && !this.board.getPiece) {
+        // Pont de compatibilité Board (sécurisation)
+        if (this.board && typeof this.board.getPiece !== 'function') {
             this.board.getPiece = (r, c) => {
                 if (typeof this.board.getSquare === 'function') {
                     const square = this.board.getSquare(r, c);
                     return square ? square.piece : null;
                 }
-                return (this.board[r] && this.board[r][c]) ? this.board[r][c] : null;
+                return (this.board.grid && this.board.grid[r]) ? this.board.grid[r][c] : null;
             };
         }
 
         this.initializePieceValidators();
-        
-        if (this.constructor.consoleLog) {
-            console.log('🔧 Master MoveValidator initialisé (Architecture modulaire)');
-        }
     }
 
-    /**
-     * Instancie les validateurs spécifiques
-     */
     initializePieceValidators() {
+        // On s'assure que les dépendances sont passées aux sous-validateurs
         const params = [this.board, this.gameState];
         
         this.pieceValidators = {
@@ -60,120 +51,85 @@ class MoveValidator {
             'king':   typeof KingMoveValidator !== 'undefined'   ? new KingMoveValidator(...params)   : null
         };
 
-        if (this.constructor.consoleLog) {
-            const active = Object.keys(this.pieceValidators).filter(k => this.pieceValidators[k]);
-            const missing = Object.keys(this.pieceValidators).filter(k => !this.pieceValidators[k]);
-            console.log(`📦 Validateurs chargés: ${active.join(', ')}`);
-            if (missing.length > 0) console.warn(`⚠️ Validateurs manquants: ${missing.join(', ')}`);
+        // Log d'avertissement si un validateur est manquant
+        if (MoveValidator.consoleLog) {
+            Object.keys(this.pieceValidators).forEach(type => {
+                if (!this.pieceValidators[type]) {
+                    console.warn(`⚠️ MoveValidator: Sous-validateur [${type}] manquant.`);
+                }
+            });
         }
     }
 
     /**
-     * Point d'entrée principal pour l'UI
-     * Récupère TOUS les coups valides pour une pièce donnée
+     * Point d'entrée principal pour récupérer les coups
      */
     getPossibleMoves(piece, fromRow, fromCol) {
-        // Sécurité si l'objet pièce n'est pas passé
         if (!piece || !piece.type) {
             piece = this.board.getPiece(fromRow, fromCol);
         }
-
-        if (!piece || !piece.type) return [];
+        if (!piece) return [];
 
         const validator = this.pieceValidators[piece.type];
         if (!validator) {
-            console.error(`❌ Aucun validateur trouvé pour le type: ${piece.type}`);
+            console.warn(`❌ Aucun validateur pour le type: ${piece.type}`);
             return [];
         }
         
-        // Délégation au validateur spécifique
         return validator.getPossibleMoves(piece, fromRow, fromCol);
     }
 
     /**
-     * Vérifie si le roi d'une couleur donnée est actuellement attaqué
+     * Vérifie si le roi est en échec
      */
     isKingInCheck(color) {
-        // 1. Localiser le roi sur le plateau
-        let kingPos = null;
+        try {
+            if (typeof ChessEngine !== 'undefined') {
+                const fen = this.generateCurrentFEN(color);
+                const engine = new ChessEngine(fen);
+                return engine.isKingInCheck(color === 'white' ? 'w' : 'b');
+            }
+            // Fallback si ChessEngine n'est pas là
+            return false;
+        } catch (e) {
+            console.error("❌ Erreur isKingInCheck:", e);
+            return false;
+        }
+    }
+
+    /**
+     * Génère une FEN simplifiée pour les calculs internes
+     */
+    generateCurrentFEN(activeColor) {
+        let rows = [];
+        const typeMap = { 'pawn': 'p', 'knight': 'n', 'bishop': 'b', 'rook': 'r', 'queen': 'q', 'king': 'k' };
+
         for (let r = 0; r < 8; r++) {
+            let rowStr = "", empty = 0;
             for (let c = 0; c < 8; c++) {
                 const p = this.board.getPiece(r, c);
-                if (p && p.type === 'king' && p.color === color) {
-                    kingPos = { r, c };
-                    break;
+                if (!p) empty++;
+                else {
+                    if (empty > 0) { rowStr += empty; empty = 0; }
+                    let char = typeMap[p.type] || 'p';
+                    rowStr += p.color === 'white' ? char.toUpperCase() : char.toLowerCase();
                 }
             }
-            if (kingPos) break;
+            if (empty > 0) rowStr += empty;
+            rows.push(rowStr);
         }
-
-        if (!kingPos) return false;
-
-        // 2. Vérifier si une pièce adverse peut capturer sur cette case
-        const opponentColor = (color === 'white') ? 'black' : 'white';
-        for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 8; c++) {
-                const p = this.board.getPiece(r, c);
-                if (p && p.color === opponentColor) {
-                    const validator = this.pieceValidators[p.type];
-                    if (validator) {
-                        // On vérifie les coups possibles de l'adversaire
-                        const moves = validator.getPossibleMoves(p, r, c);
-                        if (moves.some(m => m.row === kingPos.r && m.col === kingPos.c)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
+        const turn = activeColor === 'white' ? 'w' : 'b';
+        return `${rows.join('/')} ${turn} - - 0 1`;
     }
 
-    /**
-     * Met à jour la cible "En Passant" après un double pas de pion
-     */
-    updateEnPassantTarget(move, piece) {
-        if (piece?.type === 'pawn' && move.isDoublePush) {
-            const direction = piece.color === 'white' ? 1 : -1;
-            this.enPassantTarget = {
-                row: move.row + direction, 
-                col: move.col
-            };
-            if (this.constructor.consoleLog) console.log("♟️ Cible En Passant active en:", this.enPassantTarget);
-        } else {
-            this.enPassantTarget = null;
-        }
-    }
-
-    /**
-     * Logique de nettoyage pour la capture en passant
-     */
-    executeEnPassant(move) {
-        if (move.type === 'en-passant') {
-            const capRow = move.capturedPawn?.row;
-            const capCol = move.capturedPawn?.col;
-            
-            if (capRow !== undefined && capCol !== undefined) {
-                const square = this.board.getSquare ? this.board.getSquare(capRow, capCol) : null;
-                if (square) {
-                    square.piece = null;
-                    if (square.element) square.element.innerHTML = '';
-                    if (this.constructor.consoleLog) console.log(`🔪 Capture En Passant en [${capRow},${capCol}]`);
-                }
-            }
-        }
-    }
-
-    /**
-     * Méthode utilitaire rapide pour l'UI (booléen)
-     */
     isMoveValid(piece, fromRow, fromCol, toRow, toCol) {
         const moves = this.getPossibleMoves(piece, fromRow, fromCol);
         return moves.some(m => m.row === toRow && m.col === toCol);
     }
 }
 
-MoveValidator.init();
+// Exposition immédiate et globale
 window.MoveValidator = MoveValidator;
 
-}
+// Initialisation statique
+MoveValidator.init();

@@ -77,9 +77,31 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
       📄 bot-test-interface.js
       📁 unitTests
         📄 BotL1_vs_BotL1.php
+        📁 css
+          📄 stress-test.css
+        📁 img
+          📁 chesspieces
+            📁 wikipedia
+              📄 bB.png
+              📄 bK.png
+              📄 bN.png
+              📄 bP.png
+              📄 bQ.png
+              📄 bR.png
+              📄 wB.png
+              📄 wK.png
+              📄 wN.png
+              📄 wP.png
+              📄 wQ.png
+              📄 wR.png
+          📄 favicon.png
+          📄 icon-192x192.png
+          📄 icon-512x512.png
+        📁 js
+          📄 stress-test-bot-l1.js
         📄 log_error.php
-        📄 stress-test-bot-l1.js
-        📄 stress-test.css
+        📁 results
+          📄 test_results_2025-12-31_14-28-20.json
     📁 check
       📄 checkChess.js
       📄 checkChessMat.js

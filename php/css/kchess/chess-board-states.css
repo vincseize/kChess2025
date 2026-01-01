@@ -124,6 +124,24 @@
     animation: pulse-check 1.5s infinite alternate;
 }
 
+/* --- DERNIER COUP JOUE (Highlight Source et Destination) --- */
+
+/* La case de départ (souvent un jaune très léger) */
+#chessBoard .chess-square.last-move-source {
+    background-color: rgba(245, 246, 130, 0.4) !important;
+}
+
+/* La case d'arrivée (un jaune plus visible) */
+#chessBoard .chess-square.last-move-dest {
+    background-color: rgba(245, 246, 130, 0.7) !important;
+}
+
+/* Optionnel : Si tu veux que la case d'arrivée ait une petite bordure discrète */
+#chessBoard .chess-square.last-move-dest {
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+
 /* Animation pulsante pour l'échec */
 @keyframes pulse-check {
     from {

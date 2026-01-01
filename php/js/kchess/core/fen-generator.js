@@ -23,7 +23,8 @@ class FENGenerator {
     static loadConfig() {
         try {
             if (window.appConfig?.debug) {
-                this.consoleLog = window.appConfig.debug.console_log ?? true;
+                const val = window.appConfig.debug.console_log;
+                this.consoleLog = (val === "true" || val === true);
             } else if (typeof window.getConfig === 'function') {
                 this.consoleLog = window.getConfig('debug.console_log') ?? true;
             }
@@ -34,16 +35,17 @@ class FENGenerator {
 
     /**
      * MÉTHODE PRINCIPALE : Génère la FEN complète
+     * Note: Ordre des paramètres (board, gameState) pour correspondre à l'appel dans ChessGame.js
+     * @param {Object} board - Le plateau (contenant les cases et pièces)
      * @param {Object} gameState - État actuel (tour, roques, en passant)
-     * @param {Object} board - Le plateau (UI ou Logique)
      */
-    static generateFEN(gameState, board) {
+    static generate(board, gameState) {
         if (!gameState || !board) {
-            console.error('❌ [FENGenerator] Paramètres manquants pour générer la FEN');
-            return null;
+            console.error('❌ [FENGenerator] Paramètres manquants (board ou gameState) pour générer la FEN');
+            return '8/8/8/8/8/8/8/8 w - - 0 1';
         }
 
-        if (this.consoleLog) console.group('📄 [FENGenerator] Génération');
+        if (this.consoleLog) console.groupCollapsed('📄 [FENGenerator] Génération');
 
         try {
             // 1. Position des pièces (Le plateau)
@@ -52,29 +54,29 @@ class FENGenerator {
             // 2. Trait au joueur (w/b)
             const currentPlayer = gameState.currentPlayer === 'white' ? 'w' : 'b';
             
-            // 3. Droits de roque
+            // 3. Droits de roque (KQkq)
             const castlingRights = this.generateCastlingRights(gameState, board);
             
-            // 4. Case en passant
+            // 4. Case en passant (ex: e3 ou -)
             const enPassant = gameState.enPassantTarget || '-';
             
-            // 5. Horloges (50 coups et numéro de tour)
+            // 5. Horloges (50 coups et numéro de tour complet)
             const halfMoves = gameState.halfMoveClock ?? 0;
             const fullMoves = Math.floor((gameState.moveHistory?.length || 0) / 2) + 1;
             
             const fen = `${boardPart} ${currentPlayer} ${castlingRights} ${enPassant} ${halfMoves} ${fullMoves}`;
             
             if (this.consoleLog) {
-                console.log(`✅ FEN: ${fen}`);
+                console.log(`✅ FEN générée : ${fen}`);
                 this.validateFEN(fen);
                 console.groupEnd();
             }
             
             return fen;
         } catch (error) {
-            console.error('❌ [FENGenerator] Erreur critique:', error);
-            console.groupEnd();
-            return '8/8/8/8/8/8/8/8 w - - 0 1'; // FEN de secours (vide)
+            console.error('❌ [FENGenerator] Erreur critique lors de la génération:', error);
+            if (this.consoleLog) console.groupEnd();
+            return '8/8/8/8/8/8/8/8 w - - 0 1'; // FEN de secours
         }
     }
 
@@ -89,7 +91,7 @@ class FENGenerator {
             let emptyCount = 0;
             
             for (let col = 0; col < 8; col++) {
-                // PONT DE COMPATIBILITÉ : On gère board.getSquare(r,c) et board.grid[r][c]
+                // Compatibilité : on cherche dans getSquare ou directement dans une grid
                 let square = null;
                 if (typeof board.getSquare === 'function') {
                     square = board.getSquare(row, col);
@@ -97,7 +99,7 @@ class FENGenerator {
                     square = board.grid[row][col];
                 }
 
-                // Récupération de la pièce (qu'elle soit dans .piece ou directe)
+                // Récupération de la pièce
                 const piece = square?.piece || (square?.type ? square : null);
 
                 if (!piece) {
@@ -117,9 +119,8 @@ class FENGenerator {
         
         const finalBoard = fenRows.join('/');
 
-        // Alerte si le plateau est vide (ce qui cause le bug du Stalemate)
-        if (finalBoard === '8/8/8/8/8/8/8/8') {
-            console.warn('⚠️ [FENGenerator] Le plateau généré est vide ! Vérifiez la source "board".');
+        if (finalBoard === '8/8/8/8/8/8/8/8' && this.consoleLog) {
+            console.warn('⚠️ [FENGenerator] Le plateau généré est vide.');
         }
 
         return finalBoard;
@@ -129,11 +130,11 @@ class FENGenerator {
      * Calcule les droits de roque (KQkq)
      */
     static generateCastlingRights(gameState, board) {
+        // Si les flags de mouvement sont totalement absents
+        if (gameState.hasKingMoved === undefined) return '-';
+
         let rights = '';
         
-        // Sécurité : si les données de mouvement sont absentes, on assume aucun droit
-        if (!gameState.hasKingMoved) return '-';
-
         if (this.canCastle(gameState, board, 'white', 'kingside')) rights += 'K';
         if (this.canCastle(gameState, board, 'white', 'queenside')) rights += 'Q';
         if (this.canCastle(gameState, board, 'black', 'kingside')) rights += 'k';
@@ -143,19 +144,19 @@ class FENGenerator {
     }
 
     /**
-     * Vérifie si un roque est théoriquement possible pour la FEN
+     * Vérifie si un roque est possible pour la notation FEN
      */
     static canCastle(gameState, board, color, side) {
         const row = (color === 'white') ? 7 : 0;
         const rookCol = (side === 'kingside') ? 7 : 0;
 
         // 1. Le roi a-t-il bougé ?
-        if (gameState.hasKingMoved?.[color]) return false;
+        if (gameState.hasKingMoved?.[color] === true) return false;
 
-        // 2. La tour a-t-elle bougé ?
-        if (gameState.hasRookMoved?.[color]?.[side]) return false;
+        // 2. La tour concernée a-t-elle bougé ?
+        if (gameState.hasRookMoved?.[color]?.[side] === true) return false;
 
-        // 3. Vérification de la présence des pièces (pour éviter les erreurs de FEN sur plateau vide)
+        // 3. Vérification physique (la pièce est-elle là ?)
         const getP = (r, c) => {
             const s = typeof board.getSquare === 'function' ? board.getSquare(r, c) : board.grid?.[r][c];
             return s?.piece || (s?.type ? s : null);
@@ -171,7 +172,7 @@ class FENGenerator {
     }
 
     /**
-     * Mappe une pièce vers son caractère FEN
+     * Mappe une pièce vers son caractère FEN (Majuscule = Blanc, Minuscule = Noir)
      */
     static getPieceChar(piece) {
         const map = {
@@ -182,29 +183,23 @@ class FENGenerator {
         try {
             return map[piece.color][piece.type];
         } catch (e) {
-            console.error('❌ [FENGenerator] Pièce invalide:', piece);
             return '';
         }
     }
 
     /**
-     * Valide le format de la FEN générée
+     * Valide sommairement le format
      */
     static validateFEN(fen) {
         const parts = fen.split(' ');
         if (parts.length !== 6) {
-            console.error('⚠️ [FENGenerator] Format FEN invalide (doit avoir 6 segments)');
+            console.error('⚠️ [FENGenerator] Format FEN invalide (segments manquants)');
             return false;
         }
         return true;
     }
-
-    static getConfigSource() {
-        if (window.appConfig) return 'window.appConfig';
-        return 'default';
-    }
 }
 
-// Initialisation immédiate
+// Initialisation et exposition globale
 FENGenerator.init();
 window.FENGenerator = FENGenerator;

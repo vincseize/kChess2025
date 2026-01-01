@@ -1,5 +1,5 @@
 <?php
-// engine-scripts.php - CATALOGUE COMPLET JS + CSS INTERNE
+// engine-scripts.php - CATALOGUE COMPLET JS + CSS INTERNE (ORDRE CORRIGÉ)
 ?>
 
 <script src="js/kchess/core/pieces.js?version=<?= $version; ?>"></script>
@@ -21,6 +21,7 @@
 <script src="js/kchess/validators/move-pieces/move-validator-rook.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/validators/move-pieces/move-validator-queen.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/validators/move-pieces/move-validator-king.js?version=<?= $version; ?>"></script>
+
 <script src="js/kchess/validators/move-pieces/move-validator.js?version=<?= $version; ?>"></script>
 
 <script src="js/kchess/validators/validator-interface.js?version=<?= $version; ?>"></script>
@@ -29,17 +30,11 @@
 <script src="js/kchess/validators/move-state-manager.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/validators/move-handler-core.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/validators/promotion-manager.js?version=<?= $version; ?>"></script>
-
-<script src="js/kchess/core/game-status-manager.js?version=<?= $version; ?>"></script>
-<script src="js/kchess/core/game-status-fix.js?version=<?= $version; ?>"></script>
+<script src="js/kchess/core/move-logic.js?version=<?= $version; ?>"></script>
 
 <script src="js/kchess/bots/Level_1.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/bots/Level_2.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/core/bot-manager.js?version=<?= $version; ?>"></script>
-
-<script src="js/kchess/core/move-logic.js?version=<?= $version; ?>"></script>
-<script src="js/kchess/core/chess-game-core.js?version=<?= $version; ?>"></script>
-<script src="js/kchess/core/chess-game.js?version=<?= $version; ?>"></script>
 
 <script src="js/kchess/ui/chess-game-ui-styles.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/ui/chess-game-ui-timer.js?version=<?= $version; ?>"></script>
@@ -48,6 +43,10 @@
 <script src="js/kchess/ui/chess-game-ui-clipboard.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/ui/chess-game-ui-core.js?version=<?= $version; ?>"></script>
 
+<script src="js/kchess/core/game-status-manager.js?version=<?= $version; ?>"></script>
+<script src="js/kchess/core/game-status-fix.js?version=<?= $version; ?>"></script>
+<script src="js/kchess/core/chess-game-core.js?version=<?= $version; ?>"></script>
+<script src="js/kchess/core/chess-game.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/ui/chess-events.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/debug/device-logger.js?version=<?= $version; ?>"></script>
 
@@ -69,13 +68,5 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎮 K-Chess Engine - Système prêt (v<?= $version; ?>)');
-    window.checkSystem = function() {
-        console.group('📊 Diagnostic K-Chess');
-        console.log('Langue:', window.appConfig?.current_lang);
-        console.log('Status Manager:', !!window._gameStatusManager);
-        console.log('Bot Level 2:', !!window.Level_2);
-        console.log('Sliding Validator:', !!window.SlidingMoveValidator);
-        console.groupEnd();
-    };
 });
 </script>

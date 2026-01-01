@@ -14,8 +14,9 @@ class ValidatorInterface {
     
     static loadConfig() {
         try {
-            if (window.appConfig?.chess_engine) {
-                this.consoleLog = window.appConfig.chess_engine.console_log ?? true;
+            const config = window.appConfig?.chess_engine || window.appConfig?.debug;
+            if (config?.console_log !== undefined) {
+                this.consoleLog = String(config.console_log).toLowerCase() !== "false";
             }
         } catch (e) { this.consoleLog = true; }
     }
@@ -25,47 +26,34 @@ class ValidatorInterface {
     }
 
     /**
-     * Sécurité : garantit qu'on travaille sur une pièce valide.
+     * Sécurité : garantit qu'on travaille sur une instance de pièce valide
      */
     _ensurePiece(piece, row, col) {
         if (piece && piece.type) return piece;
-        if (this.game.board?.getPiece) {
-            return this.game.board.getPiece(row, col);
-        }
-        return null;
+        return this.game.board?.getPiece?.(row, col) || null;
     }
 
     /**
-     * Récupère la liste des coups légaux filtrés.
+     * Interface vers le moteur de règles (MoveValidator)
      */
     getPossibleMoves(piece, row, col) {
         const activePiece = this._ensurePiece(piece, row, col);
         
         if (!activePiece || !this.game.moveValidator) {
-            if (this.constructor.consoleLog) console.error("❌ Validation impossible : pièce ou moteur manquant");
+            if (this.constructor.consoleLog) console.error("❌ Moteur de règles non lié");
             return [];
         }
 
-        // On appelle le moteur de calcul (MoveValidator)
+        // Récupération et normalisation des mouvements
         const moves = this.game.moveValidator.getPossibleMoves(activePiece, row, col);
-        
-        return moves || [];
+        return (moves || []).map(m => ({
+            ...m,
+            type: m.type || m.special // Normalisation castling/castle
+        }));
     }
 
     /**
-     * Détermine si un mouvement est spécial pour aiguiller l'exécution.
-     */
-    isSpecialMove(piece, fromRow, fromCol, toRow, toCol) {
-        const moves = this.getPossibleMoves(piece, fromRow, fromCol);
-        const move = moves.find(m => m.row === toRow && m.col === toCol);
-        
-        // Un coup est spécial s'il s'agit d'un roque ou d'une prise en passant
-        return !!(move && (move.type === 'en-passant' || move.type === 'castling' || move.special === 'castle'));
-    }
-
-    /**
-     * Analyse complète d'un coup avant exécution.
-     * Utile pour déclencher des sons (capture vs move) ou enregistrer l'historique.
+     * Analyse un coup spécifique pour l'exécution
      */
     getMoveDetails(piece, fromRow, fromCol, toRow, toCol) {
         const activePiece = this._ensurePiece(piece, fromRow, fromCol);
@@ -74,12 +62,14 @@ class ValidatorInterface {
         
         if (!move) return { isValid: false };
         
+        // Enrichissement des données du coup
         return {
             isValid: true,
-            type: move.type, // 'move', 'capture', 'en-passant', 'castling'
+            type: move.type, 
             isPromotion: move.isPromotion || (activePiece.type === 'pawn' && (toRow === 0 || toRow === 7)),
             notation: this.generateNotation(move, activePiece, fromRow, fromCol, toRow, toCol),
-            piece: activePiece
+            piece: activePiece,
+            originalMoveData: move
         };
     }
 
@@ -88,31 +78,31 @@ class ValidatorInterface {
      */
     generateNotation(move, piece, fromRow, fromCol, toRow, toCol) {
         // 1. Gestion du Roque
-        if (move.type === 'castling' || move.special === 'castle') {
+        if (move.type === 'castling' || move.type === 'castle') {
             return toCol > fromCol ? 'O-O' : 'O-O-O';
         }
 
         const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
         const targetSquare = `${files[toCol]}${8 - toRow}`;
         
-        // 2. Lettre de la pièce (Vide pour le pion)
+        // 2. Lettre de la pièce (Figurine)
         const pieceLetters = { king: 'K', queen: 'Q', rook: 'R', bishop: 'B', knight: 'N', pawn: '' };
-        let pieceLetter = pieceLetters[piece.type];
+        let pieceLetter = pieceLetters[piece.type] || '';
 
         // 3. Gestion de la capture
         const isCapture = move.type === 'capture' || move.type === 'en-passant';
-        let captureSign = isCapture ? 'x' : '';
         
-        // Cas particulier du pion : il affiche sa colonne de départ lors d'une capture (ex: exd5)
-        if (piece.type === 'pawn' && isCapture) {
-            pieceLetter = files[fromCol];
+        if (piece.type === 'pawn') {
+            // Un pion qui capture montre sa colonne d'origine (ex: exd5)
+            return isCapture ? `${files[fromCol]}x${targetSquare}` : targetSquare;
         }
 
+        const captureSign = isCapture ? 'x' : '';
         return `${pieceLetter}${captureSign}${targetSquare}`;
     }
 
     /**
-     * Vérification de sécurité rapide hors règles d'échecs
+     * Vérification rapide des limites du plateau
      */
     quickValidate(fromRow, fromCol, toRow, toCol) {
         return (

@@ -10,7 +10,7 @@ class QueenMoveValidator {
     static init() {
         this.loadConfig();
         if (this.consoleLog) {
-            console.log('👑 QueenMoveValidator: Système de composition (Fou + Tour) initialisé');
+            console.log('👑 QueenMoveValidator: Système de composition (Fou + Tour) prêt');
         }
     }
     
@@ -18,6 +18,8 @@ class QueenMoveValidator {
         try {
             if (window.appConfig?.chess_engine) {
                 this.consoleLog = window.appConfig.chess_engine.console_log ?? true;
+            } else if (window.chessConfig) {
+                this.consoleLog = window.chessConfig.debug ?? true;
             }
         } catch (error) { this.consoleLog = true; }
     }
@@ -26,7 +28,7 @@ class QueenMoveValidator {
         this.board = board;
         this.gameState = gameState;
 
-        // --- PONT DE COMPATIBILITÉ (CRUCIAL) ---
+        // --- PONT DE COMPATIBILITÉ ---
         if (this.board && !this.board.getPiece) {
             this.board.getPiece = (r, c) => {
                 if (typeof this.board.getSquare === 'function') {
@@ -49,34 +51,47 @@ class QueenMoveValidator {
         let allMoves = [];
 
         try {
-            // Composition : La Reine est un Fou + une Tour
-            // On instancie les validateurs requis dynamiquement
-            const bishopValidator = typeof BishopMoveValidator !== 'undefined' 
-                ? new BishopMoveValidator(this.board, this.gameState) 
-                : null;
-                
-            const rookValidator = typeof RookMoveValidator !== 'undefined' 
-                ? new RookMoveValidator(this.board, this.gameState) 
-                : null;
+            // 1. Vérification de la présence des validateurs composants
+            const hasBishop = typeof BishopMoveValidator !== 'undefined';
+            const hasRook = typeof RookMoveValidator !== 'undefined';
 
-            if (!bishopValidator || !rookValidator) {
-                console.error("❌ QueenValidator : BishopMoveValidator ou RookMoveValidator manquant.");
+            if (!hasBishop || !hasRook) {
+                console.error("❌ QueenValidator : Composants manquants. Vérifiez l'ordre de chargement des scripts.");
+                if (this.constructor.consoleLog) console.groupEnd();
                 return [];
             }
 
-            // Récupération des deux types de mouvements
-            const bishopMoves = bishopValidator.getPossibleMoves(piece, row, col);
-            const rookMoves = rookValidator.getPossibleMoves(piece, row, col);
+            // 2. Instanciation
+            const bishopValidator = new BishopMoveValidator(this.board, this.gameState);
+            const rookValidator = new RookMoveValidator(this.board, this.gameState);
 
-            // Fusion des résultats
+            // 3. Récupération avec sécurité (si l'un crash, l'autre peut encore fonctionner)
+            let bishopMoves = [];
+            let rookMoves = [];
+
+            try {
+                bishopMoves = bishopValidator.getPossibleMoves(piece, row, col);
+            } catch (e) {
+                console.error("⚠️ Crash partiel Reine (Composant Fou):", e);
+            }
+
+            try {
+                rookMoves = rookValidator.getPossibleMoves(piece, row, col);
+            } catch (e) {
+                console.error("⚠️ Crash partiel Reine (Composant Tour):", e);
+            }
+
+            // 4. Fusion
             allMoves = [...bishopMoves, ...rookMoves];
 
             if (this.constructor.consoleLog) {
-                console.log(`👑 Composition : ${bishopMoves.length} diag (Fou) + ${rookMoves.length} lignes (Tour)`);
-                console.log(`✅ Total : ${allMoves.length} coups.`);
+                console.log(`👑 Composition : ${bishopMoves.length} diag + ${rookMoves.length} lignes. Total : ${allMoves.length}`);
             }
+
         } catch (error) {
-            console.error("❌ Erreur lors de la composition des mouvements de la Reine:", error);
+            console.error("❌ Erreur critique QueenValidator:", error);
+            // On renvoie un tableau vide pour éviter de faire planter le moteur global, 
+            // mais le fail-safe des composants individuels devrait déjà avoir agi.
         }
 
         if (this.constructor.consoleLog) {
