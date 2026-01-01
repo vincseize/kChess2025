@@ -1,24 +1,32 @@
-// check/checkChessMat.js - Extension du moteur de vérification
-// Cette classe hérite de ChessEngine qui contient déjà toute la logique robuste.
+/**
+ * js/kchess/check/checkChessMat.js - Version 1.4.1
+ * MOTEUR DE DÉTECTION D'ÉCHEC ET MAT (CHECKMATE)
+ * Correction : Suppression de la récursion infinie avec checkGameStatus
+ */
+
 class ChessMateEngine extends ChessEngine {
     
-    static VERSION = '1.3.5'; 
+    static VERSION = '1.4.1';
     static consoleLog = true;
-    
+
+    static log(message, type = 'info') {
+        if (!this.consoleLog && type === 'info') return;
+        const icons = { info: '♔', success: '✅', check: '⚔️', mate: '💀' };
+        console.log(`${icons[type] || '⚪'} [MateEngine] ${message}`);
+    }
+
     static init() {
         this.loadConfig();
-        if (this.consoleLog) {
-            console.log(`♔ ChessMateEngine v${this.VERSION} actif (Héritage direct de ChessEngine)`);
-        }
+        this.log(`v${this.VERSION} actif (Héritage ChessEngine)`, 'success');
     }
-    
+
     static loadConfig() {
         try {
-            const rawValue = window.appConfig?.debug?.console_log ?? true;
-            this.consoleLog = rawValue === "false" ? false : Boolean(rawValue);
-        } catch (e) {
-            this.consoleLog = true;
-        }
+            const config = window.appConfig?.debug || window.appConfig?.chess_engine;
+            if (config?.console_log !== undefined) {
+                this.consoleLog = String(config.console_log).toLowerCase() !== "false";
+            }
+        } catch (e) { this.consoleLog = true; }
     }
 
     constructor(fen) {
@@ -26,11 +34,62 @@ class ChessMateEngine extends ChessEngine {
     }
 
     /**
-     * Utilise la logique de capture déjà présente dans ChessEngine.
-     * On ne ré-écrit pas isMoveLegal ici, car super.isMoveLegal est plus performant.
+     * Détermine si la couleur donnée est en échec et mat.
+     * Correction : Accès direct aux méthodes logiques pour éviter la récursion.
      */
+    isCheckmate(color) {
+        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
+        
+        // 1. Vérifie si le roi est en échec
+        const inCheck = this.isKingInCheck(side);
+        
+        // 2. Si pas d'échec, pas de mat possible (évite les calculs de coups inutiles)
+        if (!inCheck) return false;
 
-    // Alias pratique si vous utilisez des objets pièces au lieu de caractères dans votre UI
+        // 3. Si échec, on vérifie s'il existe au moins un coup légal
+        // Appel direct à ChessEngine.hasAnyLegalMoves
+        const hasMoves = this.hasAnyLegalMoves(side);
+        const detected = inCheck && !hasMoves;
+
+        if (detected) {
+            this.constructor.log(`MAT détecté pour les ${side === 'w' ? 'Blancs' : 'Noirs'} !`, 'mate');
+        }
+
+        return detected;
+    }
+
+    /**
+     * Diagnostic détaillé sans risque de boucle infinie
+     */
+    debugStatus(color) {
+        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
+        
+        // On calcule les composants séparément
+        const inCheck = this.isKingInCheck(side);
+        const hasMoves = this.hasAnyLegalMoves(side);
+        
+        let resultText = "";
+        if (inCheck) {
+            resultText = hasMoves ? "Échec au Roi" : "ÉCHEC ET MAT 💀";
+        } else {
+            resultText = hasMoves ? "Partie en cours" : "PAT (Stalemate) 🤝";
+        }
+
+        console.table({
+            "Moteur": "ChessMateEngine",
+            "Version": ChessMateEngine.VERSION,
+            "Joueur": side === 'w' ? "Blanc" : "Noir",
+            "En Échec": inCheck ? "OUI ⚔️" : "NON",
+            "Coups Légaux": hasMoves ? "OUI" : "AUCUN 🚫",
+            "Résultat": resultText
+        });
+        
+        return { inCheck, hasMoves, result: resultText };
+    }
+
+    /**
+     * Utilitaire de conversion (statique ou d'instance)
+     */
     _getPieceChar(piece) {
         if (!piece) return null;
         if (typeof piece === 'string') return piece;
@@ -38,25 +97,8 @@ class ChessMateEngine extends ChessEngine {
         let char = typeMap[piece.type] || 'p';
         return piece.color === 'white' ? char.toUpperCase() : char.toLowerCase();
     }
-
-    /**
-     * Diagnostic détaillé pour la console
-     */
-    debugStatus(color) {
-        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
-        const inCheck = this.isKingInCheck(side);
-        const hasMoves = this.hasAnyLegalMoves(side);
-        
-        console.table({
-            "Couleur": side,
-            "En Échec": inCheck,
-            "Coups Légaux": hasMoves,
-            "Résultat": inCheck ? (hasMoves ? "Échec simple" : "MAT") : (hasMoves ? "En cours" : "PAT")
-        });
-        
-        return this.checkGameStatus(side);
-    }
 }
 
+// Lancement automatique
 ChessMateEngine.init();
 window.ChessMateEngine = ChessMateEngine;

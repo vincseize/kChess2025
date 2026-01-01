@@ -1,7 +1,6 @@
 /**
  * core/chess-game-core.js
  * Chef d'orchestre du moteur de jeu.
- * Gère la coordination entre le plateau, les règles et l'intelligence artificielle.
  */
 class ChessGameCore {
     static consoleLog = true; 
@@ -28,30 +27,19 @@ class ChessGameCore {
         this.selectedPiece = null;
         this.possibleMoves = [];
         
-        // Initialisation des sous-modules
         this.ui = typeof ChessGameUI !== 'undefined' ? new ChessGameUI(this) : null;
         this.promotionManager = typeof PromotionManager !== 'undefined' ? new PromotionManager(this) : null;
         this.gameStatusManager = typeof GameStatusManager !== 'undefined' ? new GameStatusManager(this) : null;
         this.moveExecutor = typeof MoveExecutor !== 'undefined' ? new MoveExecutor(this) : null;
         this.moveHandler = typeof ChessGameMoveHandler !== 'undefined' ? new ChessGameMoveHandler(this) : null;
-
-        // Initialisation du BotManager
         this.botManager = typeof BotManager !== 'undefined' ? new BotManager(this) : null;
 
         if (this.constructor.consoleLog) console.log('✅ ChessGameCore: Architecture assemblée.');
     }
     
-    // ========== GESTION DES INTERACTIONS ==========
-
-    /**
-     * @param {number} row 
-     * @param {number} col 
-     * @param {boolean} isDirect - true si coordonnée logique (Bot), false si coordonnée visuelle (Humain)
-     */
     handleSquareClick(row, col, isDirect = false) {
         if (!this.gameState?.gameActive) return;
 
-        // VERROU : Si c'est au tour du bot, on bloque les clics humains (isDirect = false)
         const isBotTurn = this.botManager?.isActive && 
                          (this.gameState.currentPlayer === this.botManager.botColor);
         
@@ -60,7 +48,6 @@ class ChessGameCore {
             return; 
         }
 
-        // Si ce n'est pas le bot, on laisse le MoveHandler gérer
         if (this.moveHandler) {
             this.moveHandler.handleSquareClick(row, col, isDirect);
         }
@@ -70,7 +57,6 @@ class ChessGameCore {
         this.selectedPiece = null;
         this.possibleMoves = [];
         
-        // On nettoie les highlights temporaires via le MoveHandler ou l'UI
         if (this.moveHandler?.stateManager) {
             this.moveHandler.stateManager.clearSelection();
         } else if (this.ui?.clearHighlights) {
@@ -83,9 +69,11 @@ class ChessGameCore {
         if (this.gameStatusManager?.updateGameStatus) {
             setTimeout(() => this.gameStatusManager.updateGameStatus(), 50);
         }
-    }
 
-    // ========== LOGIQUE DE MOUVEMENT ==========
+        if (this.constructor.consoleLog) {
+            console.log(`🧩 [FEN] ${this.getFEN()}`);
+        }
+    }
 
     executeMove(fromRow, fromCol, toRow, toCol, promotionPiece = null) {
         if (!this.moveExecutor) return false;
@@ -93,25 +81,51 @@ class ChessGameCore {
         const piece = this.board.getPiece(fromRow, fromCol);
         if (!piece) return false;
 
+        // 1. Détecter si c'est un mouvement de promotion
+        const isPromotionMove = (piece.type === 'pawn' && (toRow === 0 || toRow === 7));
+
+        // 2. Déplacer physiquement la pièce
         const success = this.moveExecutor.executeNormalMove(
             this.board.getSquare(fromRow, fromCol),
             this.board.getSquare(toRow, toCol),
             piece,
-            { row: toRow, col: toCol }, 
+            { row: toRow, col: toCol, isPromotion: isPromotionMove },
             toRow, 
             toCol
         );
 
         if (success) {
-            // --- MODIFICATION : Highlight des cases départ/arrivée uniquement ---
-            // On appelle le StateManager pour marquer le dernier coup
             if (this.moveHandler?.stateManager) {
                 this.moveHandler.stateManager.highlightLastMove(fromRow, fromCol, toRow, toCol);
             }
 
+            // 3. Cas du BOT : Si une pièce de promotion est déjà spécifiée (ex: 'queen')
+            // On transforme l'objet pièce AVANT d'enregistrer le coup
+            if (isPromotionMove && promotionPiece) {
+                piece.type = promotionPiece;
+            }
+
+            // 4. Enregistrer le coup dans l'historique
             this.gameState.recordMove(fromRow, fromCol, toRow, toCol, piece, promotionPiece);
-            this.gameState.switchPlayer();
-            this.updateUI(); 
+
+            // 5. GESTION DU CHANGEMENT DE TOUR
+            if (isPromotionMove && !promotionPiece) {
+                // HUMAIN : On ne change pas le tour. On attend le clic sur la modal.
+                if (this.constructor.consoleLog) console.log("⏳ Promotion humaine : Blocage du tour et ouverture modal.");
+                
+                // On met à jour l'UI pour voir le pion arriver sur la case
+                if (this.ui?.updateUI) this.ui.updateUI();
+                
+                // On ouvre la modal
+                if (this.promotionManager) {
+                    this.promotionManager.showPromotionModal(toRow, toCol, piece.color);
+                }
+            } else {
+                // NORMAL ou BOT : Le tour change normalement
+                this.gameState.switchPlayer();
+                this.updateUI(); 
+            }
+
             return true;
         }
         return false;
@@ -122,8 +136,6 @@ class ChessGameCore {
             this.playBotMove();
         }
     }
-
-    // ========== GESTION DU BOT ==========
 
     setBotLevel(level, color = 'black') {
         if (!this.botManager) return false;
@@ -137,11 +149,8 @@ class ChessGameCore {
         }
     }
 
-    // ========== ÉTAT DE LA PARTIE ==========
-
     newGame() {
         this.clearSelection();
-        // Reset des highlights de mouvement au début d'une nouvelle partie
         document.querySelectorAll('.last-move-source, .last-move-dest').forEach(el => {
             el.classList.remove('last-move-source', 'last-move-dest');
         });
@@ -173,7 +182,7 @@ class ChessGameCore {
     }
 
     getFEN() {
-        return (typeof FENGenerator !== 'undefined') ? FENGenerator.generate(this.board, this.gameState) : "";
+        return (typeof FENGenerator !== 'undefined') ? FENGenerator.generate(this.board, this.gameState) : "FENGenerator introuvable";
     }
 }
 

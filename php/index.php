@@ -5,6 +5,17 @@ require_once __DIR__ . '/config-loader.php';
 $config = loadGameConfig();
 $version = getVersion();
 logConfigInfo($config);
+
+/**
+ * LOGIQUE DU SPLASHSCREEN (Session)
+ * On vérifie si le flag 'from_app' est présent
+ */
+$isComingFromApp = isset($_SESSION['from_app']) && $_SESSION['from_app'] === true;
+
+// On consomme le flag pour que le splash revienne si on recharge index.php manuellement
+if ($isComingFromApp) {
+    unset($_SESSION['from_app']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -33,7 +44,7 @@ logConfigInfo($config);
         }
         body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 
-        /* STYLE DU SPLASH (Gardé ici pour éviter le flash blanc au chargement) */
+        /* STYLE DU SPLASH */
         #splash-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
             background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%);
@@ -78,25 +89,22 @@ logConfigInfo($config);
             font-weight: 800; text-transform: uppercase; border-radius: 15px;
         }
 
-.version-tag {
-    position: fixed;
-    top: 0px;
-    left: 0px;
-    font-size: 0.65rem;
-    color: rgba(255,255,255,0.7);
-    z-index: 99999;
-    font-family: monospace;
-    
-    /* Fond noir opaque avec bords arrondis */
-    background-color: #000000;
-    padding: 4px 8px;
-    border-radius: 8px;
-}
+        .version-tag {
+            position: fixed; top: 0px; left: 0px; font-size: 0.65rem;
+            color: rgba(255,255,255,0.7); z-index: 99999;
+            font-family: monospace; background-color: #000000;
+            padding: 4px 8px; border-radius: 8px;
+        }
     </style>
 </head>
 <body>
 
-    <?php include 'splashscreens/splashscreen1.php'; ?>
+    <?php 
+    // On n'inclut le splashscreen que si on ne vient PAS de l'app
+    if (!$isComingFromApp) {
+        include 'splashscreens/splashscreen1.php'; 
+    }
+    ?>
 
     <div class="version-tag">v<?php echo htmlspecialchars($config['version']); ?></div>
 

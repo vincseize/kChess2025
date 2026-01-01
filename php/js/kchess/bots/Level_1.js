@@ -1,13 +1,15 @@
 /**
  * Level_1 - Le bot débutant (Aléatoire)
  * Logique : Choisit un coup au hasard parmi tous les coups légaux.
+ * Intègre la communication avec les moteurs de fin de partie.
  */
 class Level_1 {
+    static VERSION = '1.4.1';
     static consoleLog = true;
 
     static init() {
         this.loadConfig();
-        if (this.consoleLog) console.log('🤖 Level_1 (Random Bot) chargé');
+        if (this.consoleLog) console.log(`🤖 Level_1 (Random Bot) v${this.VERSION} chargé`);
     }
 
     static loadConfig() {
@@ -26,15 +28,15 @@ class Level_1 {
     /**
      * Calcule le prochain coup
      */
-    getMove(fen) {
+    async getMove(fen) {
         const isDebug = this.constructor.consoleLog;
         try {
-            // On récupère l'instance globale du jeu
+            // Récupération de l'instance globale
             const game = window.chessGame?.core || window.chessGame; 
             
             if (!game || !game.moveValidator) {
                 console.error("❌ [Level_1] Moteur de jeu ou MoveValidator introuvable.");
-                return null;
+                return { error: 'engine_not_found' };
             }
 
             const currentPlayer = game.gameState.currentPlayer;
@@ -42,15 +44,27 @@ class Level_1 {
 
             if (isDebug) console.group(`🤖 Réflexion Bot (${currentPlayer})`);
 
+            // --- CAS DE FIN DE PARTIE ---
             if (validMoves.length === 0) {
+                const status = this._analyzeGameOver(fen, currentPlayer, game.moveHistory);
+                
                 if (isDebug) {
-                    console.warn(`⚠️ Aucune solution (Pat ou Mat).`);
+                    console.warn(`⚠️ Fin de partie détectée : ${status.reason}`);
                     console.groupEnd();
                 }
-                return null;
+
+                // On renvoie un objet structuré au lieu de null
+                return { 
+                    error: 'game_over', 
+                    reason: status.reason, 
+                    details: status.details 
+                };
             }
 
-            // Sélection aléatoire d'un coup
+            // --- SÉLECTION ALÉATOIRE ---
+            // On ajoute un petit délai pour simuler la réflexion (500ms)
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const selectedMove = validMoves[Math.floor(Math.random() * validMoves.length)];
 
             if (isDebug) {
@@ -61,13 +75,39 @@ class Level_1 {
             return selectedMove;
 
         } catch (error) {
-            console.error(`⛔ [Level_1] Erreur critique lors du calcul du coup :`, error);
-            return null;
+            console.error(`⛔ [Level_1] Erreur critique :`, error);
+            return { error: 'critical_error', message: error.message };
         }
     }
 
     /**
-     * Scanne le plateau pour trouver tous les coups possibles de l'IA
+     * Analyse pourquoi le bot ne peut plus jouer
+     */
+    _analyzeGameOver(fen, color, history) {
+        // 1. Vérifier le Mat
+        const mateEngine = new ChessMateEngine(fen);
+        if (mateEngine.isCheckmate(color)) {
+            return { reason: 'checkmate', details: color === 'w' ? 'black' : 'white' };
+        }
+
+        // 2. Vérifier le Pat
+        const patEngine = new ChessPatEngine(fen);
+        if (patEngine.isStalemate(color)) {
+            return { reason: 'stalemate', details: null };
+        }
+
+        // 3. Vérifier les autres nullités (matériel, répétition)
+        const nulleEngine = new ChessNulleEngine(fen, history);
+        const drawStatus = nulleEngine.isDraw(0); // On peut passer l'horloge réelle ici
+        if (drawStatus.isDraw) {
+            return { reason: 'draw', details: drawStatus.reason };
+        }
+
+        return { reason: 'unknown', details: null };
+    }
+
+    /**
+     * Scanne le plateau pour trouver tous les coups possibles
      */
     _getAllLegalMoves(game, color) {
         const moves = [];
@@ -75,18 +115,9 @@ class Level_1 {
         
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
-                // Tentative de récupération de la pièce de manière ultra-compatible
-                let piece = null;
-                if (typeof board.getPiece === 'function') {
-                    piece = board.getPiece(r, c);
-                } else if (board.grid && board.grid[r]) {
-                    piece = board.grid[r][c];
-                } else if (board.getSquare) {
-                    piece = board.getSquare(r, c)?.piece;
-                }
+                let piece = this._getPieceFromBoard(board, r, c);
                 
                 if (piece && piece.color === color) {
-                    // On demande au validateur tous les coups pour cette pièce
                     const pieceMoves = game.moveValidator.getPossibleMoves(piece, r, c);
                     
                     if (pieceMoves && Array.isArray(pieceMoves)) {
@@ -105,6 +136,16 @@ class Level_1 {
             }
         }
         return moves;
+    }
+
+    /**
+     * Helper pour récupérer une pièce selon la structure du board
+     */
+    _getPieceFromBoard(board, r, c) {
+        if (typeof board.getPiece === 'function') return board.getPiece(r, c);
+        if (board.grid && board.grid[r]) return board.grid[r][c];
+        if (board.getSquare) return board.getSquare(r, c)?.piece;
+        return null;
     }
 
     _simpleNotation(fR, fC, tR, tC) {

@@ -1,10 +1,11 @@
 /**
  * Level_2 - Stratégie CCMO optimisée
  * Check -> Capture -> Menace -> Optimisation
+ * Version 1.4.0 - Intégration Diagnostic Fin de Partie
  */
 class Level_2 {
+    static VERSION = '1.4.0';
     static consoleLog = true;
-    static VERSION = '1.3.1';
 
     static init() {
         this.loadConfig();
@@ -24,26 +25,35 @@ class Level_2 {
         this.pieceValues = { 'pawn': 1, 'knight': 3, 'bishop': 3, 'rook': 5, 'queen': 9, 'king': 100 };
     }
 
-    getMove(fen) {
+    async getMove(fen) {
         const isDebug = this.constructor.consoleLog;
         if (isDebug) console.group(`🎲 [Level_2] Analyse CCMO...`);
         
         try {
-            // Utilisation du même accès que Level_1 pour la compatibilité
             const game = window.chessGame?.core || window.chessGame;
+            const currentPlayer = game.gameState.currentPlayer;
             const allMoves = this.getAllValidMoves(game);
             
-            if (allMoves.length === 0) return null;
+            // --- GESTION FIN DE PARTIE ---
+            if (allMoves.length === 0) {
+                const status = this._analyzeGameOver(fen, currentPlayer, game.moveHistory);
+                if (isDebug) {
+                    console.warn(`⚠️ Fin de partie : ${status.reason}`);
+                    console.groupEnd();
+                }
+                return { error: 'game_over', reason: status.reason, details: status.details };
+            }
 
             const oppColor = this._getOpponentColor(game);
 
-            // 1. CAPTURE : Chercher le gain matériel (Priorité avant le Check car manger est souvent mieux)
+            // Simulation d'un temps de réflexion
+            await new Promise(resolve => setTimeout(resolve, 600));
+
+            // 1. CAPTURES (Gain matériel)
             const captureMoves = allMoves.filter(m => m.isCapture);
             if (captureMoves.length > 0) {
-                // Trier par valeur de la pièce cible (manger la Reine d'abord)
                 captureMoves.sort((a, b) => this.pieceValues[b.targetPiece.type] - this.pieceValues[a.targetPiece.type]);
                 
-                // On ne prend que les captures qui ne sont pas des suicides (sauf si on mange plus gros)
                 const safeCaptures = captureMoves.filter(m => {
                     const valAttacker = this.pieceValues[m.piece.type];
                     const valTarget = this.pieceValues[m.targetPiece.type];
@@ -54,12 +64,12 @@ class Level_2 {
                 if (safeCaptures.length > 0) return this.finalizeMove(safeCaptures, 'CAPTURE');
             }
 
-            // 2. CHECK : Mettre en échec (si c'est safe)
+            // 2. CHECK (Échec au roi)
             const checkMoves = allMoves.filter(m => m.isCheck);
             const safeChecks = checkMoves.filter(m => !this.isSquareAttacked(game, m.toRow, m.toCol, oppColor));
             if (safeChecks.length > 0) return this.finalizeMove(safeChecks, 'CHECK');
 
-            // 3. MENACE / CENTRE : Cases sûres au centre
+            // 3. POSITIONNEMENT (Centre)
             const centralMoves = allMoves.filter(m => {
                 const isSafe = !this.isSquareAttacked(game, m.toRow, m.toCol, oppColor);
                 const isCentral = m.toRow >= 2 && m.toRow <= 5 && m.toCol >= 2 && m.toCol <= 5;
@@ -67,16 +77,29 @@ class Level_2 {
             });
             if (centralMoves.length > 0) return this.finalizeMove(centralMoves, 'POSITIONNEMENT');
 
-            // 4. OPTIMISATION : Coup par défaut (parmi les coups jugés sûrs)
+            // 4. DÉVELOPPEMENT (Coups sûrs)
             const absoluteSafeMoves = allMoves.filter(m => !this.isSquareAttacked(game, m.toRow, m.toCol, oppColor));
             return this.finalizeMove(absoluteSafeMoves.length > 0 ? absoluteSafeMoves : allMoves, 'DEVELOPPEMENT');
 
         } catch (error) {
             console.error("❌ Level_2 Error:", error);
-            return null;
+            return { error: 'critical_error' };
         } finally {
             if (isDebug) console.groupEnd();
         }
+    }
+
+    /**
+     * Diagnostic de fin de partie identique au Level_1
+     */
+    _analyzeGameOver(fen, color, history) {
+        if (new ChessMateEngine(fen).isCheckmate(color)) {
+            return { reason: 'checkmate', details: color === 'w' ? 'black' : 'white' };
+        }
+        if (new ChessPatEngine(fen).isStalemate(color)) {
+            return { reason: 'stalemate', details: null };
+        }
+        return { reason: 'draw', details: 'nulle' };
     }
 
     getAllValidMoves(game) {
@@ -108,10 +131,10 @@ class Level_2 {
         return moves;
     }
 
-    // Version simplifiée pour Level 2 : Est-ce qu'on attaque le roi après le coup ?
+    // Vérifie si le coup met le roi adverse en échec
     checkIfMoveGivesCheck(game, piece, fR, fC, tR, tC) {
         const oppColor = this._getOpponentColor(game);
-        // On récupère les cases que la pièce contrôlera APRES le mouvement
+        // On récupère les coups de la pièce à sa nouvelle position
         const nextMoves = game.moveValidator.getPossibleMoves(piece, tR, tC);
         return nextMoves.some(m => {
             const p = game.board.getPiece?.(m.row, m.col) || game.board.getSquare?.(m.row, m.col)?.piece;
@@ -123,7 +146,7 @@ class Level_2 {
         const board = game.board;
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
-                const p = board.getPiece?.(r, c) || board.getSquare?.(r, c)?.piece;
+                const p = board.getPiece?.(r, r) || board.getSquare?.(r, c)?.piece;
                 if (p && p.color === byColor) {
                     const moves = game.moveValidator.getPossibleMoves(p, r, c);
                     if (moves.some(m => m.row === row && m.col === col)) return true;

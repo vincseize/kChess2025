@@ -5,40 +5,21 @@ class ChessEngine {
     
     static init() {
         this.loadConfig();
-        
-        if (this.consoleLog) {
-            console.log('✅ check/checkChess.js chargé - VERSION UNIFIÉE');
-            console.log(`⚙️ Configuration: console_log = ${this.consoleLog}`);
-        }
+        if (this.consoleLog) console.log('✅ ChessEngine v2.1 (Anti-Recursion) chargé');
     }
     
     static loadConfig() {
         try {
-            if (window.appConfig?.chess_engine?.console_log !== undefined) {
-                const val = window.appConfig.chess_engine.console_log;
-                this.consoleLog = val === "false" ? false : Boolean(val);
-            }
-            else if (window.appConfig?.debug?.console_log !== undefined) {
-                const val = window.appConfig.debug.console_log;
-                this.consoleLog = val === "false" ? false : Boolean(val);
-            }
-            return true;
-        } catch (error) {
-            console.error('❌ ChessEngine: Erreur config:', error);
-            return false;
-        }
+            const config = window.appConfig?.chess_engine?.console_log ?? window.appConfig?.debug?.console_log ?? true;
+            this.consoleLog = String(config) !== "false";
+        } catch (e) { this.consoleLog = true; }
     }
 
     constructor(fen) {
         this.fen = fen;
         this.board = this.parseFEN(fen);
         const parts = fen.split(' ');
-        this.turn = parts[1]; // 'w' ou 'b'
-        
-        if (ChessEngine.consoleLog) {
-            console.log('🔧 ChessEngine créé avec FEN:', fen);
-            this.displayBoard();
-        }
+        this.turn = parts[1] || 'w';
     }
 
     parseFEN(fen) {
@@ -47,15 +28,9 @@ class ChessEngine {
         let row = 0, col = 0;
         
         for (const char of boardPart) {
-            if (char === '/') {
-                row++;
-                col = 0;
-            } else if (isNaN(char)) {
-                board[row][col] = char;
-                col++;
-            } else {
-                col += parseInt(char);
-            }
+            if (char === '/') { row++; col = 0; }
+            else if (isNaN(char)) { board[row][col] = char; col++; }
+            else { col += parseInt(char); }
         }
         return board;
     }
@@ -65,76 +40,51 @@ class ChessEngine {
         return this.board[row][col];
     }
 
-    findKing(color) {
-        // Normalisation : 'white' -> 'w', 'black' -> 'b'
-        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
+    findKing(side) {
         const kingChar = side === 'w' ? 'K' : 'k';
-        
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                if (this.board[row][col] === kingChar) {
-                    return { row, col };
-                }
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                if (this.board[r][c] === kingChar) return { row: r, col: c };
             }
         }
         return null;
     }
 
     isSquareAttacked(row, col, attackerColor) {
-        // Normalisation de la couleur de l'attaquant
-        const att = (attackerColor === 'white' || attackerColor === 'w') ? 'w' : 'b';
+        const att = attackerColor === 'white' || attackerColor === 'w' ? 'w' : 'b';
         
-        const directions = {
-            rook: [[-1, 0], [1, 0], [0, -1], [0, 1]],
-            bishop: [[-1, -1], [-1, 1], [1, -1], [1, 1]],
-            knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
-            king: [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
-        };
-
-        // 1. ROI
-        for (const [dr, dc] of directions.king) {
+        // 1. Cavaliers
+        const knightMoves = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+        for (const [dr, dc] of knightMoves) {
             const r = row + dr, c = col + dc;
-            if (this.isValidSquare(r, c)) {
-                const piece = this.getPiece(r, c);
-                if (piece === (att === 'w' ? 'K' : 'k')) return true;
-            }
+            if (this.isValidSquare(r, c) && this.getPiece(r, c) === (att === 'w' ? 'N' : 'n')) return true;
         }
 
-        // 2. PIONS
-        // Si on cherche si une case est attaquée par un pion blanc, 
-        // on regarde en "bas" (row + 1) s'il y a un pion blanc (pour un board standard 0-7)
-        const pawnAttacks = att === 'w' ? [[1, -1], [1, 1]] : [[-1, -1], [-1, 1]];
+        // 2. Pions (Attention à la direction : attaque en diagonale)
+        const pawnDir = att === 'w' ? 1 : -1; // Si attaquant blanc, il vient du rang supérieur (index+)
+        const pawnAttacks = [[pawnDir, -1], [pawnDir, 1]];
         for (const [dr, dc] of pawnAttacks) {
             const r = row + dr, c = col + dc;
-            if (this.isValidSquare(r, c)) {
-                const piece = this.getPiece(r, c);
-                if (piece === (att === 'w' ? 'P' : 'p')) return true;
-            }
+            if (this.isValidSquare(r, c) && this.getPiece(r, c) === (att === 'w' ? 'P' : 'p')) return true;
         }
 
-        // 3. CAVALIERS
-        for (const [dr, dc] of directions.knight) {
-            const r = row + dr, c = col + dc;
-            if (this.isValidSquare(r, c)) {
-                const piece = this.getPiece(r, c);
-                if (piece === (att === 'w' ? 'N' : 'n')) return true;
-            }
-        }
-
-        // 4. PIÈCES GLISSANTES (Tours, Fous, Dames)
-        const slidingConfigs = [
-            { dirs: directions.rook, targets: att === 'w' ? ['R', 'Q'] : ['r', 'q'] },
-            { dirs: directions.bishop, targets: att === 'w' ? ['B', 'Q'] : ['b', 'q'] }
+        // 3. Glissants (Tours, Fous, Dames) & Roi
+        const dirs = [
+            { d: [[-1, 0], [1, 0], [0, -1], [0, 1]], t: att === 'w' ? ['R', 'Q'] : ['r', 'q'] },
+            { d: [[-1, -1], [-1, 1], [1, -1], [1, 1]], t: att === 'w' ? ['B', 'Q'] : ['b', 'q'] }
         ];
 
-        for (const config of slidingConfigs) {
-            for (const [dr, dc] of config.dirs) {
+        for (const cfg of dirs) {
+            for (const [dr, dc] of cfg.d) {
                 let r = row + dr, c = col + dc;
+                // Check Roi (1 case)
+                if (this.isValidSquare(r, c) && this.getPiece(r, c) === (att === 'w' ? 'K' : 'k')) return true;
+                // Check Glissants
                 while (this.isValidSquare(r, c)) {
-                    const piece = this.getPiece(r, c);
-                    if (piece) {
-                        if (config.targets.includes(piece)) return true;
-                        break; 
+                    const p = this.getPiece(r, c);
+                    if (p) {
+                        if (cfg.t.includes(p)) return true;
+                        break;
                     }
                     r += dr; c += dc;
                 }
@@ -144,51 +94,43 @@ class ChessEngine {
     }
 
     isKingInCheck(color) {
-        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
+        const side = color === 'white' || color === 'w' ? 'w' : 'b';
         const kingPos = this.findKing(side);
         if (!kingPos) return false;
-        
-        const opponent = side === 'w' ? 'b' : 'w';
-        return this.isSquareAttacked(kingPos.row, kingPos.col, opponent);
+        return this.isSquareAttacked(kingPos.row, kingPos.col, side === 'w' ? 'b' : 'w');
     }
 
+    // --- LOGIQUE DE FIN DE PARTIE SANS RÉCURSION ---
+
     checkGameStatus(color = null) {
-        const playerColor = color || this.turn;
-        
-        if (ChessEngine.consoleLog) {
-            console.log(`\n🎮 VÉRIFICATION STATUT (${playerColor === 'w' ? 'Blancs' : 'Noirs'})`);
+        const side = color || this.turn;
+        const hasMoves = this.hasAnyLegalMoves(side);
+        const inCheck = this.isKingInCheck(side);
+
+        if (!hasMoves) {
+            return inCheck ? 'checkmate' : 'stalemate';
         }
-        
-        if (this.isCheckmate(playerColor)) return 'checkmate';
-        if (this.isStalemate(playerColor)) return 'stalemate';
-        
         return 'in_progress';
     }
 
-    isCheckmate(color = null) {
-        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
-        if (!this.isKingInCheck(side)) return false;
-        return !this.hasAnyLegalMoves(side);
+    isCheckmate(color) {
+        const side = color === 'white' || color === 'w' ? 'w' : 'b';
+        return this.isKingInCheck(side) && !this.hasAnyLegalMoves(side);
     }
 
-    isStalemate(color = null) {
-        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
-        if (this.isKingInCheck(side)) return false;
-        return !this.hasAnyLegalMoves(side);
+    isStalemate(color) {
+        const side = color === 'white' || color === 'w' ? 'w' : 'b';
+        return !this.isKingInCheck(side) && !this.hasAnyLegalMoves(side);
     }
 
-    hasAnyLegalMoves(color) {
-        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
-        
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                const piece = this.getPiece(row, col);
+    hasAnyLegalMoves(side) {
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const piece = this.board[r][c];
                 if (piece && this.isPieceColor(piece, side)) {
-                    const possibleMoves = this.getPossibleMovesForPiece(piece, row, col);
-                    for (const move of possibleMoves) {
-                        if (this.isMoveLegal(side, row, col, move.row, move.col)) {
-                            return true;
-                        }
+                    const moves = this.getPossibleMovesForPiece(piece, r, c);
+                    for (const m of moves) {
+                        if (this.isMoveLegal(side, r, c, m.row, m.col)) return true;
                     }
                 }
             }
@@ -196,58 +138,51 @@ class ChessEngine {
         return false;
     }
 
-    isPieceColor(piece, color) {
-        if (!piece) return false;
-        const isWhite = piece === piece.toUpperCase();
-        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
-        return (side === 'w' && isWhite) || (side === 'b' && !isWhite);
-    }
-
-    isMoveLegal(color, fromRow, fromCol, toRow, toCol) {
-        const side = (color === 'white' || color === 'w') ? 'w' : 'b';
-        const opponent = side === 'w' ? 'b' : 'w';
+    isMoveLegal(side, fR, fC, tR, tC) {
+        const originalTarget = this.board[tR][tC];
+        const originalSource = this.board[fR][fC];
 
         // Simulation
-        const originalTarget = this.board[toRow][toCol];
-        const originalSource = this.board[fromRow][fromCol];
+        this.board[tR][tC] = originalSource;
+        this.board[fR][fC] = null;
 
-        this.board[toRow][toCol] = originalSource;
-        this.board[fromRow][fromCol] = null;
-
-        const kingPos = this.findKing(side);
-        let stillInCheck = false;
-        if (kingPos) {
-            stillInCheck = this.isSquareAttacked(kingPos.row, kingPos.col, opponent);
-        }
+        const stillInCheck = this.isKingInCheck(side);
 
         // Backtrack
-        this.board[fromRow][fromCol] = originalSource;
-        this.board[toRow][toCol] = originalTarget;
+        this.board[fR][fC] = originalSource;
+        this.board[tR][tC] = originalTarget;
 
         return !stillInCheck;
     }
 
+    isPieceColor(piece, side) {
+        const isWhite = piece === piece.toUpperCase();
+        return (side === 'w' && isWhite) || (side === 'b' && !isWhite);
+    }
+
+    isValidSquare(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
+
     getPossibleMovesForPiece(piece, row, col) {
-        const type = piece.toLowerCase();
         const moves = [];
-        switch(type) {
-            case 'p': this.getPawnMoves(moves, piece, row, col); break;
-            case 'n': this.getKnightMoves(moves, row, col); break;
-            case 'b': this.getBishopMoves(moves, row, col); break;
-            case 'r': this.getRookMoves(moves, row, col); break;
-            case 'q': this.getQueenMoves(moves, row, col); break;
-            case 'k': this.getKingMoves(moves, row, col); break;
-        }
+        const type = piece.toLowerCase();
+        // Utilisation des fonctions déjà définies dans votre code
+        if (type === 'p') this.getPawnMoves(moves, piece, row, col);
+        else if (type === 'n') this.getKnightMoves(moves, row, col);
+        else if (type === 'b') this.getBishopMoves(moves, row, col);
+        else if (type === 'r') this.getRookMoves(moves, row, col);
+        else if (type === 'q') this.getQueenMoves(moves, row, col);
+        else if (type === 'k') this.getKingMoves(moves, row, col);
         return moves;
     }
 
-    // --- Générateurs de mouvements simplifiés pour la simulation ---
+    // (Gardez vos méthodes getPawnMoves, getKnightMoves, etc. telles quelles)
     getPawnMoves(moves, piece, row, col) {
         const dir = (piece === 'P') ? -1 : 1;
         const start = (piece === 'P') ? 6 : 1;
         if (this.isValidSquare(row + dir, col) && !this.getPiece(row + dir, col)) {
             moves.push({ row: row + dir, col: col });
-            if (row === start && !this.getPiece(row + 2 * dir, col)) moves.push({ row: row + 2 * dir, col: col });
+            if (row === start && !this.getPiece(row + 2 * dir, col) && !this.getPiece(row + dir, col)) 
+                moves.push({ row: row + 2 * dir, col: col });
         }
         [[dir, -1], [dir, 1]].forEach(([dr, dc]) => {
             const nr = row + dr, nc = col + dc;
@@ -267,7 +202,6 @@ class ChessEngine {
             }
         });
     }
-
     getSlidingMoves(moves, row, col, directions) {
         const side = this.isPieceColor(this.getPiece(row, col), 'w') ? 'w' : 'b';
         directions.forEach(([dr, dc]) => {
@@ -283,7 +217,6 @@ class ChessEngine {
             }
         });
     }
-
     getBishopMoves(moves, row, col) { this.getSlidingMoves(moves, row, col, [[-1,-1],[-1,1],[1,-1],[1,1]]); }
     getRookMoves(moves, row, col) { this.getSlidingMoves(moves, row, col, [[-1,0],[1,0],[0,-1],[0,1]]); }
     getQueenMoves(moves, row, col) { this.getSlidingMoves(moves, row, col, [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]); }
@@ -295,19 +228,6 @@ class ChessEngine {
                 if (!target || !this.isPieceColor(target, this.isPieceColor(this.getPiece(row, col), 'w') ? 'w' : 'b')) moves.push({ row: nr, col: nc });
             }
         });
-    }
-
-    isValidSquare(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
-
-    displayBoard() {
-        if (!ChessEngine.consoleLog) return;
-        console.log('\n📊 PLATEAU:');
-        for (let r = 0; r < 8; r++) {
-            let line = `${8-r} `;
-            for (let c = 0; c < 8; c++) line += (this.getPiece(r,c) || '.') + ' ';
-            console.log(line);
-        }
-        console.log('  a b c d e f g h');
     }
 }
 

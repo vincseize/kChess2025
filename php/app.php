@@ -2,6 +2,7 @@
 // app.php - DÉBUT
 // Démarrer la session TRÈS TÔT
 session_start();
+$_SESSION['from_app'] = true;
 
 // Déterminer la langue ici, avant d'inclure header.php
 $lang = 'fr'; // valeur par défaut

@@ -1,37 +1,37 @@
-// check/checkChessNulle.js - Moteur de vérification des nullités (Draw)
+/**
+ * js/kchess/check/checkChessNulle.js - Version 1.4.0
+ * MOTEUR DE VÉRIFICATION DES LOGIQUES DE MATCH NUL (DRAW)
+ */
+
 class ChessNulleEngine extends ChessEngine {
     
-    static VERSION = '1.3.1';
+    static VERSION = '1.4.0';
     static consoleLog = true;
 
-    /**
-     * Initialisation statique
-     */
+    static log(message, type = 'info') {
+        if (!this.consoleLog && type === 'info') return;
+        const icons = { info: '🤝', success: '✅', warn: '⚠️', draw: '⚖️' };
+        console.log(`${icons[type] || '⚪'} [NulleEngine] ${message}`);
+    }
+
     static init() {
         this.loadConfig();
-        if (this.consoleLog) {
-            console.log(`🤝 ChessNulleEngine v${this.VERSION} prêt (${this.getConfigSource()})`);
-        }
+        this.log(`v${this.VERSION} prêt. (Règle des 50 coups activée)`, 'success');
     }
 
     static loadConfig() {
         try {
-            const rawValue = window.appConfig?.debug?.console_log ?? true;
-            this.consoleLog = rawValue === "false" ? false : Boolean(rawValue);
-        } catch (e) {
-            this.consoleLog = true;
-        }
-    }
-
-    static getConfigSource() {
-        return window.appConfig ? 'JSON config' : 'default';
+            const config = window.appConfig?.debug || window.appConfig?.chess_engine;
+            if (config?.console_log !== undefined) {
+                this.consoleLog = String(config.console_log).toLowerCase() !== "false";
+            }
+        } catch (e) { this.consoleLog = true; }
     }
 
     constructor(fen, moveHistory = []) {
         super(fen);
         this.moveHistory = moveHistory; 
         this.positionCount = new Map();
-        
         this.initializePositionCount();
     }
 
@@ -43,50 +43,48 @@ class ChessNulleEngine extends ChessEngine {
         const currentSig = this.getPositionSignature();
         this.positionCount.set(currentSig, 1);
 
-        // Ajouter l'historique
-        for (const pastFen of this.moveHistory) {
-            const sig = this.getFENSignature(pastFen);
-            this.positionCount.set(sig, (this.positionCount.get(sig) || 0) + 1);
+        // Ajouter l'historique (signatures FEN simplifiées)
+        if (Array.isArray(this.moveHistory)) {
+            this.moveHistory.forEach(pastFen => {
+                const sig = this.getFENSignature(pastFen);
+                this.positionCount.set(sig, (this.positionCount.get(sig) || 0) + 1);
+            });
         }
     }
 
     /**
-     * Règle de la répétition triple
+     * Règle 1 : Répétition triple
      */
     isThreefoldRepetition() {
         const count = this.positionCount.get(this.getPositionSignature()) || 0;
-        const detected = count >= 3;
-        
-        if (detected && this.constructor.consoleLog) {
-            console.log("🔄 Nullité : Position répétée 3 fois.");
-        }
-        return detected;
+        return count >= 3;
     }
 
     /**
-     * Règle des 50 coups (100 demi-coups sans capture ni mouvement de pion)
+     * Règle 2 : 50 coups (100 demi-coups)
      */
     isFiftyMoveRule(halfMoveClock) {
-        return halfMoveClock >= 100; // FIDE: 50 coups complets = 100 demi-coups
+        // halfMoveClock est le 5ème champ du FEN
+        return parseInt(halfMoveClock) >= 100;
     }
 
     /**
-     * Matériel insuffisant (Impossibilité de mater)
+     * Règle 3 : Matériel insuffisant
      */
     isInsufficientMaterial() {
         const pieces = this.getAllPieces();
         const count = pieces.length;
 
-        // 1. Roi vs Roi
+        // Roi vs Roi
         if (count === 2) return true;
 
-        // 2. Roi + Fou vs Roi OU Roi + Cavalier vs Roi
+        // Roi + (Fou ou Cavalier) vs Roi
         if (count === 3) {
-            const type = pieces.find(p => p.piece.toLowerCase() !== 'k').piece.toLowerCase();
-            if (type === 'b' || type === 'n') return true;
+            const extraPiece = pieces.find(p => p.piece.toLowerCase() !== 'k').piece.toLowerCase();
+            if (extraPiece === 'b' || extraPiece === 'n') return true;
         }
 
-        // 3. Roi + Fou vs Roi + Fou (Fous sur même couleur de case)
+        // Roi + Fou vs Roi + Fou (Fous sur même couleur)
         if (count === 4) {
             const whiteBishops = pieces.filter(p => p.piece === 'B');
             const blackBishops = pieces.filter(p => p.piece === 'b');
@@ -97,38 +95,36 @@ class ChessNulleEngine extends ChessEngine {
                 return wColor === bColor;
             }
         }
-
         return false;
     }
 
     /**
-     * Vérification globale
+     * Vérification globale de nullité
      */
     isDraw(halfMoveClock) {
         let reason = null;
 
-        if (this.isInsufficientMaterial()) reason = 'insufficientMaterial';
+        if (this.isInsufficientMaterial()) reason = 'insufficient';
         else if (this.isFiftyMoveRule(halfMoveClock)) reason = 'fiftyMoves';
         else if (this.isThreefoldRepetition()) reason = 'repetition';
 
-        const result = { isDraw: !!reason, reason: reason };
-
-        if (result.isDraw && this.constructor.consoleLog) {
-            console.log(`🤝 MATCH NUL : ${this.getDrawMessage(reason)}`);
+        if (reason) {
+            const message = this.getDrawMessage(reason);
+            this.constructor.log(`Match Nul détecté : ${message}`, 'draw');
+            return { isDraw: true, reason: reason, text: message };
         }
 
-        return result;
+        return { isDraw: false, reason: null };
     }
 
-    // --- Utilitaires de signature ---
+    // --- Utilitaires ---
 
     getPositionSignature() {
         return this.getFENSignature(this.fen);
     }
 
     getFENSignature(fen) {
-        // On ne garde que la position, le tour, le roque et l'en-passant
-        // On ignore les compteurs de coups pour la répétition
+        // On ignore les compteurs (5ème et 6ème champs) pour la répétition
         return fen.split(' ').slice(0, 4).join(' ');
     }
 
@@ -145,14 +141,13 @@ class ChessNulleEngine extends ChessEngine {
 
     getDrawMessage(reason) {
         const msg = {
-            repetition: 'Répétition triple',
+            repetition: 'Triple répétition',
             fiftyMoves: 'Règle des 50 coups',
-            insufficientMaterial: 'Matériel insuffisant'
+            insufficient: 'Matériel insuffisant'
         };
-        return msg[reason] || 'Nullité';
+        return msg[reason] || 'Partie nulle';
     }
 }
 
-// Lancement
 ChessNulleEngine.init();
 window.ChessNulleEngine = ChessNulleEngine;

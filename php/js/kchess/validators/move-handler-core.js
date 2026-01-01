@@ -1,6 +1,6 @@
 /**
- * validators/move-handler-core.js
- * Gère l'aiguillage des clics utilisateur et la coordination avec les états visuels.
+ * validators/move-handler-core.js - Version 1.5.0
+ * Correction : Gestion robuste du verrou isPromoting pour éviter le blocage du Bot.
  */
 if (typeof ChessGameMoveHandler !== 'undefined') {
     console.warn('⚠️ ChessGameMoveHandler existe déjà.');
@@ -36,17 +36,11 @@ class ChessGameMoveHandler {
 
     // ========== GESTION DES CLICS ==========
 
-    /**
-     * @param {number} displayRow 
-     * @param {number} displayCol 
-     * @param {boolean} isDirect - true si coordonnée logique (Bot), false si coordonnée visuelle (Humain)
-     */
     handleSquareClick(displayRow, displayCol, isDirect = false) {
+        // Validation d'état avec nettoyage automatique si nécessaire
         if (!this.validateGameState()) return;
         
-        // On récupère les coordonnées réelles (gestion du Flip plateau)
         const { actualRow, actualCol, square } = this.getActualSquare(displayRow, displayCol, isDirect);
-        
         if (!square) return;
 
         if (this.constructor.consoleLog) {
@@ -55,12 +49,9 @@ class ChessGameMoveHandler {
 
         const selectedPiece = this.game.selectedPiece;
 
-        // Logique à deux phases :
         if (selectedPiece) {
-            // Phase 2 : Une pièce est sélectionnée, on tente de jouer
             this.handleMovementPhase(actualRow, actualCol, square);
         } else {
-            // Phase 1 : Rien n'est sélectionné, on cherche une pièce à soi
             this.handleSelectionPhase(actualRow, actualCol, square);
         }
 
@@ -71,10 +62,8 @@ class ChessGameMoveHandler {
         const piece = square.piece;
         const currentPlayer = this.game.gameState.currentPlayer;
         
-        // Vérifie si le joueur clique sur l'une de ses propres pièces
         if (piece && piece.color === currentPlayer) {
             if (this.constructor.consoleLog) console.log(`✅ Sélection : ${piece.color} ${piece.type}`);
-            
             if (this.moveStateManager) {
                 this.moveStateManager.handlePieceSelection(row, col, square);
             }
@@ -87,30 +76,24 @@ class ChessGameMoveHandler {
     handleMovementPhase(row, col, square) {
         const selectedPiece = this.game.selectedPiece;
 
-        // 1. Désélection si clic sur la même case
         if (selectedPiece.row === row && selectedPiece.col === col) {
             this.clearSelection();
             return;
         }
 
-        // 2. Changement de sélection (clic sur une autre pièce de sa couleur)
         if (square.piece && square.piece.color === this.game.gameState.currentPlayer) {
-            if (this.constructor.consoleLog) console.log("🔄 Changement de pièce");
             this.handleSelectionPhase(row, col, square);
             return;
         }
 
-        // 3. Tentative de mouvement
         const isPossible = this.game.possibleMoves?.some(m => m.row === row && m.col === col);
         
         if (isPossible) {
-            // On mémorise les coordonnées de départ avant l'exécution
             const fromRow = selectedPiece.row;
             const fromCol = selectedPiece.col;
             
             this.executeMove(row, col);
 
-            // --- NOUVEAU : On active le highlight de fin de coup ---
             if (this.moveStateManager) {
                 this.moveStateManager.highlightLastMove(fromRow, fromCol, row, col);
             }
@@ -126,7 +109,10 @@ class ChessGameMoveHandler {
         const moveData = this.moveExecutor.prepareMoveExecution(toRow, toCol);
         
         if (moveData) {
-            this.isPromoting = true; 
+            // On lève le drapeau de promotion si le coup le demande
+            if (moveData.move?.isPromotion) {
+                this.isPromoting = true; 
+            }
 
             try {
                 this.moveExecutor.executeNormalMove(
@@ -137,20 +123,34 @@ class ChessGameMoveHandler {
                     toRow, 
                     toCol
                 );
-            } finally {
-                // Si ce n'est pas une promotion, on libère le verrou immédiatement
-                if (!moveData.move?.isPromotion) {
-                    this.isPromoting = false;
-                }
+            } catch (error) {
+                console.error("Erreur lors de l'exécution du mouvement:", error);
+                this.isPromoting = false; // Reset en cas de crash
             }
+            
+            // Note : Si moveData.move.isPromotion est vrai, isPromoting RESTE à true.
+            // Il devra être repassé à false par le PromotionManager via completeTurn() ou finalizePromotion().
         }
     }
 
     // ========== UTILITAIRES ==========
 
+    /**
+     * Valide l'état du jeu et vérifie si le verrou de promotion est légitime
+     */
     validateGameState() {
         if (!this.game.gameState?.gameActive) return false;
+
         if (this.isPromoting) {
+            // SÉCURITÉ : Si on est en "promotion" mais qu'aucune fenêtre de promotion n'est ouverte
+            // ou si le PromotionManager n'existe pas, on débloque de force.
+            const isModalOpen = document.querySelector('.promotion-modal, #promotion-overlay'); 
+            if (!isModalOpen && !this.game.promotionManager) {
+                console.warn("⚠️ Correction automatique : Verrou promotion levé (Manager ou UI absent)");
+                this.isPromoting = false;
+                return true;
+            }
+
             if (this.constructor.consoleLog) console.warn("⏳ Promotion en cours...");
             return false;
         }
@@ -161,7 +161,6 @@ class ChessGameMoveHandler {
         let actualRow = displayRow;
         let actualCol = displayCol;
 
-        // Transformation si le plateau est inversé (Vue vs Logique)
         if (!isDirect && this.game.gameState.boardFlipped) {
             actualRow = 7 - displayRow;
             actualCol = 7 - displayCol;
@@ -172,9 +171,7 @@ class ChessGameMoveHandler {
     }
 
     clearSelection() {
-        // Reset logique du jeu
         this.game.clearSelection?.(); 
-        // Reset visuel (points et sélection)
         if (this.moveStateManager?.clearSelection) {
             this.moveStateManager.clearSelection();
         }

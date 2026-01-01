@@ -115,122 +115,15 @@ $config = loadGameConfig();
     </div>
 </div>
 
+<script src="js/kchess/ui/new-game-handler.js?version=<?php echo $version; ?>"></script>
+
 <script>
-let selectedMode = null;
-let selectedLevel = null;
-let selectedProfondeur = null;
-let selectedColor = 'white';
-
-// Gestion de la sélection du mode
-document.querySelectorAll('.game-mode-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        // Retirer la sélection précédente
-        document.querySelectorAll('.game-mode-btn').forEach(b => {
-            b.classList.remove('selected');
-        });
-        
-        // Sélectionner le nouveau mode
-        this.classList.add('selected');
-        selectedMode = this.dataset.mode;
-        selectedLevel = this.dataset.level;
-        selectedProfondeur = this.dataset.profondeur;
-        
-        // Activer le bouton de démarrage
-        document.getElementById('startGameBtn').disabled = false;
-        
-        // Déterminer le nom du bot basé sur le niveau
-        let botName = 'Humain';
-        if (selectedMode === 'bot') {
-            if (selectedLevel === '1') {
-                botName = 'Level_0 (Aléatoire)';
-            } else if (selectedLevel === '2') {
-                botName = 'Level_1 (CCMO)';
-            } else {
-                botName = 'Inconnu';
-            }
-        }
-        
-        console.log('🎮 Mode sélectionné:', {
-            mode: selectedMode,
-            level: selectedLevel,
-            profondeur: selectedProfondeur,
-            botName: botName,
-            description: 'Level 0=désactivé, 1=Aléatoire, 2=CCMO'
-        });
-    });
-});
-
-// Gestion de la sélection de la couleur
-document.querySelectorAll('.color-option').forEach(option => {
-    option.addEventListener('click', function() {
-        document.querySelectorAll('.color-option').forEach(opt => {
-            opt.classList.remove('selected');
-        });
-        this.classList.add('selected');
-        selectedColor = this.dataset.color;
-    });
-});
-
-// Gestion du bouton de démarrage
-document.getElementById('startGameBtn').addEventListener('click', function() {
-    let url = '<?php echo $targetPage; ?>';
-    
-    // Gérer la couleur aléatoire
-    let finalColor = selectedColor;
-    if (selectedColor === 'random') {
-        finalColor = Math.random() > 0.5 ? 'white' : 'black';
-        console.log(`🎲 Couleur aléatoire: ${finalColor}`);
-    }
-    
-    // Construire l'URL avec tous les paramètres harmonisés
-    const params = new URLSearchParams({
-        mode: selectedMode,
-        level: selectedLevel,
-        profondeur: selectedProfondeur,
-        color: finalColor
-    });
-    
-    url += '?' + params.toString();
-    
-    // Déterminer le nom du bot
-    let botName = 'Humain';
-    if (selectedMode === 'bot') {
-        if (selectedLevel === '1') {
-            botName = 'Level_0 (Aléatoire)';
-        } else if (selectedLevel === '2') {
-            botName = 'Level_1 (CCMO)';
-        } else {
-            botName = 'Inconnu';
-        }
-    }
-    
-    console.log('🚀 Démarrage de la partie:', { 
-        mode: selectedMode,
-        level: selectedLevel,
-        profondeur: selectedProfondeur,
-        originalColor: selectedColor,
-        finalColor: finalColor,
-        botName: botName,
-        url: url,
-        mapping: 'Niveau 0=désactivé, 1=Aléatoire, 2=CCMO'
-    });
-    
-    window.location.href = url;
-});
-
-// Sélection automatique du mode Humain-Humain au chargement
 document.addEventListener('DOMContentLoaded', function() {
-    const humanBtn = document.querySelector('.btn-human');
-    if (humanBtn) {
-        humanBtn.click();
+    // Vérification de sécurité avant initialisation
+    if (typeof NewGameHandler !== 'undefined') {
+        NewGameHandler.init('<?php echo $targetPage; ?>');
+    } else {
+        console.error("❌ Erreur : NewGameHandler n'a pas pu être chargé. Vérifiez le chemin du fichier.");
     }
-    
-    // Assurer que le contenu est visible sur mobile
-    setTimeout(() => {
-        document.querySelector('.new-game-content').scrollIntoView({ 
-            behavior: 'smooth',
-            block: 'center'
-        });
-    }, 100);
 });
 </script>
