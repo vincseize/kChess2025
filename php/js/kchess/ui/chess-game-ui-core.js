@@ -213,7 +213,7 @@ updateUI() {
         const currentPlayerElement = document.getElementById('currentPlayer');
         if (!currentPlayerElement) return;
 
-        // SÉCURITÉ : Récupérer le FEN de manière robuste
+        // 1. SÉCURITÉ : Récupérer le FEN
         let fen = "";
         if (typeof this.game.getFEN === 'function') {
             fen = this.game.getFEN();
@@ -222,29 +222,54 @@ updateUI() {
         } else if (window.FENGenerator && typeof window.FENGenerator.generate === 'function') {
             fen = window.FENGenerator.generate(this.game.board, this.game.gameState);
         } else {
-            if (this.constructor.consoleLog) console.warn("⚠️ Impossible de générer le FEN pour le statut");
             return;
         }
 
-        // Vérification du statut via le contrôleur
+        // 2. Récupérer l'analyse du statut via le contrôleur
         const statusInfo = ChessStatusController.checkGameStatus(fen);
-        
         const t = this.getTranslations();
-        let statusText = this.game.gameState.currentPlayer === 'white' ? 
-                         (t.traitAuBlancs || 'Aux blancs') : 
-                         (t.traitAuxNoirs || 'Aux noirs');
+        
+        // 3. LOGIQUE D'AFFICHAGE DU TEXTE
+        let statusText = "";
+        let isGameOver = false;
 
-        // Mise à jour visuelle si échec
-        if (statusInfo.status === 'check') {
-            statusText += ` - ⚠️ ${t.check || 'ÉCHEC'}`;
-            currentPlayerElement.style.color = 'red';
+        // Cas : ÉCHEC ET MAT
+        if (statusInfo.status === 'checkmate') {
+            const loser = this.game.gameState.currentPlayer === 'white' ? (t.white || 'Blancs') : (t.black || 'Noirs');
+            statusText = `💀 ${t.checkmate || 'ÉCHEC ET MAT'} (${loser})`;
+            currentPlayerElement.style.color = '#dc3545'; // Rouge vif
+            currentPlayerElement.style.fontWeight = '900';
+            isGameOver = true;
+        } 
+        // Cas : PAT (Stalemate)
+        else if (statusInfo.status === 'stalemate') {
+            statusText = `🤝 ${t.stalemate || 'Match nul (Pat)'}`;
+            currentPlayerElement.style.color = '#6c757d'; // Gris
+            isGameOver = true;
+        }
+        // Cas : ÉCHEC SIMPLE
+        else if (statusInfo.status === 'check') {
+            const turnText = this.game.gameState.currentPlayer === 'white' ? 
+                             (t.traitAuBlancs || 'Aux blancs') : (t.traitAuxNoirs || 'Aux noirs');
+            statusText = `${turnText} - ⚠️ ${t.check || 'ÉCHEC'}`;
+            currentPlayerElement.style.color = '#ffc107'; // Jaune orangé
             currentPlayerElement.style.fontWeight = 'bold';
-        } else {
+        } 
+        // Cas : JEU EN COURS
+        else {
+            statusText = this.game.gameState.currentPlayer === 'white' ? 
+                         (t.traitAuBlancs || 'Aux blancs') : (t.traitAuxNoirs || 'Aux noirs');
             currentPlayerElement.style.color = '';
             currentPlayerElement.style.fontWeight = 'normal';
         }
 
+        // Mise à jour du DOM
         currentPlayerElement.textContent = statusText;
+
+        // Optionnel : Arrêter les timers si c'est fini
+        if (isGameOver && this.timerManager) {
+            this.timerManager.stopTimer?.();
+        }
     }
 
     updateBotIndicator() {
