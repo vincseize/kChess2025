@@ -34,6 +34,7 @@
 
 <script src="js/kchess/bots/Level_1.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/bots/Level_2.js?version=<?= $version; ?>"></script>
+<script src="js/kchess/bots/Level_3.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/core/bot-manager.js?version=<?= $version; ?>"></script>
 
 <script src="js/kchess/ui/chess-game-ui-styles.js?version=<?= $version; ?>"></script>

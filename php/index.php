@@ -7,18 +7,26 @@ $version = getVersion();
 logConfigInfo($config);
 
 /**
- * LOGIQUE DU SPLASHSCREEN (Session)
- * On vérifie si le flag 'from_app' est présent
+ * LOGIQUE DU SPLASHSCREEN (Session & Langue)
+ * 1. On vérifie si un changement de langue est demandé dans l'URL.
+ * 2. On vérifie si l'utilisateur est déjà marqué comme étant "dans l'app".
  */
-$isComingFromApp = isset($_SESSION['from_app']) && $_SESSION['from_app'] === true;
+$isChangingLang = isset($_GET['lang']);
+$isComingFromApp = (isset($_SESSION['from_app']) && $_SESSION['from_app'] === true) || $isChangingLang;
 
-// On consomme le flag pour que le splash revienne si on recharge index.php manuellement
-if ($isComingFromApp) {
+// Si l'utilisateur change de langue, on mémorise qu'il est dans l'app pour éviter le splash au prochain clic
+if ($isChangingLang) {
+    $_SESSION['from_app'] = true;
+}
+
+// On nettoie le flag de session uniquement si ce n'est pas un changement de langue immédiat,
+// permettant ainsi au splash de revenir lors d'une nouvelle session complète.
+if ($isComingFromApp && !$isChangingLang) {
     unset($_SESSION['from_app']);
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?php echo htmlspecialchars($config['current_lang']); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -100,26 +108,57 @@ if ($isComingFromApp) {
 <body>
 
     <?php 
-    // On n'inclut le splashscreen que si on ne vient PAS de l'app
+    /**
+     * AFFICHAGE CONDITIONNEL DU SPLASHSCREEN
+     * On ne l'affiche que si on ne vient pas de l'app (pas de changement de langue, pas de session active)
+     */
     if (!$isComingFromApp) {
-        include 'splashscreens/splashscreen1.php'; 
+        // Note : Assurez-vous que splashscreen1.php existe dans ce dossier
+        if (file_exists('splashscreens/splashscreen1.php')) {
+            include 'splashscreens/splashscreen1.php'; 
+        }
     }
     ?>
 
     <div class="version-tag">v<?php echo htmlspecialchars($config['version']); ?></div>
 
     <div id="gameWrapper">
-        <?php require_once 'newGame.php'; ?>
+        <?php 
+        // Chargement du composant de création de partie
+        require_once 'newGame.php'; 
+        ?>
     </div>
 
     <script>
+        // Exportation de la configuration vers le JS global
         window.appConfig = <?php echo getAppConfigJson($config); ?>;
 
-        // --- SECURITE MOBILE ---
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+        /**
+         * SÉCURITÉ & EXPÉRIENCE MOBILE
+         */
+        if ('serviceWorker' in navigator) { 
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err)); 
+        }
+
+        // Empêcher le rebond élastique (overscroll) sur iOS sauf pour la zone scrollable
         document.body.addEventListener('touchmove', (e) => {
-            if (!e.target.closest('.card-body')) e.preventDefault();
+            if (!e.target.closest('.card-body')) {
+                e.preventDefault();
+            }
         }, { passive: false });
+
+        // Petit script pour masquer le splashscreen après chargement (si présent)
+        window.addEventListener('load', function() {
+            const splash = document.getElementById('splash-screen');
+            if (splash) {
+                setTimeout(() => {
+                    splash.style.opacity = '0';
+                    setTimeout(() => {
+                        splash.style.visibility = 'hidden';
+                    }, 800);
+                }, 1500); // Temps d'affichage minimal
+            }
+        });
     </script>
 
 </body>

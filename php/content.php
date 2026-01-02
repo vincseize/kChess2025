@@ -157,9 +157,14 @@ $translations = $config['lang'][$lang];
             </div>
             <div class="col-md-6 text-md-end">
                 <small class="text-white-50">
-                    <?php echo htmlspecialchars($translations['footer_dev']); ?> <?php echo htmlspecialchars($config['author']); ?>
-                    <?php echo htmlspecialchars($translations['footer_and']); ?> <?php echo htmlspecialchars($config['author2']); ?> | 
-                    <?php echo htmlspecialchars($translations['footer_copyright']); ?><?php echo date('Y'); ?>
+                    <?php echo htmlspecialchars($translations['footer_dev']); ?> 
+                    <?php echo htmlspecialchars($config['author']); ?>
+                    <?php echo htmlspecialchars($translations['footer_and']); ?> 
+                    <?php echo htmlspecialchars($config['author2']); ?> 
+                    
+                    <span class="mx-1">|</span>
+                    
+                    <?php echo $translations['footer_copyright']; ?><?php echo date('Y'); ?>
                 </small>
             </div>
         </div>

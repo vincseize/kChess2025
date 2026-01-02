@@ -291,20 +291,21 @@ updateUI() {
                     botIcon = '🤖';
                     break;
                 case 2:
-                    botType = t.bot_level2 || t.ccmo_bot || 'Bot';
+                    botType = t.ccmo_bot || t.bot_level2 || 'Bot';
                     botIcon = '🧠';
                     break;
                 case 3:
-                    botType = t.bot_level3 || 'Bot';
-                    botIcon = '🤖';
+                    // Priorité à la nouvelle clé ccmo_bot3 pour le Niveau 3
+                    botType = t.ccmo_bot3 || t.bot_level3 || 'Bot';
+                    botIcon = '🧡'; // Optionnel : un emoji différent pour marquer le niveau orange
                     break;
                 default:
-                    if (t.bot_level1) {
-                        botType = t.bot_level1.replace('1', botStatus.level);
-                    } else if (t[`bot_level${botStatus.level}`]) {
+                    if (t[`bot_level${botStatus.level}`]) {
                         botType = t[`bot_level${botStatus.level}`];
+                    } else if (t.bot_level1) {
+                        botType = t.bot_level1.replace('1', botStatus.level);
                     } else {
-                        botType = 'Bot';
+                        botType = `Bot ${botStatus.level}`;
                     }
                     botIcon = '🤖';
             }
