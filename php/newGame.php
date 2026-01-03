@@ -74,7 +74,7 @@ $translations = $config['lang'][$currentLang];
 <button class="game-mode-btn btn-level-1" 
         data-mode="bot" 
         data-level="3" 
-        data-profondeur="0" 
+        data-profondeur="1" 
         style="background: #d45d00 !important; border-left-color: #8a4d02 !important;">
     
     <div class="mode-description" style="background: transparent !important;">

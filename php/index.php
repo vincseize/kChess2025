@@ -6,11 +6,19 @@ $config = loadGameConfig();
 $version = getVersion();
 logConfigInfo($config);
 
+/**
+ * LOGIQUE DU SPLASHSCREEN (Session & Langue)
+ */
 $isChangingLang = isset($_GET['lang']);
 $isComingFromApp = (isset($_SESSION['from_app']) && $_SESSION['from_app'] === true) || $isChangingLang;
 
-if ($isChangingLang) { $_SESSION['from_app'] = true; }
-if ($isComingFromApp && !$isChangingLang) { unset($_SESSION['from_app']); }
+if ($isChangingLang) {
+    $_SESSION['from_app'] = true;
+}
+
+if ($isComingFromApp && !$isChangingLang) {
+    unset($_SESSION['from_app']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($config['current_lang']); ?>">
@@ -32,17 +40,17 @@ if ($isComingFromApp && !$isChangingLang) { unset($_SESSION['from_app']); }
             --padding-card: clamp(10px, 3vh, 25px);
         }
 
-        /* STRUCTURE : On autorise le scroll body pour le mobile */
+        /* STRUCTURE GLOBALE */
         html, body {
             height: 100%; margin: 0; padding: 0;
             background: #f8f9fa;
         }
         body { 
             display: flex; flex-direction: column; 
-            overflow-y: auto !important; /* CRITIQUE : Permet de voir le bouton Start */
+            overflow-y: auto !important; /* Permet le scroll si le contenu dépasse */
         }
 
-        /* SPLASH */
+        /* SPLASHSCREEN */
         #splash-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
             background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%);
@@ -51,13 +59,12 @@ if ($isComingFromApp && !$isChangingLang) { unset($_SESSION['from_app']); }
             transition: opacity 0.8s ease-out, visibility 0.8s;
         }
 
-        /* JEU & CARTE */
+        /* JEU & CARTE FORMULAIRE */
         #gameWrapper { 
             flex: 1; display: flex; justify-content: center; align-items: center; 
             width: 100%; padding: 20px 0; 
         }
         
-        /* Correction de la carte pour qu'elle ne bloque pas le scroll */
         .card-main-container {
             width: 95%; max-width: 500px;
             background: white; border-radius: 25px;
@@ -68,7 +75,7 @@ if ($isComingFromApp && !$isChangingLang) { unset($_SESSION['from_app']); }
 
         .card-body-scroll {
             padding: var(--padding-card);
-            overflow-y: visible; /* On laisse le body gérer le scroll */
+            overflow-y: visible; 
         }
 
         #gameWrapper .form-label { font-size: var(--taille-police-label); font-weight: 600; color: #333; }
@@ -107,17 +114,21 @@ if ($isComingFromApp && !$isChangingLang) { unset($_SESSION['from_app']); }
         </div>
     </div>
 
-    <!-- <script src="js/bots/Level_3.js?v=<?php echo $version; ?>"></script>
-    <script src="js/bots/bot-manager.js?v=<?php echo $version; ?>"></script> -->
+    <script src="js/kchess/bots/Level_1.js?v=<?php echo $version; ?>"></script>
+    <script src="js/kchess/bots/Level_2.js?v=<?php echo $version; ?>"></script>
+    <script src="js/kchess/bots/Level_3.js?v=<?php echo $version; ?>"></script>
+    <script src="js/kchess/core/bot-manager.js?v=<?php echo $version; ?>"></script>
 
     <script>
+        // Exportation de la configuration
         window.appConfig = <?php echo getAppConfigJson($config); ?>;
 
+        // Service Worker pour PWA
         if ('serviceWorker' in navigator) { 
             navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err)); 
         }
 
-        // Script de masquage Splash
+        // Gestion du Splashscreen
         window.addEventListener('load', function() {
             const splash = document.getElementById('splash-screen');
             if (splash) {
@@ -127,6 +138,11 @@ if ($isComingFromApp && !$isChangingLang) { unset($_SESSION['from_app']); }
                 }, 1500);
             }
         });
+
+        // Debug : Vérification chargement Level 3
+        setTimeout(() => {
+            console.log("🔍 État du Level_3 :", typeof window.Level_3 !== 'undefined' ? "Prêt" : "Erreur de chargement");
+        }, 2000);
     </script>
 </body>
 </html>
