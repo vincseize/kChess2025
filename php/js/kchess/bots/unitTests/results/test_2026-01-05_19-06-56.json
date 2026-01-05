@@ -1,0 +1,25 @@
+{
+    "action": "save",
+    "summary": {
+        "stats": {
+            "whiteWins": 0,
+            "blackWins": 0,
+            "pats": 0,
+            "draws": 1,
+            "limitReached": 0,
+            "totalMoves": 1,
+            "totalDuration": 1102,
+            "errorCount": 0
+        }
+    },
+    "details": [
+        {
+            "id": 1,
+            "status": "ok",
+            "moveCount": 1,
+            "result": "Fin prématurée",
+            "lastFen": "rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR b KQkq - 0 1",
+            "duration": 1102
+        }
+    ]
+}

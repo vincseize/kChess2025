@@ -1,172 +1,179 @@
 /**
- * BotManager - Gère le cycle de vie de l'IA
- * Version 2.4.1 - Correction Sécurité Fin de Partie
+ * STRESS TESTER - K-CHESS ENGINE
+ * Version : 6.9.37 - Multi-load Safety & UI Sync
  */
-class BotManager {
-    
-    static consoleLog = true;
-    static initialized = false;
 
-    static init() {
-        this.loadConfig();
-        this.initialized = true;
-        this.log(`Système prêt`, null, 'success');
+// Protection contre la double déclaration
+if (window.stressTester) {
+    console.log("♻️ Nettoyage de l'instance précédente...");
+    window.stressTester = null;
+}
+
+window.BotStressTest = class BotStressTest {
+    constructor() {
+        this.isRunning = false;
+        this.gameSessions = [];
+        this.needsInversion = null; 
+        this.stats = { whiteWins: 0, blackWins: 0, pats: 0, draws: 0, limitReached: 0, totalMoves: 0, totalDuration: 0, errorCount: 0 };
+        
+        this.logEl = document.getElementById('log-content');
+        this.btn = document.getElementById('startBtn');
+        this.countDisplay = document.getElementById('count');
+        this.progressBar = document.getElementById('progress-bar');
+        
+        this.init();
     }
 
-    static loadConfig() {
-        try {
-            const config = window.appConfig?.debug?.console_log ?? true;
-            this.consoleLog = (config === true || config === "true");
-        } catch (e) { this.consoleLog = true; }
-    }
-
-    static log(message, data = null, type = 'log') {
-        if (!this.consoleLog && type === 'log') return;
-        const icons = { log: '🤖', info: 'ℹ️', warn: '⚠️', error: '❌', success: '✅' };
-        const msg = `${icons[type] || '⚪'} [BotManager] ${message}`;
-        console[type === 'success' ? 'log' : type === 'warn' ? 'warn' : type === 'error' ? 'error' : 'log'](msg, data || "");
-    }
-
-    constructor(chessGame) {
-        this.chessGame = chessGame; 
-        this.bot = null;
-        this.botLevel = 0;
-        this.botColor = 'black';
-        this.isBotThinking = false;
-        this.isActive = false;
-        this._moveTimeout = null;
-        this._setupGameStateHook();
-    }
-
-    _setupGameStateHook() {
-        const state = this.chessGame?.gameState || window.chessGame?.gameState;
-        if (!state) {
-            setTimeout(() => this._setupGameStateHook(), 100);
-            return;
+    init() {
+        if (typeof FENGenerator !== 'undefined' && !FENGenerator.generateFEN) {
+            FENGenerator.generateFEN = (gs, b) => FENGenerator.generate(b, gs);
         }
+        if (this.btn) this.btn.onclick = () => this.runBatch();
+        console.log("🧪 StressTester prêt v6.9.37");
+    }
 
-        const originalSwitch = state.switchPlayer.bind(state);
-        state.switchPlayer = () => {
-            originalSwitch();
-            if (this.isBotTurn()) this._triggerDelayedMove();
+    statusUpdate(msg, type = 'info') {
+        const div = document.createElement('div');
+        div.className = `msg-${type}`;
+        div.innerHTML = `<span style="color:#666">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+        if (this.logEl) {
+            this.logEl.appendChild(div);
+            this.logEl.scrollTop = this.logEl.scrollHeight;
+        }
+    }
+
+    normalizeMove(rawMove) {
+        if (!rawMove) return null;
+        return {
+            fR: rawMove.fromRow ?? (rawMove.from?.row),
+            fC: rawMove.fromCol ?? (rawMove.from?.col),
+            tR: rawMove.toRow ?? (rawMove.to?.row),
+            tC: rawMove.toCol ?? (rawMove.to?.col)
         };
     }
 
-    setBotLevel(level, color = 'black') {
-        this.botLevel = parseInt(level);
-        this.botColor = color;
-        this.isActive = (this.botLevel > 0);
+    async performMove(game, nMove) {
+        try {
+            const core = game.core || game;
+            
+            // Correction de la détection d'inversion : on regarde si les pions blancs sont en ligne 6
+            if (this.needsInversion === null) {
+                const pieceAt64 = game.board.getSquare(6, 4)?.piece;
+                this.needsInversion = (pieceAt64 && pieceAt64.color === 'black');
+            }
 
-        if (this.isActive) {
-            this._instantiateBot(this.botLevel);
-        } else {
-            this.bot = null;
+            let finalMove = { ...nMove };
+            if (this.needsInversion) {
+                finalMove.fR = 7 - nMove.fR;
+                finalMove.tR = 7 - nMove.tR;
+            }
+
+            // --- SIMULATION UI ---
+            core.handleSquareClick(finalMove.fR, finalMove.fC, true);
+            await new Promise(r => setTimeout(r, 80)); // Temps pour le moteur de valider
+            core.handleSquareClick(finalMove.tR, finalMove.tC, true);
+
+            return true;
+        } catch (e) {
+            return false;
         }
-
-        if (this.isBotTurn()) this._triggerDelayedMove();
     }
 
-    _instantiateBot(level) {
-        const botClassName = `Level_${level}`;
-        if (typeof window[botClassName] === 'function') {
-            this.bot = new window[botClassName]();
-            BotManager.log(`${botClassName} activé (${this.botColor})`, null, 'success');
-        } else {
-            BotManager.log(`Classe ${botClassName} manquante !`, null, 'error');
-            this.isActive = false;
-        }
-    }
-
-    isBotTurn() {
-        const state = this.chessGame?.gameState || window.chessGame?.gameState;
-        if (!state || !this.bot || !this.isActive) return false;
-        
-        // Sécurité : Si le jeu est déjà marqué comme inactif, le bot s'arrête
-        if (!state.gameActive) return false;
-
-        return state.currentPlayer === this.botColor && !this.isBotThinking;
-    }
-
-    async playBotMove() {
-        const core = this.chessGame?.core || this.chessGame || window.chessGame?.core;
-        
-        if (!this.isBotTurn() || this.isBotThinking) return;
-
-        this.isBotThinking = true;
+    async simulateSingleGame(id, maxMoves) {
+        const startTime = performance.now();
+        const session = { id, status: 'ok', moveCount: 0, result: "", lastFen: "" };
         
         try {
-            // 1. Génération de la FEN
-            let currentFEN = "";
-            const gen = window.FENGenerator;
-            if (gen) {
-                currentFEN = gen.generate(core.board, core.gameState);
-            }
-
-            // 2. Appel ASYNC du bot
-            BotManager.log("L'IA analyse la position...");
-            const botMove = await this.bot.getMove(currentFEN);
-
-            // 3. Gestion Fin de partie (Mat ou Pat détecté par le bot)
-            if (!botMove || botMove.error) {
-                if (botMove?.error === 'game_over') {
-                    this.handleBotDetectedEnd(botMove);
-                }
-                this.isBotThinking = false;
-                return;
-            }
-
-            // 4. Exécution du coup
-            BotManager.log(`Coup décidé : ${this._getNotation(botMove)}`, null, 'success');
+            const game = new ChessGame();
             
-            core.handleSquareClick(botMove.fromRow, botMove.fromCol, true);
-            await new Promise(r => setTimeout(r, 250));
-            core.handleSquareClick(botMove.toRow, botMove.toCol, true);
+            // Désactivation des bots automatiques
+            if (game.botManager) game.botManager.isActive = false;
+            if (window.botManager) window.botManager.isActive = false;
 
-        } catch (error) {
-            BotManager.log(`Erreur critique : ${error.message}`, error, 'error');
-        } finally {
-            this.isBotThinking = false;
-        }
-    }
+            const botWhite = new Level_1();
+            const botBlack = new Level_1();
+            
+            let mCount = 0;
+            while (mCount < maxMoves) {
+                if (!game.gameState.gameActive) break;
 
-    /**
-     * Gère proprement l'affichage de fin de partie détectée par l'IA
-     */
-    handleBotDetectedEnd(botMove) {
-        BotManager.log(`Fin de partie détectée : ${botMove.reason}`, null, 'info');
-        
-        // On désactive le jeu pour éviter d'autres clics
-        if (this.chessGame?.gameState) {
-            this.chessGame.gameState.gameActive = false;
-        }
+                const currentFen = FENGenerator.generate(game.board, game.gameState);
+                session.lastFen = currentFen;
 
-        const mm = window.ChessModalManager;
-        const reason = botMove.reason || 'checkmate';
-        
-        // Sécurité : On teste plusieurs noms de fonctions possibles pour la modale
-        if (mm) {
-            if (typeof mm.showGameOver === 'function') {
-                mm.showGameOver(botMove.details, reason);
-            } else if (typeof mm.show === 'function') {
-                mm.show(reason, botMove.details);
-            } else {
-                BotManager.log("ChessModalManager trouvé mais fonction showGameOver manquante.", null, 'warn');
-                alert(`Fin de partie : ${reason}`);
+                const currentBot = (game.gameState.currentPlayer === 'white') ? botWhite : botBlack;
+                const rawMove = await currentBot.getMove(currentFen);
+                
+                if (!rawMove) break;
+                const move = this.normalizeMove(rawMove);
+                
+                await this.performMove(game, move);
+                
+                // Pause pour laisser le moteur finir le switchPlayer
+                await new Promise(r => setTimeout(r, 150));
+
+                const postFen = FENGenerator.generate(game.board, game.gameState);
+                if (currentFen === postFen) {
+                    this.statusUpdate(`⚠️ Coup rejeté (${game.gameState.currentPlayer})`, "warn");
+                    break;
+                }
+
+                mCount++;
+                session.moveCount = mCount;
             }
+
+            const resObj = this.determineResult(game, mCount, maxMoves);
+            session.result = resObj.text;
+            session.duration = Math.round(performance.now() - startTime);
+            this.updateStats(resObj, session.moveCount, session.duration);
+            this.statusUpdate(`Partie #${id}: ${session.result} (${mCount} coups)`, "success");
+            return session;
+        } catch (e) {
+            this.stats.errorCount++;
+            return { id, status: 'error' };
         }
     }
 
-    _triggerDelayedMove() {
-        if (this._moveTimeout) clearTimeout(this._moveTimeout);
-        this._moveTimeout = setTimeout(() => this.playBotMove(), 400);
+    determineResult(game, mCount, maxMoves) {
+        const state = game.gameState;
+        if (state.isCheckmate) return { text: "Mat", code: (state.currentPlayer === 'white' ? 'black' : 'white') };
+        if (state.isStalemate) return { text: "Pat", code: 'pat' };
+        if (mCount >= maxMoves) return { text: "Limite", code: 'limit' };
+        return { text: "Arrêt", code: 'draw' };
     }
 
-    _getNotation(move) {
-        if (!move || move.fromCol === undefined) return "???";
-        const files = 'abcdefgh';
-        return `${files[move.fromCol]}${8 - move.fromRow} ➔ ${files[move.toCol]}${8 - move.toRow}`;
+    updateStats(resObj, moves, duration) {
+        this.stats.totalMoves += moves;
+        this.stats.totalDuration += duration;
+        if (resObj.code === 'white') this.stats.whiteWins++;
+        else if (resObj.code === 'black') this.stats.blackWins++;
+        else if (resObj.code === 'pat') this.stats.pats++;
+        else if (resObj.code === 'limit') this.stats.limitReached++;
+        else this.stats.draws++;
     }
+
+    async runBatch() {
+        if (this.isRunning) return;
+        this.isRunning = true;
+        this.btn.disabled = true;
+        
+        const total = parseInt(document.getElementById('inputMaxGames').value) || 1;
+        const moves = parseInt(document.getElementById('inputMaxMoves').value) || 10;
+        
+        this.logEl.innerHTML = "";
+        this.statusUpdate(`🚀 Test v6.9.37 (${total} parties)...`, "info");
+        this.resetStats();
+
+        for (let i = 0; i < total; i++) {
+            const result = await this.simulateSingleGame(i + 1, moves);
+            this.gameSessions.push(result);
+            if (this.countDisplay) this.countDisplay.innerText = i + 1;
+        }
+
+        this.isRunning = false;
+        this.btn.disabled = false;
+    }
+
+    resetStats() { this.stats = { whiteWins: 0, blackWins: 0, pats: 0, draws: 0, limitReached: 0, totalMoves: 0, totalDuration: 0, errorCount: 0 }; }
 }
 
-BotManager.init();
-window.BotManager = BotManager;
+window.stressTester = new BotStressTest();
