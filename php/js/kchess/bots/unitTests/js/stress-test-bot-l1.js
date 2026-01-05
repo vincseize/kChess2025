@@ -1,6 +1,7 @@
 /**
  * STRESS TESTER - K-CHESS ENGINE
- * Version : 6.9.17 - Deep Debug & Bug Detection
+ * Version : 6.9.23 - Multi-Bot Ready & Async Fix
+ * Ce script pilote des sessions Bot vs Bot avec support pour duels asynchrones.
  */
 
 class BotStressTest {
@@ -13,6 +14,7 @@ class BotStressTest {
         this.dotInterval = null;
         this.globalStartTime = 0;
         
+        // Éléments UI
         this.logEl = document.getElementById('log-content');
         this.btn = document.getElementById('startBtn');
         this.badge = document.getElementById('game-id-badge');
@@ -24,11 +26,24 @@ class BotStressTest {
         this.init();
     }
 
-    init() {
-        if (this.btn) this.btn.onclick = () => this.runBatch();
+init() {
+    // --- PATCH DE COMPATIBILITÉ SANS TOUCHER AUX FICHIERS SOURCES ---
+    if (typeof FENGenerator !== 'undefined' && !FENGenerator.generateFEN) {
+        // On crée l'alias attendu par GameStatusManager
+        FENGenerator.generateFEN = function(gameState, board) {
+            // Attention : GameStatusManager envoie (state, board) 
+            // alors que FENGenerator.generate attend (board, state)
+            return FENGenerator.generate(board, gameState);
+        };
+        console.log("🛠️ Bridge FENGenerator.generateFEN injecté avec succès.");
     }
+    // ----------------------------------------------------------------
 
-    // ========== GESTION DES LOGS SERVEUR ==========
+    if (this.btn) this.btn.onclick = () => this.runBatch();
+    console.log("🧪 StressTester prêt.");
+}
+
+    // ========== GESTION LOGS ==========
 
     async clearPreviousLogs() {
         try {
@@ -38,297 +53,211 @@ class BotStressTest {
                 body: JSON.stringify({ action: 'clear_all' })
             });
             const res = await response.json();
-            console.log(`🧹 Nettoyage terminé : ${res.count || 0} fichiers supprimés.`);
-        } catch (e) {
-            console.error("Impossible de nettoyer les logs:", e);
-        }
-    }
-
-    // ========== ANIMATIONS UI ==========
-
-    startBadgeAnimation(currentId) {
-        this.stopBadgeAnimation();
-        let dotCount = 0;
-        this.dotInterval = setInterval(() => {
-            dotCount = (dotCount + 1) % 4;
-            const dots = ".".repeat(dotCount);
-            if (this.badge) {
-                this.badge.innerText = `RUNNING #${currentId}/${this.totalGamesToRun} ${dots}`;
-            }
-        }, 400);
-    }
-
-    stopBadgeAnimation() {
-        if (this.dotInterval) {
-            clearInterval(this.dotInterval);
-            this.dotInterval = null;
-        }
-    }
-
-    // ========== OUTILS ==========
-
-    formatDuration(ms) {
-        const seconds = Math.floor((ms / 1000) % 60);
-        const minutes = Math.floor((ms / (1000 * 60)) % 60);
-        const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
-        let parts = [];
-        if (hours > 0) parts.push(`${hours}h`);
-        if (minutes > 0) parts.push(`${minutes}min`);
-        parts.push(`${seconds}sec`);
-        return parts.length > 0 ? parts.join(' ') : "0sec";
+            this.statusUpdate(`Sweep : ${res.count || 0} rapports nettoyés.`, "info");
+        } catch (e) { console.error("Nettoyage impossible:", e); }
     }
 
     statusUpdate(msg, type = 'info') {
         const div = document.createElement('div');
         div.className = `msg-${type}`;
-        div.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${msg}`;
+        div.style.padding = "2px 0";
+        div.style.borderBottom = "1px solid #222";
+        if (type === 'fen') {
+            div.style.fontSize = "10px";
+            div.style.color = "#777";
+            div.style.fontFamily = "monospace";
+        }
+        div.innerHTML = `<span style="color:#666">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
         if (this.logEl) {
             this.logEl.appendChild(div);
             this.logEl.scrollTop = this.logEl.scrollHeight;
         }
     }
 
-    // ========== LOGIQUE MOTEUR ==========
+    // ========== LOGIQUE NORMALISATION & MOTEUR ==========
 
-    async performMove(game, move) {
+    normalizeMove(rawMove) {
+        if (!rawMove) return null;
+        
+        const move = {
+            fR: rawMove.fromRow ?? rawMove.startRow ?? (rawMove.from ? rawMove.from.row : undefined),
+            fC: rawMove.fromCol ?? rawMove.startCol ?? (rawMove.from ? rawMove.from.col : undefined),
+            tR: rawMove.toRow ?? rawMove.targetRow ?? rawMove.endRow ?? (rawMove.to ? rawMove.to.row : undefined),
+            tC: rawMove.toCol ?? rawMove.targetCol ?? rawMove.endCol ?? (rawMove.to ? rawMove.to.col : undefined)
+        };
+
+        if (move.fR === undefined || move.tR === undefined) {
+            console.error("❌ Format de mouvement Bot inconnu :", rawMove);
+            return null;
+        }
+        return move;
+    }
+
+    async performMove(game, nMove) {
         try {
-            let handler = null;
-            if (game.core) {
+            let handler = game.moveHandler || (game.core ? game.core.moveHandler : null);
+            if (!handler && game.core) {
                 for (let key in game.core) {
-                    if (game.core[key]?.moveExecutor) {
-                        handler = game.core[key];
-                        break;
-                    }
+                    if (game.core[key]?.moveExecutor) { handler = game.core[key]; break; }
                 }
             }
-            if (!handler && game.core.moveHandler) handler = game.core.moveHandler;
             if (!handler) return false;
 
-            const executor = handler.moveExecutor;
-            const fromSq = game.board.getSquare(move.fromRow, move.fromCol);
-            const toSq = game.board.getSquare(move.toRow, move.toCol);
+            const fromSq = game.board.getSquare(nMove.fR, nMove.fC);
+            const toSq = game.board.getSquare(nMove.tR, nMove.tC);
             
             if (!fromSq || !fromSq.piece) return false;
 
             game.gameState.currentPlayer = fromSq.piece.color;
-            game.selectedPiece = { row: move.fromRow, col: move.fromCol, piece: fromSq.piece };
-            game.possibleMoves = game.moveValidator.getPossibleMoves(fromSq.piece, move.fromRow, move.fromCol);
+            game.selectedPiece = { row: nMove.fR, col: nMove.fC, piece: fromSq.piece };
+            
+            const possibleMoves = game.moveValidator.getPossibleMoves(fromSq.piece, nMove.fR, nMove.fC);
 
-            let engineMove = game.possibleMoves.find(m => m.row === move.toRow && m.col === move.toCol);
+            let engineMove = possibleMoves.find(m => 
+                (m.row === nMove.tR && m.col === nMove.tC) || 
+                (m.toRow === nMove.tR && m.toCol === nMove.tC)
+            );
+            
             if (!engineMove) return false;
 
-            executor.executeNormalMove(fromSq, toSq, game.selectedPiece, engineMove, move.toRow, move.toCol);
+            handler.moveExecutor.executeNormalMove(fromSq, toSq, game.selectedPiece, engineMove, nMove.tR, nMove.tC);
             if (handler.clearSelection) handler.clearSelection();
+            
             return true;
         } catch (e) {
+            console.error("💥 Erreur performMove:", e);
             return false;
         }
     }
 
-    // ========== GESTION DES SESSIONS ==========
+    // ========== LOGIQUE DE SIMULATION (CAS 3 INCLUS) ==========
 
     async simulateSingleGame(id, maxMoves) {
-        const startTime = performance.now();
-        const session = { 
-            id, 
-            duration: 0, 
-            status: 'ok', 
-            error: null, 
-            moveCount: 0, 
-            result: "en cours", 
-            lastFen: "",
-            engineDebug: null 
-        };
+    const startTime = performance.now();
+    // On va stocker l'historique des FEN localement sans les afficher
+    const fenHistory = [];
+    const session = { id, status: 'ok', moveCount: 0, result: "en cours", lastFen: "" };
+    
+    try {
+        this.updateBadge(id);
+        const game = new ChessGame();
+        window.chessGame = game; 
         
-        let game = null;
-        try {
-            this.startBadgeAnimation(id);
-            game = new ChessGame();
-            window.chessGame = game; 
-            await new Promise(r => setTimeout(r, 100)); 
+        const botWhite = new Level_1();
+        const botBlack = new Level_1();
+        
+        let mCount = 0;
+        while (mCount < maxMoves) {
+            if (!game.gameState.gameActive) break;
 
-            const bot = new Level_1();
-            let mCount = 0;
+            const currentFen = FENGenerator.generate(game.board, game.gameState);
+            session.lastFen = currentFen;
+            fenHistory.push(currentFen); // On sauvegarde dans l'array
 
-            while (mCount < maxMoves) {
-                const currentFen = FENGenerator.generateFEN(game.gameState, game.board);
-                session.lastFen = currentFen; 
+            // ON NE LOGUE PLUS ICI SYSTÉMATIQUEMENT
+            // Sauf pour le tout premier coup pour le feedback visuel
+            if (mCount === 0) this.statusUpdate(`Départ FEN: ${currentFen}`, "fen");
 
-                // Détection de l'arrêt du moteur AVANT de jouer
-                if (!game.gameState.gameActive) {
-                    break; 
-                }
+            const activeColor = game.gameState.currentPlayer;
+            const currentBot = (activeColor === 'white') ? botWhite : botBlack;
 
-                const move = bot.getMove(currentFen);
-                if (!move) {
-                    session.result = "bloqué (pas de move)";
-                    break;
-                }
+            const rawMove = await currentBot.getMove(currentFen);
+            const move = this.normalizeMove(rawMove);
 
-                const success = await this.performMove(game, move);
-                if (!success) {
-                    throw new Error(`Erreur Moteur sur [${move.fromRow},${move.fromCol}]`);
-                }
+            if (!move) throw new Error(`Format invalide au coup ${mCount}`);
 
-                mCount++;
-                session.moveCount = mCount;
-                
-                // Petit délai pour laisser respirer le thread JS
-                await new Promise(r => setTimeout(r, 10)); 
-            }
+            const success = await this.performMove(game, move);
+            if (!success) throw new Error(`Incohérence moteur au coup ${mCount}`);
 
-            // Détermination du résultat final une fois sorti de la boucle
-            const resObj = this.determineResult(game, mCount, maxMoves);
-            session.result = resObj.text;
-            session.engineDebug = resObj.debug;
-
-            session.duration = Math.round(performance.now() - startTime);
-            return session;
-
-        } catch (e) {
-            session.duration = Math.round(performance.now() - startTime);
-            this.statusUpdate(`Partie #${id}: ERROR - ${e.message}`, "error");
-            session.status = 'error';
-            session.error = e.message;
-            session.result = "crash";
-            return session;
+            mCount++;
+            session.moveCount = mCount;
+            await new Promise(r => setTimeout(r, 10)); // Accéléré à 10ms
         }
+
+        session.result = this.determineResult(game, mCount, maxMoves).text;
+        session.duration = Math.round(performance.now() - startTime);
+
+        // LOG DE FIN : On affiche la position finale et le résultat
+        this.statusUpdate(`Partie #${id} terminée : ${session.result} (${mCount} coups). FEN Finale: ${session.lastFen}`, "success");
+
+        return session;
+
+    } catch (e) {
+        // SI ERREUR : On déballe tout l'historique pour comprendre
+        this.statusUpdate(`💥 CRASH Partie #${id} au coup ${session.moveCount}`, "error");
+        this.statusUpdate(`Historique avant crash :`, "error");
+        fenHistory.forEach((f, i) => this.statusUpdate(`  [${i}] ${f}`, "fen"));
+        this.statusUpdate(`Erreur: ${e.message}`, "error");
+        
+        session.status = 'error';
+        session.error = e.message;
+        return session;
     }
+}
 
     determineResult(game, mCount, maxMoves) {
-        if (!game || !game.gameState) {
-            return { text: "ERREUR: Data manquante", debug: null };
-        }
-
         const state = game.gameState;
-        const history = state.moveHistory || state.history || [];
-        
-        // 1. Détection des états de fin de partie officiels
-        if (state.isCheckmate) return { text: "mat", debug: null };
-        if (state.isStalemate) return { text: "pat", debug: null };
-        
-        if (state.isDraw) {
-            const reasons = {
-                'repetition': "nulle (répétition)",
-                'insufficientMaterial': "nulle (manque de pièces)",
-                'fiftyMoveRule': "nulle (50 coups)"
-            };
-            return { text: reasons[state.drawReason] || "nulle", debug: null };
-        }
-
-        // 2. Cas critique : Le moteur a stoppé gameActive sans raison (le fameux bug "Terminée")
-        if (state.gameActive === false) {
-            console.warn(`%c 🚨 BUG DETECTÉ SESSION #${this.gameSessions.length + 1} `, "background: #ff0000; color: #fff; font-weight: bold;");
-            return { 
-                text: "BUG: Arrêt injustifié", 
-                debug: {
-                    lastMove: history.length > 0 ? history[history.length - 1].notation : "aucun",
-                    active: state.gameActive,
-                    turn: state.currentPlayer,
-                    fullState: JSON.parse(JSON.stringify(state)) 
-                }
-            };
-        }
-
-        // 3. Si on est arrivé ici et que mCount >= maxMoves, c'est la limite normale
-        if (mCount >= maxMoves) {
-            return { text: "limite atteinte (en cours)", debug: null };
-        }
-
-        return { text: "terminée (inconnu)", debug: null };
+        if (state.isCheckmate) return { text: "Echec et Mat" };
+        if (state.isStalemate) return { text: "Pat (Nulle)" };
+        if (state.isDraw) return { text: "Nulle" };
+        if (mCount >= maxMoves) return { text: "Limite de coups atteinte" };
+        return { text: "Terminée" };
     }
+
+    // ========== EXÉCUTION DU TEST ==========
 
     async runBatch() {
         if (this.isRunning) return;
-        
-        await this.clearPreviousLogs();
-
-        this.globalStartTime = performance.now();
         this.isRunning = true;
         this.btn.disabled = true;
-        if(this.pContainer) this.pContainer.style.display = 'block';
+        
+        await this.clearPreviousLogs();
+        this.globalStartTime = performance.now();
 
-        this.totalGamesToRun = parseInt(document.getElementById('inputMaxGames').value) || 1;
-        const maxMoves = parseInt(document.getElementById('inputMaxMoves').value) || 10;
+        const total = parseInt(document.getElementById('inputMaxGames').value) || 1;
+        const moves = parseInt(document.getElementById('inputMaxMoves').value) || 10;
+        this.totalGamesToRun = total;
 
         this.logEl.innerHTML = "";
-        this.statusUpdate(`Démarrage du batch (${this.totalGamesToRun} parties)...`, "info");
+        this.statusUpdate(`🚀 Démarrage du Stress Test (${total} parties)...`, "info");
         
         this.gameSessions = [];
         this.gameCount = 0;
         this.errorCount = 0;
 
-        for (let i = 0; i < this.totalGamesToRun; i++) {
-            const result = await this.simulateSingleGame(i + 1, maxMoves);
+        for (let i = 0; i < total; i++) {
+            const result = await this.simulateSingleGame(i + 1, moves);
             this.gameSessions.push(result);
             
             result.status === 'ok' ? this.gameCount++ : this.errorCount++;
             
+            // Mise à jour UI
             this.countDisplay.innerText = this.gameCount;
             this.errorDisplay.innerText = this.errorCount;
-            this.progressBar.style.width = `${((i + 1) / this.totalGamesToRun) * 100}%`;
-            
-            await new Promise(r => setTimeout(r, 50));
+            this.progressBar.style.width = `${((i + 1) / total) * 100}%`;
         }
 
-        this.stopBadgeAnimation();
-        const globalDuration = performance.now() - this.globalStartTime;
         this.isRunning = false;
         this.btn.disabled = false;
-        
-        if (this.badge) {
-            this.badge.innerText = `DONE #${this.totalGamesToRun}/${this.totalGamesToRun} !`;
-        }
-
-        this.statusUpdate(`🏁 Session terminée. Succès: ${this.gameCount} | Errors: ${this.errorCount} | Temps total : <strong>${this.formatDuration(globalDuration)}</strong>`, "info");
-        
-        this.export(globalDuration);
+        if (this.badge) this.badge.innerText = `FINISHED`;
+        this.statusUpdate(`🏁 Test terminé en ${((performance.now() - this.globalStartTime)/1000).toFixed(1)}s`, "info");
+        this.export();
     }
 
-    export(finalDuration) {
-        if (this.gameSessions.length === 0) return;
+    updateBadge(id) {
+        if (this.badge) this.badge.innerText = `RUNNING #${id}/${this.totalGamesToRun}`;
+    }
 
-        const now = new Date();
-        const timestamp = now.getFullYear() + "-" + 
-                        String(now.getMonth()+1).padStart(2,'0') + "-" + 
-                        String(now.getDate()).padStart(2,'0') + "_" + 
-                        String(now.getHours()).padStart(2,'0') + "-" + 
-                        String(now.getMinutes()).padStart(2,'0') + "-" + 
-                        String(now.getSeconds()).padStart(2,'0');
-
-        const filename = `test_results_${timestamp}.json`;
-
+    export() {
         fetch('log_error.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'save',
-                filename: filename,
-                summary: { 
-                    total: this.gameSessions.length, 
-                    success: this.gameCount, 
-                    errors: this.errorCount,
-                    duration: this.formatDuration(finalDuration)
-                },
-                details: this.gameSessions
+            body: JSON.stringify({ 
+                action: 'save', 
+                summary: { total: this.gameSessions.length, success: this.gameCount, errors: this.errorCount },
+                details: this.gameSessions 
             })
-        })
-        .then(response => response.json())
-        .then(res => {
-            this.statusUpdate(`💾 Sauvegardé sur serveur : <span style="color:#58a6ff">${res.file}</span>`, "info");
-            
-            // --- LOGIQUE DE TÉLÉCHARGEMENT AUTOMATIQUE ---
-            if (res.downloadUrl) {
-                const link = document.createElement('a');
-                link.href = res.downloadUrl;
-                link.download = res.file; // Force le nom du fichier
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                this.statusUpdate(`📥 Téléchargement lancé...`, "info");
-            }
-        })
-        .catch(err => console.error("Erreur export:", err));
+        }).catch(e => console.error("Échec de l'exportation:", e));
     }
 }
 

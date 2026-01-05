@@ -74,6 +74,7 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
     📁 bots
       📄 Level_1.js
       📄 Level_2.js
+      📄 Level_3.js
       📄 bot-test-interface.js
       📁 unitTests
         📄 BotL1_vs_BotL1.php
@@ -130,6 +131,7 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
       📄 chess-game-ui-move-history.js
       📄 chess-game-ui-styles.js
       📄 chess-game-ui-timer.js
+      📄 new-game-handler.js
     📁 validators
       📄 move-executor.js
       📄 move-handler-core.js
