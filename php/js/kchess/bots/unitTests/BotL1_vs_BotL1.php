@@ -15,18 +15,16 @@ $version = getVersion();
         .config-group input { width: 100%; background: #0d1117; border: 1px solid #30363d; color: #58a6ff; padding: 8px; border-radius: 4px; font-weight: bold; }
         .progress-container { margin-top: 10px; height: 4px; background: #21262d; border-radius: 2px; display: none; }
         #progress-bar { width: 0%; height: 100%; background: #238636; transition: width 0.3s; }
+        .actions-group { display: flex; gap: 5px; margin-top: 10px; }
+        .btn-secondary { background: #21262d; font-size: 10px !important; flex: 1; height: 35px; cursor: pointer; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px; }
+        .btn-secondary:hover { background: #30363d; }
     </style>
 </head>
 <body>
 
 <script>
-    // Configuration des chemins avant chargement du moteur
-    const rootPath = window.location.origin + '/__kChess2025/php/';
-    window.PIECE_IMAGE_PATH = rootPath + 'img/chesspieces/wikipedia/';
-    window.appConfig = { 
-        piece_path: window.PIECE_IMAGE_PATH,
-        debug: { console_log: false } // Silence radio du moteur
-    };
+    window.PIECE_IMAGE_PATH = window.location.origin + '/__kChess2025/php/img/chesspieces/wikipedia/';
+    window.appConfig = { piece_path: window.PIECE_IMAGE_PATH, debug: { console_log: false } };
 </script>
 
     <h2>🧪 Stress Test : <span style="color: #6e7681; font-weight: normal;">Bot L1 vs L1</span></h2>
@@ -52,28 +50,34 @@ $version = getVersion();
                 <span class="stat-label">Configuration</span>
                 <div class="config-group">
                     <label>Nombre de parties</label>
-                    <input type="number" id="inputMaxGames" value="1" min="1">
+                    <input type="number" id="inputMaxGames" value="5" min="1">
                 </div>
                 <div class="config-group">
                     <label>Coups max / partie</label>
-                    <input type="number" id="inputMaxMoves" value="10" min="1">
+                    <input type="number" id="inputMaxMoves" value="16" min="1">
                 </div>
-                <div class="progress-container" id="p-container">
+                <div class="progress-container" id="p-container" style="display:block;">
                     <div id="progress-bar"></div>
                 </div>
             </div>
 
             <div class="stat-card">
-                <span class="stat-label">Parties Terminées</span>
+                <span class="stat-label">Terminées</span>
                 <span id="count" class="stat-value">0</span>
             </div>
 
             <div class="stat-card" style="border-top: 4px solid #f85149">
-                <span class="stat-label">Crashes / Erreurs</span>
+                <span class="stat-label">Erreurs</span>
                 <span id="errors" class="stat-value" style="color: #f85149">0</span>
             </div>
 
             <button id="startBtn" class="btn-test">START unitTests</button>
+
+            <div class="actions-group">
+                <button id="copyLogBtn" class="btn-secondary">LOGS</button>
+                <button id="copyFenBtn" class="btn-secondary">FENS</button>
+                <button id="clearJsonBtn" class="btn-secondary" style="color: #f85149">CLEAR</button>
+            </div>
         </div>
     </div>
 
