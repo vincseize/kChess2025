@@ -5,7 +5,7 @@ if (typeof PawnMoveValidator !== 'undefined') {
 
 class PawnMoveValidator {
     
-    static consoleLog = true; 
+    static consoleLog = false; 
     
     static init() {
         this.loadConfig();

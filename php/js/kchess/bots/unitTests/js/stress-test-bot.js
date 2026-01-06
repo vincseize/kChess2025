@@ -1,6 +1,7 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.1.0 - Advanced Status Logic & Custom Colors
+ * Version : 7.1.3 - Complete Silent Edition
+ * Neutralise GameStatusManager et les notifications UI pendant le test.
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -27,23 +28,33 @@ class BotStressTest {
             startTime: null,
             totalDuration: 0
         };
-        if (document.getElementById('errors')) document.getElementById('errors').innerText = "0";
-        if (document.getElementById('count')) document.getElementById('count').innerText = "0";
+        const errEl = document.getElementById('errors');
+        const countEl = document.getElementById('count');
+        if (errEl) errEl.innerText = "0";
+        if (countEl) countEl.innerText = "0";
     }
 
     init() {
         if (this.btn) this.btn.onclick = () => this.runBatch();
-        if (document.getElementById('copyLogBtn')) {
-            document.getElementById('copyLogBtn').onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
+        
+        const copyLogBtn = document.getElementById('copyLogBtn');
+        if (copyLogBtn) {
+            copyLogBtn.onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
         }
-        if (document.getElementById('copyFenBtn')) {
-            document.getElementById('copyFenBtn').onclick = (e) => {
+        
+        const copyFenBtn = document.getElementById('copyFenBtn');
+        if (copyFenBtn) {
+            copyFenBtn.onclick = (e) => {
                 const fenText = this.stats.fenList.join('\n');
                 if (fenText) this.copyToClipboard(fenText, e.target);
             };
         }
-        if (document.getElementById('clearJsonBtn')) {
-            document.getElementById('clearJsonBtn').onclick = () => this.clearServerLogs(true);
+        
+        const clearJsonBtn = document.getElementById('clearJsonBtn');
+        if (clearJsonBtn) {
+            clearJsonBtn.onclick = () => {
+                if (this.clearServerLogs) this.clearServerLogs(true);
+            };
         }
     }
 
@@ -57,21 +68,16 @@ class BotStressTest {
     }
 
     statusUpdate(msg, type = 'blanc', resultLabel = "") {
+        if (!this.logEl) return;
         const div = document.createElement('div');
         const colors = { 
-            rouge: "#f85149",   // Mat / Erreur
-            orange: "#d29922",  // Pat
-            blanc: "#ffffff",   // Nulle
-            gris: "#8b949e",    // En cours
-            system: "#3fb950"   // Succès / Terminé
+            rouge: "#f85149", orange: "#d29922", blanc: "#ffffff", gris: "#8b949e", system: "#3fb950" 
         };
 
         const time = `<span style="color:#8b949e">[${new Date().toLocaleTimeString()}]</span> `;
         let formattedMsg = msg;
         
-        // Logique de couleur pour le mot "FIN"
         if (resultLabel) {
-            // Le mot FIN est rouge uniquement si c'est un CRASH, sinon il est vert
             const finColor = (type === "rouge" && resultLabel.includes("CRASH")) ? "#f85149" : "#3fb950";
             const greenLabel = `<span style="color:${finColor}; font-weight:bold;">FIN</span>`;
             formattedMsg = msg.replace("FIN", greenLabel);
@@ -88,8 +94,8 @@ class BotStressTest {
     }
 
     async saveJsonToServer() {
-        const lvlW = document.getElementById('selectBotWhite').value;
-        const lvlB = document.getElementById('selectBotBlack').value;
+        const lvlW = document.getElementById('selectBotWhite')?.value || "unknown";
+        const lvlB = document.getElementById('selectBotBlack')?.value || "unknown";
         const dynamicName = `stress_test-${lvlW}vs${lvlB}.json`;
         try {
             await fetch('log_error.php', {
@@ -152,17 +158,31 @@ class BotStressTest {
     async simulateGame(id, maxMoves, totalGames) {
         const startPartie = performance.now();
         const _log = console.log; const _warn = console.warn;
+        
+        // Blocage de la console standard
         console.log = console.warn = () => {}; 
 
+        // Désactivation globale des logs du StatusManager
+        if (window.GameStatusManager) window.GameStatusManager.consoleLog = false;
+
         const game = new ChessGame();
+        
+        // Neutralisation des fonctions UI du Manager pour cette instance
+        if (game.statusManager) {
+            game.statusManager.showNotification = () => {};
+            game.statusManager.showCheckAlert = () => {};
+            game.statusManager.highlightKing = () => {};
+        }
+
         if (game.ui && game.ui.showStatus) game.ui.showStatus = () => {};
         if (window.displayStatus) { this._oldStatus = window.displayStatus; window.displayStatus = () => {}; }
 
         game.gameState.gameActive = true;
         let mCount = 0;
 
-        document.getElementById('progress-bar').style.width = `${Math.round((id / totalGames) * 100)}%`;
-        this.badge.innerText = `RUNNING ${id}/${totalGames}`;
+        const progressBar = document.getElementById('progress-bar');
+        if (progressBar) progressBar.style.width = `${Math.round((id / totalGames) * 100)}%`;
+        if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
 
         try {
             while (mCount < maxMoves && game.gameState.gameActive) {
@@ -186,11 +206,18 @@ class BotStressTest {
                 resTag = "FIN en cours"; type = "gris"; 
             }
 
-            const finalFen = FENGenerator.generate(game.board, gs);
+            // Correction : FENGenerator.generate ou generateFEN selon ta version
+            const finalFen = (FENGenerator.generate) ? 
+                FENGenerator.generate(game.board, gs) : 
+                FENGenerator.generateFEN(gs, game.board);
+
             this.stats.fenList.push(finalFen);
             this.stats.gamesPlayed++;
-            document.getElementById('count').innerText = this.stats.gamesPlayed;
             
+            const countDisplay = document.getElementById('count');
+            if (countDisplay) countDisplay.innerText = this.stats.gamesPlayed;
+            
+            // Restauration console pour le statusUpdate
             console.log = _log; console.warn = _warn;
             const dureePartie = ((performance.now() - startPartie) / 1000).toFixed(2);
             
@@ -199,27 +226,39 @@ class BotStressTest {
         } catch (e) {
             console.log = _log; console.warn = _warn;
             this.stats.errors++;
-            document.getElementById('errors').innerText = this.stats.errors;
+            const errDisplay = document.getElementById('errors');
+            if (errDisplay) errDisplay.innerText = this.stats.errors;
             this.statusUpdate(`FIN CRASH P#${id}`, "rouge", "FIN CRASH");
         }
     }
 
     async runBatch() {
         if (this.isRunning) return;
-        const total = parseInt(document.getElementById('inputMaxGames').value) || 50;
-        const moves = parseInt(document.getElementById('inputMaxMoves').value) || 100;
         
+        const inputGames = document.getElementById('inputMaxGames');
+        const inputMoves = document.getElementById('inputMaxMoves');
+        const total = inputGames ? parseInt(inputGames.value) : 50;
+        const moves = inputMoves ? parseInt(inputMoves.value) : 100;
+        
+        // Cache les modales de promotion et les notifications UI persistantes
         if (!document.getElementById('stress-test-style')) {
-            document.head.insertAdjacentHTML('beforeend', `<style id="stress-test-style">.promotion-modal, .promotion-overlay { display: none !important; }</style>`);
+            document.head.insertAdjacentHTML('beforeend', `
+                <style id="stress-test-style">
+                    .promotion-modal, .promotion-overlay, .chess-notification { display: none !important; }
+                </style>`);
         }
 
-        this.isRunning = true; this.btn.disabled = true; this.logEl.innerHTML = ''; this.resetStats();
+        this.isRunning = true; 
+        if (this.btn) this.btn.disabled = true; 
+        if (this.logEl) this.logEl.innerHTML = ''; 
+        this.resetStats();
         this.stats.startTime = performance.now();
         
         this.statusUpdate("🚀 DÉMARRAGE DU TEST...", "system");
 
         for (let i = 1; i <= total; i++) {
             await this.simulateGame(i, moves, total);
+            // Petit délai pour laisser le navigateur respirer
             await new Promise(r => setTimeout(r, 1));
         }
 
@@ -227,8 +266,16 @@ class BotStressTest {
         this.stats.totalDuration = tempsTotal;
 
         this.statusUpdate(`🏁 SESSION TERMINÉE en ${tempsTotal}s`, "system");
-        this.isRunning = false; this.btn.disabled = false;
+        this.isRunning = false; 
+        if (this.btn) this.btn.disabled = false;
+        
+        // Réactivation optionnelle des logs du StatusManager après le test
+        if (window.GameStatusManager) window.GameStatusManager.consoleLog = true;
+        
         await this.saveJsonToServer();
     }
 }
-document.addEventListener('DOMContentLoaded', () => { window.stressTester = new BotStressTest(); });
+
+document.addEventListener('DOMContentLoaded', () => { 
+    window.stressTester = new BotStressTest(); 
+});

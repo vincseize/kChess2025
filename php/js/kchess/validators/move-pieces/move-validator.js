@@ -3,7 +3,7 @@
  */
 class MoveValidator {
     
-    static consoleLog = true; 
+    static consoleLog = false; 
     
     static init() {
         this.loadConfig();
