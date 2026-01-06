@@ -1,5 +1,5 @@
 <?php
-// js/kchess/bots/unitTests/BotL_vs_Bot.php
+// js/kchess/bots/unitTests/Bot_vs_Bot.php
 require_once __DIR__ . '/../../../../config-loader.php'; 
 $version = getVersion();
 ?>
@@ -10,7 +10,6 @@ $version = getVersion();
     <title>🧪 Stress Test Bot Arena</title>
     <link rel="stylesheet" href="css/stress-test.css?v=<?php echo $version; ?>">
     <style>
-        /* Styles spécifiques pour les sélecteurs de bots */
         .config-group { margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px; }
         .config-group label { display: block; font-size: 11px; color: #8b949e; margin-bottom: 5px; text-transform: uppercase; font-weight: 600; }
         .config-group input, .config-group select { 
@@ -19,16 +18,12 @@ $version = getVersion();
         }
         .config-group select { color: #d29922; cursor: pointer; appearance: none; }
         .config-group select:focus { border-color: #58a6ff; }
-        
         .bot-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        
         .progress-container { margin-top: 10px; height: 4px; background: #21262d; border-radius: 2px; display: none; }
         #progress-bar { width: 0%; height: 100%; background: #238636; transition: width 0.3s; }
-        
         .actions-group { display: flex; gap: 5px; margin-top: 10px; }
         .btn-secondary { background: #21262d; font-size: 10px !important; flex: 1; height: 35px; cursor: pointer; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px; }
         .btn-secondary:hover { background: #30363d; }
-        
         #game-id-badge { font-family: monospace; padding: 2px 6px; background: #21262d; border-radius: 10px; font-size: 10px; }
     </style>
 </head>
@@ -66,14 +61,14 @@ $version = getVersion();
                         <label>Blancs</label>
                         <select id="selectBotWhite">
                             <option value="L1">LEVEL 1</option>
-                            <option value="L2" disabled>LEVEL 2 (Bientôt)</option>
+                            <option value="L2">LEVEL 2</option>
                         </select>
                     </div>
                     <div class="config-group">
                         <label>Noirs</label>
                         <select id="selectBotBlack">
                             <option value="L1">LEVEL 1</option>
-                            <option value="L2" disabled>LEVEL 2 (Bientôt)</option>
+                            <option value="L2">LEVEL 2</option>
                         </select>
                     </div>
                 </div>
@@ -84,7 +79,7 @@ $version = getVersion();
                 </div>
                 <div class="config-group">
                     <label>Coups max / partie</label>
-                    <input type="number" id="inputMaxMoves" value="16" min="1">
+                    <input type="number" id="inputMaxMoves" value="100" min="1">
                 </div>
                 
                 <div class="progress-container" id="p-container" style="display:block;">
@@ -105,8 +100,8 @@ $version = getVersion();
             <button id="startBtn" class="btn-test">START ARENA TEST</button>
 
             <div class="actions-group">
-                <button id="copyLogBtn" class="btn-secondary">LOGS</button>
-                <button id="copyFenBtn" class="btn-secondary">FENS</button>
+                <button id="copyLogBtn" class="btn-secondary">COPIE LOGS</button>
+                <button id="copyFenBtn" class="btn-secondary">COPIE FENS</button>
                 <button id="clearJsonBtn" class="btn-secondary" style="color: #f85149">CLEAR SERVER</button>
             </div>
         </div>
@@ -116,7 +111,6 @@ $version = getVersion();
     ob_start();
     include __DIR__ . '/../../../../engine-scripts.php'; 
     $engineScripts = ob_get_clean();
-    // Ajustement des chemins pour remonter au coeur du projet
     echo str_replace('src="js/', 'src="../../../../js/', $engineScripts);
     ?>
 
