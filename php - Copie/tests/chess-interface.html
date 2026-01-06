@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Game - Interface Moderne</title>
+    <link rel="stylesheet" href="chess-interface.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="chess-app">
+        <!-- Header avec timer -->
+        <header class="chess-header">
+            <div class="timer white-timer">
+                <span class="time">10:00</span>
+                <span class="player">WHITE</span>
+            </div>
+            <div class="game-clock">
+                <span class="current-time">6:48</span>
+            </div>
+            <div class="timer black-timer">
+                <span class="time">10:00</span>
+                <span class="player">BLACK</span>
+            </div>
+        </header>
+
+        <!-- Container principal -->
+        <div class="chess-container">
+            <!-- Panel de contrôle gauche -->
+            <aside class="control-panel">
+                <div class="control-group">
+                    <h3>Game Controls</h3>
+                    <button class="btn-control primary">
+                        <span class="icon">🔄</span>
+                        New Game
+                    </button>
+                    <button class="btn-control">
+                        <span class="icon">🔄</span>
+                        Flip Board
+                    </button>
+                    <button class="btn-control">
+                        <span class="icon">↶</span>
+                        Undo Move
+                    </button>
+                </div>
+
+                <div class="control-group">
+                    <h3>Play vs Computer</h3>
+                    
+                    <div class="setting-group">
+                        <label>Computer Difficulty:</label>
+                        <select class="setting-select">
+                            <option>Lil Ace 257 (Beginner)</option>
+                            <option>Medium Player</option>
+                            <option>Advanced AI</option>
+                            <option>Grand Master</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>Time Control:</label>
+                        <select class="setting-select">
+                            <option>10 minutes</option>
+                            <option>5 minutes</option>
+                            <option>3 minutes</option>
+                            <option>1 minute</option>
+                            <option>Unlimited</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Export Game</h3>
+                    <button class="btn-control secondary">
+                        <span class="icon">📥</span>
+                        Export Game (PGN)
+                    </button>
+                    <button class="btn-control secondary">
+                        <span class="icon">📋</span>
+                        Copy Position (FEN)
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Plateau d'échecs central -->
+            <main class="chess-main">
+                <div class="chess-board-container">
+                    <div class="chess-board">
+                        <!-- Plateau 8x8 généré en JS -->
+                        <div class="board-coordinates">
+                            <div class="files">a b c d e f g h</div>
+                            <div class="ranks">8 7 6 5 4 3 2 1</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Indicateur de tour -->
+                <div class="turn-indicator">
+                    <div class="turn-dot white"></div>
+                    <span class="turn-text">White to move</span>
+                </div>
+            </main>
+
+            <!-- Panel d'information droite -->
+            <aside class="info-panel">
+                <div class="info-group">
+                    <h3>Game Notation</h3>
+                    <div class="notation-display">
+                        Game notation will appear here...
+                    </div>
+                </div>
+
+                <div class="info-group">
+                    <h3>Move History</h3>
+                    <div class="move-history">
+                        <div class="move-list">
+                            <!-- Historique des coups -->
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Version mobile -->
+        <div class="mobile-controls">
+            <button class="mobile-btn">New Game</button>
+            <button class="mobile-btn">Flip</button>
+            <button class="mobile-btn">Undo</button>
+        </div>
+    </div>
+
+    <script src="chess-interface.js"></script>
+</body>
+</html>
