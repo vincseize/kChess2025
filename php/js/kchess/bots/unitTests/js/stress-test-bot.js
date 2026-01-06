@@ -1,6 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 6.9.76 - MoveExecutor Aggressive Patch
+ * Version : 7.1.0 - Advanced Status Logic & Custom Colors
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -16,19 +16,35 @@ class BotStressTest {
     }
 
     resetStats() {
-        this.stats = { totalMoves: 0, gamesPlayed: 0, errors: 0, checkmates: 0, stalemates: 0, draws: 0, fenList: [] };
+        this.stats = { 
+            totalMoves: 0, 
+            gamesPlayed: 0, 
+            errors: 0, 
+            checkmates: 0, 
+            stalemates: 0, 
+            draws: 0, 
+            fenList: [],
+            startTime: null,
+            totalDuration: 0
+        };
         if (document.getElementById('errors')) document.getElementById('errors').innerText = "0";
         if (document.getElementById('count')) document.getElementById('count').innerText = "0";
     }
 
     init() {
         if (this.btn) this.btn.onclick = () => this.runBatch();
-        document.getElementById('copyLogBtn').onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
-        document.getElementById('copyFenBtn').onclick = (e) => {
-            const fenText = this.stats.fenList.join('\n');
-            if (fenText) this.copyToClipboard(fenText, e.target);
-        };
-        document.getElementById('clearJsonBtn').onclick = () => this.clearServerLogs(true);
+        if (document.getElementById('copyLogBtn')) {
+            document.getElementById('copyLogBtn').onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
+        }
+        if (document.getElementById('copyFenBtn')) {
+            document.getElementById('copyFenBtn').onclick = (e) => {
+                const fenText = this.stats.fenList.join('\n');
+                if (fenText) this.copyToClipboard(fenText, e.target);
+            };
+        }
+        if (document.getElementById('clearJsonBtn')) {
+            document.getElementById('clearJsonBtn').onclick = () => this.clearServerLogs(true);
+        }
     }
 
     async copyToClipboard(text, btn) {
@@ -37,32 +53,50 @@ class BotStressTest {
             const original = btn.innerText;
             btn.innerText = "✅ COPIÉ";
             setTimeout(() => btn.innerText = original, 1200);
-        } catch (err) { this.statusUpdate("❌ Erreur de copie", "error"); }
+        } catch (err) { this.statusUpdate("❌ Erreur de copie", "rouge"); }
     }
 
-    statusUpdate(msg, type = 'info') {
+    statusUpdate(msg, type = 'blanc', resultLabel = "") {
         const div = document.createElement('div');
-        const colors = { error: "#f85149", success: "#3fb950", info: "#58a6ff", warning: "#d29922" };
+        const colors = { 
+            rouge: "#f85149",   // Mat / Erreur
+            orange: "#d29922",  // Pat
+            blanc: "#ffffff",   // Nulle
+            gris: "#8b949e",    // En cours
+            system: "#3fb950"   // Succès / Terminé
+        };
+
+        const time = `<span style="color:#8b949e">[${new Date().toLocaleTimeString()}]</span> `;
+        let formattedMsg = msg;
+        
+        // Logique de couleur pour le mot "FIN"
+        if (resultLabel) {
+            // Le mot FIN est rouge uniquement si c'est un CRASH, sinon il est vert
+            const finColor = (type === "rouge" && resultLabel.includes("CRASH")) ? "#f85149" : "#3fb950";
+            const greenLabel = `<span style="color:${finColor}; font-weight:bold;">FIN</span>`;
+            formattedMsg = msg.replace("FIN", greenLabel);
+        }
+
         div.style.color = colors[type] || "#ffffff";
         div.style.fontSize = "11px";
         div.style.padding = "2px 0";
         div.style.borderBottom = "1px solid #30363d";
-        div.innerHTML = `<span style="color:#8b949e">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+        div.innerHTML = time + formattedMsg;
+        
         this.logEl.appendChild(div);
         this.logEl.scrollTop = this.logEl.scrollHeight;
     }
 
-    async clearServerLogs(confirmNeeded = false) {
-        if (confirmNeeded && !confirm("Supprimer les rapports JSON ?")) return;
-        try { await fetch('log_error.php', { method: 'POST', body: JSON.stringify({ action: 'clear_all' }) }); } catch (e) {}
-    }
-
     async saveJsonToServer() {
+        const lvlW = document.getElementById('selectBotWhite').value;
+        const lvlB = document.getElementById('selectBotBlack').value;
+        const dynamicName = `stress_test-${lvlW}vs${lvlB}.json`;
         try {
             await fetch('log_error.php', {
                 method: 'POST',
-                body: JSON.stringify({ action: 'save', filename: `test_${Date.now()}.json`, stats: this.stats })
+                body: JSON.stringify({ action: 'save', filename: dynamicName, stats: this.stats })
             });
+            this.statusUpdate(`💾 Rapport généré : ${dynamicName}`, "system");
         } catch (e) {}
     }
 
@@ -88,53 +122,42 @@ class BotStressTest {
 
     async executeMove(game, move, color) {
         const engine = game.core || game;
-        const executor = game.moveExecutor;
-
         try {
-            // 1. FORCE RESET : On vide tous les verrous possibles du moteur avant de cliquer
-            if (game.moveHandler) {
-                game.moveHandler.isPromoting = false;
-                game.moveHandler.selectedPiece = null; // Évite les "fantômes" de sélection
-            }
+            if (game.moveHandler) { game.moveHandler.isPromoting = false; game.moveHandler.selectedPiece = null; }
             if (game.clearSelection) game.clearSelection();
-
-            // 2. PATCH EXECUTOR (S'assure que la promotion est synchrone)
-            if (executor && !executor._isPatched) {
-                executor.handlePromotion = function(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement, isCapture) {
+            
+            if (game.moveExecutor && !game.moveExecutor._isPatched) {
+                game.moveExecutor.handlePromotion = function(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement, isCapture) {
                     this.finalizePromotion(toRow, toCol, 'queen', move, selectedPiece, isCapture);
                 };
-                executor._isPatched = true;
+                game.moveExecutor._isPatched = true;
             }
 
-            // 3. EXECUTION DES CLICS
-            // On utilise un petit try/catch interne pour handleSquareClick
             engine.handleSquareClick(move.fromRow, move.fromCol, true);
             engine.handleSquareClick(move.toRow, move.toCol, true);
-            
-            // 4. ATTENTE DU CHANGEMENT DE TOUR
-            // Augmenter légèrement le timeout pour laisser l'UI souffler si besoin
+
             let wait = 0;
-            const maxWait = 25; 
-            while (game.gameState.currentPlayer === color && game.gameState.gameActive && wait < maxWait) {
+            while (game.gameState.currentPlayer === color && game.gameState.gameActive && wait < 25) {
                 await new Promise(r => setTimeout(r, 2));
                 wait++;
             }
-
-            // 5. DOUBLE CHECK : Si le tour n'a pas changé, on force le switch (Dernier recours)
             if (game.gameState.currentPlayer === color && game.gameState.gameActive) {
-                console.warn("Force switching player...");
                 game.gameState.switchPlayer();
                 if (game.updateUI) game.updateUI();
             }
-
-            return true; // On retourne true pour éviter le crash "Rejected"
-        } catch (e) { 
-            return false; 
-        }
+            return true;
+        } catch (e) { return false; }
     }
 
     async simulateGame(id, maxMoves, totalGames) {
+        const startPartie = performance.now();
+        const _log = console.log; const _warn = console.warn;
+        console.log = console.warn = () => {}; 
+
         const game = new ChessGame();
+        if (game.ui && game.ui.showStatus) game.ui.showStatus = () => {};
+        if (window.displayStatus) { this._oldStatus = window.displayStatus; window.displayStatus = () => {}; }
+
         game.gameState.gameActive = true;
         let mCount = 0;
 
@@ -146,31 +169,38 @@ class BotStressTest {
                 const color = game.gameState.currentPlayer;
                 const moves = this.getAvailableMoves(game, color);
                 if (moves.length === 0) break;
-
                 const move = moves[Math.floor(Math.random() * moves.length)];
-                if (!(await this.executeMove(game, move, color))) {
-                    throw new Error(`Rejected at T${mCount} (Pos: ${move.fromRow},${move.fromCol})`);
-                }
-                
+                if (!(await this.executeMove(game, move, color))) throw new Error(`Err`);
                 mCount++;
                 this.stats.totalMoves++;
             }
 
             const gs = game.gameState;
-            let res = gs.isCheckmate ? "⚔️ MAT" : (gs.isStalemate ? "🧩 PAT" : "⌛");
-            if (gs.isCheckmate) this.stats.checkmates++;
-            if (gs.isStalemate) this.stats.stalemates++;
+            let type = "blanc", resTag = "FIN nulle";
+
+            if (gs.isCheckmate) { 
+                resTag = "FIN mat"; type = "rouge"; this.stats.checkmates++; 
+            } else if (gs.isStalemate) { 
+                resTag = "FIN pat"; type = "orange"; this.stats.stalemates++; 
+            } else if (mCount >= maxMoves) { 
+                resTag = "FIN en cours"; type = "gris"; 
+            }
 
             const finalFen = FENGenerator.generate(game.board, gs);
             this.stats.fenList.push(finalFen);
             this.stats.gamesPlayed++;
-            
             document.getElementById('count').innerText = this.stats.gamesPlayed;
-            this.statusUpdate(`P#${id} (${mCount} mvts) ${res} | ${finalFen}`, (gs.isCheckmate ? "warning" : "success"));
+            
+            console.log = _log; console.warn = _warn;
+            const dureePartie = ((performance.now() - startPartie) / 1000).toFixed(2);
+            
+            this.statusUpdate(`P#${id} (${mCount} mvts - ${dureePartie}s) ${resTag} | ${finalFen}`, type, resTag);
+
         } catch (e) {
+            console.log = _log; console.warn = _warn;
             this.stats.errors++;
             document.getElementById('errors').innerText = this.stats.errors;
-            this.statusUpdate(`❌ P#${id} CRASH : ${e.message}`, "error");
+            this.statusUpdate(`FIN CRASH P#${id}`, "rouge", "FIN CRASH");
         }
     }
 
@@ -179,21 +209,24 @@ class BotStressTest {
         const total = parseInt(document.getElementById('inputMaxGames').value) || 50;
         const moves = parseInt(document.getElementById('inputMaxMoves').value) || 100;
         
-        // Kill CSS UI
-        const styleId = 'stress-test-style';
-        if (!document.getElementById(styleId)) {
-            document.head.insertAdjacentHTML('beforeend', `<style id="${styleId}">.promotion-modal, .promotion-overlay, #promotion-modal { display: none !important; }</style>`);
+        if (!document.getElementById('stress-test-style')) {
+            document.head.insertAdjacentHTML('beforeend', `<style id="stress-test-style">.promotion-modal, .promotion-overlay { display: none !important; }</style>`);
         }
 
         this.isRunning = true; this.btn.disabled = true; this.logEl.innerHTML = ''; this.resetStats();
+        this.stats.startTime = performance.now();
+        
+        this.statusUpdate("🚀 DÉMARRAGE DU TEST...", "system");
 
         for (let i = 1; i <= total; i++) {
             await this.simulateGame(i, moves, total);
-            // On peut même accélérer le repos entre les parties
             await new Promise(r => setTimeout(r, 1));
         }
 
-        this.statusUpdate(`🏁 FIN : Mats: ${this.stats.checkmates} | Erreurs: ${this.stats.errors}`, "success");
+        const tempsTotal = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
+        this.stats.totalDuration = tempsTotal;
+
+        this.statusUpdate(`🏁 SESSION TERMINÉE en ${tempsTotal}s`, "system");
         this.isRunning = false; this.btn.disabled = false;
         await this.saveJsonToServer();
     }
