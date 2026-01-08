@@ -5,9 +5,23 @@ require_once __DIR__ . '/config-loader.php';
 $config = loadGameConfig();
 $version = getVersion();
 logConfigInfo($config);
+
+/**
+ * LOGIQUE DU SPLASHSCREEN (Session & Langue)
+ */
+$isChangingLang = isset($_GET['lang']);
+$isComingFromApp = (isset($_SESSION['from_app']) && $_SESSION['from_app'] === true) || $isChangingLang;
+
+if ($isChangingLang) {
+    $_SESSION['from_app'] = true;
+}
+
+if ($isComingFromApp && !$isChangingLang) {
+    unset($_SESSION['from_app']);
+}
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?php echo htmlspecialchars($config['current_lang']); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -26,14 +40,17 @@ logConfigInfo($config);
             --padding-card: clamp(10px, 3vh, 25px);
         }
 
-        /* STRUCTURE */
+        /* STRUCTURE GLOBALE */
         html, body {
-            height: 100% !important; margin: 0 !important; padding: 0 !important;
-            overflow: hidden !important; background: #f8f9fa;
+            height: 100%; margin: 0; padding: 0;
+            background: #f8f9fa;
         }
-        body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+        body { 
+            display: flex; flex-direction: column; 
+            overflow-y: auto !important; /* Permet le scroll si le contenu dépasse */
+        }
 
-        /* STYLE DU SPLASH (Gardé ici pour éviter le flash blanc au chargement) */
+        /* SPLASHSCREEN */
         #splash-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
             background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%);
@@ -41,31 +58,24 @@ logConfigInfo($config);
             z-index: 1000000; color: white; text-align: center;
             transition: opacity 0.8s ease-out, visibility 0.8s;
         }
-        #snow-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
-        #splash-content { position: relative; z-index: 2; }
-        #splash-content h1 { font-size: 3.2rem; font-weight: 800; margin: 10px 0 0 0; }
-        #splash-content h2 { font-size: 1.6rem; font-weight: 300; opacity: 0.95; font-style: italic; }
 
-        @keyframes treeSway {
-            0% { transform: rotate(-8deg); }
-            50% { transform: rotate(8deg); }
-            100% { transform: rotate(-8deg); }
+        /* JEU & CARTE FORMULAIRE */
+        #gameWrapper { 
+            flex: 1; display: flex; justify-content: center; align-items: center; 
+            width: 100%; padding: 20px 0; 
         }
-        .tree-anim { display: inline-block; animation: treeSway 2.5s ease-in-out infinite; }
+        
+        .card-main-container {
+            width: 95%; max-width: 500px;
+            background: white; border-radius: 25px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
 
-        /* JEU & CARTE */
-        #gameWrapper { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; }
-        #gameWrapper .card {
-            height: 90dvh !important; width: 95%; max-width: 500px;
-            background: white !important; border-radius: 25px !important;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.2) !important;
-            display: flex !important; flex-direction: column !important;
-            border: none !important; overflow: hidden;
-        }
-        #gameWrapper .card-body {
-            flex: 1 !important; display: flex !important; flex-direction: column !important;
-            justify-content: space-between !important; padding: var(--padding-card) !important;
-            overflow-y: auto;
+        .card-body-scroll {
+            padding: var(--padding-card);
+            overflow-y: visible; 
         }
 
         #gameWrapper .form-label { font-size: var(--taille-police-label); font-weight: 600; color: #333; }
@@ -79,30 +89,60 @@ logConfigInfo($config);
         }
 
         .version-tag {
-            position: fixed; bottom: 5px; right: 10px; font-size: 0.65rem;
-            color: rgba(255,255,255,0.7); z-index: 99999; font-family: monospace;
+            position: fixed; top: 0px; left: 0px; font-size: 0.65rem;
+            color: rgba(255,255,255,0.7); z-index: 99999;
+            font-family: monospace; background-color: #000;
+            padding: 4px 8px; border-radius: 8px;
         }
     </style>
 </head>
 <body>
 
-    <?php include 'splashscreens/splashscreen1.php'; ?>
+    <?php 
+    if (!$isComingFromApp && file_exists('splashscreens/splashscreen1.php')) {
+        include 'splashscreens/splashscreen1.php'; 
+    }
+    ?>
 
     <div class="version-tag">v<?php echo htmlspecialchars($config['version']); ?></div>
 
     <div id="gameWrapper">
-        <?php require_once 'newGame.php'; ?>
+        <div class="card-main-container">
+            <div class="card-body-scroll">
+                <?php require_once 'newGame.php'; ?>
+            </div>
+        </div>
     </div>
 
+    <script src="js/kchess/bots/Level_1.js?v=<?php echo $version; ?>"></script>
+    <script src="js/kchess/bots/Level_2.js?v=<?php echo $version; ?>"></script>
+    <script src="js/kchess/bots/Level_3.js?v=<?php echo $version; ?>"></script>
+    <script src="js/kchess/core/bot-manager.js?v=<?php echo $version; ?>"></script>
+
     <script>
+        // Exportation de la configuration
         window.appConfig = <?php echo getAppConfigJson($config); ?>;
 
-        // --- SECURITE MOBILE ---
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
-        document.body.addEventListener('touchmove', (e) => {
-            if (!e.target.closest('.card-body')) e.preventDefault();
-        }, { passive: false });
-    </script>
+        // Service Worker pour PWA
+        if ('serviceWorker' in navigator) { 
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err)); 
+        }
 
+        // Gestion du Splashscreen
+        window.addEventListener('load', function() {
+            const splash = document.getElementById('splash-screen');
+            if (splash) {
+                setTimeout(() => {
+                    splash.style.opacity = '0';
+                    setTimeout(() => { splash.style.visibility = 'hidden'; }, 800);
+                }, 1500);
+            }
+        });
+
+        // Debug : Vérification chargement Level 3
+        setTimeout(() => {
+            console.log("🔍 État du Level_3 :", typeof window.Level_3 !== 'undefined' ? "Prêt" : "Erreur de chargement");
+        }, 2000);
+    </script>
 </body>
 </html>

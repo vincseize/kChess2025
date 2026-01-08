@@ -1,29 +1,22 @@
-// bots/bot-test-interface.js - Interface de débogage et de contrôle des bots
+// bots/bot-test-interface.js
+if (typeof BotTestInterface !== 'undefined') {
+    console.warn('⚠️ BotTestInterface déjà chargé.');
+} else {
+
 class BotTestInterface {
     static consoleLog = true;
-    static VERSION = '1.1.0';
+    static VERSION = '1.2.0';
 
     static init() {
         this.loadConfig();
-        if (this.consoleLog) {
-            console.log(`🤖 BotTestInterface v${this.VERSION} prêt`);
-        }
+        if (this.consoleLog) console.log(`🤖 BotTestInterface v${this.VERSION} prêt`);
     }
 
-    /**
-     * Charge la configuration de manière robuste (String "false" ou Boolean false)
-     */
     static loadConfig() {
         try {
-            const rawValue = window.appConfig?.debug?.console_log ?? true;
-            this.consoleLog = rawValue === "false" ? false : Boolean(rawValue);
-        } catch (e) {
-            this.consoleLog = true;
-        }
-    }
-
-    static getConfigSource() {
-        return window.appConfig ? 'JSON config' : 'default';
+            const config = window.appConfig?.debug?.console_log ?? true;
+            this.consoleLog = String(config) !== "false";
+        } catch (e) { this.consoleLog = true; }
     }
 
     constructor(chessGame) {
@@ -34,7 +27,7 @@ class BotTestInterface {
     }
 
     /**
-     * Crée et affiche le panneau de contrôle dans le DOM
+     * Crée le panneau de contrôle avec un design plus "Console"
      */
     createTestPanel() {
         if (this.testPanel) this.testPanel.remove();
@@ -43,10 +36,10 @@ class BotTestInterface {
         this.testPanel.id = 'bot-test-panel';
         this.testPanel.style.cssText = `
             position: fixed; top: 10px; right: 10px; z-index: 10000;
-            background: #2c3e50; color: white; padding: 15px;
-            border-radius: 8px; border: 1px solid #34495e;
-            font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 12px;
-            width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            background: #1e1e1e; color: #d4d4d4; padding: 15px;
+            border-radius: 8px; border: 1px solid #333;
+            font-family: 'Consolas', monospace; font-size: 12px;
+            width: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         `;
 
         this.updatePanelContent();
@@ -54,43 +47,39 @@ class BotTestInterface {
         this.isVisible = true;
     }
 
-    /**
-     * Génère le HTML dynamique basé sur l'état du jeu
-     */
     updatePanelContent() {
-        const status = this.chessGame.getBotStatus();
+        if (!this.testPanel) return;
+        
+        // Récupération sécurisée du statut via le BotManager de la partie
+        const status = this.chessGame.botManager?.getStatus() || { level: 0, active: false };
         
         this.testPanel.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #3e5871; padding-bottom:5px;">
-                <span style="color:#3498db; font-weight:bold;">🤖 BOT DEBUGGER</span>
-                <button id="close-test-panel" style="background:none; border:none; color:#95a5a6; cursor:pointer; font-size:16px;">&times;</button>
+            <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:5px;">
+                <span style="color:#007acc; font-weight:bold;">> BOT_DEBUGGER_OS</span>
+                <button id="close-test-panel" style="background:none; border:none; color:#666; cursor:pointer;">[X]</button>
             </div>
             
-            <div style="background:#34495e; padding:10px; border-radius:4px; margin-bottom:12px; line-height:1.6;">
-                <b>Statut :</b> ${status.active ? '🟢 Actif' : '🔴 Inactif'}<br>
-                <b>Bot :</b> ${status.name} (Lvl ${status.level})<br>
-                <b>Couleur :</b> ${status.color === 'white' ? '⚪ Blanc' : '⚫ Noir'}
+            <div style="background:#252526; padding:8px; border-radius:4px; margin-bottom:12px; border-left: 3px solid ${status.active ? '#4ec9b0' : '#f44747'}">
+                <b>Status:</b> ${status.active ? 'RUNNING' : 'STOPPED'}<br>
+                <b>Level:</b> ${status.level} | <b>Moves:</b> ${status.moveCount || 0}
             </div>
 
-            <div class="panel-section" style="margin-bottom:10px;">
-                <div style="margin-bottom:5px; font-weight:bold; font-size:10px; color:#bdc3c7; text-transform:uppercase;">Niveaux</div>
+            <div style="margin-bottom:10px;">
+                <div style="font-size:10px; color:#666; margin-bottom:4px;">SWITCH_LEVEL</div>
                 <div style="display:flex; gap:4px;">
-                    <button class="btn-ctrl" data-action="level" data-val="0" style="flex:1; background:#e74c3c; border:none; color:white; padding:4px; border-radius:3px; cursor:pointer;">Off</button>
-                    <button class="btn-ctrl" data-action="level" data-val="1" style="flex:1; background:#27ae60; border:none; color:white; padding:4px; border-radius:3px; cursor:pointer;">Lvl 1</button>
-                    <button class="btn-ctrl" data-action="level" data-val="2" style="flex:1; background:#2980b9; border:none; color:white; padding:4px; border-radius:3px; cursor:pointer;">Lvl 2</button>
+                    ${[0, 1, 2, 3].map(l => `
+                        <button class="btn-lvl" data-val="${l}" style="flex:1; background:${status.level === l ? '#007acc' : '#333'}; border:none; color:white; padding:4px; cursor:pointer;">${l === 0 ? 'OFF' : l}</button>
+                    `).join('')}
                 </div>
             </div>
 
-            <div class="panel-section" style="margin-bottom:10px;">
-                <div style="margin-bottom:5px; font-weight:bold; font-size:10px; color:#bdc3c7; text-transform:uppercase;">Actions Directes</div>
-                <div style="display:flex; gap:4px;">
-                    <button id="force-move" style="flex:1; background:#f39c12; border:none; color:white; padding:6px; border-radius:3px; cursor:pointer; font-weight:bold;">Jouer Coup</button>
-                    <button id="test-logic" style="flex:1; background:#8e44ad; border:none; color:white; padding:6px; border-radius:3px; cursor:pointer;">Simuler</button>
-                </div>
+            <div style="display:flex; gap:4px; margin-bottom:10px;">
+                <button id="force-move" style="flex:2; background:#333; border:1px solid #555; color:#ce9178; padding:6px; cursor:pointer;">Execute_Move()</button>
+                <button id="test-diag" style="flex:1; background:#333; border:1px solid #555; color:#9cdcfe; padding:6px; cursor:pointer;">Diag</button>
             </div>
 
-            <div id="test-results" style="background:#1a252f; padding:8px; border-radius:4px; font-family:monospace; font-size:10px; height:80px; overflow-y:auto; color:#2ecc71;">
-                > Prêt pour diagnostic...
+            <div id="test-results" style="background:#000; padding:8px; border-radius:4px; font-size:10px; height:120px; overflow-y:auto; color:#b5cea8; border:1px solid #333;">
+                <div>> Initializing diagnostic...</div>
             </div>
         `;
 
@@ -98,100 +87,93 @@ class BotTestInterface {
     }
 
     attachEvents() {
-        // Fermeture
-        this.testPanel.querySelector('#close-test-panel').onclick = () => this.hideTestPanel();
-
-        // Changement de niveau
-        this.testPanel.querySelectorAll('[data-action="level"]').forEach(btn => {
+        this.testPanel.querySelector('#close-test-panel').onclick = () => this.toggle();
+        
+        this.testPanel.querySelectorAll('.btn-lvl').forEach(btn => {
             btn.onclick = () => {
                 const lvl = parseInt(btn.dataset.val);
-                this.chessGame.setBotLevel(lvl);
-                this.log(`Niveau changé vers ${lvl}`);
+                this.chessGame.botManager?.setBotLevel(lvl);
                 this.updatePanelContent();
+                this.log(`Level set to: ${lvl}`);
             };
         });
 
-        // Forcer coup
         this.testPanel.querySelector('#force-move').onclick = () => {
-            this.log("Demande de coup forcée...");
-            this.chessGame.playBotMove();
+            this.log("Manual trigger: playBotMove()");
+            this.chessGame.botManager?.playBotMove();
         };
 
-        // Simuler/Tester logique
-        this.testPanel.querySelector('#test-logic').onclick = () => this.runDiagnostic();
+        this.testPanel.querySelector('#test-diag').onclick = () => this.runDiagnostic();
     }
 
-    /**
-     * Exécute une série de tests sur le bot actuel
-     */
     runDiagnostic() {
-        const bot = this.chessGame.core.bot;
-        if (!bot) return this.log("❌ Erreur: Aucun bot chargé");
+        const bm = this.chessGame.botManager;
+        if (!bm || !bm.bot) return this.log("ERR: NO_BOT_ACTIVE");
 
         try {
             const fen = window.FENGenerator?.generateFEN(this.chessGame.gameState, this.chessGame.board) || "N/A";
-            const move = bot.getMove(fen);
+            this.log(`FEN_DAT: ${fen.substring(0, 20)}...`);
             
-            this.log(`FEN: ${fen.substring(0, 15)}...`);
+            const start = performance.now();
+            const move = bm.bot.getMove(fen);
+            const end = performance.now();
+            
             if (move) {
-                this.log(`✅ Coup calculé: [${move.fromRow},${move.fromCol}] -> [${move.toRow},${move.toCol}]`);
+                this.log(`SUCCESS: Move found in ${(end-start).toFixed(1)}ms`);
+                this.log(`SRC: [${move.fromRow},${move.fromCol}] DST: [${move.toRow},${move.toCol}]`);
             } else {
-                this.log("⚠️ Le bot ne trouve pas de coup.");
+                this.log("WARN: BOT_RETURNED_NULL");
             }
         } catch (e) {
-            this.log(`❌ Crash: ${e.message}`);
+            this.log(`CRASH: ${e.message}`);
         }
     }
 
     log(msg) {
         const logDiv = this.testPanel?.querySelector('#test-results');
         if (logDiv) {
-            const time = new Date().toLocaleTimeString().split(' ')[0];
-            logDiv.innerHTML = `<div>[${time}] ${msg}</div>` + logDiv.innerHTML;
+            const entry = document.createElement('div');
+            entry.style.marginBottom = '2px';
+            entry.innerHTML = `<span style="color:#666">[${new Date().toLocaleTimeString().split(' ')[0]}]</span> ${msg}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
         }
-        if (this.constructor.consoleLog) console.log(`[BotInterface] ${msg}`);
-    }
-
-    hideTestPanel() {
-        if (this.testPanel) {
-            this.testPanel.remove();
-            this.testPanel = null;
-        }
-        this.isVisible = false;
     }
 
     toggle() {
-        this.isVisible ? this.hideTestPanel() : this.createTestPanel();
+        this.isVisible = !this.isVisible;
+        this.isVisible ? this.createTestPanel() : (this.testPanel?.remove(), this.testPanel = null);
     }
 }
 
-// Initialisation
 BotTestInterface.init();
 window.BotTestInterface = BotTestInterface;
 
-/**
- * Injection automatique du bouton de trigger en local
- */
-document.addEventListener('DOMContentLoaded', () => {
-    // On attend un peu que le jeu soit prêt
-    setTimeout(() => {
-        if (!window.chessGame || !BotTestInterface.consoleLog) return;
+// Injection simplifiée
+if (document.readyState === 'complete') {
+    injectTrigger();
+} else {
+    window.addEventListener('load', injectTrigger);
+}
 
-        const trigger = document.createElement('button');
-        trigger.innerHTML = '🧪 Debug Bot';
+function injectTrigger() {
+    setTimeout(() => {
+        if (!window.chessGame) return;
+        const trigger = document.createElement('div');
+        trigger.innerHTML = '⚙️';
+        trigger.title = 'Bot Debugger';
         trigger.style.cssText = `
-            position: fixed; bottom: 15px; right: 15px; z-index: 9999;
-            background: #e74c3c; color: white; border: none; padding: 10px 15px;
-            border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 11px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s;
+            position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+            background: #333; color: white; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; cursor: pointer; font-size: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         `;
         
         const ui = new BotTestInterface(window.chessGame);
         trigger.onclick = () => ui.toggle();
-        trigger.onmouseover = () => trigger.style.transform = 'scale(1.1)';
-        trigger.onmouseout = () => trigger.style.transform = 'scale(1.0)';
-        
         document.body.appendChild(trigger);
-        window.botTestInterfaceInstance = ui;
-    }, 1500);
-});
+    }, 1000);
+}
+
+}

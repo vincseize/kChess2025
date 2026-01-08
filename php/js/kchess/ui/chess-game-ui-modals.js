@@ -323,42 +323,56 @@ class ChessModalManager {
     }
 
     // ✅ Détails selon le type de fin
-    getResultDetails(gameStatus, winner, details) {
-        let title, message, icon, color;
-        
-        switch(gameStatus) {
-            case 'checkmate':
-                title = '🎯 ÉCHEC ET MAT !';
-                message = winner ? 
-                    `<strong style="color: #dc3545;">${winner}</strong> remportent la victoire !<br>Le roi adverse est mat.` :
-                    'Échec et mat ! La partie est terminée.';
-                icon = '♔⚔️🏆';
-                color = '#dc3545';
-                break;
-                
-            case 'stalemate':
-                title = '⚖️ PAT !';
-                message = 'Match nul par pat !<br>Le roi n\'a aucun coup légal sans être en échec.';
-                icon = '⚖️🤝♟️';
-                color = '#ffc107';
-                break;
-                
-            case 'draw':
-                title = '🤝 MATCH NUL';
-                message = 'La partie se termine par un match nul.';
-                icon = '🤝🎯⚖️';
-                color = '#17a2b8';
-                break;
-                
-            default:
-                title = '🏁 PARTIE TERMINÉE';
-                message = 'La partie est terminée.';
-                icon = '🏁🎮';
-                color = '#6c757d';
-        }
-        
-        return { title, message, icon, color };
+    // ✅ Détails selon le type de fin liés aux traductions
+getResultDetails(gameStatus, winner, details) {
+    let title, message, icon, color;
+    
+    // Fonction helper pour récupérer la traduction ou un fallback
+    const t = (key, fallback) => (window.translations && window.translations[key]) ? window.translations[key] : fallback;
+
+    switch(gameStatus) {
+        case 'checkmate':
+            title = `🎯 ${t('checkmate', 'ÉCHEC ET MAT').toUpperCase()} !`;
+            
+            // On gère le message de victoire dynamiquement
+            if (winner) {
+                // Traduction du gagnant (Blancs/Noirs)
+                const winnerName = winner.toLowerCase().includes('blanc') || winner.toLowerCase().includes('white') 
+                                   ? t('white_player', 'Blancs') 
+                                   : t('black_player', 'Noirs');
+                                   
+                message = `<strong style="color: #dc3545;">${winnerName}</strong> ${t('win_message', 'remportent la victoire !')}<br>${t('checkmate_desc', 'Le roi adverse est mat.')}`;
+            } else {
+                message = t('game_over', 'Partie terminée');
+            }
+            
+            icon = '♔⚔️🏆';
+            color = '#dc3545';
+            break;
+            
+        case 'stalemate':
+            title = `⚖️ ${t('stalemate', 'PAT').toUpperCase()} !`;
+            message = t('stalemate_desc', 'Match nul par pat ! Le roi n\'a aucun coup légal.');
+            icon = '⚖️🤝♟️';
+            color = '#ffc107';
+            break;
+            
+        case 'draw':
+            title = `🤝 ${t('draw', 'MATCH NUL').toUpperCase()}`;
+            message = t('draw_desc', 'La partie se termine par un match nul.');
+            icon = '🤝🎯⚖️';
+            color = '#17a2b8';
+            break;
+            
+        default:
+            title = `🏁 ${t('game_over', 'PARTIE TERMINÉE').toUpperCase()}`;
+            message = t('game_over', 'La partie est terminée.');
+            icon = '🏁🎮';
+            color = '#6c757d';
     }
+    
+    return { title, message, icon, color };
+}
 
     // ✅ Configurer les événements
     setupResultModalEvents() {

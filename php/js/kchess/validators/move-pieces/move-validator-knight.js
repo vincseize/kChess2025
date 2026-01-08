@@ -30,7 +30,7 @@ class KnightMoveValidator {
         this.board = board;
         this.gameState = gameState;
 
-        // --- PONT DE COMPATIBILITÉ (INDISPENSABLE) ---
+        // --- PONT DE COMPATIBILITÉ ---
         if (this.board && !this.board.getPiece) {
             this.board.getPiece = (r, c) => {
                 if (typeof this.board.getSquare === 'function') {
@@ -48,7 +48,6 @@ class KnightMoveValidator {
         }
 
         const rawMoves = [];
-        // Les 8 sauts possibles du cavalier
         const knightOffsets = [
             [2, 1], [2, -1], [-2, 1], [-2, -1],
             [1, 2], [1, -2], [-1, 2], [-1, -2]
@@ -62,20 +61,17 @@ class KnightMoveValidator {
             
             if (this.isValidSquare(newRow, newCol)) {
                 const targetPiece = this.board.getPiece(newRow, newCol);
-                
-                // Le cavalier peut aller sur une case vide ou capturer un ennemi
                 if (!targetPiece || targetPiece.color !== pieceColor) {
-                    const moveType = targetPiece ? 'capture' : 'move';
                     rawMoves.push({ 
                         row: newRow, 
                         col: newCol, 
-                        type: moveType
+                        type: targetPiece ? 'capture' : 'move'
                     });
                 }
             }
         });
 
-        // FILTRAGE : Un cavalier ne peut pas bouger s'il est cloué devant son roi
+        // FILTRAGE : Un cavalier ne peut pas bouger s'il est cloué
         const validMoves = rawMoves.filter(move => {
             return !this.wouldKingBeInCheckAfterMove(pieceColor, row, col, move.row, move.col);
         });
@@ -89,14 +85,14 @@ class KnightMoveValidator {
     }
 
     /**
-     * Simulation pour vérifier si le mouvement expose le Roi
+     * Simulation améliorée pour éviter l'arrêt injustifié (Bug ID #3)
      */
     wouldKingBeInCheckAfterMove(pieceColor, fromRow, fromCol, toRow, toCol) {
         try {
             const tempBoard = this.createTempBoard();
             const knight = tempBoard[fromRow][fromCol];
             
-            // On simule le déplacement sur un plateau fantôme
+            // Simulation du déplacement
             tempBoard[toRow][toCol] = knight;
             tempBoard[fromRow][fromCol] = null;
             
@@ -109,7 +105,10 @@ class KnightMoveValidator {
             }
             return false;
         } catch (error) {
-            return true; // En cas de doute, on bloque le mouvement
+            // CRITIQUE : Si la simulation échoue, on ne bloque PAS le coup.
+            // C'est ce qui causait l'arrêt injustifié.
+            console.error("⚠️ Erreur simulation Cavalier:", error);
+            return false; 
         }
     }
 
@@ -126,10 +125,7 @@ class KnightMoveValidator {
 
     generateTempFEN(tempBoard, currentPlayer) {
         let fenRows = [];
-        const typeMap = {
-            'pawn': 'p', 'knight': 'n', 'bishop': 'b', 
-            'rook': 'r', 'queen': 'q', 'king': 'k'
-        };
+        const typeMap = { 'pawn': 'p', 'knight': 'n', 'bishop': 'b', 'rook': 'r', 'queen': 'q', 'king': 'k' };
 
         for (let r = 0; r < 8; r++) {
             let rowStr = "", empty = 0;
@@ -146,8 +142,11 @@ class KnightMoveValidator {
             fenRows.push(rowStr);
         }
         const turn = currentPlayer === 'white' ? 'w' : 'b';
-        // FEN simplifié pour la détection d'échec
-        return `${fenRows.join('/')} ${turn} - - 0 1`;
+        
+        // Récupération des droits de roque réels pour plus de précision
+        const castling = this.gameState?.castlingRightsString || "KQkq";
+        
+        return `${fenRows.join('/')} ${turn} ${castling} - 0 1`;
     }
 
     isValidSquare(row, col) {

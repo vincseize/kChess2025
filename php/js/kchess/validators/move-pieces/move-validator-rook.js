@@ -10,7 +10,7 @@ class RookMoveValidator {
     static init() {
         this.loadConfig();
         if (this.consoleLog) {
-            console.log('🏰 RookMoveValidator: Système initialisé (Mouvements orthogonaux)');
+            console.log('🏰 RookMoveValidator: Système initialisé (Robustesse Orthogonale)');
         }
     }
     
@@ -18,6 +18,8 @@ class RookMoveValidator {
         try {
             if (window.appConfig?.chess_engine) {
                 this.consoleLog = window.appConfig.chess_engine.console_log ?? true;
+            } else if (window.chessConfig) {
+                this.consoleLog = window.chessConfig.debug ?? true;
             }
         } catch (error) { this.consoleLog = true; }
     }
@@ -42,78 +44,66 @@ class RookMoveValidator {
         
         const moves = [];
         const directions = [
-            { r: 1,  c: 0 },  // Bas
-            { r: -1, c: 0 },  // Haut
-            { r: 0,  c: 1 },  // Droite
-            { r: 0,  c: -1 }  // Gauche
+            { r: 1,  c: 0 }, { r: -1, c: 0 }, // Vertical
+            { r: 0,  c: 1 }, { r: 0,  c: -1 }  // Horizontal
         ];
 
-        // 1. Calcul des mouvements coulissants physiques
         directions.forEach(dir => {
-            this.addSlidingMoves(moves, piece, row, col, dir.r, dir.c);
-        });
+            let nextR = row + dir.r;
+            let nextC = col + dir.c;
 
-        // 2. Filtrage par simulation (Protection du Roi / Clouage)
-        const validMoves = moves.filter(move => {
-            return !this.wouldKingBeInCheckAfterMove(piece.color, row, col, move.row, move.col);
+            while (this.isValidSquare(nextR, nextC)) {
+                const targetPiece = this.board.getPiece(nextR, nextC);
+
+                if (!targetPiece) {
+                    // Case vide
+                    if (this.isSafeMove(piece.color, row, col, nextR, nextC)) {
+                        moves.push({ row: nextR, col: nextC, type: 'move' });
+                    }
+                } else {
+                    // Case occupée
+                    if (targetPiece.color !== piece.color) {
+                        if (this.isSafeMove(piece.color, row, col, nextR, nextC)) {
+                            moves.push({ row: nextR, col: nextC, type: 'capture' });
+                        }
+                    }
+                    break; // Bloqué par une pièce
+                }
+                nextR += dir.r;
+                nextC += dir.c;
+            }
         });
 
         if (this.constructor.consoleLog) {
-            console.log(`🏰 Résultat: ${validMoves.length} valides sur ${moves.length} physiques.`);
+            console.log(`🏰 Résultat: ${moves.length} coups valides.`);
             console.groupEnd();
         }
         
-        return validMoves;
+        return moves;
     }
 
     /**
-     * Parcourt une direction jusqu'à rencontrer un obstacle ou le bord du plateau
+     * Alias de sécurité pour la simulation d'échec
      */
-    addSlidingMoves(moves, piece, startRow, startCol, rowDir, colDir) {
-        let row = startRow + rowDir;
-        let col = startCol + colDir;
-
-        while (this.isValidSquare(row, col)) {
-            const targetPiece = this.board.getPiece(row, col);
-            
-            if (!targetPiece) {
-                // Case vide
-                moves.push({ row, col, type: 'move' });
-            } else {
-                // Case occupée : capture possible si couleur différente
-                if (targetPiece.color !== piece.color) {
-                    moves.push({ row, col, type: 'capture' });
-                }
-                // Une pièce bloque toujours le passage, qu'elle soit amie ou ennemie
-                break; 
-            }
-            row += rowDir;
-            col += colDir;
-        }
-    }
-
-    /**
-     * Vérifie si le déplacement laisse le Roi en échec (ex: pièce clouée)
-     */
-    wouldKingBeInCheckAfterMove(pieceColor, fromRow, fromCol, toRow, toCol) {
+    isSafeMove(color, fromR, fromC, toR, toC) {
         try {
             const tempBoard = this.createTempBoard();
-            const movingPiece = tempBoard[fromRow][fromCol];
-            if (!movingPiece) return false;
+            const piece = tempBoard[fromR][fromC];
+            if (!piece) return true;
 
-            // Simulation du mouvement
-            tempBoard[toRow][toCol] = movingPiece;
-            tempBoard[fromRow][fromCol] = null;
-            
-            const tempFEN = this.generateTempFEN(tempBoard, pieceColor);
+            tempBoard[toR][toC] = piece;
+            tempBoard[fromR][fromC] = null;
+
+            const fen = this.generateTempFEN(tempBoard, color);
             
             if (typeof ChessEngine !== 'undefined') {
-                const engine = new ChessEngine(tempFEN);
-                return engine.isKingInCheck(pieceColor === 'white' ? 'w' : 'b');
+                const engine = new ChessEngine(fen);
+                return !engine.isKingInCheck(color === 'white' ? 'w' : 'b');
             }
-            return false;
-        } catch (error) {
             return true; 
+        } catch (e) {
+            console.error("⚠️ Erreur simulation Tour:", e);
+            return true; // FAIL-SAFE: On autorise le coup si le moteur de test crash
         }
     }
 
@@ -128,34 +118,31 @@ class RookMoveValidator {
         return temp;
     }
 
-    generateTempFEN(tempBoard, currentPlayer) {
-        let fenRows = [];
-        const typeMap = {
-            'pawn': 'p', 'knight': 'n', 'bishop': 'b', 
-            'rook': 'r', 'queen': 'q', 'king': 'k'
-        };
+    generateTempFEN(board, color) {
+        let rows = [];
+        const typeMap = { 'pawn': 'p', 'knight': 'n', 'bishop': 'b', 'rook': 'r', 'queen': 'q', 'king': 'k' };
 
         for (let r = 0; r < 8; r++) {
             let rowStr = "", empty = 0;
             for (let c = 0; c < 8; c++) {
-                const p = tempBoard[r][c];
-                if (!p) {
-                    empty++;
-                } else {
+                const p = board[r][c];
+                if (!p) empty++;
+                else {
                     if (empty > 0) { rowStr += empty; empty = 0; }
-                    let code = typeMap[p.type] || 'p';
-                    rowStr += p.color === 'white' ? code.toUpperCase() : code.toLowerCase();
+                    let char = typeMap[p.type] || 'p';
+                    rowStr += p.color === 'white' ? char.toUpperCase() : char.toLowerCase();
                 }
             }
             if (empty > 0) rowStr += empty;
-            fenRows.push(rowStr);
+            rows.push(rowStr);
         }
-        const turn = currentPlayer === 'white' ? 'w' : 'b';
-        return `${fenRows.join('/')} ${turn} - - 0 1`;
+        const turn = (color === 'white') ? 'w' : 'b';
+        const castling = this.gameState?.castlingRightsString || "KQkq";
+        return `${rows.join('/')} ${turn} ${castling} - 0 1`;
     }
 
-    isValidSquare(row, col) {
-        return row >= 0 && row < 8 && col >= 0 && col < 8;
+    isValidSquare(r, c) {
+        return r >= 0 && r < 8 && c >= 0 && c < 8;
     }
 }
 

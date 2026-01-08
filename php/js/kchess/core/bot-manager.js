@@ -1,250 +1,179 @@
 /**
- * BotManager - Gère l'initialisation, la configuration et le cycle de vie des bots
- * Supporte le mode debug dynamique via window.appConfig.debug.console_log
+ * STRESS TESTER - K-CHESS ENGINE
+ * Version : 6.9.37 - Multi-load Safety & UI Sync
  */
-class BotManager {
-    
-    // Propriétés statiques pour la configuration globale
-    static consoleLog = true;
-    static initialized = false;
 
-    /**
-     * Initialise le manager et charge la configuration
-     */
-    static init() {
-        this.loadConfig();
-        this.initialized = true;
+// Protection contre la double déclaration
+if (window.stressTester) {
+    console.log("♻️ Nettoyage de l'instance précédente...");
+    window.stressTester = null;
+}
+
+window.BotStressTest = class BotStressTest {
+    constructor() {
+        this.isRunning = false;
+        this.gameSessions = [];
+        this.needsInversion = null; 
+        this.stats = { whiteWins: 0, blackWins: 0, pats: 0, draws: 0, limitReached: 0, totalMoves: 0, totalDuration: 0, errorCount: 0 };
         
-        if (this.consoleLog) {
-            console.log('🚀 [BotManager] Système initialisé (Mode Debug)');
-        } else {
-            console.info('🔇 [BotManager] Système initialisé (Mode Silencieux)');
+        this.logEl = document.getElementById('log-content');
+        this.btn = document.getElementById('startBtn');
+        this.countDisplay = document.getElementById('count');
+        this.progressBar = document.getElementById('progress-bar');
+        
+        this.init();
+    }
+
+    init() {
+        if (typeof FENGenerator !== 'undefined' && !FENGenerator.generateFEN) {
+            FENGenerator.generateFEN = (gs, b) => FENGenerator.generate(b, gs);
+        }
+        if (this.btn) this.btn.onclick = () => this.runBatch();
+        console.log("🧪 StressTester prêt v6.9.37");
+    }
+
+    statusUpdate(msg, type = 'info') {
+        const div = document.createElement('div');
+        div.className = `msg-${type}`;
+        div.innerHTML = `<span style="color:#666">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+        if (this.logEl) {
+            this.logEl.appendChild(div);
+            this.logEl.scrollTop = this.logEl.scrollHeight;
         }
     }
 
-    /**
-     * Charge et convertit la configuration JSON
-     */
-    static loadConfig() {
+    normalizeMove(rawMove) {
+        if (!rawMove) return null;
+        return {
+            fR: rawMove.fromRow ?? (rawMove.from?.row),
+            fC: rawMove.fromCol ?? (rawMove.from?.col),
+            tR: rawMove.toRow ?? (rawMove.to?.row),
+            tC: rawMove.toCol ?? (rawMove.to?.col)
+        };
+    }
+
+    async performMove(game, nMove) {
         try {
-            let configValue = true; // Valeur par défaut
-
-            // 1. Priorité au window.appConfig
-            if (window.appConfig && window.appConfig.debug) {
-                configValue = window.appConfig.debug.console_log;
-            } 
-            // 2. Repli sur la fonction utilitaire si existante
-            else if (typeof window.getConfig === 'function') {
-                configValue = window.getConfig('debug.console_log', true);
+            const core = game.core || game;
+            
+            // Correction de la détection d'inversion : on regarde si les pions blancs sont en ligne 6
+            if (this.needsInversion === null) {
+                const pieceAt64 = game.board.getSquare(6, 4)?.piece;
+                this.needsInversion = (pieceAt64 && pieceAt64.color === 'black');
             }
 
-            // Conversion stricte (gère les types String et Boolean)
-            if (configValue === "false" || configValue === false) {
-                this.consoleLog = false;
-            } else {
-                this.consoleLog = true;
+            let finalMove = { ...nMove };
+            if (this.needsInversion) {
+                finalMove.fR = 7 - nMove.fR;
+                finalMove.tR = 7 - nMove.tR;
             }
+
+            // --- SIMULATION UI ---
+            core.handleSquareClick(finalMove.fR, finalMove.fC, true);
+            await new Promise(r => setTimeout(r, 80)); // Temps pour le moteur de valider
+            core.handleSquareClick(finalMove.tR, finalMove.tC, true);
 
             return true;
-        } catch (error) {
-            console.error('❌ [BotManager] Erreur critique lors du chargement de la config:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Logger interne intelligent
-     */
-    static log(message, data = null, type = 'log') {
-        if (!this.consoleLog && type === 'log') return;
-        
-        const prefix = '🤖 [BotManager] ';
-        if (data) {
-            console[type](prefix + message, data);
-        } else {
-            console[type](prefix + message);
-        }
-    }
-
-    // --- Méthodes d'instance ---
-
-    constructor(chessGame) {
-        this.chessGame = chessGame;
-        this.bot = null;
-        this.botLevel = 0;
-        this.botColor = 'black';
-        this.isBotThinking = false;
-        this.moveCount = 0;
-        this.maxRetries = 3;
-        this.retryCount = 0;
-
-        BotManager.log('Gestionnaire instancié pour une nouvelle partie');
-    }
-
-    /**
-     * Configure le niveau du bot et sa couleur
-     */
-    setBotLevel(level, color = 'black') {
-        BotManager.loadConfig(); // Rafraîchissement de la config avant action
-        
-        const newLevel = parseInt(level);
-        BotManager.log(`Configuration : Niveau ${newLevel}, Couleur ${color}`);
-
-        this.botLevel = newLevel;
-        this.botColor = color;
-        this.moveCount = 0;
-        this.retryCount = 0;
-        this.bot = null;
-
-        if (newLevel === 0) {
-            BotManager.log('Bot désactivé', null, 'info');
-        } else {
-            this._instantiateBot(newLevel);
-        }
-
-        // Si c'est au bot de jouer immédiatement
-        this._triggerDelayedMove();
-        
-        return this.bot;
-    }
-
-    /**
-     * Instanciation dynamique selon le niveau
-     */
-    _instantiateBot(level) {
-        const botClassName = `Level_${level}`;
-        if (window[botClassName]) {
-            this.bot = new window[botClassName]();
-            BotManager.log(`Bot ${botClassName} activé (${this.bot.name})`, null, 'info');
-        } else {
-            BotManager.log(`Classe ${botClassName} introuvable !`, null, 'error');
-        }
-    }
-
-    /**
-     * Vérifie si les conditions sont réunies pour que le bot joue
-     */
-    isBotTurn() {
-        try {
-            if (!this.chessGame?.gameState || !this.bot || this.botLevel === 0) return false;
-            
-            const state = this.chessGame.gameState;
-            const isTurn = state.gameActive && 
-                           state.currentPlayer === this.botColor && 
-                           !this.isBotThinking;
-
-            return isTurn;
         } catch (e) {
             return false;
         }
     }
 
-    /**
-     * Logique principale d'exécution du coup
-     */
-    async playBotMove() {
-        if (!this.isBotTurn() || this.isBotThinking) return;
-
-        this.isBotThinking = true;
-        BotManager.log(`Réflexion en cours (Coup n°${this.moveCount + 1})...`);
-
-        try {
-            // Simulation d'un temps de réflexion humain (50ms - 250ms)
-            await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 200));
-
-            // Vérification de sécurité après le délai
-            if (this.chessGame.gameState.currentPlayer !== this.botColor) {
-                throw new Error("Le tour a changé pendant la réflexion");
-            }
-
-            // 1. Génération du FEN via l'utilitaire global
-            const currentFEN = FENGenerator.generateFEN(this.chessGame.gameState, this.chessGame.board);
-            
-            // 2. Calcul du coup par le Bot
-            const botMove = this.bot.getMove(currentFEN);
-
-            if (!botMove) {
-                this._handleMoveFailure("Aucun coup trouvé par l'IA");
-                return;
-            }
-
-            // 3. Exécution du coup sur le moteur de jeu
-            const success = this.chessGame.handleMove(
-                botMove.fromRow, botMove.fromCol, 
-                botMove.toRow, botMove.toCol
-            );
-
-            if (success) {
-                this.moveCount++;
-                this.retryCount = 0;
-                BotManager.log(`Coup réussi : ${this._getNotation(botMove)}`);
-            } else {
-                this._handleMoveFailure("Le moteur de jeu a refusé le coup");
-            }
-
-        } catch (error) {
-            BotManager.log(`Erreur playBotMove: ${error.message}`, null, 'error');
-        } finally {
-            this.isBotThinking = false;
-        }
-    }
-
-    _handleMoveFailure(reason) {
-        this.retryCount++;
-        BotManager.log(`Échec : ${reason} (Tentative ${this.retryCount}/${this.maxRetries})`, null, 'warn');
+    async simulateSingleGame(id, maxMoves) {
+        const startTime = performance.now();
+        const session = { id, status: 'ok', moveCount: 0, result: "", lastFen: "" };
         
-        if (this.retryCount < this.maxRetries) {
-            setTimeout(() => this.playBotMove(), 200);
+        try {
+            const game = new ChessGame();
+            
+            // Désactivation des bots automatiques
+            if (game.botManager) game.botManager.isActive = false;
+            if (window.botManager) window.botManager.isActive = false;
+
+            const botWhite = new Level_1();
+            const botBlack = new Level_1();
+            
+            let mCount = 0;
+            while (mCount < maxMoves) {
+                if (!game.gameState.gameActive) break;
+
+                const currentFen = FENGenerator.generate(game.board, game.gameState);
+                session.lastFen = currentFen;
+
+                const currentBot = (game.gameState.currentPlayer === 'white') ? botWhite : botBlack;
+                const rawMove = await currentBot.getMove(currentFen);
+                
+                if (!rawMove) break;
+                const move = this.normalizeMove(rawMove);
+                
+                await this.performMove(game, move);
+                
+                // Pause pour laisser le moteur finir le switchPlayer
+                await new Promise(r => setTimeout(r, 150));
+
+                const postFen = FENGenerator.generate(game.board, game.gameState);
+                if (currentFen === postFen) {
+                    this.statusUpdate(`⚠️ Coup rejeté (${game.gameState.currentPlayer})`, "warn");
+                    break;
+                }
+
+                mCount++;
+                session.moveCount = mCount;
+            }
+
+            const resObj = this.determineResult(game, mCount, maxMoves);
+            session.result = resObj.text;
+            session.duration = Math.round(performance.now() - startTime);
+            this.updateStats(resObj, session.moveCount, session.duration);
+            this.statusUpdate(`Partie #${id}: ${session.result} (${mCount} coups)`, "success");
+            return session;
+        } catch (e) {
+            this.stats.errorCount++;
+            return { id, status: 'error' };
         }
     }
 
-    _triggerDelayedMove() {
-        setTimeout(() => {
-            if (this.isBotTurn()) this.playBotMove();
-        }, 600);
+    determineResult(game, mCount, maxMoves) {
+        const state = game.gameState;
+        if (state.isCheckmate) return { text: "Mat", code: (state.currentPlayer === 'white' ? 'black' : 'white') };
+        if (state.isStalemate) return { text: "Pat", code: 'pat' };
+        if (mCount >= maxMoves) return { text: "Limite", code: 'limit' };
+        return { text: "Arrêt", code: 'draw' };
     }
 
-    _getNotation(move) {
-        const files = 'abcdefgh';
-        const rows = '87654321';
-        return `${files[move.fromCol]}${rows[move.fromRow]} ⮕ ${files[move.toCol]}${rows[move.toRow]}`;
+    updateStats(resObj, moves, duration) {
+        this.stats.totalMoves += moves;
+        this.stats.totalDuration += duration;
+        if (resObj.code === 'white') this.stats.whiteWins++;
+        else if (resObj.code === 'black') this.stats.blackWins++;
+        else if (resObj.code === 'pat') this.stats.pats++;
+        else if (resObj.code === 'limit') this.stats.limitReached++;
+        else this.stats.draws++;
     }
 
-    /**
-     * Méthodes de contrôle public
-     */
-    setBotColor(color) {
-        this.botColor = color;
-        BotManager.log(`Nouvelle couleur assignée: ${color}`, null, 'info');
-        this._triggerDelayedMove();
+    async runBatch() {
+        if (this.isRunning) return;
+        this.isRunning = true;
+        this.btn.disabled = true;
+        
+        const total = parseInt(document.getElementById('inputMaxGames').value) || 1;
+        const moves = parseInt(document.getElementById('inputMaxMoves').value) || 10;
+        
+        this.logEl.innerHTML = "";
+        this.statusUpdate(`🚀 Test v6.9.37 (${total} parties)...`, "info");
+        this.resetStats();
+
+        for (let i = 0; i < total; i++) {
+            const result = await this.simulateSingleGame(i + 1, moves);
+            this.gameSessions.push(result);
+            if (this.countDisplay) this.countDisplay.innerText = i + 1;
+        }
+
+        this.isRunning = false;
+        this.btn.disabled = false;
     }
 
-    getStatus() {
-        return {
-            level: this.botLevel,
-            color: this.botColor,
-            thinking: this.isBotThinking,
-            moveCount: this.moveCount,
-            active: this.botLevel > 0 && !!this.bot
-        };
-    }
+    resetStats() { this.stats = { whiteWins: 0, blackWins: 0, pats: 0, draws: 0, limitReached: 0, totalMoves: 0, totalDuration: 0, errorCount: 0 }; }
 }
 
-// Initialisation au chargement du script
-BotManager.init();
-
-// Exportation globale
-window.BotManager = BotManager;
-
-// Utilitaires de Debug Console
-window.BotUtils = {
-    test: () => {
-        BotManager.loadConfig();
-        console.table({
-            "Mode Debug": BotManager.consoleLog ? "✅ ON" : "🔇 OFF",
-            "Config Source": window.appConfig ? "JSON window.appConfig" : "Default/Fallbacks",
-            "Version": "2.1.0 (Logger-Centralized)"
-        });
-    },
-    forceReload: () => BotManager.loadConfig()
-};
+window.stressTester = new BotStressTest();

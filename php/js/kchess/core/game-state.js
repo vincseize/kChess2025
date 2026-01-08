@@ -204,9 +204,19 @@ class GameState {
         }
     }
 
-    switchPlayer() {
+switchPlayer() {
         this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
         this.constructor.log('🔄', `Tour : ${this.currentPlayer.toUpperCase()}`);
+
+        // --- AJOUT CRITIQUE : Affichage de la FEN à chaque changement de tour ---
+        try {
+            if (this.constructor.consoleLog && window.chessGame?.getFEN) {
+                const currentFEN = window.chessGame.getFEN();
+                console.log(`🧩 [FEN] ${currentFEN}`);
+            }
+        } catch (e) {
+            // On ignore silencieusement si ChessGameCore n'est pas encore lié
+        }
     }
 
     /**

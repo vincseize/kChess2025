@@ -1,118 +1,128 @@
-// bots/Level_2.js - Stratégie CCMO (Check -> Capture -> Menace -> Optimisation)
-if (typeof Level_2 !== 'undefined') {
-    console.warn('⚠️ Level_2 existe déjà.');
-} else {
-
+/**
+ * Level_2 - Stratégie CCMO optimisée
+ * Check -> Capture -> Menace -> Optimisation
+ * Version 1.4.0 - Intégration Diagnostic Fin de Partie
+ */
 class Level_2 {
+    static VERSION = '1.4.0';
     static consoleLog = true;
-    static VERSION = '1.2.1';
 
-    /**
-     * Initialisation statique pour la configuration globale
-     */
     static init() {
         this.loadConfig();
-        if (this.consoleLog) {
-            console.log(`🤖 Level_2 v${this.VERSION} chargé (Stratégie CCMO)`);
-        }
+        if (this.consoleLog) console.log(`🤖 Level_2 v${this.VERSION} prêt (Stratégie CCMO)`);
     }
 
     static loadConfig() {
         try {
-            const rawValue = window.appConfig?.debug?.console_log ?? true;
-            this.consoleLog = rawValue === "false" ? false : Boolean(rawValue);
-        } catch (e) {
-            this.consoleLog = true;
-        }
-    }
-
-    static getConfigSource() {
-        return window.appConfig ? 'JSON config' : 'default';
+            const config = window.appConfig?.debug?.console_log ?? true;
+            this.consoleLog = String(config) !== "false";
+        } catch (e) { this.consoleLog = true; }
     }
 
     constructor() {
         this.name = "Bot Level 2 (CCMO)";
         this.level = 2;
-        this.constructor.loadConfig();
+        this.pieceValues = { 'pawn': 1, 'knight': 3, 'bishop': 3, 'rook': 5, 'queen': 9, 'king': 100 };
     }
 
-    /**
-     * Point d'entrée principal pour le moteur de jeu
-     */
-    getMove(fen) {
-        if (this.constructor.consoleLog) console.group(`🎲 [Level_2] Analyse CCMO en cours...`);
+    async getMove(fen) {
+        const isDebug = this.constructor.consoleLog;
+        if (isDebug) console.group(`🎲 [Level_2] Analyse CCMO...`);
         
         try {
-            const game = window.chessGame || window.gameInstance;
-            if (!game?.core?.moveValidator) {
-                console.error("❌ Level_2: MoveValidator introuvable.");
-                return null;
-            }
-
-            // Récupération de tous les coups possibles avec leurs caractéristiques
+            const game = window.chessGame?.core || window.chessGame;
+            const currentPlayer = game.gameState.currentPlayer;
             const allMoves = this.getAllValidMoves(game);
             
+            // --- GESTION FIN DE PARTIE ---
             if (allMoves.length === 0) {
-                if (this.constructor.consoleLog) console.warn("Fin de partie ou aucun coup légal.");
-                return null;
+                const status = this._analyzeGameOver(fen, currentPlayer, game.moveHistory);
+                if (isDebug) {
+                    console.warn(`⚠️ Fin de partie : ${status.reason}`);
+                    console.groupEnd();
+                }
+                return { error: 'game_over', reason: status.reason, details: status.details };
             }
 
-            // --- APPLICATION DE LA STRATÉGIE CCMO ---
+            const oppColor = this._getOpponentColor(game);
 
-            // 1. CHECK (Mise en échec du Roi adverse)
-            const checkMoves = allMoves.filter(m => m.isCheck);
-            if (checkMoves.length > 0) return this.finalizeMove(checkMoves, 'CHECK (Echec)');
+            // Simulation d'un temps de réflexion
+            await new Promise(resolve => setTimeout(resolve, 600));
 
-            // 2. CAPTURE (Gains de pièces)
+            // 1. CAPTURES (Gain matériel)
             const captureMoves = allMoves.filter(m => m.isCapture);
             if (captureMoves.length > 0) {
-                // Optionnel: Trier par valeur de pièce capturée ici si besoin
-                return this.finalizeMove(captureMoves, 'CAPTURE');
+                captureMoves.sort((a, b) => this.pieceValues[b.targetPiece.type] - this.pieceValues[a.targetPiece.type]);
+                
+                const safeCaptures = captureMoves.filter(m => {
+                    const valAttacker = this.pieceValues[m.piece.type];
+                    const valTarget = this.pieceValues[m.targetPiece.type];
+                    const isAttacked = this.isSquareAttacked(game, m.toRow, m.toCol, oppColor);
+                    return !isAttacked || (valTarget >= valAttacker);
+                });
+
+                if (safeCaptures.length > 0) return this.finalizeMove(safeCaptures, 'CAPTURE');
             }
 
-            // 3. MENACE (Contrôle du centre et sécurité)
-            const threatMoves = this.getThreatMoves(allMoves, game);
-            if (threatMoves.length > 0) return this.finalizeMove(threatMoves, 'MENACE (Positionnement)');
+            // 2. CHECK (Échec au roi)
+            const checkMoves = allMoves.filter(m => m.isCheck);
+            const safeChecks = checkMoves.filter(m => !this.isSquareAttacked(game, m.toRow, m.toCol, oppColor));
+            if (safeChecks.length > 0) return this.finalizeMove(safeChecks, 'CHECK');
 
-            // 4. OPTIMISATION (Développement par défaut)
-            return this.finalizeMove(allMoves, 'OPTIMISATION (Aléatoire)');
+            // 3. POSITIONNEMENT (Centre)
+            const centralMoves = allMoves.filter(m => {
+                const isSafe = !this.isSquareAttacked(game, m.toRow, m.toCol, oppColor);
+                const isCentral = m.toRow >= 2 && m.toRow <= 5 && m.toCol >= 2 && m.toCol <= 5;
+                return isSafe && isCentral;
+            });
+            if (centralMoves.length > 0) return this.finalizeMove(centralMoves, 'POSITIONNEMENT');
+
+            // 4. DÉVELOPPEMENT (Coups sûrs)
+            const absoluteSafeMoves = allMoves.filter(m => !this.isSquareAttacked(game, m.toRow, m.toCol, oppColor));
+            return this.finalizeMove(absoluteSafeMoves.length > 0 ? absoluteSafeMoves : allMoves, 'DEVELOPPEMENT');
 
         } catch (error) {
-            console.error("❌ Erreur critique Level_2:", error);
-            return null;
+            console.error("❌ Level_2 Error:", error);
+            return { error: 'critical_error' };
         } finally {
-            if (this.constructor.consoleLog) console.groupEnd();
+            if (isDebug) console.groupEnd();
         }
     }
 
     /**
-     * Analyse chaque mouvement légal pour identifier captures et échecs
+     * Diagnostic de fin de partie identique au Level_1
      */
+    _analyzeGameOver(fen, color, history) {
+        if (new ChessMateEngine(fen).isCheckmate(color)) {
+            return { reason: 'checkmate', details: color === 'w' ? 'black' : 'white' };
+        }
+        if (new ChessPatEngine(fen).isStalemate(color)) {
+            return { reason: 'stalemate', details: null };
+        }
+        return { reason: 'draw', details: 'nulle' };
+    }
+
     getAllValidMoves(game) {
         const moves = [];
         const player = game.gameState.currentPlayer;
-        const opponentColor = player === 'white' ? 'black' : 'white';
+        const board = game.board;
 
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
-                const piece = game.board.getPiece(r, c);
+                const piece = board.getPiece?.(r, c) || board.getSquare?.(r, c)?.piece;
+                
                 if (piece && piece.color === player) {
-                    const targets = game.core.moveValidator.getPossibleMoves(piece, r, c);
+                    const targets = game.moveValidator.getPossibleMoves(piece, r, c);
                     
                     targets.forEach(t => {
-                        const targetPiece = game.board.getPiece(t.row, t.col);
-                        
-                        // Simulation rapide pour voir si le coup met en échec
-                        const isCheck = this.simulatesCheck(game, piece, r, c, t.row, t.col, opponentColor);
-
+                        const targetPiece = board.getPiece?.(t.row, t.col) || board.getSquare?.(t.row, t.col)?.piece;
                         moves.push({
-                            fromRow: r, fromCol: c,
-                            toRow: t.row, toCol: t.col,
+                            fromRow: r, fromCol: c, toRow: t.row, toCol: t.col,
                             piece: piece,
                             targetPiece: targetPiece,
-                            isCapture: !!targetPiece && targetPiece.color !== piece.color,
-                            isCheck: isCheck,
-                            notation: `${String.fromCharCode(97 + c)}${8 - r}→${String.fromCharCode(97 + t.col)}${8 - t.row}`
+                            isCapture: !!targetPiece && targetPiece.color !== player,
+                            isCheck: this.checkIfMoveGivesCheck(game, piece, r, c, t.row, t.col),
+                            notation: this._simpleNotation(r, c, t.row, t.col)
                         });
                     });
                 }
@@ -121,37 +131,24 @@ class Level_2 {
         return moves;
     }
 
-    /**
-     * Filtre les coups "Menace" : cases sûres + contrôle stratégique
-     */
-    getThreatMoves(moves, game) {
-        const opponentColor = game.gameState.currentPlayer === 'white' ? 'black' : 'white';
-        
-        return moves.filter(m => {
-            // Sécurité : Ne pas se déplacer sur une case attaquée par l'adversaire
-            const isSafe = !this.isSquareAttacked(game, m.toRow, m.toCol, opponentColor);
-            
-            // Stratégie : Favoriser le centre (cases d4, d5, e4, e5 et alentours)
-            const isCentral = m.toRow >= 2 && m.toRow <= 5 && m.toCol >= 2 && m.toCol <= 5;
-            
-            // Stratégie : Sortir les pièces mineures au début
-            const isDevelopment = ['knight', 'bishop'].includes(m.piece.type);
-
-            return isSafe && (isCentral || isDevelopment);
+    // Vérifie si le coup met le roi adverse en échec
+    checkIfMoveGivesCheck(game, piece, fR, fC, tR, tC) {
+        const oppColor = this._getOpponentColor(game);
+        // On récupère les coups de la pièce à sa nouvelle position
+        const nextMoves = game.moveValidator.getPossibleMoves(piece, tR, tC);
+        return nextMoves.some(m => {
+            const p = game.board.getPiece?.(m.row, m.col) || game.board.getSquare?.(m.row, m.col)?.piece;
+            return p && p.type === 'king' && p.color === oppColor;
         });
     }
 
-    /**
-     * Vérifie si une case est sous le feu de l'ennemi
-     */
     isSquareAttacked(game, row, col, byColor) {
+        const board = game.board;
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
-                const p = game.board.getPiece(r, c);
+                const p = board.getPiece?.(r, r) || board.getSquare?.(r, c)?.piece;
                 if (p && p.color === byColor) {
-                    // Note: On utilise ici une version simplifiée pour éviter la récursion
-                    // On regarde si la pièce peut théoriquement atteindre la case
-                    const moves = game.core.moveValidator.getPossibleMoves(p, r, c);
+                    const moves = game.moveValidator.getPossibleMoves(p, r, c);
                     if (moves.some(m => m.row === row && m.col === col)) return true;
                 }
             }
@@ -159,35 +156,21 @@ class Level_2 {
         return false;
     }
 
-    /**
-     * Simule si le mouvement provoque un échec au Roi adverse
-     */
-    simulatesCheck(game, piece, fR, fC, tR, tC, opponentColor) {
-        // Cette logique repose sur le fait que le moveValidator peut 
-        // détecter si le roi adverse est en prise après le coup
-        // Pour le Level 2, on vérifie si la pièce menace le roi sur sa nouvelle case
-        const movesAfter = game.core.moveValidator.getPossibleMoves(piece, tR, tC);
-        return movesAfter.some(m => {
-            const target = game.board.getPiece(m.row, m.col);
-            return target && target.type === 'king' && target.color === opponentColor;
-        });
-    }
-
-    /**
-     * Choisi un coup aléatoire parmi la liste filtrée par la meilleure stratégie disponible
-     */
     finalizeMove(moveList, strategy) {
         const move = moveList[Math.floor(Math.random() * moveList.length)];
-        if (this.constructor.consoleLog) {
-            console.log(`🎯 Stratégie [${strategy}]`);
-            console.log(`👉 Sélection : ${move.notation} (${move.piece.type})`);
-        }
+        if (this.constructor.consoleLog) console.log(`🎯 [${strategy}] ${move.notation}`);
         return move;
+    }
+
+    _getOpponentColor(game) {
+        return game.gameState.currentPlayer === 'white' ? 'black' : 'white';
+    }
+
+    _simpleNotation(fR, fC, tR, tC) {
+        const files = 'abcdefgh';
+        return `${files[fC]}${8 - fR} ➔ ${files[tC]}${8 - tR}`;
     }
 }
 
-// Initialisation
 Level_2.init();
 window.Level_2 = Level_2;
-
-}

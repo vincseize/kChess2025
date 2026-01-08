@@ -18,6 +18,8 @@ class BishopMoveValidator {
         try {
             if (window.appConfig?.chess_engine) {
                 this.consoleLog = window.appConfig.chess_engine.console_log ?? true;
+            } else if (window.chessConfig) {
+                this.consoleLog = window.chessConfig.debug ?? true;
             }
         } catch (error) { this.consoleLog = true; }
     }
@@ -26,7 +28,7 @@ class BishopMoveValidator {
         this.board = board;
         this.gameState = gameState;
 
-        // --- PONT DE COMPATIBILITÉ (INDISPENSABLE) ---
+        // --- PONT DE COMPATIBILITÉ ---
         if (this.board && !this.board.getPiece) {
             this.board.getPiece = (r, c) => {
                 if (typeof this.board.getSquare === 'function') {
@@ -38,9 +40,6 @@ class BishopMoveValidator {
         }
     }
 
-    /**
-     * Calcule tous les mouvements diagonaux possibles pour le Fou
-     */
     getPossibleMoves(piece, row, col) {
         if (this.constructor.consoleLog) {
             console.group(`\n📐🔍 Analyse Fou ${piece.color} en [${row},${col}]`);
@@ -48,10 +47,8 @@ class BishopMoveValidator {
 
         const moves = [];
         const directions = [
-            { r: -1, c: -1, label: 'Haut-Gauche ↖️' },
-            { r: -1, c: 1,  label: 'Haut-Droite ↗️' },
-            { r: 1,  c: -1, label: 'Bas-Gauche ↙️' },
-            { r: 1,  c: 1,  label: 'Bas-Droite ↘️' }
+            { r: -1, c: -1 }, { r: -1, c: 1 },
+            { r: 1,  c: -1 }, { r: 1,  c: 1 }
         ];
 
         const pieceColor = piece.color;
@@ -60,24 +57,20 @@ class BishopMoveValidator {
             let nextR = row + dir.r;
             let nextC = col + dir.c;
 
-            // Le Fou continue tant qu'il est sur l'échiquier et ne rencontre pas d'obstacle
             while (this.isValidSquare(nextR, nextC)) {
                 const targetPiece = this.board.getPiece(nextR, nextC);
 
                 if (!targetPiece) {
-                    // Case vide : mouvement possible
                     if (this.isSafeMove(pieceColor, row, col, nextR, nextC)) {
                         moves.push({ row: nextR, col: nextC, type: 'move' });
                     }
                 } else {
-                    // Case occupée : capture possible si couleur opposée
                     if (targetPiece.color !== pieceColor) {
                         if (this.isSafeMove(pieceColor, row, col, nextR, nextC)) {
                             moves.push({ row: nextR, col: nextC, type: 'capture' });
                         }
                     }
-                    // Dans tous les cas, une pièce bloque le chemin du Fou
-                    break; 
+                    break; // Chemin bloqué
                 }
                 nextR += dir.r;
                 nextC += dir.c;
@@ -92,14 +85,13 @@ class BishopMoveValidator {
     }
 
     /**
-     * Vérifie si le mouvement ne met pas (ou ne laisse pas) le roi en échec
+     * Vérifie si le mouvement est sûr (ne laisse pas le roi en échec)
      */
     isSafeMove(color, fromR, fromC, toR, toC) {
         try {
             const tempBoard = this.createTempBoard();
             const piece = tempBoard[fromR][fromC];
             
-            // Simulation du coup
             tempBoard[toR][toC] = piece;
             tempBoard[fromR][fromC] = null;
 
@@ -107,12 +99,15 @@ class BishopMoveValidator {
             
             if (typeof ChessEngine !== 'undefined') {
                 const engine = new ChessEngine(fen);
-                return !engine.isKingInCheck(color === 'white' ? 'w' : 'b');
+                const colorCode = color === 'white' ? 'w' : 'b';
+                return !engine.isKingInCheck(colorCode);
             }
             return true; 
         } catch (e) {
-            console.error("Erreur simulation Fou:", e);
-            return false;
+            // SÉCURITÉ : En cas d'erreur de simulation, on autorise le coup 
+            // pour éviter de bloquer le moteur injustement.
+            console.error("⚠️ Erreur simulation Fou:", e);
+            return true; 
         }
     }
 
@@ -129,10 +124,7 @@ class BishopMoveValidator {
 
     generateTempFEN(board, color) {
         let rows = [];
-        const typeMap = {
-            'pawn': 'p', 'knight': 'n', 'bishop': 'b', 
-            'rook': 'r', 'queen': 'q', 'king': 'k'
-        };
+        const typeMap = { 'pawn': 'p', 'knight': 'n', 'bishop': 'b', 'rook': 'r', 'queen': 'q', 'king': 'k' };
 
         for (let r = 0; r < 8; r++) {
             let rowStr = "", empty = 0;
@@ -149,7 +141,9 @@ class BishopMoveValidator {
             rows.push(rowStr);
         }
         const turn = (color === 'white' || color === 'w') ? 'w' : 'b';
-        return `${rows.join('/')} ${turn} - - 0 1`;
+        const castling = this.gameState?.castlingRightsString || "KQkq";
+        
+        return `${rows.join('/')} ${turn} ${castling} - 0 1`;
     }
 
     isValidSquare(r, c) {

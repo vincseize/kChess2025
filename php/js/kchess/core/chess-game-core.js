@@ -1,17 +1,13 @@
 /**
  * core/chess-game-core.js
- * Classe principale orchestratrice (Version 1.4.6 - Stable Flip & No-Reset)
+ * Chef d'orchestre du moteur de jeu.
  */
-
 class ChessGameCore {
-    
     static consoleLog = true; 
-    
+
     static init() {
         this.loadConfig();
-        if (this.consoleLog) {
-            console.log('🎮 core/chess-game-core.js chargé');
-        }
+        if (this.consoleLog) console.log('🎮 core/chess-game-core.js chargé');
     }
     
     static loadConfig() {
@@ -20,10 +16,7 @@ class ChessGameCore {
                 const configValue = window.appConfig.debug.console_log;
                 this.consoleLog = (configValue === "false" || configValue === false) ? false : true;
             }
-        } catch (error) {
-            console.error('❌ ChessGameCore: Erreur config:', error);
-            this.consoleLog = true;
-        }
+        } catch (error) { this.consoleLog = true; }
     }
 
     constructor(board, gameState, moveValidator) {
@@ -34,164 +27,164 @@ class ChessGameCore {
         this.selectedPiece = null;
         this.possibleMoves = [];
         
-        this.moveHandler = new ChessGameMoveHandler(this);
-        this.ui = new ChessGameUI(this);
-        this.promotionManager = new PromotionManager(this);
-        this.botManager = new BotManager(this);
-        this.gameStatusManager = new GameStatusManager(this);
-        
-        if (this.constructor.consoleLog) {
-            console.group('🏁 [ChessGameCore] Initialisation');
-            console.log('• Modules liés : MoveHandler, UI, Promotion, Bot, Status');
-            console.groupEnd();
-        }
+        this.ui = typeof ChessGameUI !== 'undefined' ? new ChessGameUI(this) : null;
+        this.promotionManager = typeof PromotionManager !== 'undefined' ? new PromotionManager(this) : null;
+        this.gameStatusManager = typeof GameStatusManager !== 'undefined' ? new GameStatusManager(this) : null;
+        this.moveExecutor = typeof MoveExecutor !== 'undefined' ? new MoveExecutor(this) : null;
+        this.moveHandler = typeof ChessGameMoveHandler !== 'undefined' ? new ChessGameMoveHandler(this) : null;
+        this.botManager = typeof BotManager !== 'undefined' ? new BotManager(this) : null;
+
+        if (this.constructor.consoleLog) console.log('✅ ChessGameCore: Architecture assemblée.');
     }
     
-    handleSquareClick(displayRow, displayCol) {
-        if (!this.gameState || !this.gameState.gameActive) return;
-        if (this.moveHandler) this.moveHandler.handleSquareClick(displayRow, displayCol);
+    handleSquareClick(row, col, isDirect = false) {
+        if (!this.gameState?.gameActive) return;
+
+        const isBotTurn = this.botManager?.isActive && 
+                         (this.gameState.currentPlayer === this.botManager.botColor);
+        
+        if (isBotTurn && !isDirect) {
+            console.warn("🚫 Action bloquée : C'est au tour de l'IA.");
+            return; 
+        }
+
+        if (this.moveHandler) {
+            this.moveHandler.handleSquareClick(row, col, isDirect);
+        }
     }
     
     clearSelection() {
         this.selectedPiece = null;
         this.possibleMoves = [];
-        if (this.moveHandler?.moveStateManager) {
-            this.moveHandler.moveStateManager.clearSelection();
+        
+        if (this.moveHandler?.stateManager) {
+            this.moveHandler.stateManager.clearSelection();
+        } else if (this.ui?.clearHighlights) {
+            this.ui.clearHighlights();
         }
     }
 
-    /**
-     * Retourne le plateau sans affecter la logique de jeu (Triple répétition, Pat, etc.)
-     */
-    flipBoard() {
-        if (this.constructor.consoleLog) console.log('🔄 [ChessGameCore] Exécution du Flip Visuel');
-        
-        if (!this.gameState || !this.board) return;
-
-        // 1. On inverse l'état logique du flip
-        this.gameState.boardFlipped = !this.gameState.boardFlipped;
-        
-        // 2. On sauvegarde les pièces par coordonnées
-        const currentPieces = [];
-        for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 8; c++) {
-                const sq = this.board.getSquare(r, c);
-                if (sq && sq.piece) {
-                    currentPieces.push({ piece: sq.piece, row: r, col: c });
-                }
-            }
-        }
-
-        // 3. Reconstruction visuelle (Détruit et recrée les <div>)
-        if (typeof this.board.createBoard === 'function') {
-            this.board.createBoard();
-            
-            // 4. On replace les pièces sans déclencher d'événements de mouvement
-            currentPieces.forEach(item => {
-                const newSq = this.board.getSquare(item.row, item.col);
-                if (newSq) {
-                    this.board.placePiece(item.piece, newSq);
-                }
-            });
-        }
-        
-        this.clearSelection();
-        
-        // 5. Mise à jour UI sans recalculer l'analyse de fin de partie
-        if (this.ui?.updateUI) this.ui.updateUI();
-
-        if (this.constructor.consoleLog) console.log('🔄 [ChessGameCore] Flip terminé (Visuel uniquement)');
-    }
-    
     updateUI() {
-        // Rendu des pièces
         if (this.ui?.updateUI) this.ui.updateUI();
+        if (this.gameStatusManager?.updateGameStatus) {
+            setTimeout(() => this.gameStatusManager.updateGameStatus(), 50);
+        }
 
-        // Analyse du statut de la partie (Echec, Mat, Pat, Répétition)
-        const statusManager = window._gameStatusManager || this.gameStatusManager;
-        if (statusManager && typeof statusManager.updateGameStatus === 'function') {
-            statusManager.updateGameStatus();
+        if (this.constructor.consoleLog) {
+            console.log(`🧩 [FEN] ${this.getFEN()}`);
         }
     }
 
-    handleMove(fromRow, fromCol, toRow, toCol) {
-        try {
-            if (!this.gameState?.gameActive) return false;
-            const fromSq = this.board.getSquare(fromRow, fromCol);
-            const toSq = this.board.getSquare(toRow, toCol);
+    executeMove(fromRow, fromCol, toRow, toCol, promotionPiece = null) {
+        if (!this.moveExecutor) return false;
 
-            if (!fromSq?.piece) return false;
-            this.movePiece(fromSq, toSq);
+        const piece = this.board.getPiece(fromRow, fromCol);
+        if (!piece) return false;
+
+        // 1. Détecter si c'est un mouvement de promotion
+        const isPromotionMove = (piece.type === 'pawn' && (toRow === 0 || toRow === 7));
+
+        // 2. Déplacer physiquement la pièce
+        const success = this.moveExecutor.executeNormalMove(
+            this.board.getSquare(fromRow, fromCol),
+            this.board.getSquare(toRow, toCol),
+            piece,
+            { row: toRow, col: toCol, isPromotion: isPromotionMove },
+            toRow, 
+            toCol
+        );
+
+        if (success) {
+            if (this.moveHandler?.stateManager) {
+                this.moveHandler.stateManager.highlightLastMove(fromRow, fromCol, toRow, toCol);
+            }
+
+            // 3. Cas du BOT : Si une pièce de promotion est déjà spécifiée (ex: 'queen')
+            // On transforme l'objet pièce AVANT d'enregistrer le coup
+            if (isPromotionMove && promotionPiece) {
+                piece.type = promotionPiece;
+            }
+
+            // 4. Enregistrer le coup dans l'historique
+            this.gameState.recordMove(fromRow, fromCol, toRow, toCol, piece, promotionPiece);
+
+            // 5. GESTION DU CHANGEMENT DE TOUR
+            if (isPromotionMove && !promotionPiece) {
+                // HUMAIN : On ne change pas le tour. On attend le clic sur la modal.
+                if (this.constructor.consoleLog) console.log("⏳ Promotion humaine : Blocage du tour et ouverture modal.");
+                
+                // On met à jour l'UI pour voir le pion arriver sur la case
+                if (this.ui?.updateUI) this.ui.updateUI();
+                
+                // On ouvre la modal
+                if (this.promotionManager) {
+                    this.promotionManager.showPromotionModal(toRow, toCol, piece.color);
+                }
+            } else {
+                // NORMAL ou BOT : Le tour change normalement
+                this.gameState.switchPlayer();
+                this.updateUI(); 
+            }
+
             return true;
-        } catch (error) {
-            return false;
+        }
+        return false;
+    }
+
+    checkBotTurn() {
+        if (this.botManager?.isBotTurn()) {
+            this.playBotMove();
         }
     }
 
-    movePiece(fromSquare, toSquare, promotionType = null) {
-        const piece = fromSquare.piece;
-        const capturedPiece = toSquare.piece;
-
-        // 1. DATA
-        toSquare.piece = piece;
-        fromSquare.piece = null;
-        piece.row = toSquare.row;
-        piece.col = toSquare.col;
-        piece.hasMoved = true;
-
-        // 2. VISUEL
-        fromSquare.element.innerHTML = ''; 
-        toSquare.element.innerHTML = '';  
-        this.board.placePiece(piece, toSquare);
-
-        // 3. PROMOTION
-        if (promotionType && this.promotionManager) {
-            this.promotionManager.promotePawn(toSquare, promotionType);
-        }
-
-        // 4. HISTORIQUE
-        this.updateHalfMoveClock(piece, capturedPiece);
-        if (this.gameState?.recordMove) {
-            this.gameState.recordMove(fromSquare.row, fromSquare.col, toSquare.row, toSquare.col, piece, capturedPiece);
-        }
-
-        // 5. CHANGEMENT DE TOUR
-        if (typeof this.gameState?.switchPlayer === 'function') {
-            this.gameState.switchPlayer();
-        } else {
-            this.gameState.currentPlayer = (this.gameState.currentPlayer === 'white') ? 'black' : 'white';
-        }
-        
-        this.clearSelection();
-        this.updateUI();
+    setBotLevel(level, color = 'black') {
+        if (!this.botManager) return false;
+        this.botManager.setBotLevel(level, color);
+        return true;
     }
 
-    updateHalfMoveClock(piece, captured) {
-        if (!this.gameState) return;
-        if (captured || piece.type === 'pawn') {
-            this.gameState.halfMoveClock = 0;
-        } else {
-            this.gameState.halfMoveClock++;
+    playBotMove() {
+        if (this.botManager && typeof this.botManager.playBotMove === 'function') {
+            this.botManager.playBotMove();
         }
     }
 
     newGame() {
-        if (this.gameState) {
-            this.gameState.reset?.() || (this.gameState.gameActive = true);
-            this.gameState.currentPlayer = 'white';
-            this.gameState.moveHistory = [];
-        }
         this.clearSelection();
-        this.loadInitialPosition();
+        document.querySelectorAll('.last-move-source, .last-move-dest').forEach(el => {
+            el.classList.remove('last-move-source', 'last-move-dest');
+        });
+
+        if (this.botManager) this.botManager.isBotThinking = false;
         this.updateUI();
     }
 
-    loadInitialPosition() {
-        if (this.board?.createBoard) this.board.createBoard();
+    flipBoard() {
+        if (!this.gameState || !this.board) return;
+        this.gameState.boardFlipped = !this.gameState.boardFlipped;
+        
+        const pieces = [];
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const p = this.board.getPiece(r, c);
+                if (p) pieces.push({ r, c, piece: p });
+            }
+        }
+
+        this.board.createBoard();
+        pieces.forEach(item => {
+            const sq = this.board.getSquare(item.r, item.c);
+            if (sq) this.board.placePiece(item.piece, sq);
+        });
+
+        this.clearSelection();
+        this.updateUI();
     }
 
-    playBotMove() { return this.botManager?.playBotMove(); }
-    setBotLevel(l, c) { return this.botManager?.setBotLevel(l, c); }
+    getFEN() {
+        return (typeof FENGenerator !== 'undefined') ? FENGenerator.generate(this.board, this.gameState) : "FENGenerator introuvable";
+    }
 }
 
 ChessGameCore.init();
+window.ChessGameCore = ChessGameCore;

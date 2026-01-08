@@ -5,12 +5,12 @@ if (typeof PawnMoveValidator !== 'undefined') {
 
 class PawnMoveValidator {
     
-    static consoleLog = true; 
+    static consoleLog = false; 
     
     static init() {
         this.loadConfig();
         if (this.consoleLog) {
-            console.log('♟️ PawnMoveValidator: Système initialisé');
+            console.log('♟️ PawnMoveValidator: Système initialisé (Prise en passant incluse)');
         }
     }
     
@@ -18,6 +18,8 @@ class PawnMoveValidator {
         try {
             if (window.appConfig?.chess_engine) {
                 this.consoleLog = window.appConfig.chess_engine.console_log ?? true;
+            } else if (window.chessConfig) {
+                this.consoleLog = window.chessConfig.debug ?? true;
             }
         } catch (error) { this.consoleLog = true; }
     }
@@ -26,7 +28,6 @@ class PawnMoveValidator {
         this.board = board;
         this.gameState = gameState;
 
-        // --- PONT DE COMPATIBILITÉ (INDISPENSABLE) ---
         if (this.board && !this.board.getPiece) {
             this.board.getPiece = (r, c) => {
                 if (typeof this.board.getSquare === 'function') {
@@ -49,13 +50,11 @@ class PawnMoveValidator {
         const promotionRow = piece.color === 'white' ? 0 : 7;
         const pieceColor = piece.color;
 
-        // 1. MOUVEMENTS VERS L'AVANT
+        // 1. AVANCE SIMPLE ET DOUBLE
         const forwardRow = row + direction;
         if (this.isValidSquare(forwardRow, col) && !this.board.getPiece(forwardRow, col)) {
-            const isPromotion = forwardRow === promotionRow;
-            rawMoves.push({ row: forwardRow, col: col, type: 'move', isPromotion });
+            rawMoves.push({ row: forwardRow, col: col, type: 'move', isPromotion: forwardRow === promotionRow });
 
-            // Double pas initial
             const doubleForwardRow = row + (2 * direction);
             if (row === startRow && this.isValidSquare(doubleForwardRow, col) && !this.board.getPiece(doubleForwardRow, col)) {
                 rawMoves.push({ row: doubleForwardRow, col: col, type: 'move', isDoublePush: true });
@@ -79,7 +78,7 @@ class PawnMoveValidator {
             }
         });
 
-        // 3. PRISE EN PASSANT (Optimisée pour éviter le faux MAT)
+        // 3. PRISE EN PASSANT
         const epRow = piece.color === 'white' ? 3 : 4;
         if (row === epRow) {
             [1, -1].forEach(colOffset => {
@@ -92,21 +91,17 @@ class PawnMoveValidator {
                             type: 'en-passant',
                             capturedPawn: { row: row, col: targetCol }
                         });
-                        if (this.constructor.consoleLog) {
-                            console.log(`✨ En Passant détecté vers [${row + direction},${targetCol}]`);
-                        }
                     }
                 }
             });
         }
 
-        // 4. FILTRAGE DES COUPS QUI METTENT LE ROI EN ÉCHEC
+        // 4. FILTRAGE
         const validMoves = rawMoves.filter(move => {
             return !this.wouldKingBeInCheckAfterMove(pieceColor, row, col, move);
         });
 
         if (this.constructor.consoleLog) {
-            console.log(`♟️ Total: ${validMoves.length} valides.`);
             console.groupEnd();
         }
         
@@ -120,52 +115,38 @@ class PawnMoveValidator {
         const lastMove = history[history.length - 1];
         if (!lastMove) return false;
         
-        // CORRECTION : Vérification plus souple de la pièce (objet ou string)
         const pieceType = (typeof lastMove.piece === 'object') ? lastMove.piece.type : lastMove.piece;
         
-        const isPawn = pieceType === 'pawn';
-        const isDoublePush = Math.abs(lastMove.from.row - lastMove.to.row) === 2;
-        const isAdjacent = lastMove.to.row === row && lastMove.to.col === targetCol;
-        const isOpponent = lastMove.color !== attackerColor;
-
-        return isPawn && isDoublePush && isAdjacent && isOpponent;
+        return pieceType === 'pawn' && 
+               Math.abs(lastMove.from.row - lastMove.to.row) === 2 && 
+               lastMove.to.row === row && 
+               lastMove.to.col === targetCol && 
+               lastMove.color !== attackerColor;
     }
 
     wouldKingBeInCheckAfterMove(pieceColor, fromRow, fromCol, move) {
         try {
-            // Création d'un plateau virtuel pour simuler le coup
             const tempBoard = this.createTempBoard();
             const movingPiece = tempBoard[fromRow][fromCol];
-            
             if (!movingPiece) return false; 
 
-            // Simulation du déplacement du pion qui attaque
             tempBoard[move.row][move.col] = movingPiece;
             tempBoard[fromRow][fromCol] = null;
 
-            // --- CORRECTIF CRITIQUE POUR LE "EN PASSANT" ---
-            // Si c'est une prise en passant, on doit AUSSI vider la case du pion adverse capturé
-            // Sinon le simulateur croit que le pion adverse est toujours là et menace le roi.
             if (move.type === 'en-passant' && move.capturedPawn) {
                 tempBoard[move.capturedPawn.row][move.capturedPawn.col] = null;
-                if (this.constructor.consoleLog && false) { // Log interne discret
-                     console.log("Simu: Suppression du pion capturé en passant");
-                }
             }
 
-            // Génération d'un FEN temporaire
             const tempFEN = this.generateTempFEN(tempBoard, pieceColor);
             
             if (typeof ChessEngine !== 'undefined') {
                 const engine = new ChessEngine(tempFEN);
-                // Le coup est valide UNIQUEMENT si notre roi n'est plus en échec
                 return engine.isKingInCheck(pieceColor === 'white' ? 'w' : 'b');
             }
-            
             return false;
         } catch (e) {
-            console.error("❌ Erreur simulation échec:", e);
-            return true; 
+            console.error("⚠️ Erreur simulation Pion:", e);
+            return false; // Fail-safe : on autorise le coup
         }
     }
 
@@ -182,18 +163,14 @@ class PawnMoveValidator {
 
     generateTempFEN(board, currentPlayer) {
         let rows = [];
-        const pieceChars = {
-            'king': 'k', 'queen': 'q', 'rook': 'r', 
-            'bishop': 'b', 'knight': 'n', 'pawn': 'p'
-        };
+        const pieceChars = { 'king': 'k', 'queen': 'q', 'rook': 'r', 'bishop': 'b', 'knight': 'n', 'pawn': 'p' };
 
         for (let r = 0; r < 8; r++) {
             let rowStr = "", empty = 0;
             for (let c = 0; c < 8; c++) {
                 const p = board[r][c];
-                if (!p) {
-                    empty++;
-                } else {
+                if (!p) empty++;
+                else {
                     if (empty > 0) { rowStr += empty; empty = 0; }
                     let char = pieceChars[p.type] || 'p';
                     rowStr += (p.color === 'white') ? char.toUpperCase() : char;
@@ -202,8 +179,10 @@ class PawnMoveValidator {
             if (empty > 0) rowStr += empty;
             rows.push(rowStr);
         }
-        // FEN simplifié : positions et trait au joueur actuel
-        return `${rows.join('/')} ${currentPlayer === 'white' ? 'w' : 'b'} - - 0 1`;
+        const turn = currentPlayer === 'white' ? 'w' : 'b';
+        const castling = this.gameState?.castlingRightsString || "KQkq";
+        // On omet volontairement la cible en passant ici pour simplifier la validation d'échec
+        return `${rows.join('/')} ${turn} ${castling} - 0 1`;
     }
 
     isValidSquare(r, c) {
