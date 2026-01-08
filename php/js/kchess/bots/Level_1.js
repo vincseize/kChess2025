@@ -1,16 +1,16 @@
 /**
  * Level_1 - Le bot débutant (Aléatoire + Instinct de Capture)
- * Logique : Si une capture est possible, il a une forte probabilité de la choisir.
+ * Logique : Priorise les captures 50% du temps, sinon joue au hasard.
  */
 class Level_1 {
-    static VERSION = '1.5.0';
+    static VERSION = '1.5.5';
 
     constructor() {
         this.name = "Bot Level 1";
         this.level = 1;
     }
 
-    async getMove(fen) {
+    async getMove() {
         const game = window.chessGame?.core || window.chessGame; 
         if (!game) return { error: 'engine_not_found' };
 
@@ -19,20 +19,21 @@ class Level_1 {
 
         if (allMoves.length === 0) return { error: 'game_over' };
 
-        // 1. On sépare les captures des coups normaux
         const captures = allMoves.filter(m => m.isCapture);
         let selectedMove;
 
-        // 2. LOGIQUE D'AGRESSIVITÉ (50% de chances de capturer si possible)
+        // Logique d'agressivité
         if (captures.length > 0 && Math.random() > 0.5) {
             selectedMove = captures[Math.floor(Math.random() * captures.length)];
-            console.log(`⚔️ Level 1 a faim ! Capture choisie : ${selectedMove.notation}`);
         } else {
             selectedMove = allMoves[Math.floor(Math.random() * allMoves.length)];
-            console.log(`🎲 Level 1 joue au hasard : ${selectedMove.notation}`);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // SÉCURITÉ PROMOTION : Toujours promouvoir en Dame pour éviter de bloquer l'UI
+        if (selectedMove.piece?.type === 'pawn' && (selectedMove.toRow === 0 || selectedMove.toRow === 7)) {
+            selectedMove.promotion = 'queen';
+        }
+
         return selectedMove;
     }
 
@@ -50,7 +51,6 @@ class Level_1 {
                         pieceMoves.forEach(m => {
                             let target = this._getPiece(board, m.row, m.col);
                             let isCap = target && target.color.charAt(0).toLowerCase() !== myColorKey;
-
                             moves.push({
                                 fromRow: r, fromCol: c,
                                 toRow: m.row, toCol: m.col,
@@ -78,5 +78,4 @@ class Level_1 {
         return `${'abcdefgh'[fC]}${8 - fR}➔${'abcdefgh'[tC]}${8 - tR}`;
     }
 }
-
 window.Level_1 = Level_1;

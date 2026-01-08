@@ -2,7 +2,7 @@
 class ChessStyleManager {
     
     // Valeur par défaut - sera écrasée par la config JSON si disponible
-    static consoleLog = true; // true par défaut pour debug
+    static consoleLog = false; // true par défaut pour debug
     
     static init() {
         // Charger la configuration depuis window.appConfig

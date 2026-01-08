@@ -1,7 +1,7 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.1.3 - Complete Silent Edition
- * Neutralise GameStatusManager et les notifications UI pendant le test.
+ * Version : 7.2.8 - Precise Move Validation & Honest Counters
+ * Couleurs : Mat (Rouge), Pat (Orange), Nulle (Blanc), En cours (Gris)
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -68,7 +68,7 @@ class BotStressTest {
     }
 
     statusUpdate(msg, type = 'blanc', resultLabel = "") {
-        if (!this.logEl) return;
+        if (!this.logEl || !msg.trim()) return; 
         const div = document.createElement('div');
         const colors = { 
             rouge: "#f85149", orange: "#d29922", blanc: "#ffffff", gris: "#8b949e", system: "#3fb950" 
@@ -78,9 +78,9 @@ class BotStressTest {
         let formattedMsg = msg;
         
         if (resultLabel) {
-            const finColor = (type === "rouge" && resultLabel.includes("CRASH")) ? "#f85149" : "#3fb950";
-            const greenLabel = `<span style="color:${finColor}; font-weight:bold;">FIN</span>`;
-            formattedMsg = msg.replace("FIN", greenLabel);
+            const labelColor = colors[type] || "#ffffff";
+            const coloredLabel = `<span style="color:${labelColor}; font-weight:bold;">FIN</span>`;
+            formattedMsg = msg.replace("FIN", coloredLabel);
         }
 
         div.style.color = colors[type] || "#ffffff";
@@ -143,91 +143,96 @@ class BotStressTest {
             engine.handleSquareClick(move.toRow, move.toCol, true);
 
             let wait = 0;
-            while (game.gameState.currentPlayer === color && game.gameState.gameActive && wait < 25) {
+            // On attend que le moteur valide le coup
+            while (game.gameState.currentPlayer === color && game.gameState.gameActive && wait < 20) {
                 await new Promise(r => setTimeout(r, 2));
                 wait++;
             }
-            if (game.gameState.currentPlayer === color && game.gameState.gameActive) {
-                game.gameState.switchPlayer();
-                if (game.updateUI) game.updateUI();
-            }
-            return true;
+
+            // Si le joueur a changé, le coup est réussi
+            return (game.gameState.currentPlayer !== color);
         } catch (e) { return false; }
     }
 
-    async simulateGame(id, maxMoves, totalGames) {
+    async simulateGame(id, maxCoups, totalGames) {
         const startPartie = performance.now();
         const _log = console.log; const _warn = console.warn;
-        
-        // Blocage de la console standard
         console.log = console.warn = () => {}; 
 
-        // Désactivation globale des logs du StatusManager
-        if (window.GameStatusManager) window.GameStatusManager.consoleLog = false;
-
         const game = new ChessGame();
-        
-        // Neutralisation des fonctions UI du Manager pour cette instance
-        if (game.statusManager) {
-            game.statusManager.showNotification = () => {};
-            game.statusManager.showCheckAlert = () => {};
-            game.statusManager.highlightKing = () => {};
-        }
-
-        if (game.ui && game.ui.showStatus) game.ui.showStatus = () => {};
-        if (window.displayStatus) { this._oldStatus = window.displayStatus; window.displayStatus = () => {}; }
-
         game.gameState.gameActive = true;
-        let mCount = 0;
+        let coupsCount = 0;
 
-        const progressBar = document.getElementById('progress-bar');
-        if (progressBar) progressBar.style.width = `${Math.round((id / totalGames) * 100)}%`;
         if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
 
         try {
-            while (mCount < maxMoves && game.gameState.gameActive) {
+            while (coupsCount < maxCoups && game.gameState.gameActive) {
                 const color = game.gameState.currentPlayer;
                 const moves = this.getAvailableMoves(game, color);
                 if (moves.length === 0) break;
+                
                 const move = moves[Math.floor(Math.random() * moves.length)];
-                if (!(await this.executeMove(game, move, color))) throw new Error(`Err`);
-                mCount++;
-                this.stats.totalMoves++;
+                
+                // EXECUTION : On n'incrémente que si executeMove renvoie true
+                const success = await this.executeMove(game, move, color);
+                
+                if (success) {
+                    coupsCount++;
+                    this.stats.totalMoves++;
+                } else {
+                    // Si le coup échoue (bloqué), on sort de la boucle pour cette partie
+                    break;
+                }
             }
 
             const gs = game.gameState;
-            let type = "blanc", resTag = "FIN nulle";
+            if (gs.checkGameOver) gs.checkGameOver();
 
-            if (gs.isCheckmate) { 
-                resTag = "FIN mat"; type = "rouge"; this.stats.checkmates++; 
-            } else if (gs.isStalemate) { 
-                resTag = "FIN pat"; type = "orange"; this.stats.stalemates++; 
-            } else if (mCount >= maxMoves) { 
-                resTag = "FIN en cours"; type = "gris"; 
-            }
-
-            // Correction : FENGenerator.generate ou generateFEN selon ta version
             const finalFen = (FENGenerator.generate) ? 
                 FENGenerator.generate(game.board, gs) : 
                 FENGenerator.generateFEN(gs, game.board);
 
+            const currentPossibleMoves = this.getAvailableMoves(game, gs.currentPlayer);
+            const kingInCheck = game.moveValidator.isKingInCheck(gs.currentPlayer);
+
+            let engineDraw = { isDraw: false, reason: "" };
+            if (window.ChessNulleEngine) {
+                const nulleChecker = new ChessNulleEngine(finalFen);
+                const halfMoves = finalFen.split(' ')[4] || 0;
+                engineDraw = nulleChecker.isDraw(halfMoves);
+            }
+
+            let type = "blanc"; 
+            let resTag = "FIN nulle";
+
+            if (gs.isCheckmate || (currentPossibleMoves.length === 0 && kingInCheck)) { 
+                resTag = "FIN mat"; type = "rouge"; this.stats.checkmates++; 
+            } else if (gs.isStalemate || (currentPossibleMoves.length === 0 && !kingInCheck)) { 
+                resTag = "FIN pat"; type = "orange"; this.stats.stalemates++; 
+            } else if (engineDraw.isDraw) {
+                resTag = `FIN nulle (${engineDraw.reason})`;
+                type = "blanc"; this.stats.draws++;
+            } else if (coupsCount >= maxCoups) {
+                resTag = "FIN en cours"; type = "gris"; 
+            } else {
+                // Si on s'arrête avant maxCoups sans raison Chess, c'est une nulle technique (blocage ou répétition)
+                resTag = "FIN nulle (technique)"; type = "blanc"; this.stats.draws++;
+            }
+
             this.stats.fenList.push(finalFen);
             this.stats.gamesPlayed++;
             
-            const countDisplay = document.getElementById('count');
-            if (countDisplay) countDisplay.innerText = this.stats.gamesPlayed;
+            if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
             
-            // Restauration console pour le statusUpdate
             console.log = _log; console.warn = _warn;
             const dureePartie = ((performance.now() - startPartie) / 1000).toFixed(2);
             
-            this.statusUpdate(`P#${id} (${mCount} mvts - ${dureePartie}s) ${resTag} | ${finalFen}`, type, resTag);
+            this.statusUpdate(`P#${id} (${coupsCount} coups - ${dureePartie}s) ${resTag} | ${finalFen}`, type, resTag);
 
         } catch (e) {
             console.log = _log; console.warn = _warn;
             this.stats.errors++;
-            const errDisplay = document.getElementById('errors');
-            if (errDisplay) errDisplay.innerText = this.stats.errors;
+            if (document.getElementById('errors')) document.getElementById('errors').innerText = this.stats.errors;
             this.statusUpdate(`FIN CRASH P#${id}`, "rouge", "FIN CRASH");
         }
     }
@@ -235,12 +240,11 @@ class BotStressTest {
     async runBatch() {
         if (this.isRunning) return;
         
-        const inputGames = document.getElementById('inputMaxGames');
-        const inputMoves = document.getElementById('inputMaxMoves');
-        const total = inputGames ? parseInt(inputGames.value) : 50;
-        const moves = inputMoves ? parseInt(inputMoves.value) : 100;
-        
-        // Cache les modales de promotion et les notifications UI persistantes
+        const total = parseInt(document.getElementById('inputMaxGames')?.value || 50);
+        const moves = parseInt(document.getElementById('inputMaxMoves')?.value || 100);
+        const lvlW = document.getElementById('selectBotWhite')?.value || "L1";
+        const lvlB = document.getElementById('selectBotBlack')?.value || "L1";
+
         if (!document.getElementById('stress-test-style')) {
             document.head.insertAdjacentHTML('beforeend', `
                 <style id="stress-test-style">
@@ -255,23 +259,18 @@ class BotStressTest {
         this.stats.startTime = performance.now();
         
         this.statusUpdate("🚀 DÉMARRAGE DU TEST...", "system");
+        this.statusUpdate(`⚙️ CONFIG : [${lvlW} vs ${lvlB}] | ${total} parties | Max ${moves} coups`, "gris");
 
         for (let i = 1; i <= total; i++) {
             await this.simulateGame(i, moves, total);
-            // Petit délai pour laisser le navigateur respirer
             await new Promise(r => setTimeout(r, 1));
         }
 
-        const tempsTotal = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
-        this.stats.totalDuration = tempsTotal;
-
-        this.statusUpdate(`🏁 SESSION TERMINÉE en ${tempsTotal}s`, "system");
+        this.stats.totalDuration = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
+        this.statusUpdate(`🏁 SESSION TERMINÉE en ${this.stats.totalDuration}s`, "system");
         this.isRunning = false; 
         if (this.btn) this.btn.disabled = false;
-        
-        // Réactivation optionnelle des logs du StatusManager après le test
         if (window.GameStatusManager) window.GameStatusManager.consoleLog = true;
-        
         await this.saveJsonToServer();
     }
 }
