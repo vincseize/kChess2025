@@ -22,6 +22,15 @@ $version = getVersion();
         .actions-group { display: flex; gap: 5px; margin-top: 10px; }
         .btn-secondary { background: #21262d; font-size: 10px !important; flex: 1; height: 35px; cursor: pointer; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px; }
         #game-id-badge { font-family: monospace; padding: 2px 6px; background: #21262d; border-radius: 10px; font-size: 10px; }
+        
+        /* Style Option Random */
+        .random-opt { 
+            display: flex; align-items: center; gap: 10px; padding: 10px; 
+            background: rgba(88, 166, 255, 0.05); border-radius: 4px; margin-bottom: 15px;
+            border: 1px solid rgba(88, 166, 255, 0.1);
+        }
+        .random-opt input { width: 16px; height: 16px; cursor: pointer; margin: 0; }
+        .random-opt label { font-size: 11px; color: #58a6ff; font-weight: bold; cursor: pointer; margin: 0; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -65,6 +74,12 @@ $version = getVersion();
                         </select>
                     </div>
                 </div>
+
+                <div class="random-opt">
+                    <input type="checkbox" id="checkRandomColors" checked>
+                    <label for="checkRandomColors">Mélange aléatoire des couleurs</label>
+                </div>
+
                 <div class="config-group">
                     <label>Nombre de parties</label>
                     <input type="number" id="inputMaxGames" value="50">

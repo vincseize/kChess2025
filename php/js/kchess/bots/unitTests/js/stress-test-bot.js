@@ -1,7 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.2.8 - Precise Move Validation & Honest Counters
- * Couleurs : Mat (Rouge), Pat (Orange), Nulle (Blanc), En cours (Gris)
+ * Version : 7.2.9 - Added Random Colors Start
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -143,18 +142,16 @@ class BotStressTest {
             engine.handleSquareClick(move.toRow, move.toCol, true);
 
             let wait = 0;
-            // On attend que le moteur valide le coup
             while (game.gameState.currentPlayer === color && game.gameState.gameActive && wait < 20) {
                 await new Promise(r => setTimeout(r, 2));
                 wait++;
             }
 
-            // Si le joueur a changé, le coup est réussi
             return (game.gameState.currentPlayer !== color);
         } catch (e) { return false; }
     }
 
-    async simulateGame(id, maxCoups, totalGames) {
+    async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
         const startPartie = performance.now();
         const _log = console.log; const _warn = console.warn;
         console.log = console.warn = () => {}; 
@@ -172,17 +169,12 @@ class BotStressTest {
                 if (moves.length === 0) break;
                 
                 const move = moves[Math.floor(Math.random() * moves.length)];
-                
-                // EXECUTION : On n'incrémente que si executeMove renvoie true
                 const success = await this.executeMove(game, move, color);
                 
                 if (success) {
                     coupsCount++;
                     this.stats.totalMoves++;
-                } else {
-                    // Si le coup échoue (bloqué), on sort de la boucle pour cette partie
-                    break;
-                }
+                } else break;
             }
 
             const gs = game.gameState;
@@ -202,8 +194,7 @@ class BotStressTest {
                 engineDraw = nulleChecker.isDraw(halfMoves);
             }
 
-            let type = "blanc"; 
-            let resTag = "FIN nulle";
+            let type = "blanc", resTag = "FIN nulle";
 
             if (gs.isCheckmate || (currentPossibleMoves.length === 0 && kingInCheck)) { 
                 resTag = "FIN mat"; type = "rouge"; this.stats.checkmates++; 
@@ -215,7 +206,6 @@ class BotStressTest {
             } else if (coupsCount >= maxCoups) {
                 resTag = "FIN en cours"; type = "gris"; 
             } else {
-                // Si on s'arrête avant maxCoups sans raison Chess, c'est une nulle technique (blocage ou répétition)
                 resTag = "FIN nulle (technique)"; type = "blanc"; this.stats.draws++;
             }
 
@@ -223,11 +213,15 @@ class BotStressTest {
             this.stats.gamesPlayed++;
             
             if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
-            
+            if (document.getElementById('progress-bar')) {
+                document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
+            }
+
             console.log = _log; console.warn = _warn;
             const dureePartie = ((performance.now() - startPartie) / 1000).toFixed(2);
             
-            this.statusUpdate(`P#${id} (${coupsCount} coups - ${dureePartie}s) ${resTag} | ${finalFen}`, type, resTag);
+            // On ajoute les infos de bot White/Black dans le log
+            this.statusUpdate(`P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount} coups - ${dureePartie}s) ${resTag} | ${finalFen}`, type, resTag);
 
         } catch (e) {
             console.log = _log; console.warn = _warn;
@@ -242,8 +236,9 @@ class BotStressTest {
         
         const total = parseInt(document.getElementById('inputMaxGames')?.value || 50);
         const moves = parseInt(document.getElementById('inputMaxMoves')?.value || 100);
-        const lvlW = document.getElementById('selectBotWhite')?.value || "L1";
-        const lvlB = document.getElementById('selectBotBlack')?.value || "L1";
+        const selW = document.getElementById('selectBotWhite')?.value || "L1";
+        const selB = document.getElementById('selectBotBlack')?.value || "L1";
+        const isRandom = document.getElementById('checkRandomColors')?.checked;
 
         if (!document.getElementById('stress-test-style')) {
             document.head.insertAdjacentHTML('beforeend', `
@@ -259,10 +254,19 @@ class BotStressTest {
         this.stats.startTime = performance.now();
         
         this.statusUpdate("🚀 DÉMARRAGE DU TEST...", "system");
-        this.statusUpdate(`⚙️ CONFIG : [${lvlW} vs ${lvlB}] | ${total} parties | Max ${moves} coups`, "gris");
+        this.statusUpdate(`⚙️ CONFIG : [${selW} vs ${selB}] | Random: ${isRandom ? 'OUI' : 'NON'}`, "gris");
 
         for (let i = 1; i <= total; i++) {
-            await this.simulateGame(i, moves, total);
+            let pWhite = selW;
+            let pBlack = selB;
+
+            // Inversion aléatoire si l'option est cochée
+            if (isRandom && Math.random() > 0.5) {
+                pWhite = selB;
+                pBlack = selW;
+            }
+
+            await this.simulateGame(i, moves, total, pWhite, pBlack);
             await new Promise(r => setTimeout(r, 1));
         }
 
