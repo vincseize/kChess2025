@@ -5,7 +5,7 @@ if (typeof BishopMoveValidator !== 'undefined') {
 
 class BishopMoveValidator {
     
-    static consoleLog = true; 
+    static consoleLog = false; 
     
     static init() {
         this.loadConfig();

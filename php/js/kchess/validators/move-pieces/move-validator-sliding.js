@@ -5,7 +5,7 @@ if (typeof SlidingMoveValidator !== 'undefined') {
 
 class SlidingMoveValidator {
     
-    static consoleLog = true;
+    static consoleLog = false;
     
     static init() {
         this.loadConfig();

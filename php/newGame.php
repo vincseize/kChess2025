@@ -9,6 +9,7 @@ function isMobile() {
 }
 
 $isMobile = isMobile();
+// On définit la page cible pour la redirection après configuration
 $targetPage = $isMobile ? 'app_mobile.php' : 'app.php';
 
 // Récupérer la configuration pour accéder aux langues
@@ -25,6 +26,9 @@ $translations = $config['lang'][$currentLang];
 
         <div class="lang-selector-top-right">
             <form method="GET" class="d-inline">
+                <?php if(isset($_GET['new'])): ?>
+                    <input type="hidden" name="new" value="1">
+                <?php endif; ?>
                 <select name="lang" class="form-select form-select-sm w-auto d-inline lang-select" 
                         onchange="this.form.submit()">
                     <?php foreach ($config['lang'] as $langCode => $langData): ?>
@@ -71,24 +75,22 @@ $translations = $config['lang'][$currentLang];
                 <i class="bi bi-check-lg check-icon"></i>
             </button>
 
-<button class="game-mode-btn btn-level-1" 
-        data-mode="bot" 
-        data-level="3" 
-        data-profondeur="1" 
-        style="background: #d45d00 !important; border-left-color: #8a4d02 !important;">
-    
-    <div class="mode-description" style="background: transparent !important;">
-        <div style="color: white !important;"> 
-            <i class="bi bi-robot mode-icon" style="color: white !important;"></i> 
-            <?php echo $translations['ccmo_bot3'] ?? 'Niveau 3 - CCMO'; ?>
-        </div>
-        <div class="mode-difficulty" style="color: rgba(255,255,255,0.8) !important;"> 
-            <?php echo $translations['bot_ecmo_desc3'] ?? 'Bot : ECMO, pas de pièce en prise directe'; ?>
-        </div>
-    </div>
-    <i class="bi bi-check-lg check-icon" style="color: white !important;"></i>
-</button>
-
+            <button class="game-mode-btn btn-level-1" 
+                    data-mode="bot" 
+                    data-level="3" 
+                    data-profondeur="1" 
+                    style="background: #d45d00 !important; border-left-color: #8a4d02 !important;">
+                <div class="mode-description" style="background: transparent !important;">
+                    <div style="color: white !important;"> 
+                        <i class="bi bi-robot mode-icon" style="color: white !important;"></i> 
+                        <?php echo $translations['ccmo_bot3'] ?? 'Niveau 3 - CCMO'; ?>
+                    </div>
+                    <div class="mode-difficulty" style="color: rgba(255,255,255,0.8) !important;"> 
+                        <?php echo $translations['bot_ecmo_desc3'] ?? 'Bot : ECMO, pas de pièce en prise directe'; ?>
+                    </div>
+                </div>
+                <i class="bi bi-check-lg check-icon" style="color: white !important;"></i>
+            </button>
         </div>
 
         <div class="color-selection">
@@ -127,6 +129,20 @@ $translations = $config['lang'][$currentLang];
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // 1. GESTION DU RESET
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('new')) {
+        console.log("🎲 Nouvelle partie demandée : nettoyage des données...");
+        
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Sécurité pour forcer le bouton à rester désactivé au chargement
+        const startBtn = document.getElementById('startGameBtn');
+        if (startBtn) startBtn.disabled = true;
+    }
+
+    // 2. INITIALISATION DU HANDLER
     if (typeof NewGameHandler !== 'undefined') {
         NewGameHandler.init('<?php echo $targetPage; ?>');
     } else {

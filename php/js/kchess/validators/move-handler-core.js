@@ -8,7 +8,7 @@ if (typeof ChessGameMoveHandler !== 'undefined') {
 
 class ChessGameMoveHandler {
     
-    static consoleLog = true; 
+    static consoleLog = false; 
     
     static init() {
         this.loadConfig();
