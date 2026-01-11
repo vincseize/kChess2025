@@ -1,6 +1,33 @@
 <?php
+/**
+ * Bot_vs_Bot.php
+ * Emplacement : php/js/kchess/bots/unitTests/Bot_vs_Bot.php
+ */
 require_once __DIR__ . '/../../../../config-loader.php'; 
 $version = getVersion();
+
+// --- SCAN DYNAMIQUE DES BOTS ---
+$botDir = __DIR__ . '/../'; 
+$availableBots = [];
+
+if (is_dir($botDir)) {
+    $files = scandir($botDir);
+    foreach ($files as $file) {
+        if (preg_match('/Level_(\d+)\.js$/', $file, $matches)) {
+            $level = (int)$matches[1];
+            $availableBots[] = [
+                'level' => $level,
+                'name' => "LEVEL " . $level,
+                'file' => $file
+            ];
+        }
+    }
+}
+usort($availableBots, function($a, $b) { return $a['level'] - $b['level']; });
+
+if (empty($availableBots)) {
+    $availableBots[] = ['level' => 1, 'name' => 'LEVEL 1', 'file' => 'Level_1.js'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -23,7 +50,6 @@ $version = getVersion();
         .btn-secondary { background: #21262d; font-size: 10px !important; flex: 1; height: 35px; cursor: pointer; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px; }
         #game-id-badge { font-family: monospace; padding: 2px 6px; background: #21262d; border-radius: 10px; font-size: 10px; }
         
-        /* Style Option Random */
         .random-opt { 
             display: flex; align-items: center; gap: 10px; padding: 10px; 
             background: rgba(88, 166, 255, 0.05); border-radius: 4px; margin-bottom: 15px;
@@ -31,6 +57,16 @@ $version = getVersion();
         }
         .random-opt input { width: 16px; height: 16px; cursor: pointer; margin: 0; }
         .random-opt label { font-size: 11px; color: #58a6ff; font-weight: bold; cursor: pointer; margin: 0; text-transform: uppercase; }
+
+        /* Ajustement de la hauteur pour les blocs de stats (2x plus petits) */
+        .stat-card { 
+            padding: 8px 15px !important; 
+            margin-bottom: 8px !important; 
+            min-height: auto !important;
+        }
+        .stat-value { font-size: 1.2em !important; line-height: 1 !important; }
+        /* On garde le bloc config à sa taille normale */
+        .side-panel > .stat-card:first-child { padding: 15px !important; }
     </style>
 </head>
 <body>
@@ -56,28 +92,34 @@ $version = getVersion();
         </div>
 
         <div class="side-panel">
-            <div class="stat-card" style="border-top: 4px solid #58a6ff">
+            <div class="stat-card" style="border-top: 4px solid #58a6ff;">
                 <span class="stat-label">Configuration</span>
                 <div class="bot-setup-grid">
                     <div class="config-group">
                         <label>Blancs</label>
                         <select id="selectBotWhite">
-                            <option value="L1">LEVEL 1</option>
-                            <option value="L2">LEVEL 2</option>
+                            <?php foreach ($availableBots as $bot): ?>
+                                <option value="L<?php echo $bot['level']; ?>" <?php echo ($bot['level'] == 1) ? 'selected' : ''; ?>>
+                                    <?php echo $bot['name']; ?>
+                                </option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="config-group">
                         <label>Noirs</label>
                         <select id="selectBotBlack">
-                            <option value="L1">LEVEL 1</option>
-                            <option value="L2">LEVEL 2</option>
+                            <?php foreach ($availableBots as $bot): ?>
+                                <option value="L<?php echo $bot['level']; ?>" <?php echo ($bot['level'] == 1) ? 'selected' : ''; ?>>
+                                    <?php echo $bot['name']; ?>
+                                </option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
 
                 <div class="random-opt">
                     <input type="checkbox" id="checkRandomColors" checked>
-                    <label for="checkRandomColors">Mélange aléatoire des couleurs</label>
+                    <label for="checkRandomColors"> Couleur aléatoire</label>
                 </div>
 
                 <div class="config-group">
@@ -118,6 +160,53 @@ $version = getVersion();
     echo str_replace('src="js/', 'src="../../../../js/', $engineScripts);
     ?>
 
+    <?php foreach ($availableBots as $bot): ?>
+        <script src="../<?php echo $bot['file']; ?>?v=<?php echo $version; ?>"></script>
+    <?php endforeach; ?>
+
     <script src="js/stress-test-bot.js?v=<?php echo $version; ?>"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const clearBtn = document.getElementById('clearJsonBtn');
+        console.log("🛠️ Système de monitoring : Bouton Clear chargé.");
+
+        if (clearBtn) {
+            clearBtn.onclick = function() {
+                console.log("🖱️ Clic détecté sur CLEAR SERVER");
+                
+                if (!confirm("Voulez-vous vraiment supprimer tous les fichiers JSON dans /results ?")) return;
+
+                fetch('log_error.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'clear_all' })
+                })
+                .then(response => {
+                    console.log("📡 Statut HTTP réseau :", response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("📥 Réponse du serveur :", data);
+                    if (data.status === "cleared" || data.status === "success") {
+                        alert("Serveur nettoyé avec succès !");
+                        // Reset visuel
+                        document.getElementById('count').innerText = "0";
+                        document.getElementById('errors').innerText = "0";
+                        document.getElementById('progress-bar').style.width = "0%";
+                    } else {
+                        alert("Erreur serveur : " + (data.message || "inconnue"));
+                    }
+                })
+                .catch(error => {
+                    console.error("🔥 Erreur critique lors du fetch :", error);
+                    alert("Impossible de joindre le serveur de logs.");
+                });
+            };
+        } else {
+            console.error("❌ Erreur : L'ID 'clearJsonBtn' est introuvable dans le document.");
+        }
+    });
+    </script>
 </body>
 </html>
