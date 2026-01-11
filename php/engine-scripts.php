@@ -32,11 +32,6 @@
 <script src="js/kchess/validators/promotion-manager.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/core/move-logic.js?version=<?= $version; ?>"></script>
 
-<script src="js/kchess/bots/Level_1.js?version=<?= $version; ?>"></script>
-<script src="js/kchess/bots/Level_2.js?version=<?= $version; ?>"></script>
-<script src="js/kchess/bots/Level_3.js?version=<?= $version; ?>"></script>
-<script src="js/kchess/core/bot-manager.js?version=<?= $version; ?>"></script>
-
 <script src="js/kchess/ui/chess-game-ui-styles.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/ui/chess-game-ui-timer.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/ui/chess-game-ui-modals.js?version=<?= $version; ?>"></script>
@@ -49,7 +44,11 @@
 <script src="js/kchess/core/chess-game-core.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/core/chess-game.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/ui/chess-events.js?version=<?= $version; ?>"></script>
+
+<script src="js/kchess/core/bot-manager.js?version=<?= $version; ?>"></script>
+
 <script src="js/kchess/debug/device-logger.js?version=<?= $version; ?>"></script>
+
 
 <?php if ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1'): ?>
 <script src="js/kchess/bots/bot-test-interface.js?version=<?= $version; ?>"></script>

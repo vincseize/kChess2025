@@ -72,12 +72,15 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
   📄 jquery.min.js
   📁 kchess
     📁 bots
+      📄 BoardAnalyzer.js
+      📄 ChessScanner.js
+      📄 Level3.md
       📄 Level_1.js
       📄 Level_2.js
       📄 Level_3.js
       📄 bot-test-interface.js
       📁 unitTests
-        📄 BotL1_vs_BotL1.php
+        📄 Bot_vs_Bot.php
         📁 css
           📄 stress-test.css
         📁 img
@@ -99,10 +102,10 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
           📄 icon-192x192.png
           📄 icon-512x512.png
         📁 js
-          📄 stress-test-bot-l1.js
+          📄 stress-test-bot.js
         📄 log_error.php
         📁 results
-          📄 test_results_2025-12-31_14-28-20.json
+          📄 stress_test-L1vsL1.json
     📁 check
       📄 checkChess.js
       📄 checkChessMat.js

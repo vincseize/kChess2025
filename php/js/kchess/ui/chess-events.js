@@ -95,6 +95,10 @@ class ChessEventsManager {
 /**
  * Cette fonction surveille le changement de tour et fait jouer le bot.
  */
+/**
+ * Cette fonction surveille le changement de tour et fait jouer le bot.
+ * Version évolutive : Gère dynamiquement les niveaux (Level_1, Level_2, Level_3, etc.)
+ */
 async function handleBotTurn() {
     const game = window.chessGame?.core || window.chessGame;
     if (!game || !game.gameState || !game.gameState.gameActive) return;
@@ -104,43 +108,62 @@ async function handleBotTurn() {
 
     const playerColor = urlParams.get('color') || 'white';
     const botColor = (playerColor === 'white') ? 'black' : 'white';
-    const currentTurn = game.gameState.currentPlayer; // 'white' ou 'black'
+    const currentTurn = game.gameState.currentPlayer;
 
-    // Si c'veut dire que c'est au tour du bot
+    // Si c'est au tour du bot
     if (currentTurn === botColor) {
         ChessEventsManager.log(`Tour du Bot détecté (${botColor})`, 'info');
 
-        // On instancie le bot selon le niveau
-        const level = parseInt(urlParams.get('level')) || 1;
-        let botInstance;
+        const level = urlParams.get('level') || '1';
+        let botInstance = null;
+
+        // --- SÉLECTION DYNAMIQUE DU BOT ---
+        // Cherche d'abord la classe exacte (ex: Level_3)
+        const className = `Level_${level}`;
         
-        if (level >= 2 && typeof Level_2 !== 'undefined') {
-            botInstance = new Level_2();
-        } else if (typeof Level_1 !== 'undefined') {
-            botInstance = new Level_1();
+        if (typeof window[className] !== 'undefined') {
+            botInstance = new window[className]();
+            ChessEventsManager.log(`Instanciation de ${className}`, 'success');
+        } 
+        // Repli (Fallback) : Si le niveau demandé n'existe pas, on cherche le plus haut possible
+        else {
+            ChessEventsManager.log(`${className} non trouvé, recherche d'une alternative...`, 'warn');
+            const availableLevels = [3, 2, 1];
+            for (const l of availableLevels) {
+                if (typeof window[`Level_${l}`] !== 'undefined') {
+                    botInstance = new window[`Level_${l}`]();
+                    ChessEventsManager.log(`Repli sur Level_${l}`, 'info');
+                    break;
+                }
+            }
         }
 
         if (!botInstance) {
-            ChessEventsManager.log("Erreur: Classe du Bot introuvable", "error");
+            ChessEventsManager.log("❌ Erreur critique : Aucun moteur de Bot (Level_X) n'est chargé dans la page.", "error");
             return;
         }
 
-        // Délai de réflexion "humain"
+        // Délai de réflexion "humain" pour ne pas jouer instantanément
         await new Promise(r => setTimeout(r, 800));
 
-        const move = await botInstance.getMove();
+        try {
+            // Appel du moteur (supporte getMove ou makeMove pour la compatibilité)
+            const move = botInstance.getMove ? await botInstance.getMove() : await botInstance.makeMove(game);
 
-        if (move && !move.error) {
-            ChessEventsManager.log(`Bot joue : ${move.notation}`, 'success');
-            
-            // EXECUTION DES CLICS
-            // 1. Clic sur la pièce
-            game.handleSquareClick(move.fromRow, move.fromCol, true);
-            
-            // 2. Clic sur la destination (après un mini délai)
-            setTimeout(() => {
-                game.handleSquareClick(move.toRow, move.toCol, true);
-            }, 300);
+            if (move && !move.error) {
+                ChessEventsManager.log(`Bot joue : ${move.notation}`, 'success');
+                
+                // EXECUTION DES CLICS SIMULÉS
+                // 1. Sélection de la pièce
+                game.handleSquareClick(move.fromRow, move.fromCol, true);
+                
+                // 2. Clic sur la destination (léger délai pour laisser l'UI respirer)
+                setTimeout(() => {
+                    game.handleSquareClick(move.toRow, move.toCol, true);
+                }, 250);
+            }
+        } catch (error) {
+            ChessEventsManager.log(`Erreur pendant le calcul du bot: ${error.message}`, 'error');
         }
     }
 }
