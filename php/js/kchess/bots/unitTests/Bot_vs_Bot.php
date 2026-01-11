@@ -58,15 +58,29 @@ if (empty($availableBots)) {
         .random-opt input { width: 16px; height: 16px; cursor: pointer; margin: 0; }
         .random-opt label { font-size: 11px; color: #58a6ff; font-weight: bold; cursor: pointer; margin: 0; text-transform: uppercase; }
 
-        /* Ajustement de la hauteur pour les blocs de stats (2x plus petits) */
         .stat-card { 
             padding: 8px 15px !important; 
             margin-bottom: 8px !important; 
             min-height: auto !important;
         }
         .stat-value { font-size: 1.2em !important; line-height: 1 !important; }
-        /* On garde le bloc config à sa taille normale */
         .side-panel > .stat-card:first-child { padding: 15px !important; }
+
+        /* --- DASHBOARD BOTTOM --- */
+        #stats-dashboard {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #161b22; border-top: 1px solid #30363d;
+            padding: 12px 20px; display: grid;
+            grid-template-columns: repeat(4, 1fr); gap: 20px;
+            z-index: 100; box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
+        }
+        .dash-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .dash-label { font-size: 10px; color: #8b949e; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
+        .dash-value { font-family: monospace; font-size: 20px; font-weight: bold; color: #c9d1d9; }
+        .win-w { color: #ffffff; } 
+        .win-b { color: #58a6ff; } 
+        .win-d { color: #8b949e; }
+        body { padding-bottom: 80px; }
     </style>
 </head>
 <body>
@@ -93,7 +107,6 @@ if (empty($availableBots)) {
 
         <div class="side-panel">
             <div class="stat-card" style="border-top: 4px solid #58a6ff;">
-                <span class="stat-label">Configuration</span>
                 <div class="bot-setup-grid">
                     <div class="config-group">
                         <label>Blancs</label>
@@ -153,6 +166,25 @@ if (empty($availableBots)) {
         </div>
     </div>
 
+    <div id="stats-dashboard">
+        <div class="dash-item">
+            <span class="dash-label">Victoires Blancs</span>
+            <span id="dash-win-w" class="dash-value win-w">0</span>
+        </div>
+        <div class="dash-item">
+            <span class="dash-label">Victoires Noirs</span>
+            <span id="dash-win-b" class="dash-value win-b">0</span>
+        </div>
+        <div class="dash-item">
+            <span class="dash-label">Nulles</span>
+            <span id="dash-draws" class="dash-value win-d">0</span>
+        </div>
+        <div class="dash-item" style="border-left: 1px solid #30363d">
+            <span class="dash-label">Win Ratio (W/B)</span>
+            <span id="dash-ratio" class="dash-value" style="color: #d29922;">0.00</span>
+        </div>
+    </div>
+
     <?php 
     ob_start();
     include __DIR__ . '/../../../../engine-scripts.php'; 
@@ -165,48 +197,5 @@ if (empty($availableBots)) {
     <?php endforeach; ?>
 
     <script src="js/stress-test-bot.js?v=<?php echo $version; ?>"></script>
-
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const clearBtn = document.getElementById('clearJsonBtn');
-        console.log("🛠️ Système de monitoring : Bouton Clear chargé.");
-
-        if (clearBtn) {
-            clearBtn.onclick = function() {
-                console.log("🖱️ Clic détecté sur CLEAR SERVER");
-                
-                if (!confirm("Voulez-vous vraiment supprimer tous les fichiers JSON dans /results ?")) return;
-
-                fetch('log_error.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'clear_all' })
-                })
-                .then(response => {
-                    console.log("📡 Statut HTTP réseau :", response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("📥 Réponse du serveur :", data);
-                    if (data.status === "cleared" || data.status === "success") {
-                        alert("Serveur nettoyé avec succès !");
-                        // Reset visuel
-                        document.getElementById('count').innerText = "0";
-                        document.getElementById('errors').innerText = "0";
-                        document.getElementById('progress-bar').style.width = "0%";
-                    } else {
-                        alert("Erreur serveur : " + (data.message || "inconnue"));
-                    }
-                })
-                .catch(error => {
-                    console.error("🔥 Erreur critique lors du fetch :", error);
-                    alert("Impossible de joindre le serveur de logs.");
-                });
-            };
-        } else {
-            console.error("❌ Erreur : L'ID 'clearJsonBtn' est introuvable dans le document.");
-        }
-    });
-    </script>
 </body>
 </html>
