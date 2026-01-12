@@ -49,18 +49,25 @@ if (empty($availableBots)) {
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
 
-        input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; cursor: pointer; }
-
         .config-group select { color: #d29922; cursor: pointer; appearance: none; }
         .bot-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         
-        /* --- NOUVEAU STYLE POUR L'ALIGNEMENT --- */
         .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
         
         .progress-container { margin-top: 10px; height: 4px; background: #21262d; border-radius: 2px; }
         #progress-bar { width: 0%; height: 100%; background: #238636; transition: width 0.3s; }
-        .actions-group { display: flex; gap: 5px; margin-top: 10px; }
-        .btn-secondary { background: #21262d; font-size: 10px !important; flex: 1; height: 35px; cursor: pointer; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px; }
+
+        /* --- NOUVEAU LAYOUT DES BOUTONS --- */
+        .actions-container { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .actions-row { display: flex; gap: 5px; }
+        .btn-secondary { 
+            background: #21262d; font-size: 10px !important; flex: 1; height: 35px; 
+            cursor: pointer; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px; 
+        }
+        .btn-secondary:hover { background: #30363d; }
+        .btn-danger { color: #f85149 !important; border-color: rgba(248, 81, 73, 0.3) !important; width: 100%; }
+        .btn-danger:hover { background: rgba(248, 81, 73, 0.1) !important; }
+
         #game-id-badge { font-family: monospace; padding: 2px 6px; background: #21262d; border-radius: 10px; font-size: 10px; }
         
         .random-opt { 
@@ -183,10 +190,13 @@ if (empty($availableBots)) {
 
             <button id="startBtn" class="btn-test" style="width:100%; padding:15px; background:#238636; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold; margin-top: 8px;">START ARENA TEST</button>
 
-            <div class="actions-group">
-                <button id="copyLogBtn" class="btn-secondary">COPIE LOGS</button>
-                <button id="copyFenBtn" class="btn-secondary">COPIE FENS</button>
-                <button id="clearJsonBtn" class="btn-secondary" style="color: #f85149">CLEAR SERVER</button>
+            <div class="actions-container">
+                <div class="actions-row">
+                    <button id="copyLogBtn" class="btn-secondary">COPIE LOGS</button>
+                    <button id="copyFenBtn" class="btn-secondary">COPIE FENS</button>
+                    <button id="copyStatsBtn" class="btn-secondary">COPIE STATS</button>
+                </div>
+                <button id="clearJsonBtn" class="btn-secondary btn-danger">CLEAR SERVER STORAGE</button>
             </div>
         </div>
     </div>
@@ -230,6 +240,7 @@ if (empty($availableBots)) {
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // --- CLEAR SERVER LOGIC ---
         const clearBtn = document.getElementById('clearJsonBtn');
         if (clearBtn) {
             clearBtn.onclick = function() {
@@ -248,6 +259,38 @@ if (empty($availableBots)) {
                     }
                 })
                 .catch(e => console.error("Erreur:", e));
+            };
+        }
+
+        // --- COPY STATS LOGIC ---
+        const copyStatsBtn = document.getElementById('copyStatsBtn');
+        if (copyStatsBtn) {
+            copyStatsBtn.onclick = function() {
+                const stats = {
+                    white: document.getElementById('dash-win-w').innerText,
+                    black: document.getElementById('dash-win-b').innerText,
+                    draws: document.getElementById('dash-draws').innerText,
+                    moves: document.getElementById('dash-moves').innerText,
+                    ratio: document.getElementById('dash-ratio').innerText,
+                    total: document.getElementById('count').innerText
+                };
+
+                const text = `📊 ARENA STATS REPORT
+-----------------------
+Parties : ${stats.total}
+Blancs  : ${stats.white} victoires
+Noirs   : ${stats.black} victoires
+Nulles  : ${stats.draws}
+Coups   : ${stats.moves}
+Ratio   : ${stats.ratio}
+-----------------------
+Généré le : ${new Date().toLocaleString()}`;
+
+                navigator.clipboard.writeText(text).then(() => {
+                    const original = copyStatsBtn.innerText;
+                    copyStatsBtn.innerText = "✅ COPIÉ";
+                    setTimeout(() => copyStatsBtn.innerText = original, 1200);
+                });
             };
         }
     });
