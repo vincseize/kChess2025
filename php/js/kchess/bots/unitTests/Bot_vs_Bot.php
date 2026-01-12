@@ -38,10 +38,29 @@ if (empty($availableBots)) {
     <style>
         .config-group { margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px; }
         .config-group label { display: block; font-size: 11px; color: #8b949e; margin-bottom: 5px; text-transform: uppercase; font-weight: 600; }
+        
+        /* Input styling sans flèches d'incrémentation */
         .config-group input, .config-group select { 
             width: 100%; background: #0d1117; border: 1px solid #30363d; color: #58a6ff; 
-            padding: 8px; border-radius: 4px; font-weight: bold; outline: none;
+            padding: 10px; border-radius: 4px; font-weight: bold; outline: none;
+            box-sizing: border-box;
         }
+
+        /* Supprimer les flèches d'incrémentation (spin buttons) */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* Style pour l'icône de la datalist (la flèche de droite) */
+        input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.6;
+            cursor: pointer;
+        }
+
         .config-group select { color: #d29922; cursor: pointer; appearance: none; }
         .bot-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         .progress-container { margin-top: 10px; height: 4px; background: #21262d; border-radius: 2px; }
@@ -58,15 +77,9 @@ if (empty($availableBots)) {
         .random-opt input { width: 16px; height: 16px; cursor: pointer; margin: 0; }
         .random-opt label { font-size: 11px; color: #58a6ff; font-weight: bold; cursor: pointer; margin: 0; text-transform: uppercase; }
 
-        .stat-card { 
-            padding: 8px 15px !important; 
-            margin-bottom: 8px !important; 
-            min-height: auto !important;
-        }
+        .stat-card { padding: 8px 15px !important; margin-bottom: 8px !important; min-height: auto !important; }
         .stat-value { font-size: 1.2em !important; line-height: 1 !important; }
-        .side-panel > .stat-card:first-child { padding: 15px !important; }
 
-        /* --- DASHBOARD BOTTOM --- */
         #stats-dashboard {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: #161b22; border-top: 1px solid #30363d;
@@ -80,7 +93,7 @@ if (empty($availableBots)) {
         .win-w { color: #ffffff; } 
         .win-b { color: #58a6ff; } 
         .win-d { color: #8b949e; }
-        body { padding-bottom: 100px; } /* Espace pour le dashboard */
+        body { padding-bottom: 120px; }
     </style>
 </head>
 <body>
@@ -137,12 +150,31 @@ if (empty($availableBots)) {
 
                 <div class="config-group">
                     <label>Nombre de parties</label>
-                    <input type="number" id="inputMaxGames" value="100">
+                    <input type="text" id="inputMaxGames" list="listGames" value="100" inputmode="numeric" 
+                           onfocus="this.oldValue = this.value; this.value = '';" 
+                           onblur="if(this.value == '') { this.value = this.oldValue; }">
+                    <datalist id="listGames">
+                        <option value="50">
+                        <option value="100">
+                        <option value="200">
+                        <option value="500">
+                        <option value="1000">
+                    </datalist>
                 </div>
+
                 <div class="config-group">
                     <label>Coups max</label>
-                    <input type="number" id="inputMaxMoves" value="100">
+                    <input type="text" id="inputMaxMoves" list="listMoves" value="100" inputmode="numeric" 
+                           onfocus="this.oldValue = this.value; this.value = '';" 
+                           onblur="if(this.value == '') { this.value = this.oldValue; }">
+                    <datalist id="listMoves">
+                        <option value="100">
+                        <option value="250">
+                        <option value="500">
+                        <option value="1000">
+                    </datalist>
                 </div>
+
                 <div class="progress-container"><div id="progress-bar"></div></div>
             </div>
 
@@ -213,13 +245,12 @@ if (empty($availableBots)) {
                 .then(r => r.json())
                 .then(data => {
                     if (data.status === "cleared" || data.status === "success") {
-                        // Reset de l'affichage local via l'analyste
                         if (window.arenaAnalyst) window.arenaAnalyst.reset();
-                        alert("Serveur nettoyé et statistiques réinitialisées !");
+                        alert("Serveur nettoyé !");
                         location.reload();
                     }
                 })
-                .catch(e => console.error("Erreur lors du nettoyage:", e));
+                .catch(e => console.error("Erreur:", e));
             };
         }
     });
