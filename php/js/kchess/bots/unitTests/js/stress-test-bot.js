@@ -210,7 +210,13 @@ class BotStressTest {
             }
 
             window.dispatchEvent(new CustomEvent('arena-game-finished', {
-                detail: { winner: winner, status: resTag, pWhite: pWhite, pBlack: pBlack }
+                detail: { 
+                    winner: winner, 
+                    status: resTag, 
+                    pWhite: pWhite, 
+                    pBlack: pBlack,
+                    moves: coupsCount 
+                }
             }));
 
             this.stats.fenList.push(finalFen);

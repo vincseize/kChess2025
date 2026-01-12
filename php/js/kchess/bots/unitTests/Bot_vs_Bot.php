@@ -39,27 +39,17 @@ if (empty($availableBots)) {
         .config-group { margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px; }
         .config-group label { display: block; font-size: 11px; color: #8b949e; margin-bottom: 5px; text-transform: uppercase; font-weight: 600; }
         
-        /* Input styling sans flèches d'incrémentation */
         .config-group input, .config-group select { 
             width: 100%; background: #0d1117; border: 1px solid #30363d; color: #58a6ff; 
             padding: 10px; border-radius: 4px; font-weight: bold; outline: none;
             box-sizing: border-box;
         }
 
-        /* Supprimer les flèches d'incrémentation (spin buttons) */
         input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
 
-        /* Style pour l'icône de la datalist (la flèche de droite) */
-        input::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-            opacity: 0.6;
-            cursor: pointer;
-        }
+        input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; cursor: pointer; }
 
         .config-group select { color: #d29922; cursor: pointer; appearance: none; }
         .bot-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
@@ -80,15 +70,16 @@ if (empty($availableBots)) {
         .stat-card { padding: 8px 15px !important; margin-bottom: 8px !important; min-height: auto !important; }
         .stat-value { font-size: 1.2em !important; line-height: 1 !important; }
 
+        /* --- DASHBOARD BOTTOM --- */
         #stats-dashboard {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: #161b22; border-top: 1px solid #30363d;
             padding: 12px 20px; display: grid;
-            grid-template-columns: repeat(4, 1fr); gap: 20px;
+            grid-template-columns: repeat(5, 1fr); gap: 15px; /* Changé à 5 colonnes */
             z-index: 100; box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
         }
         .dash-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .dash-label { font-size: 10px; color: #8b949e; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
+        .dash-label { font-size: 10px; color: #8b949e; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; text-align: center; }
         .dash-value { font-family: monospace; font-size: 20px; font-weight: bold; color: #c9d1d9; }
         .win-w { color: #ffffff; } 
         .win-b { color: #58a6ff; } 
@@ -210,6 +201,10 @@ if (empty($availableBots)) {
         <div class="dash-item">
             <span class="dash-label">Nulles</span>
             <span id="dash-draws" class="dash-value win-d">0</span>
+        </div>
+        <div class="dash-item" style="border-left: 1px solid #30363d">
+            <span class="dash-label">Total Coups</span>
+            <span id="dash-moves" class="dash-value" style="color: #aff5b4;">0</span>
         </div>
         <div class="dash-item" style="border-left: 1px solid #30363d">
             <span class="dash-label">Win Ratio (W/B)</span>

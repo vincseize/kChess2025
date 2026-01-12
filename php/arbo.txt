@@ -84,7 +84,7 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
         📁 css
           📄 stress-test.css
         📁 img
-          📁 chesspieces
+          📁 chesspiecesDES
             📁 wikipedia
               📄 bB.png
               📄 bK.png
@@ -102,11 +102,13 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
           📄 icon-192x192.png
           📄 icon-512x512.png
         📁 js
+          📄 ArenaAnalyst.js
           📄 stress-test-bot.js
         📄 log_error.php
         📁 results
-          📄 stress_test-L1vsL1.json
+          📄 stress_test-White_L1-vs-Black_L1-RANDOM.json
     📁 check
+      📄 checkChess copy.js
       📄 checkChess.js
       📄 checkChessMat.js
       📄 checkChessNulle.js
