@@ -53,6 +53,10 @@ if (empty($availableBots)) {
 
         .config-group select { color: #d29922; cursor: pointer; appearance: none; }
         .bot-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        
+        /* --- NOUVEAU STYLE POUR L'ALIGNEMENT --- */
+        .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+        
         .progress-container { margin-top: 10px; height: 4px; background: #21262d; border-radius: 2px; }
         #progress-bar { width: 0%; height: 100%; background: #238636; transition: width 0.3s; }
         .actions-group { display: flex; gap: 5px; margin-top: 10px; }
@@ -67,7 +71,7 @@ if (empty($availableBots)) {
         .random-opt input { width: 16px; height: 16px; cursor: pointer; margin: 0; }
         .random-opt label { font-size: 11px; color: #58a6ff; font-weight: bold; cursor: pointer; margin: 0; text-transform: uppercase; }
 
-        .stat-card { padding: 8px 15px !important; margin-bottom: 8px !important; min-height: auto !important; }
+        .stat-card { padding: 8px 15px !important; margin-bottom: 0px !important; min-height: auto !important; }
         .stat-value { font-size: 1.2em !important; line-height: 1 !important; }
 
         /* --- DASHBOARD BOTTOM --- */
@@ -75,7 +79,7 @@ if (empty($availableBots)) {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: #161b22; border-top: 1px solid #30363d;
             padding: 12px 20px; display: grid;
-            grid-template-columns: repeat(5, 1fr); gap: 15px; /* Changé à 5 colonnes */
+            grid-template-columns: repeat(5, 1fr); gap: 15px;
             z-index: 100; box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
         }
         .dash-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -90,8 +94,11 @@ if (empty($availableBots)) {
 <body>
 
 <script>
-    window.PIECE_IMAGE_PATH = window.location.origin + '/__kChess2025/php/img/chesspieces/wikipedia/';
-    window.appConfig = { piece_path: window.PIECE_IMAGE_PATH, debug: { console_log: false } };
+    window.PIECE_IMAGE_PATH = '/__kChess2025/php/img/chesspieces/wikipedia/';
+    window.appConfig = { 
+        piece_path: window.PIECE_IMAGE_PATH, 
+        debug: { console_log: false } 
+    };
 </script>
 
     <h2>🧪 Stress Test : <span style="color: #6e7681; font-weight: normal;">Bot Arena</span></h2>
@@ -110,7 +117,7 @@ if (empty($availableBots)) {
         </div>
 
         <div class="side-panel">
-            <div class="stat-card" style="border-top: 4px solid #58a6ff;">
+            <div class="stat-card" style="border-top: 4px solid #58a6ff; margin-bottom: 8px !important;">
                 <div class="bot-setup-grid">
                     <div class="config-group">
                         <label>Blancs</label>
@@ -141,45 +148,40 @@ if (empty($availableBots)) {
 
                 <div class="config-group">
                     <label>Nombre de parties</label>
-                    <input type="text" id="inputMaxGames" list="listGames" value="100" inputmode="numeric" 
+                    <input type="text" id="inputMaxGames" list="listGames" value="200" inputmode="numeric" 
                            onfocus="this.oldValue = this.value; this.value = '';" 
                            onblur="if(this.value == '') { this.value = this.oldValue; }">
                     <datalist id="listGames">
-                        <option value="50">
-                        <option value="100">
-                        <option value="200">
-                        <option value="500">
-                        <option value="1000">
+                        <option value="200"><option value="500"><option value="1000">
                     </datalist>
                 </div>
 
                 <div class="config-group">
                     <label>Coups max</label>
-                    <input type="text" id="inputMaxMoves" list="listMoves" value="100" inputmode="numeric" 
+                    <input type="text" id="inputMaxMoves" list="listMoves" value="200" inputmode="numeric" 
                            onfocus="this.oldValue = this.value; this.value = '';" 
                            onblur="if(this.value == '') { this.value = this.oldValue; }">
                     <datalist id="listMoves">
-                        <option value="100">
-                        <option value="250">
-                        <option value="500">
-                        <option value="1000">
+                        <option value="200"><option value="500"><option value="1000">
                     </datalist>
                 </div>
 
                 <div class="progress-container"><div id="progress-bar"></div></div>
             </div>
 
-            <div class="stat-card">
-                <span class="stat-label">Terminées</span>
-                <span id="count" class="stat-value">0</span>
+            <div class="stats-row">
+                <div class="stat-card">
+                    <span class="stat-label">Terminées</span>
+                    <span id="count" class="stat-value">0</span>
+                </div>
+
+                <div class="stat-card" style="border-top: 4px solid #f85149">
+                    <span class="stat-label">Erreurs</span>
+                    <span id="errors" class="stat-value" style="color: #f85149">0</span>
+                </div>
             </div>
 
-            <div class="stat-card" style="border-top: 4px solid #f85149">
-                <span class="stat-label">Erreurs</span>
-                <span id="errors" class="stat-value" style="color: #f85149">0</span>
-            </div>
-
-            <button id="startBtn" class="btn-test" style="width:100%; padding:15px; background:#238636; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">START ARENA TEST</button>
+            <button id="startBtn" class="btn-test" style="width:100%; padding:15px; background:#238636; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold; margin-top: 8px;">START ARENA TEST</button>
 
             <div class="actions-group">
                 <button id="copyLogBtn" class="btn-secondary">COPIE LOGS</button>
