@@ -80,7 +80,7 @@ if (empty($availableBots)) {
         .win-w { color: #ffffff; } 
         .win-b { color: #58a6ff; } 
         .win-d { color: #8b949e; }
-        body { padding-bottom: 80px; }
+        body { padding-bottom: 100px; } /* Espace pour le dashboard */
     </style>
 </head>
 <body>
@@ -137,7 +137,7 @@ if (empty($availableBots)) {
 
                 <div class="config-group">
                     <label>Nombre de parties</label>
-                    <input type="number" id="inputMaxGames" value="50">
+                    <input type="number" id="inputMaxGames" value="100">
                 </div>
                 <div class="config-group">
                     <label>Coups max</label>
@@ -196,6 +196,33 @@ if (empty($availableBots)) {
         <script src="../<?php echo $bot['file']; ?>?v=<?php echo $version; ?>"></script>
     <?php endforeach; ?>
 
+    <script src="js/ArenaAnalyst.js?v=<?php echo $version; ?>"></script>
     <script src="js/stress-test-bot.js?v=<?php echo $version; ?>"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const clearBtn = document.getElementById('clearJsonBtn');
+        if (clearBtn) {
+            clearBtn.onclick = function() {
+                if (!confirm("Supprimer tous les fichiers JSON sur le serveur ?")) return;
+                fetch('log_error.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'clear_all' })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === "cleared" || data.status === "success") {
+                        // Reset de l'affichage local via l'analyste
+                        if (window.arenaAnalyst) window.arenaAnalyst.reset();
+                        alert("Serveur nettoyé et statistiques réinitialisées !");
+                        location.reload();
+                    }
+                })
+                .catch(e => console.error("Erreur lors du nettoyage:", e));
+            };
+        }
+    });
+    </script>
 </body>
 </html>

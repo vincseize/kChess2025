@@ -1,6 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.2.9 - Added Random Colors Start
+ * Version : 7.3.2 - Explicit Color Labels in Filenames
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -25,12 +25,16 @@ class BotStressTest {
             draws: 0, 
             fenList: [],
             startTime: null,
-            totalDuration: 0
+            totalDuration: 0,
+            config: { white: "", black: "", isRandom: false } 
         };
         const errEl = document.getElementById('errors');
         const countEl = document.getElementById('count');
+        const progressEl = document.getElementById('progress-bar');
+
         if (errEl) errEl.innerText = "0";
         if (countEl) countEl.innerText = "0";
+        if (progressEl) progressEl.style.width = "0%";
     }
 
     init() {
@@ -46,13 +50,6 @@ class BotStressTest {
             copyFenBtn.onclick = (e) => {
                 const fenText = this.stats.fenList.join('\n');
                 if (fenText) this.copyToClipboard(fenText, e.target);
-            };
-        }
-        
-        const clearJsonBtn = document.getElementById('clearJsonBtn');
-        if (clearJsonBtn) {
-            clearJsonBtn.onclick = () => {
-                if (this.clearServerLogs) this.clearServerLogs(true);
             };
         }
     }
@@ -93,16 +90,19 @@ class BotStressTest {
     }
 
     async saveJsonToServer() {
-        const lvlW = document.getElementById('selectBotWhite')?.value || "unknown";
-        const lvlB = document.getElementById('selectBotBlack')?.value || "unknown";
-        const dynamicName = `stress_test-${lvlW}vs${lvlB}.json`;
+        const { white, black, isRandom } = this.stats.config;
+        const randTag = isRandom ? "-RANDOM" : "";
+        // Nom de fichier explicite : White_LVL-vs-Black_LVL
+        const dynamicName = `stress_test-White_${white}-vs-Black_${black}${randTag}.json`;
+        
         try {
             await fetch('log_error.php', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'save', filename: dynamicName, stats: this.stats })
             });
             this.statusUpdate(`💾 Rapport généré : ${dynamicName}`, "system");
-        } catch (e) {}
+        } catch (e) { console.error("Save error:", e); }
     }
 
     getAvailableMoves(game, color) {
@@ -146,7 +146,6 @@ class BotStressTest {
                 await new Promise(r => setTimeout(r, 2));
                 wait++;
             }
-
             return (game.gameState.currentPlayer !== color);
         } catch (e) { return false; }
     }
@@ -194,10 +193,11 @@ class BotStressTest {
                 engineDraw = nulleChecker.isDraw(halfMoves);
             }
 
-            let type = "blanc", resTag = "FIN nulle";
+            let type = "blanc", resTag = "FIN nulle", winner = null;
 
             if (gs.isCheckmate || (currentPossibleMoves.length === 0 && kingInCheck)) { 
                 resTag = "FIN mat"; type = "rouge"; this.stats.checkmates++; 
+                winner = (gs.currentPlayer === 'w') ? 'black' : 'white';
             } else if (gs.isStalemate || (currentPossibleMoves.length === 0 && !kingInCheck)) { 
                 resTag = "FIN pat"; type = "orange"; this.stats.stalemates++; 
             } else if (engineDraw.isDraw) {
@@ -209,6 +209,10 @@ class BotStressTest {
                 resTag = "FIN nulle (technique)"; type = "blanc"; this.stats.draws++;
             }
 
+            window.dispatchEvent(new CustomEvent('arena-game-finished', {
+                detail: { winner: winner, status: resTag, pWhite: pWhite, pBlack: pBlack }
+            }));
+
             this.stats.fenList.push(finalFen);
             this.stats.gamesPlayed++;
             
@@ -219,9 +223,7 @@ class BotStressTest {
 
             console.log = _log; console.warn = _warn;
             const dureePartie = ((performance.now() - startPartie) / 1000).toFixed(2);
-            
-            // On ajoute les infos de bot White/Black dans le log
-            this.statusUpdate(`P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount} coups - ${dureePartie}s) ${resTag} | ${finalFen}`, type, resTag);
+            this.statusUpdate(`P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}c - ${dureePartie}s) ${resTag}`, type, resTag);
 
         } catch (e) {
             console.log = _log; console.warn = _warn;
@@ -234,11 +236,16 @@ class BotStressTest {
     async runBatch() {
         if (this.isRunning) return;
         
+        this.resetStats();
+        if (window.arenaAnalyst) window.arenaAnalyst.reset();
+
         const total = parseInt(document.getElementById('inputMaxGames')?.value || 50);
         const moves = parseInt(document.getElementById('inputMaxMoves')?.value || 100);
         const selW = document.getElementById('selectBotWhite')?.value || "L1";
         const selB = document.getElementById('selectBotBlack')?.value || "L1";
         const isRandom = document.getElementById('checkRandomColors')?.checked;
+
+        this.stats.config = { white: selW, black: selB, isRandom: isRandom };
 
         if (!document.getElementById('stress-test-style')) {
             document.head.insertAdjacentHTML('beforeend', `
@@ -250,17 +257,15 @@ class BotStressTest {
         this.isRunning = true; 
         if (this.btn) this.btn.disabled = true; 
         if (this.logEl) this.logEl.innerHTML = ''; 
-        this.resetStats();
-        this.stats.startTime = performance.now();
         
+        this.stats.startTime = performance.now();
         this.statusUpdate("🚀 DÉMARRAGE DU TEST...", "system");
-        this.statusUpdate(`⚙️ CONFIG : [${selW} vs ${selB}] | Random: ${isRandom ? 'OUI' : 'NON'}`, "gris");
+        this.statusUpdate(`⚙️ CONFIG : [BLANC:${selW}] vs [NOIR:${selB}] | Aléatoire: ${isRandom ? 'OUI' : 'NON'}`, "gris");
 
         for (let i = 1; i <= total; i++) {
             let pWhite = selW;
             let pBlack = selB;
 
-            // Inversion aléatoire si l'option est cochée
             if (isRandom && Math.random() > 0.5) {
                 pWhite = selB;
                 pBlack = selW;
@@ -271,9 +276,11 @@ class BotStressTest {
         }
 
         this.stats.totalDuration = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
-        this.statusUpdate(`🏁 SESSION TERMINÉE en ${this.stats.totalDuration}s`, "system");
+        this.statusUpdate(`🏁 SESSION TERMINÉE : [BLANC:${selW} vs NOIR:${selB}] en ${this.stats.totalDuration}s`, "system");
+        
         this.isRunning = false; 
         if (this.btn) this.btn.disabled = false;
+        
         if (window.GameStatusManager) window.GameStatusManager.consoleLog = true;
         await this.saveJsonToServer();
     }
