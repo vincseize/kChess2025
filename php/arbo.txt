@@ -84,20 +84,6 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
         📁 css
           📄 stress-test.css
         📁 img
-          📁 chesspiecesDES
-            📁 wikipedia
-              📄 bB.png
-              📄 bK.png
-              📄 bN.png
-              📄 bP.png
-              📄 bQ.png
-              📄 bR.png
-              📄 wB.png
-              📄 wK.png
-              📄 wN.png
-              📄 wP.png
-              📄 wQ.png
-              📄 wR.png
           📄 favicon.png
           📄 icon-192x192.png
           📄 icon-512x512.png
@@ -107,6 +93,8 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
         📄 log_error.php
         📁 results
           📄 stress_test-White_L1-vs-Black_L1-RANDOM.json
+          📄 stress_test-White_L1-vs-Black_L2-RANDOM.json
+          📄 stress_test-White_L1-vs-Black_L2.json
     📁 check
       📄 checkChess copy.js
       📄 checkChess.js
