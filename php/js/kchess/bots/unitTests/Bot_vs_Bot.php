@@ -87,11 +87,14 @@ if (empty($availableBots)) {
                 </div>
 
                 <div class="random-opt">
-                    <input type="checkbox" id="checkRandomColors">
-                    <label for="checkRandomColors"> Couleur aléatoire</label>
-                    
-                    <input type="checkbox" id="checkShowDraws" style="margin-left: 15px;">
-                    <label for="checkShowDraws"> Afficher nulles</label>
+                    <div>
+                        <input type="checkbox" id="checkRandomColors">
+                        <label for="checkRandomColors"> Aléatoire</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="checkShowDraws">
+                        <label for="checkShowDraws"> Afficher nulles</label>
+                    </div>
                 </div>
 
                 <div class="config-group">
@@ -155,15 +158,19 @@ if (empty($availableBots)) {
             <span class="dash-label">Nulles</span>
             <span id="dash-draws" class="dash-value win-d">0</span>
         </div>
+        <div class="dash-item">
+            <span class="dash-label">Pats</span>
+            <span id="dash-stalemates" class="dash-value" style="color: var(--accent-yellow);">0</span>
+        </div>
         <div class="dash-item dash-sep">
             <span class="dash-label">Total Coups</span>
             <span id="dash-moves" class="dash-value" style="color: #aff5b4;">0</span>
         </div>
         <div class="dash-item dash-sep">
             <span class="dash-label">Ratio (W / B)</span>
-            <span id="dash-pure-ratio" class="dash-value" style="color: var(--accent-yellow);">0% / 0%</span>
+            <span id="dash-pure-ratio" class="dash-value" style="color: var(--accent-blue);">0% / 0%</span>
         </div>
-        <div class="dash-item dash-sep" style="min-width: 300px;">
+        <div class="dash-item dash-sep" style="min-width: 280px;">
             <span class="dash-label">Win Ratio (W / D / B)</span>
             <div class="ratio-bar-wrapper">
                 <div id="badge-w" class="ratio-badge badge-white">0%</div>
@@ -191,6 +198,5 @@ if (empty($availableBots)) {
 
     <script src="js/ArenaAnalyst.js?v=<?php echo $version; ?>"></script>
     <script src="js/stress-test-bot.js?v=<?php echo $version; ?>"></script>
-
 </body>
 </html>

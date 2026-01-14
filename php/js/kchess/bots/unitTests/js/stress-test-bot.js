@@ -1,6 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.4.1 - Avec filtre UI pour les nulles
+ * Version : 7.5.0 - Gestion des Pats et Filtre UI
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -21,7 +21,7 @@ class BotStressTest {
             gamesPlayed: 0, 
             errors: 0, 
             checkmates: 0, 
-            stalemates: 0, 
+            stalemates: 0, // Compteur spécifique pour les Pats
             draws: 0, 
             fenList: [],
             startTime: null,
@@ -31,10 +31,12 @@ class BotStressTest {
         const errEl = document.getElementById('errors');
         const countEl = document.getElementById('count');
         const progressEl = document.getElementById('progress-bar');
+        const dashStalemate = document.getElementById('dash-stalemates');
 
         if (errEl) errEl.innerText = "0";
         if (countEl) countEl.innerText = "0";
         if (progressEl) progressEl.style.width = "0%";
+        if (dashStalemate) dashStalemate.innerText = "0";
     }
 
     init() {
@@ -54,16 +56,26 @@ class BotStressTest {
         const copyStatsBtn = document.getElementById('copyStatsBtn');
         if (copyStatsBtn) {
             copyStatsBtn.onclick = () => {
-                const stats = {
+                const statsData = {
                     white: document.getElementById('dash-win-w').innerText,
                     black: document.getElementById('dash-win-b').innerText,
                     draws: document.getElementById('dash-draws').innerText,
+                    stalemates: document.getElementById('dash-stalemates')?.innerText || "0",
                     moves: document.getElementById('dash-moves').innerText,
                     ratioGlobal: document.getElementById('dash-ratio')?.innerText || "0/0/0",
                     ratioPure: document.getElementById('dash-pure-ratio')?.innerText || "0/0",
                     total: document.getElementById('count').innerText
                 };
-                const text = `📊 ARENA STATS REPORT\n-----------------------\nParties : ${stats.total}\nBlancs  : ${stats.white} victoires\nNoirs   : ${stats.black} victoires\nNulles  : ${stats.draws}\nCoups   : ${stats.moves}\nRatio (W/D/B) : ${stats.ratioGlobal}\nRatio (W/B)   : ${stats.ratioPure} (Hors nulles)\n-----------------------\nGénéré le : ${new Date().toLocaleString()}`;
+                const text = `📊 ARENA STATS REPORT\n-----------------------\n` +
+                             `Parties   : ${statsData.total}\n` +
+                             `Blancs    : ${statsData.white} victoires\n` +
+                             `Noirs     : ${statsData.black} victoires\n` +
+                             `Nulles    : ${statsData.draws}\n` +
+                             `Pats      : ${statsData.stalemates}\n` +
+                             `Coups     : ${statsData.moves}\n` +
+                             `Ratio (W/D/B) : ${statsData.ratioGlobal}\n` +
+                             `Ratio (W/B)   : ${statsData.ratioPure} (Hors nulles)\n` +
+                             `-----------------------\nGénéré le : ${new Date().toLocaleString()}`;
                 this.copyToClipboard(text, copyStatsBtn);
             };
         }
@@ -88,9 +100,6 @@ class BotStressTest {
                 .catch(e => console.error("Erreur:", e));
             };
         }
-
-        document.getElementById('selectBotWhite')?.addEventListener('change', (e) => console.log(`[ARENA] Bot BLANC changé pour : ${e.target.value}`));
-        document.getElementById('selectBotBlack')?.addEventListener('change', (e) => console.log(`[ARENA] Bot NOIR changé pour : ${e.target.value}`));
     }
 
     async copyToClipboard(text, btn) {
@@ -108,10 +117,12 @@ class BotStressTest {
         const colors = { rouge: "#f85149", orange: "#d29922", blanc: "#ffffff", gris: "#8b949e", system: "#3fb950" };
         const time = `<span style="color:#8b949e">[${new Date().toLocaleTimeString()}]</span> `;
         let formattedMsg = msg;
+        
         if (resultLabel) {
             const labelColor = colors[type] || "#ffffff";
-            formattedMsg = msg.replace("FIN", `<span style="color:${labelColor}; font-weight:bold;">FIN</span>`);
+            formattedMsg = msg.replace(resultLabel, `<span style="color:${labelColor}; font-weight:bold;">${resultLabel}</span>`);
         }
+        
         div.style.color = colors[type] || "#ffffff";
         div.style.fontSize = "11px";
         div.style.padding = "2px 0";
@@ -216,37 +227,52 @@ class BotStressTest {
             const gs = game.gameState;
             if (gs.checkGameOver) gs.checkGameOver();
 
-            let winner = 'draw', resTag = "FIN nulle", type = "blanc";
+            let winner = 'draw', resTag = "FIN nulle", type = "blanc", isStalemate = false;
             const whiteMoves = this.getAvailableMoves(game, 'white');
             const blackMoves = this.getAvailableMoves(game, 'black');
             const whiteInCheck = game.moveValidator.isKingInCheck('white');
             const blackInCheck = game.moveValidator.isKingInCheck('black');
 
-            let isStalemate = false;
-
-            if (whiteInCheck && whiteMoves.length === 0) { winner = 'black'; resTag = "FIN mat"; type = "rouge"; }
-            else if (blackInCheck && blackMoves.length === 0) { winner = 'white'; resTag = "FIN mat"; type = "rouge"; this.stats.checkmates++; }
-            else if ((!whiteInCheck && whiteMoves.length === 0) || (!blackInCheck && blackMoves.length === 0)) { 
-                resTag = "FIN pat"; type = "orange"; this.stats.stalemates++; isStalemate = true;
+            // Analyse précise de la fin de partie
+            if (whiteInCheck && whiteMoves.length === 0) { 
+                winner = 'black'; resTag = "FIN mat"; type = "rouge"; 
+            } else if (blackInCheck && blackMoves.length === 0) { 
+                winner = 'white'; resTag = "FIN mat"; type = "rouge"; this.stats.checkmates++; 
+            } else if ((!whiteInCheck && whiteMoves.length === 0) || (!blackInCheck && blackMoves.length === 0)) { 
+                resTag = "FIN pat"; type = "orange"; 
+                this.stats.stalemates++; 
+                isStalemate = true;
+            } else if (coupsCount >= maxCoups) { 
+                resTag = "FIN limite"; type = "gris"; 
+                this.stats.draws++;
+            } else { 
+                this.stats.draws++; 
             }
-            else if (coupsCount >= maxCoups) { resTag = "FIN limite"; type = "gris"; }
-            else { this.stats.draws++; }
 
             const finalFen = FENGenerator.generateFEN ? FENGenerator.generateFEN(gs, game.board) : FENGenerator.generate(game.board, gs);
-            window.dispatchEvent(new CustomEvent('arena-game-finished', { detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount } }));
+            
+            // Dispatch vers ArenaAnalyst pour mise à jour dashboard temps réel
+            window.dispatchEvent(new CustomEvent('arena-game-finished', { 
+                detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount, isStalemate } 
+            }));
 
             this.stats.fenList.push(finalFen);
             this.stats.gamesPlayed++;
             
+            // UI Update
             if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
             if (document.getElementById('progress-bar')) document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
+            if (isStalemate && document.getElementById('dash-stalemates')) {
+                document.getElementById('dash-stalemates').innerText = this.stats.stalemates;
+            }
 
             console.log = _log; console.warn = _warn;
             
             // --- LOGIQUE D'AFFICHAGE FILTRÉE ---
             const showDraws = document.getElementById('checkShowDraws')?.checked;
-            // On affiche si : Ce n'est pas une nulle, OU si c'est un PAT, OU si la case "Afficher nulles" est cochée
-            const shouldLog = (winner !== 'draw') || isStalemate || showDraws;
+            // On affiche si : Ce n'est pas une nulle normale (W ou B gagne), OU si c'est un PAT, OU si "Afficher nulles" est coché
+            const isNormalDraw = (winner === 'draw' && !isStalemate);
+            const shouldLog = !isNormalDraw || showDraws;
 
             if (shouldLog) {
                 let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c) ${resTag} | FEN: ${finalFen}`;
@@ -258,6 +284,8 @@ class BotStressTest {
         } catch (e) {
             console.log = _log; console.warn = _warn;
             this.stats.errors++;
+            const errEl = document.getElementById('errors');
+            if (errEl) errEl.innerText = this.stats.errors;
             this.statusUpdate(`FIN CRASH P#${id} : ${e.message}`, "rouge", "FIN CRASH");
         }
     }
@@ -275,6 +303,7 @@ class BotStressTest {
 
         this.stats.config = { white: selW, black: selB, isRandom, maxCoups: moves };
 
+        // Patch CSS pour éviter les popups d'engine pendant le stress test
         if (!document.getElementById('stress-test-style')) {
             document.head.insertAdjacentHTML('beforeend', `<style id="stress-test-style">.promotion-modal, .promotion-overlay, .chess-notification { display: none !important; }</style>`);
         }
@@ -285,9 +314,10 @@ class BotStressTest {
         this.stats.startTime = performance.now();
         
         this.statusUpdate("DEMARRAGE DU TEST...", "system");
-        this.statusUpdate(`CONFIG : [BLANC:${selW}] vs [NOIRS:${selB}] | Aleatoire: ${isRandom ? 'OUI' : 'NON'} | Limite: ${moves} coups`, "gris");
+        this.statusUpdate(`CONFIG : [BLANC:${selW}] vs [NOIRS:${selB}] | Aléatoire: ${isRandom ? 'OUI' : 'NON'} | Limite: ${moves} coups`, "gris");
 
         for (let i = 1; i <= total; i++) {
+            if (!this.isRunning) break;
             let pW = selW, pB = selB;
             if (isRandom && Math.random() > 0.5) { pW = selB; pB = selW; }
             await this.simulateGame(i, moves, total, pW, pB);
@@ -295,7 +325,7 @@ class BotStressTest {
         }
 
         this.stats.totalDuration = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
-        this.statusUpdate(`SESSION TERMINEE : [BLANCS:${selW} vs NOIRS:${selB}] en ${this.stats.totalDuration}s`, "system");
+        this.statusUpdate(`SESSION TERMINEE : en ${this.stats.totalDuration}s`, "system");
         this.isRunning = false; 
         if (this.btn) this.btn.disabled = false;
         await this.saveJsonToServer();
