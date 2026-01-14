@@ -1,23 +1,10 @@
 /**
  * Level_2 - Stratégie CCMO optimisée
  * Check -> Capture -> Menace -> Optimisation
- * Version 1.4.0 - Intégration Diagnostic Fin de Partie
+ * Version 1.5.0 - Compatible Stress Test Turbo
  */
 class Level_2 {
-    static VERSION = '1.4.0';
-    static consoleLog = true;
-
-    static init() {
-        this.loadConfig();
-        if (this.consoleLog) console.log(`🤖 Level_2 v${this.VERSION} prêt (Stratégie CCMO)`);
-    }
-
-    static loadConfig() {
-        try {
-            const config = window.appConfig?.debug?.console_log ?? true;
-            this.consoleLog = String(config) !== "false";
-        } catch (e) { this.consoleLog = true; }
-    }
+    static VERSION = '1.5.0';
 
     constructor() {
         this.name = "Bot Level 2 (CCMO)";
@@ -25,129 +12,103 @@ class Level_2 {
         this.pieceValues = { 'pawn': 1, 'knight': 3, 'bishop': 3, 'rook': 5, 'queen': 9, 'king': 100 };
     }
 
-    async getMove(fen) {
-        const isDebug = this.constructor.consoleLog;
-        if (isDebug) console.group(`🎲 [Level_2] Analyse CCMO...`);
+    async getMove() {
+        const game = window.chessGame?.core || window.chessGame;
+        if (!game) return { error: 'engine_not_found' };
+
+        const currentPlayer = game.gameState.currentPlayer;
+        const oppColor = currentPlayer === 'white' ? 'black' : 'white';
         
-        try {
-            const game = window.chessGame?.core || window.chessGame;
-            const currentPlayer = game.gameState.currentPlayer;
-            const allMoves = this.getAllValidMoves(game);
-            
-            // --- GESTION FIN DE PARTIE ---
-            if (allMoves.length === 0) {
-                const status = this._analyzeGameOver(fen, currentPlayer, game.moveHistory);
-                if (isDebug) {
-                    console.warn(`⚠️ Fin de partie : ${status.reason}`);
-                    console.groupEnd();
-                }
-                return { error: 'game_over', reason: status.reason, details: status.details };
-            }
+        // 1. Récupérer tous les coups légaux
+        const allMoves = this._getAllLegalMoves(game, currentPlayer);
+        if (allMoves.length === 0) return { error: 'game_over' };
 
-            const oppColor = this._getOpponentColor(game);
+        // 2. Filtrer par catégories stratégiques
+        const captureMoves = allMoves.filter(m => m.isCapture);
+        const checkMoves = allMoves.filter(m => m.isCheck);
 
-            // Simulation d'un temps de réflexion
-            await new Promise(resolve => setTimeout(resolve, 600));
+        // --- STRATÉGIE 1 : CAPTURES RENTABLES ---
+        if (captureMoves.length > 0) {
+            // Trier par valeur de la pièce cible (décroissant)
+            captureMoves.sort((a, b) => this.pieceValues[b.targetPiece.type] - this.pieceValues[a.targetPiece.type]);
 
-            // 1. CAPTURES (Gain matériel)
-            const captureMoves = allMoves.filter(m => m.isCapture);
-            if (captureMoves.length > 0) {
-                captureMoves.sort((a, b) => this.pieceValues[b.targetPiece.type] - this.pieceValues[a.targetPiece.type]);
-                
-                const safeCaptures = captureMoves.filter(m => {
-                    const valAttacker = this.pieceValues[m.piece.type];
-                    const valTarget = this.pieceValues[m.targetPiece.type];
-                    const isAttacked = this.isSquareAttacked(game, m.toRow, m.toCol, oppColor);
-                    return !isAttacked || (valTarget >= valAttacker);
-                });
-
-                if (safeCaptures.length > 0) return this.finalizeMove(safeCaptures, 'CAPTURE');
-            }
-
-            // 2. CHECK (Échec au roi)
-            const checkMoves = allMoves.filter(m => m.isCheck);
-            const safeChecks = checkMoves.filter(m => !this.isSquareAttacked(game, m.toRow, m.toCol, oppColor));
-            if (safeChecks.length > 0) return this.finalizeMove(safeChecks, 'CHECK');
-
-            // 3. POSITIONNEMENT (Centre)
-            const centralMoves = allMoves.filter(m => {
-                const isSafe = !this.isSquareAttacked(game, m.toRow, m.toCol, oppColor);
-                const isCentral = m.toRow >= 2 && m.toRow <= 5 && m.toCol >= 2 && m.toCol <= 5;
-                return isSafe && isCentral;
+            // Ne prendre que si c'est "safe" ou si on gagne au change
+            const smartCaptures = captureMoves.filter(m => {
+                const isAttacked = this._isSquareAttacked(game, m.toRow, m.toCol, oppColor);
+                if (!isAttacked) return true; // Capture gratuite
+                // Échange favorable (ex: mon pion prend sa tour)
+                return this.pieceValues[m.targetPiece.type] >= this.pieceValues[m.piece.type];
             });
-            if (centralMoves.length > 0) return this.finalizeMove(centralMoves, 'POSITIONNEMENT');
 
-            // 4. DÉVELOPPEMENT (Coups sûrs)
-            const absoluteSafeMoves = allMoves.filter(m => !this.isSquareAttacked(game, m.toRow, m.toCol, oppColor));
-            return this.finalizeMove(absoluteSafeMoves.length > 0 ? absoluteSafeMoves : allMoves, 'DEVELOPPEMENT');
-
-        } catch (error) {
-            console.error("❌ Level_2 Error:", error);
-            return { error: 'critical_error' };
-        } finally {
-            if (isDebug) console.groupEnd();
+            if (smartCaptures.length > 0) return this._finalize(smartCaptures[0]);
         }
+
+        // --- STRATÉGIE 2 : ÉCHECS SÉCURISÉS ---
+        if (checkMoves.length > 0) {
+            const safeChecks = checkMoves.filter(m => !this._isSquareAttacked(game, m.toRow, m.toCol, oppColor));
+            if (safeChecks.length > 0) return this._finalize(safeChecks[Math.floor(Math.random() * safeChecks.length)]);
+        }
+
+        // --- STRATÉGIE 3 : POSITIONNEMENT CENTRAL & PROTECTION ---
+        const safeMoves = allMoves.filter(m => !this._isSquareAttacked(game, m.toRow, m.toCol, oppColor));
+        
+        if (safeMoves.length > 0) {
+            // Priorité au centre (lignes 2 à 5, colonnes 2 à 5)
+            const centralMoves = safeMoves.filter(m => m.toRow >= 2 && m.toRow <= 5 && m.toCol >= 2 && m.toCol <= 5);
+            if (centralMoves.length > 0) return this._finalize(centralMoves[Math.floor(Math.random() * centralMoves.length)]);
+            
+            return this._finalize(safeMoves[Math.floor(Math.random() * safeMoves.length)]);
+        }
+
+        // --- FALLBACK : Coup aléatoire si tout est dangereux ---
+        return this._finalize(allMoves[Math.floor(Math.random() * allMoves.length)]);
     }
 
-    /**
-     * Diagnostic de fin de partie identique au Level_1
-     */
-    _analyzeGameOver(fen, color, history) {
-        if (new ChessMateEngine(fen).isCheckmate(color)) {
-            return { reason: 'checkmate', details: color === 'w' ? 'black' : 'white' };
+    _finalize(move) {
+        // SÉCURITÉ PROMOTION
+        if (move.piece?.type === 'pawn' && (move.toRow === 0 || move.toRow === 7)) {
+            move.promotion = 'queen';
         }
-        if (new ChessPatEngine(fen).isStalemate(color)) {
-            return { reason: 'stalemate', details: null };
-        }
-        return { reason: 'draw', details: 'nulle' };
+        return move;
     }
 
-    getAllValidMoves(game) {
+    _getAllLegalMoves(game, color) {
         const moves = [];
-        const player = game.gameState.currentPlayer;
         const board = game.board;
+        const myColorKey = color.charAt(0).toLowerCase();
 
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
-                const piece = board.getPiece?.(r, c) || board.getSquare?.(r, c)?.piece;
-                
-                if (piece && piece.color === player) {
-                    const targets = game.moveValidator.getPossibleMoves(piece, r, c);
-                    
-                    targets.forEach(t => {
-                        const targetPiece = board.getPiece?.(t.row, t.col) || board.getSquare?.(t.row, t.col)?.piece;
-                        moves.push({
-                            fromRow: r, fromCol: c, toRow: t.row, toCol: t.col,
-                            piece: piece,
-                            targetPiece: targetPiece,
-                            isCapture: !!targetPiece && targetPiece.color !== player,
-                            isCheck: this.checkIfMoveGivesCheck(game, piece, r, c, t.row, t.col),
-                            notation: this._simpleNotation(r, c, t.row, t.col)
+                let piece = this._getPiece(board, r, c);
+                if (piece && piece.color.charAt(0).toLowerCase() === myColorKey) {
+                    let pieceMoves = game.moveValidator.getPossibleMoves(piece, r, c);
+                    if (pieceMoves) {
+                        pieceMoves.forEach(m => {
+                            let target = this._getPiece(board, m.row, m.col);
+                            moves.push({
+                                fromRow: r, fromCol: c,
+                                toRow: m.row, toCol: m.col,
+                                piece: piece,
+                                targetPiece: target,
+                                isCapture: !!target && target.color.charAt(0).toLowerCase() !== myColorKey,
+                                isCheck: this._checkIfMoveGivesCheck(game, piece, m.row, m.col, myColorKey),
+                                notation: this._simpleNotation(r, c, m.row, m.col)
+                            });
                         });
-                    });
+                    }
                 }
             }
         }
         return moves;
     }
 
-    // Vérifie si le coup met le roi adverse en échec
-    checkIfMoveGivesCheck(game, piece, fR, fC, tR, tC) {
-        const oppColor = this._getOpponentColor(game);
-        // On récupère les coups de la pièce à sa nouvelle position
-        const nextMoves = game.moveValidator.getPossibleMoves(piece, tR, tC);
-        return nextMoves.some(m => {
-            const p = game.board.getPiece?.(m.row, m.col) || game.board.getSquare?.(m.row, m.col)?.piece;
-            return p && p.type === 'king' && p.color === oppColor;
-        });
-    }
-
-    isSquareAttacked(game, row, col, byColor) {
+    _isSquareAttacked(game, row, col, byColor) {
         const board = game.board;
+        const colorKey = byColor.charAt(0).toLowerCase();
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
-                const p = board.getPiece?.(r, r) || board.getSquare?.(r, c)?.piece;
-                if (p && p.color === byColor) {
+                const p = this._getPiece(board, r, c);
+                if (p && p.color.charAt(0).toLowerCase() === colorKey) {
                     const moves = game.moveValidator.getPossibleMoves(p, r, c);
                     if (moves.some(m => m.row === row && m.col === col)) return true;
                 }
@@ -156,21 +117,25 @@ class Level_2 {
         return false;
     }
 
-    finalizeMove(moveList, strategy) {
-        const move = moveList[Math.floor(Math.random() * moveList.length)];
-        if (this.constructor.consoleLog) console.log(`🎯 [${strategy}] ${move.notation}`);
-        return move;
+    _checkIfMoveGivesCheck(game, piece, tR, tC, myColorKey) {
+        const oppColor = myColorKey === 'w' ? 'black' : 'white';
+        const nextMoves = game.moveValidator.getPossibleMoves(piece, tR, tC);
+        return nextMoves.some(m => {
+            const p = this._getPiece(game.board, m.row, m.col);
+            return p && p.type === 'king' && p.color.charAt(0).toLowerCase() !== myColorKey;
+        });
     }
 
-    _getOpponentColor(game) {
-        return game.gameState.currentPlayer === 'white' ? 'black' : 'white';
+    _getPiece(board, r, c) {
+        try {
+            let sq = board.getPiece ? board.getPiece(r, c) : (board.grid ? board.grid[r][c] : board[r][c]);
+            if (sq && sq.piece) return sq.piece;
+            return (sq && sq.type) ? sq : null;
+        } catch (e) { return null; }
     }
 
     _simpleNotation(fR, fC, tR, tC) {
-        const files = 'abcdefgh';
-        return `${files[fC]}${8 - fR} ➔ ${files[tC]}${8 - tR}`;
+        return `${'abcdefgh'[fC]}${8 - fR}➔${'abcdefgh'[tC]}${8 - tR}`;
     }
 }
-
-Level_2.init();
 window.Level_2 = Level_2;

@@ -1,138 +1,109 @@
 /**
  * Level_3 - Niveau Tactique Anti-Kamikaze
- * Version : 1.0.7 - Stable structure
+ * Version : 1.5.0 - Optimisé pour Stress Test
  */
 class Level_3 {
-    static VERSION = '1.0.7';
-    static consoleLog = true;
-
-    static init() {
-        this.loadConfig();
-        if (this.consoleLog) console.log(`%c🤖 Level_3 v${this.VERSION} prêt`, "color: #3498db; font-weight: bold;");
-    }
-
-    static loadConfig() {
-        try {
-            const config = window.appConfig?.debug?.console_log ?? true;
-            this.consoleLog = String(config) !== "false";
-        } catch (e) { this.consoleLog = true; }
-    }
+    static VERSION = '1.5.0';
 
     constructor() {
-        this.name = "Bot Level 3";
+        this.name = "Bot Level 3 (Tactique)";
         this.level = 3;
         this.pieceValues = { 'pawn': 1, 'knight': 3, 'bishop': 3, 'rook': 5, 'queen': 9, 'king': 100 };
     }
 
-    /**
-     * POINT D'ENTRÉE PRINCIPAL (Utilisé par chess-events / bot-manager)
-     */
-    async getMove(gameCore = null) {
-        const isDebug = Level_3.consoleLog;
-        if (isDebug) console.group(`🎲 [Level_3] Analyse Tactique...`);
+    async getMove() {
+        const game = window.chessGame?.core || window.chessGame;
+        if (!game) return { error: 'engine_not_found' };
 
-        try {
-            const game = gameCore || window.chessGame?.core || window.chessGame;
-            const player = game.gameState.currentPlayer;
-            
-            // Délai de réflexion
-            await new Promise(resolve => setTimeout(resolve, 600));
+        const currentPlayer = game.gameState.currentPlayer;
+        const oppColor = currentPlayer === 'white' ? 'black' : 'white';
+        
+        const allMoves = this._getAllLegalMoves(game, currentPlayer);
+        if (allMoves.length === 0) return { error: 'game_over' };
 
-            // 1. Récupération de TOUS les coups possibles
-            const allMoves = this._getAllValidMoves(game, player);
-            
-            if (allMoves.length === 0) {
-                if (isDebug) console.groupEnd();
-                return null; 
+        // 1. ANALYSE DES MENACES SUR MES PIÈCES
+        const myUnderAttack = allMoves.filter(m => this._isSquareAttacked(game, m.fromRow, m.fromCol, oppColor));
+
+        // 2. TRI TACTIQUE
+        const safeMoves = allMoves.filter(m => !this._isSquareAttacked(game, m.toRow, m.toCol, oppColor));
+        const safeCaptures = safeMoves.filter(m => m.isCapture);
+        
+        // --- LOGIQUE DE DÉCISION ---
+
+        // A. Si je peux capturer une pièce de valeur égale ou supérieure en toute sécurité
+        if (safeCaptures.length > 0) {
+            safeCaptures.sort((a, b) => this.pieceValues[b.targetPiece.type] - this.pieceValues[a.targetPiece.type]);
+            if (this.pieceValues[safeCaptures[0].targetPiece.type] >= this.pieceValues[safeCaptures[0].piece.type]) {
+                return this._finalize(safeCaptures[0]);
             }
-
-            // 2. TRI TACTIQUE (Séparation Sûr / Risqué)
-            const oppColor = player === 'white' ? 'black' : 'white';
-            const safeMoves = [];
-            const riskyMoves = [];
-
-            for (const move of allMoves) {
-                const isSafe = !this.isSquareAttacked(game, move.toRow, move.toCol, oppColor);
-                const isRiskyCapture = move.isCapture && !this._isCaptureSafe(game, move);
-
-                if (isSafe && !isRiskyCapture) {
-                    safeMoves.push(move);
-                } else {
-                    riskyMoves.push(move);
-                }
-            }
-
-            // 3. LOGIQUE DE SÉLECTION (Priorités)
-            let finalMove = null;
-
-            // Priorité A : Capture sûre (On gagne du matos sans risque)
-            const safeCaptures = safeMoves.filter(m => m.isCapture);
-            if (safeCaptures.length > 0) {
-                finalMove = safeCaptures[Math.floor(Math.random() * safeCaptures.length)];
-                if (isDebug) console.log(`%c🎯 Capture Sûre: ${finalMove.notation}`, "color: #2ecc71");
-            } 
-            // Priorité B : Coup positionnel sûr
-            else if (safeMoves.length > 0) {
-                finalMove = safeMoves[Math.floor(Math.random() * safeMoves.length)];
-                if (isDebug) console.log(`%c✅ Coup Sûr: ${finalMove.notation}`, "color: #3498db");
-            } 
-            // Priorité C : On évite au moins le suicide (Donner une grosse pièce pour rien)
-            else {
-                const nonSuicide = riskyMoves.filter(m => !this._isSuicideCapture(game, m));
-                finalMove = nonSuicide.length > 0 ? 
-                            nonSuicide[Math.floor(Math.random() * nonSuicide.length)] : 
-                            allMoves[0];
-                if (isDebug) console.warn(`%c⚠️ Mode Survie: ${finalMove.notation}`, "color: #f1c40f");
-            }
-
-            if (isDebug) {
-                console.error("🚀 EXECUTION L3 :", finalMove.notation);
-                console.groupEnd();
-            }
-
-            return this._addPromotion(finalMove);
-
-        } catch (error) {
-            console.error("❌ Level_3 Error:", error);
-            if (isDebug) console.groupEnd();
-            return null;
         }
+
+        // B. Si une de mes pièces est attaquée, j'essaie de la sauver (si le coup est sûr)
+        if (myUnderAttack.length > 0) {
+            const escapeMoves = myUnderAttack.filter(m => !this._isSquareAttacked(game, m.toRow, m.toCol, oppColor));
+            if (escapeMoves.length > 0) {
+                // On privilégie l'évasion qui capture ou qui va vers le centre
+                return this._finalize(escapeMoves[0]);
+            }
+        }
+
+        // C. Coup offensif (Check) s'il est sûr
+        const safeChecks = safeMoves.filter(m => this._checkIfMoveGivesCheck(game, m.piece, m.toRow, m.toCol, currentPlayer));
+        if (safeChecks.length > 0) return this._finalize(safeChecks[0]);
+
+        // D. Meilleur coup sûr disponible (priorité centre)
+        if (safeMoves.length > 0) {
+            const centralMoves = safeMoves.filter(m => m.toRow >= 2 && m.toRow <= 5 && m.toCol >= 2 && m.toCol <= 5);
+            return this._finalize(centralMoves.length > 0 ? centralMoves[0] : safeMoves[0]);
+        }
+
+        // E. Fallback : n'importe quel coup pour ne pas bloquer
+        return this._finalize(allMoves[Math.floor(Math.random() * allMoves.length)]);
     }
 
-    /**
-     * Méthodes utilitaires (Même structure que ton L2)
-     */
-    _getAllValidMoves(game, player) {
+    _finalize(move) {
+        if (move.piece?.type === 'pawn' && (move.toRow === 0 || move.toRow === 7)) {
+            move.promotion = 'queen';
+        }
+        return move;
+    }
+
+    _getAllLegalMoves(game, color) {
         const moves = [];
         const board = game.board;
+        const colorKey = color.charAt(0).toLowerCase();
 
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
-                const piece = board.getPiece?.(r, c) || (board.grid ? board.grid[r][c]?.piece : null);
-                if (piece && piece.color === player) {
-                    const targets = game.moveValidator.getPossibleMoves(piece, r, c);
-                    targets.forEach(t => {
-                        const targetPiece = board.getPiece?.(t.row, t.col) || (board.grid ? board.grid[t.row][t.col]?.piece : null);
-                        moves.push({
-                            fromRow: r, fromCol: c, toRow: t.row, toCol: t.col,
-                            piece: piece,
-                            isCapture: !!targetPiece,
-                            targetPiece: targetPiece,
-                            notation: this._simpleNotation(r, c, t.row, t.col)
+                let piece = this._getPiece(board, r, c);
+                if (piece && piece.color.charAt(0).toLowerCase() === colorKey) {
+                    let pieceMoves = game.moveValidator.getPossibleMoves(piece, r, c);
+                    if (pieceMoves) {
+                        pieceMoves.forEach(m => {
+                            let target = this._getPiece(board, m.row, m.col);
+                            moves.push({
+                                fromRow: r, fromCol: c,
+                                toRow: m.row, toCol: m.col,
+                                piece: piece,
+                                targetPiece: target,
+                                isCapture: !!target && target.color.charAt(0).toLowerCase() !== colorKey,
+                                notation: this._simpleNotation(r, c, m.row, m.col)
+                            });
                         });
-                    });
+                    }
                 }
             }
         }
         return moves;
     }
 
-    isSquareAttacked(game, row, col, byColor) {
+    _isSquareAttacked(game, row, col, byColor) {
         const board = game.board;
+        const colorKey = byColor.charAt(0).toLowerCase();
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
-                const p = board.getPiece?.(r, c) || (board.grid ? board.grid[r][c]?.piece : null);
-                if (p && p.color === byColor) {
+                const p = this._getPiece(board, r, c);
+                if (p && p.color.charAt(0).toLowerCase() === colorKey) {
                     const moves = game.moveValidator.getPossibleMoves(p, r, c);
                     if (moves.some(m => m.row === row && m.col === col)) return true;
                 }
@@ -141,24 +112,21 @@ class Level_3 {
         return false;
     }
 
-    _isCaptureSafe(game, move) {
-        const attackerVal = this.pieceValues[move.piece.type];
-        const targetVal = move.targetPiece ? this.pieceValues[move.targetPiece.type] : 0;
-        return targetVal >= attackerVal;
+    _checkIfMoveGivesCheck(game, piece, tR, tC, myColor) {
+        const myColorKey = myColor.charAt(0).toLowerCase();
+        const nextMoves = game.moveValidator.getPossibleMoves(piece, tR, tC);
+        return nextMoves.some(m => {
+            const p = this._getPiece(game.board, m.row, m.col);
+            return p && p.type === 'king' && p.color.charAt(0).toLowerCase() !== myColorKey;
+        });
     }
 
-    _isSuicideCapture(game, move) {
-        if (!move.isCapture) return false;
-        const attackerVal = this.pieceValues[move.piece.type];
-        const targetVal = move.targetPiece ? this.pieceValues[move.targetPiece.type] : 0;
-        return attackerVal > (targetVal * 2);
-    }
-
-    _addPromotion(move) {
-        if (move.piece?.type === 'pawn' && (move.toRow === 0 || move.toRow === 7)) {
-            move.promotion = 'queen';
-        }
-        return move;
+    _getPiece(board, r, c) {
+        try {
+            let sq = board.getPiece ? board.getPiece(r, c) : (board.grid ? board.grid[r][c] : board[r][c]);
+            if (sq && sq.piece) return sq.piece;
+            return (sq && sq.type) ? sq : null;
+        } catch (e) { return null; }
     }
 
     _simpleNotation(fR, fC, tR, tC) {
@@ -166,6 +134,4 @@ class Level_3 {
     }
 }
 
-// Initialisation identique au Level 2
-Level_3.init();
 window.Level_3 = Level_3;
