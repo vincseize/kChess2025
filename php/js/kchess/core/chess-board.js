@@ -3,7 +3,7 @@
  */
 class ChessBoard {
     
-    static consoleLog = true; 
+    static consoleLog = false; 
     static initialized = false;
 
     /**

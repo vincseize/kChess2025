@@ -54,31 +54,41 @@ window.BotStressTest = class BotStressTest {
     }
 
     async performMove(game, nMove) {
-        try {
-            const core = game.core || game;
-            
-            // Correction de la détection d'inversion : on regarde si les pions blancs sont en ligne 6
-            if (this.needsInversion === null) {
-                const pieceAt64 = game.board.getSquare(6, 4)?.piece;
-                this.needsInversion = (pieceAt64 && pieceAt64.color === 'black');
-            }
+    try {
+        const board = game.board; // Instance de ChessBoard
+        const gs = game.gameState;
 
-            let finalMove = { ...nMove };
-            if (this.needsInversion) {
-                finalMove.fR = 7 - nMove.fR;
-                finalMove.tR = 7 - nMove.tR;
-            }
+        // 1. Récupération des cases via ton ChessBoard.js
+        const fromSq = board.getSquare(nMove.fR, nMove.fC);
+        const toSq = board.getSquare(nMove.tR, nMove.tC);
 
-            // --- SIMULATION UI ---
-            core.handleSquareClick(finalMove.fR, finalMove.fC, true);
-            await new Promise(r => setTimeout(r, 80)); // Temps pour le moteur de valider
-            core.handleSquareClick(finalMove.tR, finalMove.tC, true);
+        if (!fromSq || !fromSq.piece) return false;
 
-            return true;
-        } catch (e) {
-            return false;
+        const piece = fromSq.piece;
+
+        // 2. Mise à jour visuelle et mémoire (Méthodes de ton ChessBoard)
+        fromSq.element.innerHTML = ''; // Vide le HTML de départ
+        fromSq.piece = null;           // Vide la mémoire de départ
+
+        toSq.element.innerHTML = '';   // Nettoie l'arrivée (capture)
+        board.placePiece(piece, toSq); // Utilise TA méthode pour dessiner la pièce
+
+        // 3. Gestion Promotion (Simple)
+        if (piece.type === 'pawn' && (nMove.tR === 0 || nMove.tR === 7)) {
+            toSq.element.innerHTML = '';
+            board.placePiece({ type: 'queen', color: piece.color }, toSq);
         }
+
+        // 4. Switch Player (Moteur)
+        if (gs.switchPlayer) gs.switchPlayer();
+        else gs.currentPlayer = (gs.currentPlayer === 'white' ? 'black' : 'white');
+
+        return true;
+    } catch (e) {
+        console.error("Erreur performMove:", e);
+        return false;
     }
+}
 
 async simulateSingleGame(id, maxMoves) {
         const startTime = performance.now();

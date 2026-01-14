@@ -57,7 +57,6 @@ if (empty($availableBots)) {
         .progress-container { margin-top: 10px; height: 4px; background: #21262d; border-radius: 2px; }
         #progress-bar { width: 0%; height: 100%; background: #238636; transition: width 0.3s; }
 
-        /* --- NOUVEAU LAYOUT DES BOUTONS --- */
         .actions-container { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
         .actions-row { display: flex; gap: 5px; }
         .btn-secondary { 
@@ -86,8 +85,10 @@ if (empty($availableBots)) {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: #161b22; border-top: 1px solid #30363d;
             padding: 12px 20px; display: grid;
-            grid-template-columns: repeat(5, 1fr); gap: 15px;
+            /* Passage à 6 colonnes pour inclure le ratio pur */
+            grid-template-columns: repeat(4, 1fr) 1.2fr 1.8fr; gap: 15px;
             z-index: 100; box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
+            align-items: center;
         }
         .dash-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .dash-label { font-size: 10px; color: #8b949e; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; text-align: center; }
@@ -219,16 +220,28 @@ if (empty($availableBots)) {
             <span id="dash-moves" class="dash-value" style="color: #aff5b4;">0</span>
         </div>
 
+        <div class="dash-item" style="border-left: 1px solid #30363d">
+            <span class="dash-label">Ratio (W / B)</span>
+            <span id="dash-pure-ratio" class="dash-value" style="color: #d29922;">0% / 0%</span>
+        </div>
+
 <div class="dash-item" style="border-left: 1px solid #30363d; min-width: 280px;">
     <span class="dash-label">Win Ratio (W / D / B)</span>
     <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
         
         <div id="badge-w" style="width: 55px; height: 26px; background: #ffffff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; border-radius: 4px; flex-shrink: 0; border: 2px solid #30363d;">0%</div>
 
-        <div id="dash-ratio-container" style="flex-grow: 1; height: 18px; display: flex; border-radius: 3px; overflow: hidden; border: 1px solid #30363d; background: #0d1117;">
-            <div id="ratio-w" style="background: #ffffff; width: 33.3%; transition: width 0.5s ease; opacity: 0.15;"></div>
-            <div id="ratio-d" style="background: #444c56; width: 33.4%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; color: #d29922; font-size: 11px; font-weight: bold;">0%</div>
-            <div id="ratio-b" style="background: #58a6ff; width: 33.3%; transition: width 0.5s ease; opacity: 0.15;"></div>
+        <div id="dash-ratio-container" style="flex-grow: 1; height: 20px; display: flex; border-radius: 4px; overflow: hidden; border: 1px solid #30363d; background: #0d1117; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
+            
+            <div id="ratio-w" style="background: #ffffff; width: 33.3%; transition: width 0.5s ease; box-shadow: inset -2px 0 5px rgba(0,0,0,0.2);"></div>
+            
+            <div id="ratio-d" style="background: #343942; width: 33.4%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: space-between; padding: 0 6px; color: #d29922; font-size: 10px; font-weight: 800; position: relative;">
+                <span style="opacity: 0.5; color: #ffffff; font-size: 9px;"></span>
+                <span id="ratio-d-text">0%</span>
+                <span style="opacity: 0.5; color: #58a6ff; font-size: 9px;"></span>
+            </div>
+            
+            <div id="ratio-b" style="background: #58a6ff; width: 33.3%; transition: width 0.5s ease; box-shadow: inset 2px 0 5px rgba(0,0,0,0.2);"></div>
         </div>
 
         <div style="width: 55px; height: 26px; background: #ffffff; display: flex; align-items: center; justify-content: center; border-radius: 4px; border: 2px solid #30363d; flex-shrink: 0; box-sizing: border-box;">
@@ -237,6 +250,7 @@ if (empty($availableBots)) {
     </div>
     <span id="dash-ratio" style="display:none;">0% / 0% / 0%</span>
 </div>
+
 
     </div>
 
@@ -256,6 +270,13 @@ if (empty($availableBots)) {
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // --- LOG SELECTION CHANGE ---
+        const handleBotChange = (e, side) => {
+            console.log(`[ARENA] Bot ${side} changé pour : ${e.target.value}`);
+        };
+        document.getElementById('selectBotWhite').addEventListener('change', (e) => handleBotChange(e, 'BLANC'));
+        document.getElementById('selectBotBlack').addEventListener('change', (e) => handleBotChange(e, 'NOIR'));
+
         // --- CLEAR SERVER LOGIC ---
         const clearBtn = document.getElementById('clearJsonBtn');
         if (clearBtn) {
@@ -287,7 +308,8 @@ if (empty($availableBots)) {
                     black: document.getElementById('dash-win-b').innerText,
                     draws: document.getElementById('dash-draws').innerText,
                     moves: document.getElementById('dash-moves').innerText,
-                    ratio: document.getElementById('dash-ratio').innerText,
+                    ratioGlobal: document.getElementById('dash-ratio').innerText,
+                    ratioPure: document.getElementById('dash-pure-ratio').innerText,
                     total: document.getElementById('count').innerText
                 };
 
@@ -298,7 +320,8 @@ Blancs  : ${stats.white} victoires
 Noirs   : ${stats.black} victoires
 Nulles  : ${stats.draws}
 Coups   : ${stats.moves}
-Ratio   : ${stats.ratio}
+Ratio (W/D/B) : ${stats.ratioGlobal}
+Ratio (W/B)   : ${stats.ratioPure} (Hors nulles)
 -----------------------
 Généré le : ${new Date().toLocaleString()}`;
 

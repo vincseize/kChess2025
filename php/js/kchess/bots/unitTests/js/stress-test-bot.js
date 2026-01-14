@@ -275,13 +275,13 @@ async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
             const dureePartie = ((performance.now() - startPartie) / 1000).toFixed(2);
             
             // --- CONSTRUCTION DU MESSAGE DE LOG ---
-            // Format : P#1 [W:L1 vs B:L3] (88/100c - 0.12s) FIN mat | FEN: ... - Gagnant: NOIR
+            // Format : P#1 [W:L1 vs B:L3] (88/100c - 0.12s) FIN mat | FEN: ... - Gagnant: NOIRS
             let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c - ${dureePartie}s) ${resTag} | FEN: ${finalFen}`;
             
             if (winner === 'white') {
-                logMsg += ` - Gagnant: BLANC`;
+                logMsg += ` - Gagnant: BLANCS`;
             } else if (winner === 'black') {
-                logMsg += ` - Gagnant: NOIR`;
+                logMsg += ` - Gagnant: NOIRS`;
             }
 
             this.statusUpdate(logMsg, type, resTag);
@@ -333,7 +333,7 @@ async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
         
         // Messages de statut sobres (sans émojis)
         this.statusUpdate("DEMARRAGE DU TEST...", "system");
-        this.statusUpdate(`CONFIG : [BLANC:${selW}] vs [NOIR:${selB}] | Aleatoire: ${isRandom ? 'OUI' : 'NON'} | Limite: ${moves} coups`, "gris");
+        this.statusUpdate(`CONFIG : [BLANC:${selW}] vs [NOIRS:${selB}] | Aleatoire: ${isRandom ? 'OUI' : 'NON'} | Limite: ${moves} coups`, "gris");
 
         // Boucle principale des parties
         for (let i = 1; i <= total; i++) {
@@ -357,7 +357,7 @@ async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
         this.stats.totalDuration = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
         
         // Message de fin
-        this.statusUpdate(`SESSION TERMINEE : [BLANC:${selW} vs NOIR:${selB}] en ${this.stats.totalDuration}s`, "system");
+        this.statusUpdate(`SESSION TERMINEE : [BLANCS:${selW} vs NOIRS:${selB}] en ${this.stats.totalDuration}s`, "system");
         
         this.isRunning = false; 
         if (this.btn) this.btn.disabled = false;
