@@ -89,6 +89,9 @@ if (empty($availableBots)) {
                 <div class="random-opt">
                     <input type="checkbox" id="checkRandomColors">
                     <label for="checkRandomColors"> Couleur aléatoire</label>
+                    
+                    <input type="checkbox" id="checkShowDraws" style="margin-left: 15px;">
+                    <label for="checkShowDraws"> Afficher nulles</label>
                 </div>
 
                 <div class="config-group">
@@ -128,16 +131,14 @@ if (empty($availableBots)) {
 
             <button id="startBtn" class="btn-test">START ARENA TEST</button>
 
-<div class="actions-container">
-    <div class="actions-row-full">
-        <button id="copyLogBtn" class="btn-secondary">LOGS</button>
-        <button id="copyFenBtn" class="btn-secondary">FENS</button>
-        <button id="copyStatsBtn" class="btn-secondary">STATS</button>
-    </div>
-    <button id="clearJsonBtn" class="btn-secondary btn-danger">CLEAR SERVER STORAGE</button>
-</div>
-            
-
+            <div class="actions-container">
+                <div class="actions-row-full">
+                    <button id="copyLogBtn" class="btn-secondary">LOGS</button>
+                    <button id="copyFenBtn" class="btn-secondary">FENS</button>
+                    <button id="copyStatsBtn" class="btn-secondary">STATS</button>
+                </div>
+                <button id="clearJsonBtn" class="btn-secondary btn-danger">CLEAR SERVER STORAGE</button>
+            </div>
         </div>
     </div>
 
@@ -191,6 +192,5 @@ if (empty($availableBots)) {
     <script src="js/ArenaAnalyst.js?v=<?php echo $version; ?>"></script>
     <script src="js/stress-test-bot.js?v=<?php echo $version; ?>"></script>
 
-    
 </body>
 </html>

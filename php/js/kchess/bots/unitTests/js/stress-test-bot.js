@@ -1,6 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.4.0 - Centralisée (Moteur + UI Logic)
+ * Version : 7.4.1 - Avec filtre UI pour les nulles
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -40,7 +40,6 @@ class BotStressTest {
     init() {
         if (this.btn) this.btn.onclick = () => this.runBatch();
         
-        // --- LOGS ACTIONS ---
         const copyLogBtn = document.getElementById('copyLogBtn');
         if (copyLogBtn) copyLogBtn.onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
         
@@ -52,7 +51,6 @@ class BotStressTest {
             };
         }
 
-        // --- STATS COPY ---
         const copyStatsBtn = document.getElementById('copyStatsBtn');
         if (copyStatsBtn) {
             copyStatsBtn.onclick = () => {
@@ -70,7 +68,6 @@ class BotStressTest {
             };
         }
 
-        // --- SERVER STORAGE CLEANER ---
         const clearBtn = document.getElementById('clearJsonBtn');
         if (clearBtn) {
             clearBtn.onclick = () => {
@@ -92,7 +89,6 @@ class BotStressTest {
             };
         }
 
-        // --- UI CHANGE LOGS ---
         document.getElementById('selectBotWhite')?.addEventListener('change', (e) => console.log(`[ARENA] Bot BLANC changé pour : ${e.target.value}`));
         document.getElementById('selectBotBlack')?.addEventListener('change', (e) => console.log(`[ARENA] Bot NOIR changé pour : ${e.target.value}`));
     }
@@ -185,7 +181,6 @@ class BotStressTest {
     }
 
     async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
-        const startPartie = performance.now();
         const _log = console.log; const _warn = console.warn;
         console.log = console.warn = () => {}; 
 
@@ -227,9 +222,13 @@ class BotStressTest {
             const whiteInCheck = game.moveValidator.isKingInCheck('white');
             const blackInCheck = game.moveValidator.isKingInCheck('black');
 
+            let isStalemate = false;
+
             if (whiteInCheck && whiteMoves.length === 0) { winner = 'black'; resTag = "FIN mat"; type = "rouge"; }
             else if (blackInCheck && blackMoves.length === 0) { winner = 'white'; resTag = "FIN mat"; type = "rouge"; this.stats.checkmates++; }
-            else if ((!whiteInCheck && whiteMoves.length === 0) || (!blackInCheck && blackMoves.length === 0)) { resTag = "FIN pat"; type = "orange"; this.stats.stalemates++; }
+            else if ((!whiteInCheck && whiteMoves.length === 0) || (!blackInCheck && blackMoves.length === 0)) { 
+                resTag = "FIN pat"; type = "orange"; this.stats.stalemates++; isStalemate = true;
+            }
             else if (coupsCount >= maxCoups) { resTag = "FIN limite"; type = "gris"; }
             else { this.stats.draws++; }
 
@@ -238,14 +237,23 @@ class BotStressTest {
 
             this.stats.fenList.push(finalFen);
             this.stats.gamesPlayed++;
+            
             if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
             if (document.getElementById('progress-bar')) document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
 
             console.log = _log; console.warn = _warn;
-            let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c) ${resTag} | FEN: ${finalFen}`;
-            if (winner === 'white') logMsg += ` - Gagnant: BLANCS`;
-            else if (winner === 'black') logMsg += ` - Gagnant: NOIRS`;
-            this.statusUpdate(logMsg, type, resTag);
+            
+            // --- LOGIQUE D'AFFICHAGE FILTRÉE ---
+            const showDraws = document.getElementById('checkShowDraws')?.checked;
+            // On affiche si : Ce n'est pas une nulle, OU si c'est un PAT, OU si la case "Afficher nulles" est cochée
+            const shouldLog = (winner !== 'draw') || isStalemate || showDraws;
+
+            if (shouldLog) {
+                let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c) ${resTag} | FEN: ${finalFen}`;
+                if (winner === 'white') logMsg += ` - Gagnant: BLANCS`;
+                else if (winner === 'black') logMsg += ` - Gagnant: NOIRS`;
+                this.statusUpdate(logMsg, type, resTag);
+            }
 
         } catch (e) {
             console.log = _log; console.warn = _warn;
