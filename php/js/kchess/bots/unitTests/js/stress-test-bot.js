@@ -162,137 +162,118 @@ class BotStressTest {
     }
 
 async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
-        const startPartie = performance.now();
-        const _log = console.log; 
-        const _warn = console.warn;
-        
-        // Silence local de la console pour les performances
-        console.log = console.warn = () => {}; 
+    const startPartie = performance.now();
+    const _log = console.log; 
+    const _warn = console.warn;
+    
+    // Silence local de la console
+    console.log = console.warn = () => {}; 
 
-        const game = new ChessGame();
-        game.gameState.gameActive = true;
-        let coupsCount = 0;
+    const game = new ChessGame();
+    game.gameState.gameActive = true;
+    let coupsCount = 0;
 
-        if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
+    // --- INITIALISATION DYNAMIQUE DES BOTS ---
+    const whiteAI = window[`Level_${pWhite.replace('L','')}`] ? new window[`Level_${pWhite.replace('L','')}`]() : null;
+    const blackAI = window[`Level_${pBlack.replace('L','')}`] ? new window[`Level_${pBlack.replace('L','')}`]() : null;
 
-        try {
-            // Boucle de jeu principale
-            while (coupsCount < maxCoups && game.gameState.gameActive) {
-                const color = game.gameState.currentPlayer;
+    if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
+
+    try {
+        while (coupsCount < maxCoups && game.gameState.gameActive) {
+            const color = game.gameState.currentPlayer;
+            const currentAI = (color === 'white' || color === 'w') ? whiteAI : blackAI;
+            
+            let move = null;
+
+            // 1. Appel à l'intelligence du Bot
+            if (currentAI && typeof currentAI.getMove === 'function') {
+                window.chessGame = game; // Injection pour que le bot voie le plateau
+                move = await currentAI.getMove();
+            } 
+
+            // 2. Sécurité : Si le bot ne répond pas ou erreur, on prend un coup légal au hasard
+            if (!move || move.error || move.fromRow === undefined) {
                 const moves = this.getAvailableMoves(game, color);
-                
                 if (moves.length === 0) break;
-                
-                const move = moves[Math.floor(Math.random() * moves.length)];
-                const success = await this.executeMove(game, move, color);
-                
-                if (success) {
-                    coupsCount++;
-                    this.stats.totalMoves++;
-                } else {
-                    break;
-                }
+                move = moves[Math.floor(Math.random() * moves.length)];
             }
-
-            // Forcer la vérification de fin de partie par le moteur
-            const gs = game.gameState;
-            if (gs.checkGameOver) gs.checkGameOver();
-
-            // Génération du FEN final
-            const finalFen = (FENGenerator.generate) ? 
-                FENGenerator.generate(game.board, gs) : 
-                FENGenerator.generateFEN(gs, game.board);
-
-            // Analyse de l'état final
-            const currentPossibleMoves = this.getAvailableMoves(game, gs.currentPlayer);
-            const kingInCheck = game.moveValidator.isKingInCheck(gs.currentPlayer);
-
-            let engineDraw = { isDraw: false, reason: "" };
-            if (window.ChessNulleEngine) {
-                const nulleChecker = new ChessNulleEngine(finalFen);
-                const halfMoves = finalFen.split(' ')[4] || 0;
-                engineDraw = nulleChecker.isDraw(halfMoves);
-            }
-
-            let type = "blanc", resTag = "FIN nulle", winner = null;
-
-            // --- LOGIQUE DE DÉTERMINATION DU VAINQUEUR ---
-            if (gs.isCheckmate || (currentPossibleMoves.length === 0 && kingInCheck)) { 
-                resTag = "FIN mat"; 
-                type = "rouge"; 
-                this.stats.checkmates++; 
-                
-                // Vérification directe pour éviter les erreurs d'inversion
-                const whiteKingInCheck = game.moveValidator.isKingInCheck('w');
-                const blackKingInCheck = game.moveValidator.isKingInCheck('b');
-
-                if (whiteKingInCheck) {
-                    winner = 'black'; // Le blanc est mat, noir gagne
-                } else if (blackKingInCheck) {
-                    winner = 'white'; // Le noir est mat, blanc gagne
-                } else {
-                    // Sécurité : si l'état est flou, on utilise le tour
-                    winner = (gs.currentPlayer === 'w') ? 'black' : 'white';
-                }
-
-            } else if (gs.isStalemate || (currentPossibleMoves.length === 0 && !kingInCheck)) { 
-                resTag = "FIN pat"; 
-                type = "orange"; 
-                this.stats.stalemates++; 
-                winner = 'draw';
-            } else if (engineDraw.isDraw) {
-                resTag = `FIN nulle (${engineDraw.reason})`;
-                type = "blanc"; 
-                this.stats.draws++;
-                winner = 'draw';
-            } else if (coupsCount >= maxCoups) {
-                resTag = "FIN en cours"; 
-                type = "gris"; 
-                winner = 'ongoing';
+            
+            // 3. Exécution physique du coup
+            const success = await this.executeMove(game, move, color);
+            
+            if (success) {
+                coupsCount++;
+                this.stats.totalMoves++;
             } else {
-                resTag = "FIN nulle (technique)"; 
-                type = "blanc"; 
-                this.stats.draws++;
-                winner = 'draw';
+                break;
             }
-
-            // Envoi de l'événement à l'analyste ArenaAnalyst
-            window.dispatchEvent(new CustomEvent('arena-game-finished', {
-                detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount }
-            }));
-
-            // Mise à jour des statistiques de session
-            this.stats.fenList.push(finalFen);
-            this.stats.gamesPlayed++;
-            
-            if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
-            if (document.getElementById('progress-bar')) {
-                document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
-            }
-
-            // Restauration des logs console
-            console.log = _log; console.warn = _warn;
-            const dureePartie = ((performance.now() - startPartie) / 1000).toFixed(2);
-            
-            // --- CONSTRUCTION DU MESSAGE DE LOG ---
-            // Format : P#1 [W:L1 vs B:L3] (88/100c - 0.12s) FIN mat | FEN: ... - Gagnant: NOIRS
-            let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c - ${dureePartie}s) ${resTag} | FEN: ${finalFen}`;
-            
-            if (winner === 'white') {
-                logMsg += ` - Gagnant: BLANCS`;
-            } else if (winner === 'black') {
-                logMsg += ` - Gagnant: NOIRS`;
-            }
-
-            this.statusUpdate(logMsg, type, resTag);
-
-        } catch (e) {
-            console.log = _log; console.warn = _warn;
-            this.stats.errors++;
-            if (document.getElementById('errors')) document.getElementById('errors').innerText = this.stats.errors;
-            this.statusUpdate(`FIN CRASH P#${id}`, "rouge", "FIN CRASH");
         }
+
+        // --- ANALYSE DE FIN DE PARTIE (CORRIGÉE) ---
+        const gs = game.gameState;
+        if (gs.checkGameOver) gs.checkGameOver();
+
+        let winner = 'draw';
+        let resTag = "FIN nulle";
+        let type = "blanc";
+
+        // Vérification stricte du MAT pour éviter l'inversion
+        const whiteMoves = this.getAvailableMoves(game, 'white');
+        const blackMoves = this.getAvailableMoves(game, 'black');
+        const whiteInCheck = game.moveValidator.isKingInCheck('white');
+        const blackInCheck = game.moveValidator.isKingInCheck('black');
+
+        if (whiteInCheck && whiteMoves.length === 0) {
+            winner = 'black';
+            resTag = "FIN mat";
+            type = "rouge";
+        } else if (blackInCheck && blackMoves.length === 0) {
+            winner = 'white';
+            resTag = "FIN mat";
+            type = "rouge";
+            this.stats.checkmates++; // On compte les victoires (ici pour les blancs)
+        } else if (!whiteInCheck && whiteMoves.length === 0 || !blackInCheck && blackMoves.length === 0) {
+            resTag = "FIN pat";
+            type = "orange";
+            this.stats.stalemates++;
+        } else if (coupsCount >= maxCoups) {
+            resTag = "FIN limite";
+            type = "gris";
+        } else {
+            this.stats.draws++;
+        }
+
+        // --- GÉNÉRATION DU RAPPORT ---
+        const finalFen = FENGenerator.generateFEN ? FENGenerator.generateFEN(gs, game.board) : FENGenerator.generate(game.board, gs);
+
+        window.dispatchEvent(new CustomEvent('arena-game-finished', {
+            detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount }
+        }));
+
+        this.stats.fenList.push(finalFen);
+        this.stats.gamesPlayed++;
+        
+        if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
+        if (document.getElementById('progress-bar')) {
+            document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
+        }
+
+        console.log = _log; console.warn = _warn;
+        const dureePartie = ((performance.now() - startPartie) / 1000).toFixed(2);
+        
+        let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c) ${resTag} | FEN: ${finalFen}`;
+        if (winner === 'white') logMsg += ` - Gagnant: BLANCS`;
+        else if (winner === 'black') logMsg += ` - Gagnant: NOIRS`;
+
+        this.statusUpdate(logMsg, type, resTag);
+
+    } catch (e) {
+        console.log = _log; console.warn = _warn;
+        this.stats.errors++;
+        this.statusUpdate(`FIN CRASH P#${id} : ${e.message}`, "rouge", "FIN CRASH");
     }
+}
     
     async runBatch() {
         if (this.isRunning) return;
