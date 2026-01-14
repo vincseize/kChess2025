@@ -218,10 +218,26 @@ if (empty($availableBots)) {
             <span class="dash-label">Total Coups</span>
             <span id="dash-moves" class="dash-value" style="color: #aff5b4;">0</span>
         </div>
-        <div class="dash-item" style="border-left: 1px solid #30363d">
-            <span class="dash-label">Win Ratio (W/B)</span>
-            <span id="dash-ratio" class="dash-value" style="color: #d29922;">0.00</span>
+
+<div class="dash-item" style="border-left: 1px solid #30363d; min-width: 280px;">
+    <span class="dash-label">Win Ratio (W / D / B)</span>
+    <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+        
+        <div id="badge-w" style="width: 55px; height: 26px; background: #ffffff; color: #000; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; border-radius: 4px; flex-shrink: 0; border: 2px solid #30363d;">0%</div>
+
+        <div id="dash-ratio-container" style="flex-grow: 1; height: 18px; display: flex; border-radius: 3px; overflow: hidden; border: 1px solid #30363d; background: #0d1117;">
+            <div id="ratio-w" style="background: #ffffff; width: 33.3%; transition: width 0.5s ease; opacity: 0.15;"></div>
+            <div id="ratio-d" style="background: #444c56; width: 33.4%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; color: #d29922; font-size: 11px; font-weight: bold;">0%</div>
+            <div id="ratio-b" style="background: #58a6ff; width: 33.3%; transition: width 0.5s ease; opacity: 0.15;"></div>
         </div>
+
+        <div style="width: 55px; height: 26px; background: #ffffff; display: flex; align-items: center; justify-content: center; border-radius: 4px; border: 2px solid #30363d; flex-shrink: 0; box-sizing: border-box;">
+            <div id="badge-b" style="width: 100%; height: 100%; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; border-radius: 1px;">0%</div>
+        </div>
+    </div>
+    <span id="dash-ratio" style="display:none;">0% / 0% / 0%</span>
+</div>
+
     </div>
 
     <?php 

@@ -59,28 +59,42 @@ class ArenaAnalyst {
         }
     }
 
-    updateUI() {
-        const elW = document.getElementById('dash-win-w');
-        const elB = document.getElementById('dash-win-b');
-        const elD = document.getElementById('dash-draws');
-        const elM = document.getElementById('dash-moves');
-        const elR = document.getElementById('dash-ratio');
+updateUI() {
+    // Éléments des compteurs classiques
+    if (document.getElementById('dash-win-w')) document.getElementById('dash-win-w').innerText = this.counters.white;
+    if (document.getElementById('dash-win-b')) document.getElementById('dash-win-b').innerText = this.counters.black;
+    if (document.getElementById('dash-draws')) document.getElementById('dash-draws').innerText = this.counters.draws;
+    if (document.getElementById('dash-moves')) document.getElementById('dash-moves').innerText = this.counters.totalMoves.toLocaleString();
+    
+    const totalGames = this.counters.white + this.counters.black + this.counters.draws;
 
-        if (elW) elW.innerText = this.counters.white;
-        if (elB) elB.innerText = this.counters.black;
-        if (elD) elD.innerText = this.counters.draws;
-        if (elM) elM.innerText = this.counters.totalMoves.toLocaleString();
-        
-        if (elR) {
-            let totalWins = this.counters.white + this.counters.black;
-            if (this.counters.black === 0) {
-                elR.innerText = this.counters.white > 0 ? "100% W" : "0.00";
-            } else {
-                let ratio = (this.counters.white / this.counters.black);
-                elR.innerText = parseFloat(ratio).toFixed(2);
-            }
+    if (totalGames > 0) {
+        const pW = ((this.counters.white / totalGames) * 100).toFixed(1);
+        const pD = ((this.counters.draws / totalGames) * 100).toFixed(1);
+        const pB = ((this.counters.black / totalGames) * 100).toFixed(1);
+
+        // Mise à jour des badges externes
+        const bW = document.getElementById('badge-w');
+        const bB = document.getElementById('badge-b');
+        if (bW) bW.innerText = pW + "%";
+        if (bB) bB.innerText = pB + "%";
+
+        // Mise à jour de la barre centrale animée
+        const sW = document.getElementById('ratio-w');
+        const sD = document.getElementById('ratio-d');
+        const sB = document.getElementById('ratio-b');
+
+        if (sW) sW.style.width = pW + "%";
+        if (sB) sB.style.width = pB + "%";
+        if (sD) {
+            sD.style.width = pD + "%";
+            sD.innerText = pD + "%"; // Pourcentage des nulles en jaune orangé
         }
+
+        const elR = document.getElementById('dash-ratio');
+        if (elR) elR.innerText = `${pW}% / ${pD}% / ${pB}%`;
     }
+}
 
     async syncWithServer() {
         try {
