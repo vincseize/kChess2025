@@ -1,7 +1,7 @@
 // ui/chess-game-ui-move-history.js - Gestion de l'historique des coups
 class ChessMoveHistoryManager {
     
-    static consoleLog = true; // Valeur par défaut - sera écrasée par la config JSON
+    static consoleLog = false; // Valeur par défaut - sera écrasée par la config JSON
     
     static init() {
         // Charger la configuration depuis window.appConfig

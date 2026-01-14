@@ -1,7 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.2.8 - Precise Move Validation & Honest Counters
- * Couleurs : Mat (Rouge), Pat (Orange), Nulle (Blanc), En cours (Gris)
+ * Version : 7.3.3 - Stable Automated Promotion & Winner Labels
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -26,12 +25,16 @@ class BotStressTest {
             draws: 0, 
             fenList: [],
             startTime: null,
-            totalDuration: 0
+            totalDuration: 0,
+            config: { white: "", black: "", isRandom: false, maxCoups: 0 }
         };
         const errEl = document.getElementById('errors');
         const countEl = document.getElementById('count');
+        const progressEl = document.getElementById('progress-bar');
+
         if (errEl) errEl.innerText = "0";
         if (countEl) countEl.innerText = "0";
+        if (progressEl) progressEl.style.width = "0%";
     }
 
     init() {
@@ -47,13 +50,6 @@ class BotStressTest {
             copyFenBtn.onclick = (e) => {
                 const fenText = this.stats.fenList.join('\n');
                 if (fenText) this.copyToClipboard(fenText, e.target);
-            };
-        }
-        
-        const clearJsonBtn = document.getElementById('clearJsonBtn');
-        if (clearJsonBtn) {
-            clearJsonBtn.onclick = () => {
-                if (this.clearServerLogs) this.clearServerLogs(true);
             };
         }
     }
@@ -94,16 +90,18 @@ class BotStressTest {
     }
 
     async saveJsonToServer() {
-        const lvlW = document.getElementById('selectBotWhite')?.value || "unknown";
-        const lvlB = document.getElementById('selectBotBlack')?.value || "unknown";
-        const dynamicName = `stress_test-${lvlW}vs${lvlB}.json`;
+        const { white, black, isRandom } = this.stats.config;
+        const randTag = isRandom ? "-RANDOM" : "";
+        const dynamicName = `stress_test-White_${white}-vs-Black_${black}${randTag}.json`;
+        
         try {
             await fetch('log_error.php', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'save', filename: dynamicName, stats: this.stats })
             });
             this.statusUpdate(`💾 Rapport généré : ${dynamicName}`, "system");
-        } catch (e) {}
+        } catch (e) { console.error("Save error:", e); }
     }
 
     getAvailableMoves(game, color) {
@@ -129,9 +127,19 @@ class BotStressTest {
     async executeMove(game, move, color) {
         const engine = game.core || game;
         try {
-            if (game.moveHandler) { game.moveHandler.isPromoting = false; game.moveHandler.selectedPiece = null; }
+            if (game.moveHandler) { 
+                game.moveHandler.isPromoting = false; 
+                game.moveHandler.selectedPiece = null; 
+            }
             if (game.clearSelection) game.clearSelection();
-            
+
+            // Automatisation de la promotion : On force la Dame
+            if (game.promotionManager) {
+                game.promotionManager.showPromotionModal = (row, col, pieceColor, callback) => {
+                    game.promotionManager.handleChoice('queen', row, col, callback);
+                };
+            }
+
             if (game.moveExecutor && !game.moveExecutor._isPatched) {
                 game.moveExecutor.handlePromotion = function(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement, isCapture) {
                     this.finalizePromotion(toRow, toCol, 'queen', move, selectedPiece, isCapture);
@@ -143,20 +151,22 @@ class BotStressTest {
             engine.handleSquareClick(move.toRow, move.toCol, true);
 
             let wait = 0;
-            // On attend que le moteur valide le coup
             while (game.gameState.currentPlayer === color && game.gameState.gameActive && wait < 20) {
                 await new Promise(r => setTimeout(r, 2));
                 wait++;
             }
-
-            // Si le joueur a changé, le coup est réussi
             return (game.gameState.currentPlayer !== color);
-        } catch (e) { return false; }
+        } catch (e) { 
+            return false; 
+        }
     }
 
-    async simulateGame(id, maxCoups, totalGames) {
+async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
         const startPartie = performance.now();
-        const _log = console.log; const _warn = console.warn;
+        const _log = console.log; 
+        const _warn = console.warn;
+        
+        // Silence local de la console pour les performances
         console.log = console.warn = () => {}; 
 
         const game = new ChessGame();
@@ -166,32 +176,34 @@ class BotStressTest {
         if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
 
         try {
+            // Boucle de jeu principale
             while (coupsCount < maxCoups && game.gameState.gameActive) {
                 const color = game.gameState.currentPlayer;
                 const moves = this.getAvailableMoves(game, color);
+                
                 if (moves.length === 0) break;
                 
                 const move = moves[Math.floor(Math.random() * moves.length)];
-                
-                // EXECUTION : On n'incrémente que si executeMove renvoie true
                 const success = await this.executeMove(game, move, color);
                 
                 if (success) {
                     coupsCount++;
                     this.stats.totalMoves++;
                 } else {
-                    // Si le coup échoue (bloqué), on sort de la boucle pour cette partie
                     break;
                 }
             }
 
+            // Forcer la vérification de fin de partie par le moteur
             const gs = game.gameState;
             if (gs.checkGameOver) gs.checkGameOver();
 
+            // Génération du FEN final
             const finalFen = (FENGenerator.generate) ? 
                 FENGenerator.generate(game.board, gs) : 
                 FENGenerator.generateFEN(gs, game.board);
 
+            // Analyse de l'état final
             const currentPossibleMoves = this.getAvailableMoves(game, gs.currentPlayer);
             const kingInCheck = game.moveValidator.isKingInCheck(gs.currentPlayer);
 
@@ -202,32 +214,77 @@ class BotStressTest {
                 engineDraw = nulleChecker.isDraw(halfMoves);
             }
 
-            let type = "blanc"; 
-            let resTag = "FIN nulle";
+            let type = "blanc", resTag = "FIN nulle", winner = null;
 
+            // --- LOGIQUE DE DÉTERMINATION DU VAINQUEUR ---
             if (gs.isCheckmate || (currentPossibleMoves.length === 0 && kingInCheck)) { 
-                resTag = "FIN mat"; type = "rouge"; this.stats.checkmates++; 
+                resTag = "FIN mat"; 
+                type = "rouge"; 
+                this.stats.checkmates++; 
+                
+                // Vérification directe pour éviter les erreurs d'inversion
+                const whiteKingInCheck = game.moveValidator.isKingInCheck('w');
+                const blackKingInCheck = game.moveValidator.isKingInCheck('b');
+
+                if (whiteKingInCheck) {
+                    winner = 'black'; // Le blanc est mat, noir gagne
+                } else if (blackKingInCheck) {
+                    winner = 'white'; // Le noir est mat, blanc gagne
+                } else {
+                    // Sécurité : si l'état est flou, on utilise le tour
+                    winner = (gs.currentPlayer === 'w') ? 'black' : 'white';
+                }
+
             } else if (gs.isStalemate || (currentPossibleMoves.length === 0 && !kingInCheck)) { 
-                resTag = "FIN pat"; type = "orange"; this.stats.stalemates++; 
+                resTag = "FIN pat"; 
+                type = "orange"; 
+                this.stats.stalemates++; 
+                winner = 'draw';
             } else if (engineDraw.isDraw) {
                 resTag = `FIN nulle (${engineDraw.reason})`;
-                type = "blanc"; this.stats.draws++;
+                type = "blanc"; 
+                this.stats.draws++;
+                winner = 'draw';
             } else if (coupsCount >= maxCoups) {
-                resTag = "FIN en cours"; type = "gris"; 
+                resTag = "FIN en cours"; 
+                type = "gris"; 
+                winner = 'ongoing';
             } else {
-                // Si on s'arrête avant maxCoups sans raison Chess, c'est une nulle technique (blocage ou répétition)
-                resTag = "FIN nulle (technique)"; type = "blanc"; this.stats.draws++;
+                resTag = "FIN nulle (technique)"; 
+                type = "blanc"; 
+                this.stats.draws++;
+                winner = 'draw';
             }
 
+            // Envoi de l'événement à l'analyste ArenaAnalyst
+            window.dispatchEvent(new CustomEvent('arena-game-finished', {
+                detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount }
+            }));
+
+            // Mise à jour des statistiques de session
             this.stats.fenList.push(finalFen);
             this.stats.gamesPlayed++;
             
             if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
-            
+            if (document.getElementById('progress-bar')) {
+                document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
+            }
+
+            // Restauration des logs console
             console.log = _log; console.warn = _warn;
             const dureePartie = ((performance.now() - startPartie) / 1000).toFixed(2);
             
-            this.statusUpdate(`P#${id} (${coupsCount} coups - ${dureePartie}s) ${resTag} | ${finalFen}`, type, resTag);
+            // --- CONSTRUCTION DU MESSAGE DE LOG ---
+            // Format : P#1 [W:L1 vs B:L3] (88/100c - 0.12s) FIN mat | FEN: ... - Gagnant: NOIRS
+            let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c - ${dureePartie}s) ${resTag} | FEN: ${finalFen}`;
+            
+            if (winner === 'white') {
+                logMsg += ` - Gagnant: BLANCS`;
+            } else if (winner === 'black') {
+                logMsg += ` - Gagnant: NOIRS`;
+            }
+
+            this.statusUpdate(logMsg, type, resTag);
 
         } catch (e) {
             console.log = _log; console.warn = _warn;
@@ -236,15 +293,30 @@ class BotStressTest {
             this.statusUpdate(`FIN CRASH P#${id}`, "rouge", "FIN CRASH");
         }
     }
-
+    
     async runBatch() {
         if (this.isRunning) return;
         
+        // Réinitialisation des statistiques et de l'analyste
+        this.resetStats();
+        if (window.arenaAnalyst) window.arenaAnalyst.reset();
+
+        // Récupération des paramètres de l'interface
         const total = parseInt(document.getElementById('inputMaxGames')?.value || 50);
         const moves = parseInt(document.getElementById('inputMaxMoves')?.value || 100);
-        const lvlW = document.getElementById('selectBotWhite')?.value || "L1";
-        const lvlB = document.getElementById('selectBotBlack')?.value || "L1";
+        const selW = document.getElementById('selectBotWhite')?.value || "L1";
+        const selB = document.getElementById('selectBotBlack')?.value || "L1";
+        const isRandom = document.getElementById('checkRandomColors')?.checked;
 
+        // Sauvegarde de la configuration (incluant maxCoups pour le JSON final)
+        this.stats.config = { 
+            white: selW, 
+            black: selB, 
+            isRandom: isRandom,
+            maxCoups: moves 
+        };
+
+        // Injection CSS pour cacher les éléments UI parasites (modales de promotion, etc.)
         if (!document.getElementById('stress-test-style')) {
             document.head.insertAdjacentHTML('beforeend', `
                 <style id="stress-test-style">
@@ -252,25 +324,48 @@ class BotStressTest {
                 </style>`);
         }
 
+        // État de fonctionnement
         this.isRunning = true; 
         if (this.btn) this.btn.disabled = true; 
         if (this.logEl) this.logEl.innerHTML = ''; 
-        this.resetStats();
+        
         this.stats.startTime = performance.now();
         
-        this.statusUpdate("🚀 DÉMARRAGE DU TEST...", "system");
-        this.statusUpdate(`⚙️ CONFIG : [${lvlW} vs ${lvlB}] | ${total} parties | Max ${moves} coups`, "gris");
+        // Messages de statut sobres (sans émojis)
+        this.statusUpdate("DEMARRAGE DU TEST...", "system");
+        this.statusUpdate(`CONFIG : [BLANC:${selW}] vs [NOIRS:${selB}] | Aleatoire: ${isRandom ? 'OUI' : 'NON'} | Limite: ${moves} coups`, "gris");
 
+        // Boucle principale des parties
         for (let i = 1; i <= total; i++) {
-            await this.simulateGame(i, moves, total);
+            let pWhite = selW;
+            let pBlack = selB;
+
+            // Inversion aléatoire des couleurs si l'option est cochée
+            if (isRandom && Math.random() > 0.5) {
+                pWhite = selB;
+                pBlack = selW;
+            }
+
+            // Exécution d'une simulation de partie
+            await this.simulateGame(i, moves, total, pWhite, pBlack);
+            
+            // Laisser une micro-pause pour ne pas figer le navigateur
             await new Promise(r => setTimeout(r, 1));
         }
 
+        // Calcul de la durée totale
         this.stats.totalDuration = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
-        this.statusUpdate(`🏁 SESSION TERMINÉE en ${this.stats.totalDuration}s`, "system");
+        
+        // Message de fin
+        this.statusUpdate(`SESSION TERMINEE : [BLANCS:${selW} vs NOIRS:${selB}] en ${this.stats.totalDuration}s`, "system");
+        
         this.isRunning = false; 
         if (this.btn) this.btn.disabled = false;
+        
+        // Réactivation des logs de console standards du jeu si nécessaire
         if (window.GameStatusManager) window.GameStatusManager.consoleLog = true;
+        
+        // Sauvegarde automatique du rapport JSON sur le serveur
         await this.saveJsonToServer();
     }
 }

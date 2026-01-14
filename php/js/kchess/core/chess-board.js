@@ -3,7 +3,7 @@
  */
 class ChessBoard {
     
-    static consoleLog = true; 
+    static consoleLog = false; 
     static initialized = false;
 
     /**
@@ -168,10 +168,27 @@ class ChessBoard {
     /**
      * Place visuellement une pièce sur une case
      */
+/**
+     * Place visuellement une pièce sur une case (Support Texte ou Image)
+     */
     placePiece(piece, squareData) {
         const pieceElement = document.createElement('div');
         pieceElement.className = `chess-piece ${piece.color}`;
-        pieceElement.innerHTML = this.pieceManager.getSymbol(piece.type, piece.color);
+        
+        // On récupère le chemin depuis la config globale
+        const basePath = (window.appConfig && window.appConfig.piece_path) ? window.appConfig.piece_path : '';
+        
+        // Si on veut utiliser des images (ex: wP.png)
+        // Note: Cette logique dépend de si votre pieceManager renvoie du texte ou si vous voulez forcer l'image
+        if (basePath) {
+            const imgName = `${piece.color[0]}${this.getPieceLetter(piece.type)}.png`;
+            pieceElement.style.backgroundImage = `url('${basePath}${imgName}')`;
+            pieceElement.style.backgroundSize = 'contain';
+            pieceElement.style.backgroundRepeat = 'no-repeat';
+        } else {
+            // Repli sur le symbole texte si pas de chemin image
+            pieceElement.innerHTML = this.pieceManager.getSymbol(piece.type, piece.color);
+        }
         
         Object.assign(pieceElement.dataset, {
             pieceType: piece.type,
@@ -180,8 +197,12 @@ class ChessBoard {
 
         squareData.element.appendChild(pieceElement);
         squareData.piece = piece;
+    }
 
-        ChessBoard.log(`Placement : ${piece.type} (${piece.color}) en [${squareData.row},${squareData.col}]`);
+    // Utilitaire pour transformer 'pawn' en 'P', 'knight' en 'N', etc.
+    getPieceLetter(type) {
+        const map = { 'pawn': 'P', 'knight': 'N', 'bishop': 'B', 'rook': 'R', 'queen': 'Q', 'king': 'K' };
+        return map[type] || 'P';
     }
 
     /**

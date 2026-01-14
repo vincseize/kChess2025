@@ -5,7 +5,7 @@ if (typeof KnightMoveValidator !== 'undefined') {
 
 class KnightMoveValidator {
     
-    static consoleLog = true; 
+    static consoleLog = false; 
     
     static init() {
         this.loadConfig();

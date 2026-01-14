@@ -5,7 +5,7 @@ if (typeof RookMoveValidator !== 'undefined') {
 
 class RookMoveValidator {
     
-    static consoleLog = true; 
+    static consoleLog = false; 
     
     static init() {
         this.loadConfig();

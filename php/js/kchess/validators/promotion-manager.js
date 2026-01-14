@@ -1,7 +1,7 @@
 /**
  * js/kchess/core/promotion-manager.js
  * Gère l'interface et la logique de promotion des pions.
- * Version 1.5.5 - Support Bot Aléatoire & Libération Verrou
+ * Version 1.5.6 - Support Arena (Stress Test) & Chemins Absolus
  */
 class PromotionManager {
     static consoleLog = true;
@@ -12,29 +12,41 @@ class PromotionManager {
     }
 
     /**
-     * Affiche la modal de promotion ou effectue un choix automatique pour le bot.
-     * @param {number} row - Ligne de destination
-     * @param {number} col - Colonne de destination
-     * @param {string} color - Couleur du joueur ('white' ou 'black')
-     * @param {Function} callback - Callback de retour vers MoveExecutor
+     * Récupère le chemin des images via la config globale ou un fallback local
+     */
+    getBasePath() {
+        return window.PIECE_IMAGE_PATH || 'img/chesspieces/wikipedia/';
+    }
+
+    /**
+     * Affiche la modal de promotion ou effectue un choix automatique.
      */
     showPromotionModal(row, col, color, callback = null) {
-        // --- GESTION DU BOT (Choix Aléatoire) ---
+        // --- DETECTION DU MODE ARENA (STRESS TEST) ---
+        // On vérifie si l'interface Arena est présente pour accélérer le traitement
+        const isArena = !!document.getElementById('arena-dashboard');
+
+        // --- GESTION DU BOT ---
         const bot = this.game.botManager || this.game.core?.botManager;
         const isBot = bot && typeof bot.isBotTurn === 'function' && bot.isBotTurn();
 
-        if (isBot) {
+        if (isBot || isArena) {
             const options = ['queen', 'rook', 'bishop', 'knight'];
             const randomPiece = options[Math.floor(Math.random() * options.length)];
             
-            if (PromotionManager.consoleLog) {
+            if (PromotionManager.consoleLog && !isArena) {
                 console.log(`🤖 Bot Promotion : Choix aléatoire -> ${randomPiece}`);
             }
 
-            // Petit délai pour laisser l'animation de déplacement se finir
-            setTimeout(() => {
+            // Performance : En mode Arena, on traite immédiatement sans délai
+            if (isArena) {
                 this.handleChoice(randomPiece, row, col, callback);
-            }, 500);
+            } else {
+                // Petit délai pour le confort visuel en jeu standard
+                setTimeout(() => {
+                    this.handleChoice(randomPiece, row, col, callback);
+                }, 500);
+            }
             return;
         }
 
@@ -42,6 +54,7 @@ class PromotionManager {
         const oldModal = document.querySelector('.promotion-modal');
         if (oldModal) oldModal.remove();
 
+        const basePath = this.getBasePath();
         const modal = document.createElement('div');
         modal.className = 'promotion-modal';
         modal.innerHTML = `
@@ -51,7 +64,7 @@ class PromotionManager {
                     <div class="promotion-options">
                         ${['queen', 'rook', 'bishop', 'knight'].map(p => `
                             <div class="promotion-option" data-piece="${p}">
-                                <img src="img/chesspieces/wikipedia/${color[0].toLowerCase()}${this.getPieceLetter(p)}.png" alt="${p}">
+                                <img src="${basePath}${color[0].toLowerCase()}${this.getPieceLetter(p)}.png" alt="${p}">
                                 <span>${this.getPieceNameFr(p)}</span>
                             </div>
                         `).join('')}
@@ -62,7 +75,6 @@ class PromotionManager {
 
         document.body.appendChild(modal);
 
-        // Événements de clic pour l'humain
         modal.querySelectorAll('.promotion-option').forEach(opt => {
             opt.onclick = () => {
                 modal.remove();
@@ -70,7 +82,6 @@ class PromotionManager {
             };
         });
 
-        // Fermeture sur Échap (annule le coup)
         const handleEsc = (e) => { 
             if (e.key === 'Escape') {
                 document.removeEventListener('keydown', handleEsc);
@@ -82,22 +93,19 @@ class PromotionManager {
     }
 
     /**
-     * Traite le choix de la pièce (qu'il vienne de l'UI ou du Bot)
+     * Traite le choix de la pièce
      */
     handleChoice(selectedPiece, row, col, callback) {
-        // 1. Libération immédiate du verrou pour le MoveHandler
+        // Libération du verrou pour éviter de bloquer le prochain coup
         if (this.game.moveHandler) {
             this.game.moveHandler.isPromoting = false;
-            if (PromotionManager.consoleLog) console.log("🔓 Verrou promotion libéré.");
         }
 
         if (selectedPiece) {
-            // 2. Transformation visuelle et logique
             const square = this.game.board.getSquare(row, col);
             this.promotePawn(square, selectedPiece);
             this.promotionHistory[selectedPiece]++;
 
-            // 3. Finalisation du tour via le callback ou manuellement
             if (typeof callback === 'function') {
                 callback(selectedPiece);
             } else {
@@ -107,12 +115,11 @@ class PromotionManager {
             }
         } else {
             if (typeof callback === 'function') callback(null);
-            if (PromotionManager.consoleLog) console.warn("Promotion annulée.");
         }
     }
 
     /**
-     * Change réellement le type de la pièce dans l'objet Board et l'UI
+     * Met à jour la pièce logiquement et visuellement (si nécessaire)
      */
     promotePawn(square, newType) {
         if (!square || !square.piece) return;
@@ -120,27 +127,29 @@ class PromotionManager {
         const color = square.piece.color;
         square.piece.type = newType;
         
-        // Nettoyage visuel de la case
-        square.element.innerHTML = ''; 
-
-        // Création de la nouvelle pièce (via MoveExecutor si possible)
-        const executor = this.game.moveExecutor;
-        if (executor && typeof executor.createPieceElement === 'function') {
-            const newPieceEl = executor.createPieceElement({
-                type: newType,
-                color: color
-            });
-            square.element.appendChild(newPieceEl);
-        } else {
-            // Fallback manuel si l'exécuteur n'est pas prêt
-            const img = document.createElement('img');
-            img.src = `img/chesspieces/wikipedia/${color[0].toLowerCase()}${this.getPieceLetter(newType)}.png`;
-            img.className = 'chess-piece-img';
-            square.element.appendChild(img);
+        // --- OPTIMISATION ARENA ---
+        // Si le plateau HTML n'existe pas (Stress Test pur), on ne manipule pas le DOM
+        const boardEl = document.getElementById('chessBoard');
+        if (!boardEl) {
+            if (PromotionManager.consoleLog && !document.getElementById('arena-dashboard')) {
+                console.log(`✨ [Promotion Logique] ${newType} en [${square.row},${square.col}]`);
+            }
+            return;
         }
 
-        if (PromotionManager.consoleLog) {
-            console.log(`✨ [Promotion] Case [${square.row},${square.col}] transformée en ${newType}`);
+        // Mise à jour visuelle (pour Humain vs Bot)
+        square.element.innerHTML = ''; 
+        const executor = this.game.moveExecutor;
+
+        if (executor && typeof executor.createPieceElement === 'function') {
+            const newPieceEl = executor.createPieceElement({ type: newType, color: color });
+            square.element.appendChild(newPieceEl);
+        } else {
+            // Fallback utilisant le chemin propre
+            const img = document.createElement('img');
+            img.src = `${this.getBasePath()}${color[0].toLowerCase()}${this.getPieceLetter(newType)}.png`;
+            img.className = 'chess-piece-img';
+            square.element.appendChild(img);
         }
     }
 

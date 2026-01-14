@@ -5,7 +5,7 @@ if (typeof QueenMoveValidator !== 'undefined') {
 
 class QueenMoveValidator {
     
-    static consoleLog = true; 
+    static consoleLog = false; 
     
     static init() {
         this.loadConfig();

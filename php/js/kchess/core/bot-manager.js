@@ -1,4 +1,5 @@
 /**
+ * core/BotStressTest - Framework de test de stress pour les bots
  * STRESS TESTER - K-CHESS ENGINE
  * Version : 6.9.37 - Multi-load Safety & UI Sync
  */
@@ -53,67 +54,105 @@ window.BotStressTest = class BotStressTest {
     }
 
     async performMove(game, nMove) {
-        try {
-            const core = game.core || game;
-            
-            // Correction de la détection d'inversion : on regarde si les pions blancs sont en ligne 6
-            if (this.needsInversion === null) {
-                const pieceAt64 = game.board.getSquare(6, 4)?.piece;
-                this.needsInversion = (pieceAt64 && pieceAt64.color === 'black');
-            }
+    try {
+        const board = game.board; // Instance de ChessBoard
+        const gs = game.gameState;
 
-            let finalMove = { ...nMove };
-            if (this.needsInversion) {
-                finalMove.fR = 7 - nMove.fR;
-                finalMove.tR = 7 - nMove.tR;
-            }
+        // 1. Récupération des cases via ton ChessBoard.js
+        const fromSq = board.getSquare(nMove.fR, nMove.fC);
+        const toSq = board.getSquare(nMove.tR, nMove.tC);
 
-            // --- SIMULATION UI ---
-            core.handleSquareClick(finalMove.fR, finalMove.fC, true);
-            await new Promise(r => setTimeout(r, 80)); // Temps pour le moteur de valider
-            core.handleSquareClick(finalMove.tR, finalMove.tC, true);
+        if (!fromSq || !fromSq.piece) return false;
 
-            return true;
-        } catch (e) {
-            return false;
+        const piece = fromSq.piece;
+
+        // 2. Mise à jour visuelle et mémoire (Méthodes de ton ChessBoard)
+        fromSq.element.innerHTML = ''; // Vide le HTML de départ
+        fromSq.piece = null;           // Vide la mémoire de départ
+
+        toSq.element.innerHTML = '';   // Nettoie l'arrivée (capture)
+        board.placePiece(piece, toSq); // Utilise TA méthode pour dessiner la pièce
+
+        // 3. Gestion Promotion (Simple)
+        if (piece.type === 'pawn' && (nMove.tR === 0 || nMove.tR === 7)) {
+            toSq.element.innerHTML = '';
+            board.placePiece({ type: 'queen', color: piece.color }, toSq);
         }
-    }
 
-    async simulateSingleGame(id, maxMoves) {
+        // 4. Switch Player (Moteur)
+        if (gs.switchPlayer) gs.switchPlayer();
+        else gs.currentPlayer = (gs.currentPlayer === 'white' ? 'black' : 'white');
+
+        return true;
+    } catch (e) {
+        console.error("Erreur performMove:", e);
+        return false;
+    }
+}
+
+async simulateSingleGame(id, maxMoves) {
         const startTime = performance.now();
         const session = { id, status: 'ok', moveCount: 0, result: "", lastFen: "" };
         
         try {
+            // Création d'une instance de jeu isolée pour ce test
             const game = new ChessGame();
             
-            // Désactivation des bots automatiques
+            // Désactivation forcée des managers de bots automatiques du moteur
             if (game.botManager) game.botManager.isActive = false;
             if (window.botManager) window.botManager.isActive = false;
 
-            const botWhite = new Level_1();
-            const botBlack = new Level_1();
+            // --- LOGIQUE DYNAMIQUE UNIVERSELLE (Level 1 à n) ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const levelNum = urlParams.get('level') || '1';
+            
+            // On cherche la classe dans window (ex: window["Level_3"])
+            // Si le niveau demandé n'est pas chargé, on cherche Level_1, 
+            // sinon on prend la première classe Level_x disponible.
+            const BotClass = window[`Level_${levelNum}`] || window['Level_1'] || Object.values(window).find(c => c?.name?.startsWith('Level_'));
+
+            if (!BotClass) {
+                throw new Error(`Aucune classe de Bot (Level_${levelNum}) n'a été trouvée en mémoire.`);
+            }
+
+            // Instanciation des deux adversaires
+            const botWhite = new BotClass();
+            const botBlack = new BotClass();
+            
+            this.statusUpdate(`🤖 Partie #${id} : Utilisation de ${BotClass.name}`, "info");
+            // ---------------------------------------------------
             
             let mCount = 0;
             while (mCount < maxMoves) {
-                if (!game.gameState.gameActive) break;
+                // Arrêt si le jeu est terminé (Mat, Pat, etc.)
+                if (!game.gameState || !game.gameState.gameActive) break;
 
                 const currentFen = FENGenerator.generate(game.board, game.gameState);
                 session.lastFen = currentFen;
 
+                // Sélection du bot selon le trait
                 const currentBot = (game.gameState.currentPlayer === 'white') ? botWhite : botBlack;
+                
+                // Appel asynchrone du bot externe
                 const rawMove = await currentBot.getMove(currentFen);
                 
-                if (!rawMove) break;
+                if (!rawMove) {
+                    this.statusUpdate(`Partie #${id} : Le bot n'a pas renvoyé de coup.`, "warn");
+                    break;
+                }
+
                 const move = this.normalizeMove(rawMove);
                 
-                await this.performMove(game, move);
+                // Exécution physique du coup sur le plateau
+                const moved = await this.performMove(game, move);
                 
-                // Pause pour laisser le moteur finir le switchPlayer
+                // Petit délai pour laisser les événements du moteur (switchPlayer) se propager
                 await new Promise(r => setTimeout(r, 150));
 
+                // Vérification anti-blocage : si le FEN n'a pas changé, le coup était invalide
                 const postFen = FENGenerator.generate(game.board, game.gameState);
                 if (currentFen === postFen) {
-                    this.statusUpdate(`⚠️ Coup rejeté (${game.gameState.currentPlayer})`, "warn");
+                    this.statusUpdate(`⚠️ Coup rejeté par le moteur : ${JSON.stringify(move)}`, "warn");
                     break;
                 }
 
@@ -121,13 +160,19 @@ window.BotStressTest = class BotStressTest {
                 session.moveCount = mCount;
             }
 
+            // Calcul du résultat final
             const resObj = this.determineResult(game, mCount, maxMoves);
             session.result = resObj.text;
             session.duration = Math.round(performance.now() - startTime);
+            
+            // Mise à jour des stats globales du StressTester
             this.updateStats(resObj, session.moveCount, session.duration);
-            this.statusUpdate(`Partie #${id}: ${session.result} (${mCount} coups)`, "success");
+            this.statusUpdate(`Partie #${id}: ${session.result} en ${mCount} coups`, "success");
+            
             return session;
         } catch (e) {
+            console.error(`❌ Erreur critique Simulation #${id}:`, e);
+            this.statusUpdate(`Erreur #${id}: ${e.message}`, "error");
             this.stats.errorCount++;
             return { id, status: 'error' };
         }

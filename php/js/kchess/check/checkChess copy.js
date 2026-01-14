@@ -51,52 +51,47 @@ class ChessEngine {
     }
 
     isSquareAttacked(row, col, attackerColor) {
-    const attSide = (attackerColor === 'white' || attackerColor === 'w') ? 'w' : 'b';
-    
-    // 1. Cavaliers
-    const knightMoves = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
-    for (const [dr, dc] of knightMoves) {
-        const r = row + dr, c = col + dc;
-        if (this.isValidSquare(r, c) && this.getPiece(r, c) === (attSide === 'w' ? 'N' : 'n')) return true;
-    }
-
-    // 2. PIONS (Version corrigée)
-    // Si l'attaquant est BLANC, il vient des lignes du BAS (index row + 1)
-    // Si l'attaquant est NOIR, il vient des lignes du HAUT (index row - 1)
-    const pSourceRow = (attSide === 'w') ? row + 1 : row - 1;
-    for (const dc of [-1, 1]) {
-        const pSourceCol = col + dc;
-        if (this.isValidSquare(pSourceRow, pSourceCol)) {
-            const p = this.getPiece(pSourceRow, pSourceCol);
-            if (p === (attSide === 'w' ? 'P' : 'p')) return true;
+        const att = attackerColor === 'white' || attackerColor === 'w' ? 'w' : 'b';
+        
+        // 1. Cavaliers
+        const knightMoves = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+        for (const [dr, dc] of knightMoves) {
+            const r = row + dr, c = col + dc;
+            if (this.isValidSquare(r, c) && this.getPiece(r, c) === (att === 'w' ? 'N' : 'n')) return true;
         }
-    }
 
-    // 3. Glissants & Roi
-    const dirs = [
-        { d: [[-1, 0], [1, 0], [0, -1], [0, 1]], t: attSide === 'w' ? ['R', 'Q'] : ['r', 'q'] },
-        { d: [[-1, -1], [-1, 1], [1, -1], [1, 1]], t: attSide === 'w' ? ['B', 'Q'] : ['b', 'q'] }
-    ];
+        // 2. Pions (Attention à la direction : attaque en diagonale)
+        const pawnDir = att === 'w' ? 1 : -1; // Si attaquant blanc, il vient du rang supérieur (index+)
+        const pawnAttacks = [[pawnDir, -1], [pawnDir, 1]];
+        for (const [dr, dc] of pawnAttacks) {
+            const r = row + dr, c = col + dc;
+            if (this.isValidSquare(r, c) && this.getPiece(r, c) === (att === 'w' ? 'P' : 'p')) return true;
+        }
 
-    for (const cfg of dirs) {
-        for (const [dr, dc] of cfg.d) {
-            let r = row + dr, c = col + dc;
-            // Roi (1 case)
-            if (this.isValidSquare(r, c) && this.getPiece(r, c) === (attSide === 'w' ? 'K' : 'k')) return true;
-            
-            // Rayons
-            while (this.isValidSquare(r, c)) {
-                const p = this.getPiece(r, c);
-                if (p) {
-                    if (cfg.t.includes(p)) return true;
-                    break; 
+        // 3. Glissants (Tours, Fous, Dames) & Roi
+        const dirs = [
+            { d: [[-1, 0], [1, 0], [0, -1], [0, 1]], t: att === 'w' ? ['R', 'Q'] : ['r', 'q'] },
+            { d: [[-1, -1], [-1, 1], [1, -1], [1, 1]], t: att === 'w' ? ['B', 'Q'] : ['b', 'q'] }
+        ];
+
+        for (const cfg of dirs) {
+            for (const [dr, dc] of cfg.d) {
+                let r = row + dr, c = col + dc;
+                // Check Roi (1 case)
+                if (this.isValidSquare(r, c) && this.getPiece(r, c) === (att === 'w' ? 'K' : 'k')) return true;
+                // Check Glissants
+                while (this.isValidSquare(r, c)) {
+                    const p = this.getPiece(r, c);
+                    if (p) {
+                        if (cfg.t.includes(p)) return true;
+                        break;
+                    }
+                    r += dr; c += dc;
                 }
-                r += dr; c += dc;
             }
         }
+        return false;
     }
-    return false;
-}
 
     
 
