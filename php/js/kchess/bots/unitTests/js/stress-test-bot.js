@@ -1,6 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.3.3 - Stable Automated Promotion & Winner Labels
+ * Version : 7.4.0 - Centralisée (Moteur + UI Logic)
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -40,10 +40,9 @@ class BotStressTest {
     init() {
         if (this.btn) this.btn.onclick = () => this.runBatch();
         
+        // --- LOGS ACTIONS ---
         const copyLogBtn = document.getElementById('copyLogBtn');
-        if (copyLogBtn) {
-            copyLogBtn.onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
-        }
+        if (copyLogBtn) copyLogBtn.onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
         
         const copyFenBtn = document.getElementById('copyFenBtn');
         if (copyFenBtn) {
@@ -52,6 +51,50 @@ class BotStressTest {
                 if (fenText) this.copyToClipboard(fenText, e.target);
             };
         }
+
+        // --- STATS COPY ---
+        const copyStatsBtn = document.getElementById('copyStatsBtn');
+        if (copyStatsBtn) {
+            copyStatsBtn.onclick = () => {
+                const stats = {
+                    white: document.getElementById('dash-win-w').innerText,
+                    black: document.getElementById('dash-win-b').innerText,
+                    draws: document.getElementById('dash-draws').innerText,
+                    moves: document.getElementById('dash-moves').innerText,
+                    ratioGlobal: document.getElementById('dash-ratio')?.innerText || "0/0/0",
+                    ratioPure: document.getElementById('dash-pure-ratio')?.innerText || "0/0",
+                    total: document.getElementById('count').innerText
+                };
+                const text = `📊 ARENA STATS REPORT\n-----------------------\nParties : ${stats.total}\nBlancs  : ${stats.white} victoires\nNoirs   : ${stats.black} victoires\nNulles  : ${stats.draws}\nCoups   : ${stats.moves}\nRatio (W/D/B) : ${stats.ratioGlobal}\nRatio (W/B)   : ${stats.ratioPure} (Hors nulles)\n-----------------------\nGénéré le : ${new Date().toLocaleString()}`;
+                this.copyToClipboard(text, copyStatsBtn);
+            };
+        }
+
+        // --- SERVER STORAGE CLEANER ---
+        const clearBtn = document.getElementById('clearJsonBtn');
+        if (clearBtn) {
+            clearBtn.onclick = () => {
+                if (!confirm("Supprimer tous les fichiers JSON sur le serveur ?")) return;
+                fetch('log_error.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'clear_all' })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === "cleared" || data.status === "success") {
+                        if (window.arenaAnalyst) window.arenaAnalyst.reset();
+                        alert("Serveur nettoyé !");
+                        location.reload();
+                    }
+                })
+                .catch(e => console.error("Erreur:", e));
+            };
+        }
+
+        // --- UI CHANGE LOGS ---
+        document.getElementById('selectBotWhite')?.addEventListener('change', (e) => console.log(`[ARENA] Bot BLANC changé pour : ${e.target.value}`));
+        document.getElementById('selectBotBlack')?.addEventListener('change', (e) => console.log(`[ARENA] Bot NOIR changé pour : ${e.target.value}`));
     }
 
     async copyToClipboard(text, btn) {
@@ -66,34 +109,25 @@ class BotStressTest {
     statusUpdate(msg, type = 'blanc', resultLabel = "") {
         if (!this.logEl || !msg.trim()) return; 
         const div = document.createElement('div');
-        const colors = { 
-            rouge: "#f85149", orange: "#d29922", blanc: "#ffffff", gris: "#8b949e", system: "#3fb950" 
-        };
-
+        const colors = { rouge: "#f85149", orange: "#d29922", blanc: "#ffffff", gris: "#8b949e", system: "#3fb950" };
         const time = `<span style="color:#8b949e">[${new Date().toLocaleTimeString()}]</span> `;
         let formattedMsg = msg;
-        
         if (resultLabel) {
             const labelColor = colors[type] || "#ffffff";
-            const coloredLabel = `<span style="color:${labelColor}; font-weight:bold;">FIN</span>`;
-            formattedMsg = msg.replace("FIN", coloredLabel);
+            formattedMsg = msg.replace("FIN", `<span style="color:${labelColor}; font-weight:bold;">FIN</span>`);
         }
-
         div.style.color = colors[type] || "#ffffff";
         div.style.fontSize = "11px";
         div.style.padding = "2px 0";
         div.style.borderBottom = "1px solid #30363d";
         div.innerHTML = time + formattedMsg;
-        
         this.logEl.appendChild(div);
         this.logEl.scrollTop = this.logEl.scrollHeight;
     }
 
     async saveJsonToServer() {
         const { white, black, isRandom } = this.stats.config;
-        const randTag = isRandom ? "-RANDOM" : "";
-        const dynamicName = `stress_test-White_${white}-vs-Black_${black}${randTag}.json`;
-        
+        const dynamicName = `stress_test-White_${white}-vs-Black_${black}${isRandom ? "-RANDOM" : ""}.json`;
         try {
             await fetch('log_error.php', {
                 method: 'POST',
@@ -105,8 +139,7 @@ class BotStressTest {
     }
 
     getAvailableMoves(game, color) {
-        const normalMoves = [];
-        const prioritaryMoves = [];
+        const normalMoves = [], prioritaryMoves = [];
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
                 const p = game.board.getPiece(r, c);
@@ -127,230 +160,138 @@ class BotStressTest {
     async executeMove(game, move, color) {
         const engine = game.core || game;
         try {
-            if (game.moveHandler) { 
-                game.moveHandler.isPromoting = false; 
-                game.moveHandler.selectedPiece = null; 
-            }
+            if (game.moveHandler) { game.moveHandler.isPromoting = false; game.moveHandler.selectedPiece = null; }
             if (game.clearSelection) game.clearSelection();
-
-            // Automatisation de la promotion : On force la Dame
             if (game.promotionManager) {
                 game.promotionManager.showPromotionModal = (row, col, pieceColor, callback) => {
                     game.promotionManager.handleChoice('queen', row, col, callback);
                 };
             }
-
             if (game.moveExecutor && !game.moveExecutor._isPatched) {
                 game.moveExecutor.handlePromotion = function(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement, isCapture) {
                     this.finalizePromotion(toRow, toCol, 'queen', move, selectedPiece, isCapture);
                 };
                 game.moveExecutor._isPatched = true;
             }
-
             engine.handleSquareClick(move.fromRow, move.fromCol, true);
             engine.handleSquareClick(move.toRow, move.toCol, true);
-
             let wait = 0;
             while (game.gameState.currentPlayer === color && game.gameState.gameActive && wait < 20) {
                 await new Promise(r => setTimeout(r, 2));
                 wait++;
             }
             return (game.gameState.currentPlayer !== color);
-        } catch (e) { 
-            return false; 
-        }
+        } catch (e) { return false; }
     }
 
-async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
-    const startPartie = performance.now();
-    const _log = console.log; 
-    const _warn = console.warn;
-    
-    // Silence local de la console
-    console.log = console.warn = () => {}; 
+    async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
+        const startPartie = performance.now();
+        const _log = console.log; const _warn = console.warn;
+        console.log = console.warn = () => {}; 
 
-    const game = new ChessGame();
-    game.gameState.gameActive = true;
-    let coupsCount = 0;
+        const game = new ChessGame();
+        game.gameState.gameActive = true;
+        let coupsCount = 0;
 
-    // --- INITIALISATION DYNAMIQUE DES BOTS ---
-    const whiteAI = window[`Level_${pWhite.replace('L','')}`] ? new window[`Level_${pWhite.replace('L','')}`]() : null;
-    const blackAI = window[`Level_${pBlack.replace('L','')}`] ? new window[`Level_${pBlack.replace('L','')}`]() : null;
+        const whiteAI = window[`Level_${pWhite.replace('L','')}`] ? new window[`Level_${pWhite.replace('L','')}`]() : null;
+        const blackAI = window[`Level_${pBlack.replace('L','')}`] ? new window[`Level_${pBlack.replace('L','')}`]() : null;
 
-    if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
+        if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
 
-    try {
-        while (coupsCount < maxCoups && game.gameState.gameActive) {
-            const color = game.gameState.currentPlayer;
-            const currentAI = (color === 'white' || color === 'w') ? whiteAI : blackAI;
-            
-            let move = null;
-
-            // 1. Appel à l'intelligence du Bot
-            if (currentAI && typeof currentAI.getMove === 'function') {
-                window.chessGame = game; // Injection pour que le bot voie le plateau
-                move = await currentAI.getMove();
-            } 
-
-            // 2. Sécurité : Si le bot ne répond pas ou erreur, on prend un coup légal au hasard
-            if (!move || move.error || move.fromRow === undefined) {
-                const moves = this.getAvailableMoves(game, color);
-                if (moves.length === 0) break;
-                move = moves[Math.floor(Math.random() * moves.length)];
+        try {
+            while (coupsCount < maxCoups && game.gameState.gameActive) {
+                const color = game.gameState.currentPlayer;
+                const currentAI = (color === 'white' || color === 'w') ? whiteAI : blackAI;
+                let move = null;
+                if (currentAI && typeof currentAI.getMove === 'function') {
+                    window.chessGame = game;
+                    move = await currentAI.getMove();
+                } 
+                if (!move || move.error || move.fromRow === undefined) {
+                    const moves = this.getAvailableMoves(game, color);
+                    if (moves.length === 0) break;
+                    move = moves[Math.floor(Math.random() * moves.length)];
+                }
+                if (await this.executeMove(game, move, color)) {
+                    coupsCount++;
+                    this.stats.totalMoves++;
+                } else break;
             }
-            
-            // 3. Exécution physique du coup
-            const success = await this.executeMove(game, move, color);
-            
-            if (success) {
-                coupsCount++;
-                this.stats.totalMoves++;
-            } else {
-                break;
-            }
+
+            const gs = game.gameState;
+            if (gs.checkGameOver) gs.checkGameOver();
+
+            let winner = 'draw', resTag = "FIN nulle", type = "blanc";
+            const whiteMoves = this.getAvailableMoves(game, 'white');
+            const blackMoves = this.getAvailableMoves(game, 'black');
+            const whiteInCheck = game.moveValidator.isKingInCheck('white');
+            const blackInCheck = game.moveValidator.isKingInCheck('black');
+
+            if (whiteInCheck && whiteMoves.length === 0) { winner = 'black'; resTag = "FIN mat"; type = "rouge"; }
+            else if (blackInCheck && blackMoves.length === 0) { winner = 'white'; resTag = "FIN mat"; type = "rouge"; this.stats.checkmates++; }
+            else if ((!whiteInCheck && whiteMoves.length === 0) || (!blackInCheck && blackMoves.length === 0)) { resTag = "FIN pat"; type = "orange"; this.stats.stalemates++; }
+            else if (coupsCount >= maxCoups) { resTag = "FIN limite"; type = "gris"; }
+            else { this.stats.draws++; }
+
+            const finalFen = FENGenerator.generateFEN ? FENGenerator.generateFEN(gs, game.board) : FENGenerator.generate(game.board, gs);
+            window.dispatchEvent(new CustomEvent('arena-game-finished', { detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount } }));
+
+            this.stats.fenList.push(finalFen);
+            this.stats.gamesPlayed++;
+            if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
+            if (document.getElementById('progress-bar')) document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
+
+            console.log = _log; console.warn = _warn;
+            let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c) ${resTag} | FEN: ${finalFen}`;
+            if (winner === 'white') logMsg += ` - Gagnant: BLANCS`;
+            else if (winner === 'black') logMsg += ` - Gagnant: NOIRS`;
+            this.statusUpdate(logMsg, type, resTag);
+
+        } catch (e) {
+            console.log = _log; console.warn = _warn;
+            this.stats.errors++;
+            this.statusUpdate(`FIN CRASH P#${id} : ${e.message}`, "rouge", "FIN CRASH");
         }
-
-        // --- ANALYSE DE FIN DE PARTIE (CORRIGÉE) ---
-        const gs = game.gameState;
-        if (gs.checkGameOver) gs.checkGameOver();
-
-        let winner = 'draw';
-        let resTag = "FIN nulle";
-        let type = "blanc";
-
-        // Vérification stricte du MAT pour éviter l'inversion
-        const whiteMoves = this.getAvailableMoves(game, 'white');
-        const blackMoves = this.getAvailableMoves(game, 'black');
-        const whiteInCheck = game.moveValidator.isKingInCheck('white');
-        const blackInCheck = game.moveValidator.isKingInCheck('black');
-
-        if (whiteInCheck && whiteMoves.length === 0) {
-            winner = 'black';
-            resTag = "FIN mat";
-            type = "rouge";
-        } else if (blackInCheck && blackMoves.length === 0) {
-            winner = 'white';
-            resTag = "FIN mat";
-            type = "rouge";
-            this.stats.checkmates++; // On compte les victoires (ici pour les blancs)
-        } else if (!whiteInCheck && whiteMoves.length === 0 || !blackInCheck && blackMoves.length === 0) {
-            resTag = "FIN pat";
-            type = "orange";
-            this.stats.stalemates++;
-        } else if (coupsCount >= maxCoups) {
-            resTag = "FIN limite";
-            type = "gris";
-        } else {
-            this.stats.draws++;
-        }
-
-        // --- GÉNÉRATION DU RAPPORT ---
-        const finalFen = FENGenerator.generateFEN ? FENGenerator.generateFEN(gs, game.board) : FENGenerator.generate(game.board, gs);
-
-        window.dispatchEvent(new CustomEvent('arena-game-finished', {
-            detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount }
-        }));
-
-        this.stats.fenList.push(finalFen);
-        this.stats.gamesPlayed++;
-        
-        if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
-        if (document.getElementById('progress-bar')) {
-            document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
-        }
-
-        console.log = _log; console.warn = _warn;
-        const dureePartie = ((performance.now() - startPartie) / 1000).toFixed(2);
-        
-        let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c) ${resTag} | FEN: ${finalFen}`;
-        if (winner === 'white') logMsg += ` - Gagnant: BLANCS`;
-        else if (winner === 'black') logMsg += ` - Gagnant: NOIRS`;
-
-        this.statusUpdate(logMsg, type, resTag);
-
-    } catch (e) {
-        console.log = _log; console.warn = _warn;
-        this.stats.errors++;
-        this.statusUpdate(`FIN CRASH P#${id} : ${e.message}`, "rouge", "FIN CRASH");
     }
-}
     
     async runBatch() {
         if (this.isRunning) return;
-        
-        // Réinitialisation des statistiques et de l'analyste
         this.resetStats();
         if (window.arenaAnalyst) window.arenaAnalyst.reset();
 
-        // Récupération des paramètres de l'interface
         const total = parseInt(document.getElementById('inputMaxGames')?.value || 50);
         const moves = parseInt(document.getElementById('inputMaxMoves')?.value || 100);
         const selW = document.getElementById('selectBotWhite')?.value || "L1";
         const selB = document.getElementById('selectBotBlack')?.value || "L1";
         const isRandom = document.getElementById('checkRandomColors')?.checked;
 
-        // Sauvegarde de la configuration (incluant maxCoups pour le JSON final)
-        this.stats.config = { 
-            white: selW, 
-            black: selB, 
-            isRandom: isRandom,
-            maxCoups: moves 
-        };
+        this.stats.config = { white: selW, black: selB, isRandom, maxCoups: moves };
 
-        // Injection CSS pour cacher les éléments UI parasites (modales de promotion, etc.)
         if (!document.getElementById('stress-test-style')) {
-            document.head.insertAdjacentHTML('beforeend', `
-                <style id="stress-test-style">
-                    .promotion-modal, .promotion-overlay, .chess-notification { display: none !important; }
-                </style>`);
+            document.head.insertAdjacentHTML('beforeend', `<style id="stress-test-style">.promotion-modal, .promotion-overlay, .chess-notification { display: none !important; }</style>`);
         }
 
-        // État de fonctionnement
         this.isRunning = true; 
         if (this.btn) this.btn.disabled = true; 
         if (this.logEl) this.logEl.innerHTML = ''; 
-        
         this.stats.startTime = performance.now();
         
-        // Messages de statut sobres (sans émojis)
         this.statusUpdate("DEMARRAGE DU TEST...", "system");
         this.statusUpdate(`CONFIG : [BLANC:${selW}] vs [NOIRS:${selB}] | Aleatoire: ${isRandom ? 'OUI' : 'NON'} | Limite: ${moves} coups`, "gris");
 
-        // Boucle principale des parties
         for (let i = 1; i <= total; i++) {
-            let pWhite = selW;
-            let pBlack = selB;
-
-            // Inversion aléatoire des couleurs si l'option est cochée
-            if (isRandom && Math.random() > 0.5) {
-                pWhite = selB;
-                pBlack = selW;
-            }
-
-            // Exécution d'une simulation de partie
-            await this.simulateGame(i, moves, total, pWhite, pBlack);
-            
-            // Laisser une micro-pause pour ne pas figer le navigateur
+            let pW = selW, pB = selB;
+            if (isRandom && Math.random() > 0.5) { pW = selB; pB = selW; }
+            await this.simulateGame(i, moves, total, pW, pB);
             await new Promise(r => setTimeout(r, 1));
         }
 
-        // Calcul de la durée totale
         this.stats.totalDuration = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
-        
-        // Message de fin
         this.statusUpdate(`SESSION TERMINEE : [BLANCS:${selW} vs NOIRS:${selB}] en ${this.stats.totalDuration}s`, "system");
-        
         this.isRunning = false; 
         if (this.btn) this.btn.disabled = false;
-        
-        // Réactivation des logs de console standards du jeu si nécessaire
-        if (window.GameStatusManager) window.GameStatusManager.consoleLog = true;
-        
-        // Sauvegarde automatique du rapport JSON sur le serveur
         await this.saveJsonToServer();
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => { 
-    window.stressTester = new BotStressTest(); 
-});
+document.addEventListener('DOMContentLoaded', () => { window.stressTester = new BotStressTest(); });

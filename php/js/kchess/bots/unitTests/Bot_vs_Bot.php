@@ -87,7 +87,7 @@ if (empty($availableBots)) {
                 </div>
 
                 <div class="random-opt">
-                    <input type="checkbox" id="checkRandomColors" checked>
+                    <input type="checkbox" id="checkRandomColors">
                     <label for="checkRandomColors"> Couleur aléatoire</label>
                 </div>
 
@@ -191,71 +191,6 @@ if (empty($availableBots)) {
     <script src="js/ArenaAnalyst.js?v=<?php echo $version; ?>"></script>
     <script src="js/stress-test-bot.js?v=<?php echo $version; ?>"></script>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- LOG SELECTION CHANGE ---
-        const handleBotChange = (e, side) => {
-            console.log(`[ARENA] Bot ${side} changé pour : ${e.target.value}`);
-        };
-        document.getElementById('selectBotWhite').addEventListener('change', (e) => handleBotChange(e, 'BLANC'));
-        document.getElementById('selectBotBlack').addEventListener('change', (e) => handleBotChange(e, 'NOIR'));
-
-        // --- CLEAR SERVER LOGIC ---
-        const clearBtn = document.getElementById('clearJsonBtn');
-        if (clearBtn) {
-            clearBtn.onclick = function() {
-                if (!confirm("Supprimer tous les fichiers JSON sur le serveur ?")) return;
-                fetch('log_error.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'clear_all' })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.status === "cleared" || data.status === "success") {
-                        if (window.arenaAnalyst) window.arenaAnalyst.reset();
-                        alert("Serveur nettoyé !");
-                        location.reload();
-                    }
-                })
-                .catch(e => console.error("Erreur:", e));
-            };
-        }
-
-        // --- COPY STATS LOGIC ---
-        const copyStatsBtn = document.getElementById('copyStatsBtn');
-        if (copyStatsBtn) {
-            copyStatsBtn.onclick = function() {
-                const stats = {
-                    white: document.getElementById('dash-win-w').innerText,
-                    black: document.getElementById('dash-win-b').innerText,
-                    draws: document.getElementById('dash-draws').innerText,
-                    moves: document.getElementById('dash-moves').innerText,
-                    ratioGlobal: document.getElementById('dash-ratio').innerText,
-                    ratioPure: document.getElementById('dash-pure-ratio').innerText,
-                    total: document.getElementById('count').innerText
-                };
-
-                const text = `📊 ARENA STATS REPORT
------------------------
-Parties : ${stats.total}
-Blancs  : ${stats.white} victoires
-Noirs   : ${stats.black} victoires
-Nulles  : ${stats.draws}
-Coups   : ${stats.moves}
-Ratio (W/D/B) : ${stats.ratioGlobal}
-Ratio (W/B)   : ${stats.ratioPure} (Hors nulles)
------------------------
-Généré le : ${new Date().toLocaleString()}`;
-
-                navigator.clipboard.writeText(text).then(() => {
-                    const original = copyStatsBtn.innerText;
-                    copyStatsBtn.innerText = "✅ COPIÉ";
-                    setTimeout(() => copyStatsBtn.innerText = original, 1200);
-                });
-            };
-        }
-    });
-    </script>
+    
 </body>
 </html>
