@@ -1,6 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.5.0 - Gestion des Pats et Filtre UI
+ * Version : 7.6.0 - Gestion des Pats, Filtre UI et Mesure du Temps Réel par partie
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -21,22 +21,20 @@ class BotStressTest {
             gamesPlayed: 0, 
             errors: 0, 
             checkmates: 0, 
-            stalemates: 0, // Compteur spécifique pour les Pats
+            stalemates: 0, 
             draws: 0, 
             fenList: [],
             startTime: null,
             totalDuration: 0,
             config: { white: "", black: "", isRandom: false, maxCoups: 0 }
         };
-        const errEl = document.getElementById('errors');
-        const countEl = document.getElementById('count');
+        const elements = ['errors', 'count', 'dash-stalemates'];
+        elements.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = "0";
+        });
         const progressEl = document.getElementById('progress-bar');
-        const dashStalemate = document.getElementById('dash-stalemates');
-
-        if (errEl) errEl.innerText = "0";
-        if (countEl) countEl.innerText = "0";
         if (progressEl) progressEl.style.width = "0%";
-        if (dashStalemate) dashStalemate.innerText = "0";
     }
 
     init() {
@@ -57,47 +55,20 @@ class BotStressTest {
         if (copyStatsBtn) {
             copyStatsBtn.onclick = () => {
                 const statsData = {
-                    white: document.getElementById('dash-win-w').innerText,
-                    black: document.getElementById('dash-win-b').innerText,
-                    draws: document.getElementById('dash-draws').innerText,
+                    white: document.getElementById('dash-win-w')?.innerText || "0",
+                    black: document.getElementById('dash-win-b')?.innerText || "0",
+                    draws: document.getElementById('dash-draws')?.innerText || "0",
                     stalemates: document.getElementById('dash-stalemates')?.innerText || "0",
-                    moves: document.getElementById('dash-moves').innerText,
-                    ratioGlobal: document.getElementById('dash-ratio')?.innerText || "0/0/0",
-                    ratioPure: document.getElementById('dash-pure-ratio')?.innerText || "0/0",
-                    total: document.getElementById('count').innerText
+                    moves: document.getElementById('dash-moves')?.innerText || "0",
+                    total: document.getElementById('count')?.innerText || "0"
                 };
                 const text = `📊 ARENA STATS REPORT\n-----------------------\n` +
                              `Parties   : ${statsData.total}\n` +
-                             `Blancs    : ${statsData.white} victoires\n` +
-                             `Noirs     : ${statsData.black} victoires\n` +
-                             `Nulles    : ${statsData.draws}\n` +
-                             `Pats      : ${statsData.stalemates}\n` +
+                             `Victoires : W:${statsData.white} / B:${statsData.black}\n` +
+                             `Nulles    : ${statsData.draws} (Pats: ${statsData.stalemates})\n` +
                              `Coups     : ${statsData.moves}\n` +
-                             `Ratio (W/D/B) : ${statsData.ratioGlobal}\n` +
-                             `Ratio (W/B)   : ${statsData.ratioPure} (Hors nulles)\n` +
                              `-----------------------\nGénéré le : ${new Date().toLocaleString()}`;
                 this.copyToClipboard(text, copyStatsBtn);
-            };
-        }
-
-        const clearBtn = document.getElementById('clearJsonBtn');
-        if (clearBtn) {
-            clearBtn.onclick = () => {
-                if (!confirm("Supprimer tous les fichiers JSON sur le serveur ?")) return;
-                fetch('log_error.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'clear_all' })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.status === "cleared" || data.status === "success") {
-                        if (window.arenaAnalyst) window.arenaAnalyst.reset();
-                        alert("Serveur nettoyé !");
-                        location.reload();
-                    }
-                })
-                .catch(e => console.error("Erreur:", e));
             };
         }
     }
@@ -113,6 +84,11 @@ class BotStressTest {
 
     statusUpdate(msg, type = 'blanc', resultLabel = "", winner = null) {
         if (!this.logEl || !msg.trim()) return; 
+
+        if (this.logEl.children.length >= 200) {
+            this.logEl.removeChild(this.logEl.firstChild);
+        }
+
         const div = document.createElement('div');
         const colors = { rouge: "#f85149", orange: "#d29922", blanc: "#ffffff", gris: "#8b949e", system: "#3fb950" };
         const time = `<span style="color:#8b949e">[${new Date().toLocaleTimeString()}]</span> `;
@@ -123,7 +99,6 @@ class BotStressTest {
             formattedMsg = msg.replace(resultLabel, `<span style="color:${labelColor}; font-weight:bold;">${resultLabel}</span>`);
         }
 
-        // Ajout du Badge de Victoire
         if (winner === 'white') {
             formattedMsg += ` <span class="badge-log-win badge-white">WIN WHITE</span>`;
         } else if (winner === 'black') {
@@ -202,6 +177,9 @@ class BotStressTest {
         const _log = console.log; const _warn = console.warn;
         console.log = console.warn = () => {}; 
 
+        // --- Chrono début de la partie ---
+        const gameStartTime = performance.now();
+
         const game = new ChessGame();
         game.gameState.gameActive = true;
         let coupsCount = 0;
@@ -231,6 +209,10 @@ class BotStressTest {
                 } else break;
             }
 
+            // --- Chrono fin de la partie ---
+            const gameEndTime = performance.now();
+            const gameDuration = ((gameEndTime - gameStartTime) / 1000).toFixed(2);
+
             const gs = game.gameState;
             if (gs.checkGameOver) gs.checkGameOver();
 
@@ -240,7 +222,6 @@ class BotStressTest {
             const whiteInCheck = game.moveValidator.isKingInCheck('white');
             const blackInCheck = game.moveValidator.isKingInCheck('black');
 
-            // Analyse précise de la fin de partie
             if (whiteInCheck && whiteMoves.length === 0) { 
                 winner = 'black'; resTag = "FIN mat"; type = "rouge"; 
             } else if (blackInCheck && blackMoves.length === 0) { 
@@ -258,7 +239,6 @@ class BotStressTest {
 
             const finalFen = FENGenerator.generateFEN ? FENGenerator.generateFEN(gs, game.board) : FENGenerator.generate(game.board, gs);
             
-            // Dispatch vers ArenaAnalyst pour mise à jour dashboard temps réel
             window.dispatchEvent(new CustomEvent('arena-game-finished', { 
                 detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount, isStalemate } 
             }));
@@ -266,7 +246,6 @@ class BotStressTest {
             this.stats.fenList.push(finalFen);
             this.stats.gamesPlayed++;
             
-            // UI Update
             if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
             if (document.getElementById('progress-bar')) document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
             if (isStalemate && document.getElementById('dash-stalemates')) {
@@ -275,13 +254,13 @@ class BotStressTest {
 
             console.log = _log; console.warn = _warn;
             
-            // --- LOGIQUE D'AFFICHAGE FILTRÉE ---
             const showDraws = document.getElementById('checkShowDraws')?.checked;
             const isNormalDraw = (winner === 'draw' && !isStalemate);
             const shouldLog = !isNormalDraw || showDraws;
 
             if (shouldLog) {
-                let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c) ${resTag} | FEN: ${finalFen}`;
+                // Affichage du temps réel de la partie dans le log
+                let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c - ${gameDuration}s) ${resTag} | FEN: ${finalFen}`;
                 this.statusUpdate(logMsg, type, resTag, winner !== 'draw' ? winner : null);
             }
 
@@ -324,11 +303,12 @@ class BotStressTest {
             let pW = selW, pB = selB;
             if (isRandom && Math.random() > 0.5) { pW = selB; pB = selW; }
             await this.simulateGame(i, moves, total, pW, pB);
+            // Petit délai pour laisser respirer l'UI mais n'affecte pas le chrono interne simulateGame
             await new Promise(r => setTimeout(r, 1));
         }
 
         this.stats.totalDuration = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
-        this.statusUpdate(`SESSION TERMINEE : en ${this.stats.totalDuration}s`, "system");
+        this.statusUpdate(`SESSION TERMINEE : Temps total Arena ${this.stats.totalDuration}s`, "system");
         this.isRunning = false; 
         if (this.btn) this.btn.disabled = false;
         await this.saveJsonToServer();
