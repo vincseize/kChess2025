@@ -111,7 +111,7 @@ class BotStressTest {
         } catch (err) { this.statusUpdate("❌ Erreur de copie", "rouge"); }
     }
 
-    statusUpdate(msg, type = 'blanc', resultLabel = "") {
+    statusUpdate(msg, type = 'blanc', resultLabel = "", winner = null) {
         if (!this.logEl || !msg.trim()) return; 
         const div = document.createElement('div');
         const colors = { rouge: "#f85149", orange: "#d29922", blanc: "#ffffff", gris: "#8b949e", system: "#3fb950" };
@@ -121,6 +121,13 @@ class BotStressTest {
         if (resultLabel) {
             const labelColor = colors[type] || "#ffffff";
             formattedMsg = msg.replace(resultLabel, `<span style="color:${labelColor}; font-weight:bold;">${resultLabel}</span>`);
+        }
+
+        // Ajout du Badge de Victoire
+        if (winner === 'white') {
+            formattedMsg += ` <span class="badge-log-win badge-white">WIN WHITE</span>`;
+        } else if (winner === 'black') {
+            formattedMsg += ` <span class="badge-log-win badge-black">WIN BLACK</span>`;
         }
         
         div.style.color = colors[type] || "#ffffff";
@@ -270,15 +277,12 @@ class BotStressTest {
             
             // --- LOGIQUE D'AFFICHAGE FILTRÉE ---
             const showDraws = document.getElementById('checkShowDraws')?.checked;
-            // On affiche si : Ce n'est pas une nulle normale (W ou B gagne), OU si c'est un PAT, OU si "Afficher nulles" est coché
             const isNormalDraw = (winner === 'draw' && !isStalemate);
             const shouldLog = !isNormalDraw || showDraws;
 
             if (shouldLog) {
                 let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c) ${resTag} | FEN: ${finalFen}`;
-                if (winner === 'white') logMsg += ` - Gagnant: BLANCS`;
-                else if (winner === 'black') logMsg += ` - Gagnant: NOIRS`;
-                this.statusUpdate(logMsg, type, resTag);
+                this.statusUpdate(logMsg, type, resTag, winner !== 'draw' ? winner : null);
             }
 
         } catch (e) {
@@ -303,7 +307,6 @@ class BotStressTest {
 
         this.stats.config = { white: selW, black: selB, isRandom, maxCoups: moves };
 
-        // Patch CSS pour éviter les popups d'engine pendant le stress test
         if (!document.getElementById('stress-test-style')) {
             document.head.insertAdjacentHTML('beforeend', `<style id="stress-test-style">.promotion-modal, .promotion-overlay, .chess-notification { display: none !important; }</style>`);
         }
