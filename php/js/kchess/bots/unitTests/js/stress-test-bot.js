@@ -1,6 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.6.0 - Gestion des Pats, Filtre UI et Mesure du Temps Réel par partie
+ * Version : 7.6.3 - Fonction Start/Stop sur le bouton principal
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -38,7 +38,16 @@ class BotStressTest {
     }
 
     init() {
-        if (this.btn) this.btn.onclick = () => this.runBatch();
+        // Gestion Start / Stop unique
+        if (this.btn) {
+            this.btn.onclick = () => {
+                if (this.isRunning) {
+                    this.stop();
+                } else {
+                    this.runBatch();
+                }
+            };
+        }
         
         const copyLogBtn = document.getElementById('copyLogBtn');
         if (copyLogBtn) copyLogBtn.onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
@@ -73,16 +82,21 @@ class BotStressTest {
         }
     }
 
+    stop() {
+        this.isRunning = false;
+        this.statusUpdate("🛑 ARRÊT DEMANDÉ...", "orange");
+    }
+
     async copyToClipboard(text, btn) {
         try {
             await navigator.clipboard.writeText(text);
             const original = btn.innerText;
             btn.innerText = "✅ COPIÉ";
             setTimeout(() => btn.innerText = original, 1200);
-        } catch (err) { this.statusUpdate("❌ Erreur de copie", "rouge"); }
+        } catch (err) { console.error("Erreur copie", err); }
     }
 
-    statusUpdate(msg, type = 'blanc', resultLabel = "", winner = null) {
+    statusUpdate(msg, type = 'blanc', resultLabel = "", winner = null, fenToCopy = null) {
         if (!this.logEl || !msg.trim()) return; 
 
         if (this.logEl.children.length >= 200) {
@@ -100,16 +114,31 @@ class BotStressTest {
         }
 
         if (winner === 'white') {
-            formattedMsg += ` <span class="badge-log-win badge-white">WIN WHITE</span>`;
+            formattedMsg += ` <span class="badge-log-win badge-white" style="font-weight:bold; background:#fff; color:#000; padding:0 3px; border-radius:2px; font-size:9px;">WIN WHITE</span>`;
         } else if (winner === 'black') {
-            formattedMsg += ` <span class="badge-log-win badge-black">WIN BLACK</span>`;
+            formattedMsg += ` <span class="badge-log-win badge-black" style="font-weight:bold; background:#333; color:#fff; padding:0 3px; border-radius:2px; font-size:9px; border:1px solid #555;">WIN BLACK</span>`;
         }
         
         div.style.color = colors[type] || "#ffffff";
         div.style.fontSize = "11px";
         div.style.padding = "2px 0";
         div.style.borderBottom = "1px solid #30363d";
-        div.innerHTML = time + formattedMsg;
+        div.style.display = "flex";
+        div.style.justifyContent = "space-between";
+        div.style.alignItems = "center";
+
+        const textSpan = document.createElement('span');
+        textSpan.innerHTML = time + formattedMsg;
+        div.appendChild(textSpan);
+
+        if (fenToCopy) {
+            const copyBtn = document.createElement('button');
+            copyBtn.innerText = "FEN";
+            copyBtn.style.cssText = "background:#21262d; color:#8b949e; border:1px solid #30363d; cursor:pointer; font-size:9px; padding:0 4px; border-radius:3px; margin-left:10px;";
+            copyBtn.onclick = (e) => this.copyToClipboard(fenToCopy, e.target);
+            div.appendChild(copyBtn);
+        }
+
         this.logEl.appendChild(div);
         this.logEl.scrollTop = this.logEl.scrollHeight;
     }
@@ -177,9 +206,7 @@ class BotStressTest {
         const _log = console.log; const _warn = console.warn;
         console.log = console.warn = () => {}; 
 
-        // --- Chrono début de la partie ---
         const gameStartTime = performance.now();
-
         const game = new ChessGame();
         game.gameState.gameActive = true;
         let coupsCount = 0;
@@ -190,7 +217,8 @@ class BotStressTest {
         if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
 
         try {
-            while (coupsCount < maxCoups && game.gameState.gameActive) {
+            // Ajout de la condition isRunning dans la boucle de coups
+            while (coupsCount < maxCoups && game.gameState.gameActive && this.isRunning) {
                 const color = game.gameState.currentPlayer;
                 const currentAI = (color === 'white' || color === 'w') ? whiteAI : blackAI;
                 let move = null;
@@ -209,7 +237,6 @@ class BotStressTest {
                 } else break;
             }
 
-            // --- Chrono fin de la partie ---
             const gameEndTime = performance.now();
             const gameDuration = ((gameEndTime - gameStartTime) / 1000).toFixed(2);
 
@@ -259,9 +286,8 @@ class BotStressTest {
             const shouldLog = !isNormalDraw || showDraws;
 
             if (shouldLog) {
-                // Affichage du temps réel de la partie dans le log
-                let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c - ${gameDuration}s) ${resTag} | FEN: ${finalFen}`;
-                this.statusUpdate(logMsg, type, resTag, winner !== 'draw' ? winner : null);
+                let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c - ${gameDuration}s) ${resTag}`;
+                this.statusUpdate(logMsg, type, resTag, winner !== 'draw' ? winner : null, finalFen);
             }
 
         } catch (e) {
@@ -291,7 +317,11 @@ class BotStressTest {
         }
 
         this.isRunning = true; 
-        if (this.btn) this.btn.disabled = true; 
+        if (this.btn) {
+            this.btn.innerText = "STOP TEST"; // Change le texte du bouton
+            this.btn.style.background = "#f85149"; // Optionnel : met le bouton en rouge
+        }
+
         if (this.logEl) this.logEl.innerHTML = ''; 
         this.stats.startTime = performance.now();
         
@@ -299,18 +329,21 @@ class BotStressTest {
         this.statusUpdate(`CONFIG : [BLANC:${selW}] vs [NOIRS:${selB}] | Aléatoire: ${isRandom ? 'OUI' : 'NON'} | Limite: ${moves} coups`, "gris");
 
         for (let i = 1; i <= total; i++) {
-            if (!this.isRunning) break;
+            if (!this.isRunning) break; // Sort de la boucle si STOP est pressé
             let pW = selW, pB = selB;
             if (isRandom && Math.random() > 0.5) { pW = selB; pB = selW; }
             await this.simulateGame(i, moves, total, pW, pB);
-            // Petit délai pour laisser respirer l'UI mais n'affecte pas le chrono interne simulateGame
             await new Promise(r => setTimeout(r, 1));
         }
 
         this.stats.totalDuration = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
         this.statusUpdate(`SESSION TERMINEE : Temps total Arena ${this.stats.totalDuration}s`, "system");
+        
         this.isRunning = false; 
-        if (this.btn) this.btn.disabled = false;
+        if (this.btn) {
+            this.btn.innerText = "START ARENA"; // Remet le texte d'origine
+            this.btn.style.background = ""; // Remet la couleur d'origine
+        }
         await this.saveJsonToServer();
     }
 }
