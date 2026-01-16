@@ -78,6 +78,7 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
       📄 Level_1.js
       📄 Level_2.js
       📄 Level_3.js
+      📄 Level_4.js
       📄 bot-test-interface.js
       📁 unitTests
         📄 Bot_vs_Bot.php
@@ -92,9 +93,6 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
           📄 stress-test-bot.js
         📄 log_error.php
         📁 results
-          📄 stress_test-White_L1-vs-Black_L1-RANDOM.json
-          📄 stress_test-White_L1-vs-Black_L2-RANDOM.json
-          📄 stress_test-White_L1-vs-Black_L2.json
     📁 check
       📄 checkChess copy.js
       📄 checkChess.js
