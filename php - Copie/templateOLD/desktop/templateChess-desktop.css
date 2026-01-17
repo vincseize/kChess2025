@@ -1,0 +1,387 @@
+/* templateChess-desktop.css */
+/* Corps - PAS DE SCROLL */
+body {
+    font-family: Arial,sans-serif;
+    height: 100vh;
+    display:flex;
+    flex-direction:column;
+    background:var(--color6);
+    color:black;
+    overflow: hidden; /* PAS DE SCROLL */
+    margin: 0;
+    padding: 0;
+}
+
+body.dark {
+    background:#1e1e1e;
+    color:#f3f3f3;
+}
+
+.text-color2 {
+    color: var(--color2) !important;
+}
+
+/* Layout général */
+.game-layout {
+    display:flex; 
+    flex-direction:column; 
+    flex:1;
+    height: 100vh;
+    overflow: hidden; /* PAS DE SCROLL */
+}
+
+header {
+    height:60px; 
+    background:var(--color5); 
+    color:var(--color4); 
+    display:flex; 
+    justify-content:center; 
+    align-items:center; 
+    position:relative;
+    font-size:1.5rem;
+    font-weight:bold;
+    flex-shrink: 0;
+}
+
+/* Conteneur principal - PAS DE SCROLL */
+/* Conteneur principal - PAS DE SCROLL */
+.main-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: calc(100vh - 60px); /* Hauteur fixe moins le header */
+    overflow: hidden; /* PAS DE SCROLL */
+}
+
+/* Rangée principale - PREND TOUT L'ESPACE SAUF LE FOOTER */
+.main-row {
+    display: flex;
+    flex: 1; /* PREND TOUT L'ESPACE DISPONIBLE */
+    min-height: 0;
+    gap: 0;
+    overflow: hidden; /* PAS DE SCROLL */
+}
+
+/* Colonne Nouvelle Partie */
+/* Colonne Nouvelle Partie - BOUTON CARRÉ */
+.new-game-col {
+    width: 200px;
+    background: var(--color6);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--color7);
+    flex-shrink: 0;
+    padding: 20px; /* GARDER LE PADDING POUR L'ESPACEMENT */
+    align-items: center; /* CENTRER LE BOUTON */
+    justify-content: flex-start; /* COLLER EN HAUT */
+}
+
+/* Style spécifique pour le bouton Nouvelle Partie */
+.new-game-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--color6);
+    border: none;
+    padding: 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    gap: 8px;
+    border: 1px solid var(--color8);
+    /* FORCER LE CARRÉ */
+    height: 100px; /* PLUS GRAND QUE LES AUTRES BOUTONS */
+    width: 100px; /* PLUS GRAND QUE LES AUTRES BOUTONS */
+    min-height: 100px;
+    min-width: 100px;
+}
+
+.new-game-btn:hover {
+    background: var(--color1);
+    color: white;
+}
+
+.new-game-btn-icon {
+    font-size: 2rem; /* PLUS GRAND QUE LES AUTRES ICÔNES */
+    line-height: 1;
+}
+
+.new-game-btn-text {
+    font-size: 0.75rem; /* PLUS GRAND QUE LES AUTRES TEXTES */
+    font-weight: bold;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+/* Colonne Échiquier - PREND TOUTE LA HAUTEUR */
+.chessboard-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--color6);
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+.section-joueurs {
+    width:100%; 
+    display:flex; 
+    justify-content:center; 
+    align-items:center;
+    flex-shrink: 0; /* TAILLE FIXE */
+    background:var(--color2);
+    padding:8px 15px;
+    min-height: 65px;
+    margin: 0;
+}
+
+.player-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 500px;
+}
+
+.player-name {
+    text-align: left;
+    font-weight: bold;
+    font-size: 1rem;
+    color: white;
+}
+
+.player-clock {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    font-weight: bold;
+    background: rgba(0,0,0,0.2);
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 60px;
+}
+
+.player-clock-black {
+    color: white;
+    background: black;
+}
+
+.player-clock-white {
+    color: black;
+    background: white;
+}
+
+/* Échiquier - S'AGGRANDIT PROPORTIONNELLEMENT */
+.chessboard-container {
+    flex: 1; /* PREND TOUT L'ESPACE RESTANT */
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Centré verticalement dans l'espace disponible */
+    min-height: 0;
+    width: 100%;
+    max-width: 600px; /* Maximum mais peut être plus petit */
+    margin: 0 auto;
+    padding: 10px 0; /* Un peu d'espace vertical */
+}
+
+.section-board {
+    width: 100%;
+    height: 100%;
+    max-width: 100%; /* S'adapte au conteneur */
+    max-height: 100%; /* S'adapte au conteneur */
+    background: var(--color1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: var(--color2);
+    font-weight: bold;
+    font-size: 1rem;
+    aspect-ratio: 1 / 1; /* GARDE LA PROPORTION CARRÉE */
+    border: 3px solid var(--color3);
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    margin: 0;
+}
+
+/* Colonne Coups et contrôles - HAUTEUR FIXE */
+.controls-col {
+    width: 355px; /* ÉLARGIE de 250px à 300px */
+    background: var(--color6);
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--color7);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+/* Section Coups - SCROLL INTERNE SEULEMENT */
+.coups-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.coups-header {
+    background: var(--color2);
+    color: white;
+    padding: 12px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1rem;
+    flex-shrink: 0;
+
+    /* padding:8px 15px;
+    min-height: 50px;
+    margin: 0; */
+}
+
+.coups-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto; /* SCROLL INTERNE SEULEMENT */
+    padding: 10px;
+    background: white;
+    font-size: 0.9rem;
+}
+
+.coups-list {
+    line-height: 1.3;
+}
+
+.coups-list p {
+    margin: 3px 0;
+    padding: 2px 0;
+    border-bottom: 1px solid #eee;
+}
+
+/* Contrôles - TOUS SUR LA MÊME LIGNE */
+.controls-section {
+    background: var(--color7);
+    padding: 5px;
+    border-top: 2px solid var(--color2);
+    flex-shrink: 0;
+    height: 65px;
+}
+
+.control-buttons {
+    display: flex; /* CHANGÉ : flex au lieu de grid */
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.control-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--color6);
+    border: none;
+    padding: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    gap: 3px;
+    border: 1px solid var(--color8);
+    flex: 1;
+    min-width: 0;
+    /* FORCER LE CARRÉ - METHODE ALTERNATIVE */
+    height: 51px; /* HAUTEUR FIXE */
+    width: 51px; /* LARGEUR FIXE */
+    min-height: 51px;
+    min-width: 51px;
+}
+
+.control-btn-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.control-btn-text {
+    font-size: 0.65rem;
+    font-weight: normal;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.control-btn:hover {
+    background: var(--color3);
+    color: white;
+}
+
+
+
+/* Pour les anciens navigateurs qui ne supportent pas aspect-ratio */
+@supports not (aspect-ratio: 1 / 1) {
+    .control-btn::before {
+        content: '';
+        display: block;
+        padding-top: 100%; /* Crée un carré */
+    }
+    
+    .control-btn {
+        position: relative;
+    }
+    
+    .control-btn > * {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Footer Sticky */
+/* Footer Sticky - TAILLE FIXE EN BAS */
+.sticky-footer {
+    background: var(--color5);
+    color: white;
+    padding: 8px 15px;
+    text-align: center;
+    flex-shrink: 0; /* TAILLE FIXE */
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+    min-height: 40px;
+    width: 100%;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.footer-info {
+    font-size: 0.85rem;
+}
+
+.footer-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.footer-btn {
+    background: var(--color2);
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: background-color 0.2s;
+}
+
+.footer-btn:hover {
+    background: var(--color1);
+}

@@ -1,0 +1,50 @@
+<?php
+/**
+ * app_mobile.php - Version Mobile avec Bot Dynamique
+ * Version : 7.2.7 - Synchronized with App.php Logic
+ */
+
+// 1. GESTION DES SESSIONS
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$_SESSION['from_app'] = true;
+
+// 2. GESTION DE LA LANGUE
+$lang = 'fr';
+if (isset($_GET['lang'])) {
+    $lang = preg_replace('/[^a-z]/', '', $_GET['lang']);
+    $_SESSION['charlychess_lang'] = $lang;
+} elseif (isset($_SESSION['charlychess_lang'])) {
+    $lang = $_SESSION['charlychess_lang'];
+}
+setcookie('charlychess_lang', $lang, time() + (86400 * 30), "/");
+
+// 3. LOGIQUE DYNAMIQUE DES BOTS
+$requestedLevel = isset($_GET['level']) ? intval($_GET['level']) : 1;
+$botFileName = "Level_" . $requestedLevel . ".js";
+
+// Note : On utilise un chemin relatif propre au dossier racine du projet
+$botRelativePath = "js/kchess/bots/" . $botFileName;
+$botAbsolutePath = __DIR__ . "/" . $botRelativePath;
+
+// 4. HEADER (Charge BotCore.js via engine-scripts.php)
+require_once 'header.php';
+
+// 5. CONTENU MOBILE (Plateau et UI adaptée)
+require_once 'content_mobile.php';
+
+// 6. INJECTION DU BOT (Après le contenu, avec DEFER pour le timing)
+echo "\n\n";
+if (file_exists($botAbsolutePath)) {
+    // Le 'defer' garantit que BotBase (chargé dans le header) est prêt
+    echo '<script src="' . $botRelativePath . '?v=' . time() . '" defer></script>' . "\n";
+} else {
+    // Fallback vers Level 1
+    echo '<script src="js/kchess/bots/Level_1.js?v=' . time() . '" defer></script>' . "\n";
+}
+echo "\n\n";
+
+// 7. FOOTER
+require_once 'footer.php';
+?>

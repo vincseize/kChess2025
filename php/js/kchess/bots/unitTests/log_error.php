@@ -1,7 +1,7 @@
 <?php
 /**
  * SERVEUR DE LOGS - K-CHESS STRESS TESTER
- * Sauvegarde dynamique par nomenclature de niveau.
+ * Emplacement : php/js/kchess/bots/unitTests/log_error.php
  */
 
 header('Content-Type: application/json');
@@ -21,23 +21,27 @@ if (!$data) {
 $action = $data['action'] ?? '';
 
 switch ($action) {
-    case 'clear_all':
+    // Changé 'clear_all' en 'clear' pour correspondre au JS
+    case 'clear':
         $files = glob($directory . '*.json'); 
-        foreach ($files as $file) { if (is_file($file)) unlink($file); }
-        echo json_encode(["status" => "cleared"]);
+        $count = 0;
+        foreach ($files as $file) { 
+            if (is_file($file)) {
+                unlink($file); 
+                $count++;
+            }
+        }
+        echo json_encode(["status" => "cleared", "deleted_count" => $count]);
         break;
 
     case 'save':
-        // Utilise le nom envoyé par JS (ex: stress_test-L1vsL2.json)
         $filename = isset($data['filename']) ? basename($data['filename']) : 'test_default.json';
         $finalPath = $directory . $filename;
 
-        // On remplace uniquement le fichier du même type
-        if (is_file($finalPath)) unlink($finalPath);
-
+        // On écrase le fichier existant
         $jsonFlags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
         
-        if (file_put_contents($finalPath, json_encode($data, $jsonFlags)) !== false) {
+        if (file_put_contents($finalPath, json_encode($data['stats'], $jsonFlags)) !== false) {
             echo json_encode(["status" => "saved", "file" => $filename]);
         } else {
             echo json_encode(["status" => "error", "message" => "Echec ecriture"]);
@@ -45,5 +49,5 @@ switch ($action) {
         break;
 
     default:
-        echo json_encode(["status" => "error", "message" => "Action inconnue"]);
+        echo json_encode(["status" => "error", "message" => "Action inconnue: " . $action]);
 }

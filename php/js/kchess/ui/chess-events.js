@@ -99,6 +99,7 @@ class ChessEventsManager {
  * Cette fonction surveille le changement de tour et fait jouer le bot.
  * Version évolutive : Gère dynamiquement les niveaux (Level_1, Level_2, Level_3, etc.)
  */
+
 async function handleBotTurn() {
     const game = window.chessGame?.core || window.chessGame;
     if (!game || !game.gameState || !game.gameState.gameActive) return;
@@ -118,14 +119,11 @@ async function handleBotTurn() {
         let botInstance = null;
 
         // --- SÉLECTION DYNAMIQUE DU BOT ---
-        // Cherche d'abord la classe exacte (ex: Level_3)
         const className = `Level_${level}`;
-        
         if (typeof window[className] !== 'undefined') {
             botInstance = new window[className]();
             ChessEventsManager.log(`Instanciation de ${className}`, 'success');
         } 
-        // Repli (Fallback) : Si le niveau demandé n'existe pas, on cherche le plus haut possible
         else {
             ChessEventsManager.log(`${className} non trouvé, recherche d'une alternative...`, 'warn');
             const availableLevels = [3, 2, 1];
@@ -139,25 +137,27 @@ async function handleBotTurn() {
         }
 
         if (!botInstance) {
-            ChessEventsManager.log("❌ Erreur critique : Aucun moteur de Bot (Level_X) n'est chargé dans la page.", "error");
+            ChessEventsManager.log("❌ Erreur critique : Aucun moteur de Bot chargé.", "error");
             return;
         }
 
-        // Délai de réflexion "humain" pour ne pas jouer instantanément
+        // Délai de réflexion "humain"
         await new Promise(r => setTimeout(r, 800));
 
         try {
-            // Appel du moteur (supporte getMove ou makeMove pour la compatibilité)
             const move = botInstance.getMove ? await botInstance.getMove() : await botInstance.makeMove(game);
 
             if (move && !move.error) {
-                ChessEventsManager.log(`Bot joue : ${move.notation}`, 'success');
+                // --- MISE À JOUR ICI : LOG PRÉCIS ---
+                // On utilise les coordonnées si la notation n'est pas encore prête
+                const logMove = move.notation || `[${move.fromRow},${move.fromCol}] -> [${move.toRow},${move.toCol}]`;
+                ChessEventsManager.log(`Bot joue : ${logMove}`, 'success');
                 
                 // EXECUTION DES CLICS SIMULÉS
                 // 1. Sélection de la pièce
                 game.handleSquareClick(move.fromRow, move.fromCol, true);
                 
-                // 2. Clic sur la destination (léger délai pour laisser l'UI respirer)
+                // 2. Clic sur la destination
                 setTimeout(() => {
                     game.handleSquareClick(move.toRow, move.toCol, true);
                 }, 250);

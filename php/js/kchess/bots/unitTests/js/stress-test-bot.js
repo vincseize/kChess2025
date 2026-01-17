@@ -1,6 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.6.3 - Fonction Start/Stop sur le bouton principal
+ * Version : 7.6.7 - FEN affichée par ligne & Bouton FEN
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -38,7 +38,6 @@ class BotStressTest {
     }
 
     init() {
-        // Gestion Start / Stop unique
         if (this.btn) {
             this.btn.onclick = () => {
                 if (this.isRunning) {
@@ -48,6 +47,34 @@ class BotStressTest {
                 }
             };
         }
+
+
+
+        const clearJsonBtn = document.getElementById('clearJsonBtn');
+        if (clearJsonBtn) {
+            clearJsonBtn.onclick = async () => {
+                try {
+                    const response = await fetch('log_error.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'clear' })
+                    });
+                    if (response.ok) {
+                        this.statusUpdate("🗑️ Stockage serveur vidé (/results)", "system");
+                        const originalText = clearJsonBtn.innerText;
+                        clearJsonBtn.innerText = "DONE !";
+                        setTimeout(() => clearJsonBtn.innerText = originalText, 1500);
+                    }
+                } catch (e) { 
+                    console.error("Clear error:", e); 
+                }
+            };
+        }
+
+
+
+
+
         
         const copyLogBtn = document.getElementById('copyLogBtn');
         if (copyLogBtn) copyLogBtn.onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
@@ -99,7 +126,7 @@ class BotStressTest {
     statusUpdate(msg, type = 'blanc', resultLabel = "", winner = null, fenToCopy = null) {
         if (!this.logEl || !msg.trim()) return; 
 
-        if (this.logEl.children.length >= 200) {
+        if (this.logEl.children.length >= 100) {
             this.logEl.removeChild(this.logEl.firstChild);
         }
 
@@ -118,6 +145,11 @@ class BotStressTest {
         } else if (winner === 'black') {
             formattedMsg += ` <span class="badge-log-win badge-black" style="font-weight:bold; background:#333; color:#fff; padding:0 3px; border-radius:2px; font-size:9px; border:1px solid #555;">WIN BLACK</span>`;
         }
+
+        // AJOUT DE LA FEN DIRECTEMENT DANS LE TEXTE DU LOG (en gris petit)
+        if (fenToCopy) {
+            formattedMsg += ` <span style="color:#444d56; font-size:10px; font-family:monospace; margin-left:5px;">FEN: ${fenToCopy}</span>`;
+        }
         
         div.style.color = colors[type] || "#ffffff";
         div.style.fontSize = "11px";
@@ -128,13 +160,17 @@ class BotStressTest {
         div.style.alignItems = "center";
 
         const textSpan = document.createElement('span');
+        textSpan.style.overflow = "hidden";
+        textSpan.style.textOverflow = "ellipsis";
+        textSpan.style.whiteSpace = "nowrap";
         textSpan.innerHTML = time + formattedMsg;
         div.appendChild(textSpan);
 
         if (fenToCopy) {
             const copyBtn = document.createElement('button');
             copyBtn.innerText = "FEN";
-            copyBtn.style.cssText = "background:#21262d; color:#8b949e; border:1px solid #30363d; cursor:pointer; font-size:9px; padding:0 4px; border-radius:3px; margin-left:10px;";
+            copyBtn.title = "Copier FEN";
+            copyBtn.style.cssText = "background:#21262d; color:#8b949e; border:1px solid #30363d; cursor:pointer; font-size:9px; padding:0 4px; border-radius:3px; margin-left:10px; flex-shrink:0;";
             copyBtn.onclick = (e) => this.copyToClipboard(fenToCopy, e.target);
             div.appendChild(copyBtn);
         }
@@ -217,7 +253,6 @@ class BotStressTest {
         if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
 
         try {
-            // Ajout de la condition isRunning dans la boucle de coups
             while (coupsCount < maxCoups && game.gameState.gameActive && this.isRunning) {
                 const color = game.gameState.currentPlayer;
                 const currentAI = (color === 'white' || color === 'w') ? whiteAI : blackAI;
@@ -275,6 +310,7 @@ class BotStressTest {
             
             if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
             if (document.getElementById('progress-bar')) document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
+            
             if (isStalemate && document.getElementById('dash-stalemates')) {
                 document.getElementById('dash-stalemates').innerText = this.stats.stalemates;
             }
@@ -282,8 +318,16 @@ class BotStressTest {
             console.log = _log; console.warn = _warn;
             
             const showDraws = document.getElementById('checkShowDraws')?.checked;
-            const isNormalDraw = (winner === 'draw' && !isStalemate);
-            const shouldLog = !isNormalDraw || showDraws;
+            const showStalemates = document.getElementById('checkShowStalemates')?.checked;
+            
+            let shouldLog = false;
+            if (winner !== 'draw') {
+                shouldLog = true; 
+            } else if (isStalemate) {
+                shouldLog = showStalemates; 
+            } else {
+                shouldLog = showDraws; 
+            }
 
             if (shouldLog) {
                 let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c - ${gameDuration}s) ${resTag}`;
@@ -318,18 +362,17 @@ class BotStressTest {
 
         this.isRunning = true; 
         if (this.btn) {
-            this.btn.innerText = "CANCEL"; // Change le texte du bouton
-            this.btn.style.background = "#f85149"; // Optionnel : met le bouton en rouge
+            this.btn.innerText = "CANCEL";
+            this.btn.style.background = "#f85149";
         }
 
         if (this.logEl) this.logEl.innerHTML = ''; 
         this.stats.startTime = performance.now();
         
         this.statusUpdate("DEMARRAGE DU TEST...", "system");
-        this.statusUpdate(`CONFIG : [BLANC:${selW}] vs [NOIRS:${selB}] | Aléatoire: ${isRandom ? 'OUI' : 'NON'} | Limite: ${moves} coups`, "gris");
 
         for (let i = 1; i <= total; i++) {
-            if (!this.isRunning) break; // Sort de la boucle si STOP est pressé
+            if (!this.isRunning) break; 
             let pW = selW, pB = selB;
             if (isRandom && Math.random() > 0.5) { pW = selB; pB = selW; }
             await this.simulateGame(i, moves, total, pW, pB);
@@ -337,12 +380,12 @@ class BotStressTest {
         }
 
         this.stats.totalDuration = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
-        this.statusUpdate(`SESSION TERMINEE : Temps total Arena ${this.stats.totalDuration}s`, "system");
+        this.statusUpdate(`SESSION TERMINEE : ${this.stats.totalDuration}s`, "system");
         
         this.isRunning = false; 
         if (this.btn) {
-            this.btn.innerText = "START ARENA"; // Remet le texte d'origine
-            this.btn.style.background = ""; // Remet la couleur d'origine
+            this.btn.innerText = "START ARENA";
+            this.btn.style.background = "";
         }
         await this.saveJsonToServer();
     }

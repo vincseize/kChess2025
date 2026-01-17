@@ -1,5 +1,7 @@
 <?php
-// engine-scripts.php - CATALOGUE COMPLET JS + CSS INTERNE (ORDRE CORRIGÉ)
+/**
+ * engine-scripts.php - CATALOGUE COMPLET JS (ORDRE DE DÉPENDANCE STRICT)
+ */
 ?>
 
 <script src="js/kchess/core/pieces.js?version=<?= $version; ?>"></script>
@@ -21,7 +23,6 @@
 <script src="js/kchess/validators/move-pieces/move-validator-rook.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/validators/move-pieces/move-validator-queen.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/validators/move-pieces/move-validator-king.js?version=<?= $version; ?>"></script>
-
 <script src="js/kchess/validators/move-pieces/move-validator.js?version=<?= $version; ?>"></script>
 
 <script src="js/kchess/validators/validator-interface.js?version=<?= $version; ?>"></script>
@@ -45,10 +46,10 @@
 <script src="js/kchess/core/chess-game.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/ui/chess-events.js?version=<?= $version; ?>"></script>
 
+<script src="js/kchess/bots/BotCore.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/core/bot-manager.js?version=<?= $version; ?>"></script>
 
 <script src="js/kchess/debug/device-logger.js?version=<?= $version; ?>"></script>
-
 
 <?php if ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1'): ?>
 <script src="js/kchess/bots/bot-test-interface.js?version=<?= $version; ?>"></script>
@@ -68,5 +69,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎮 K-Chess Engine - Système prêt (v<?= $version; ?>)');
+    // Vérification de l'alias BotBase créé par BotCore
+    if (typeof BotBase !== 'undefined') {
+        console.log('🤖 BotBase (via BotCore) : OK');
+    } else {
+        console.error('🤖 BotBase : MANQUANT. Vérifiez le chargement de js/kchess/bots/BotCore.js');
+    }
 });
 </script>

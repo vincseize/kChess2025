@@ -1,6 +1,6 @@
 Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
 📄 app.php
-📄 app_mobile.php
+📄 app_mobile.phpDES
 📄 arbo.php
 📄 arbo.txt
 📁 config
@@ -73,6 +73,7 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
   📁 kchess
     📁 bots
       📄 BoardAnalyzer.js
+      📄 BotCore.js
       📄 ChessScanner.js
       📄 Level3.md
       📄 Level_1.js
@@ -90,9 +91,11 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
           📄 icon-512x512.png
         📁 js
           📄 ArenaAnalyst.js
+          📄 bot-helper.js
           📄 stress-test-bot.js
         📄 log_error.php
         📁 results
+          📄 stress_test-White_L1-vs-Black_L1.json
     📁 check
       📄 checkChess copy.js
       📄 checkChess.js

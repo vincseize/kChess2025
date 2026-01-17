@@ -1,0 +1,94 @@
+/* chess-pieces.css - Styles des pièces et animations */
+.chess-piece {
+    width: 90%;
+    height: 90%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    font-weight: bold;
+    z-index: 2;
+    position: relative;
+    transition: transform 0.2s ease;
+    font-family: "Segoe UI Symbol", "Apple Symbols", "Arial Unicode MS", sans-serif;
+    /* TAILLE AUGMENTÉE SANS DÉFORMER LES CASES */
+    font-size: 2.8rem;
+    line-height: 1;
+}
+
+.chess-piece:active {
+    cursor: grabbing;
+}
+
+/* Styles des pièces blanches */
+.chess-piece.white {
+    color: #FFFFFF;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    /* SUPPRIMÉ: filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); */
+}
+
+/* Styles des pièces noires */
+.chess-piece.black {
+    color: #000000;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+    /* SUPPRIMÉ: filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2)); */
+}
+
+/* Amélioration de la lisibilité */
+.chess-square.black .chess-piece.white {
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+}
+
+.chess-square.white .chess-piece.black {
+    text-shadow: 1px 1px 3px rgba(255,255,255,0.9);
+}
+
+/* Styles pour les images des pièces */
+.chess-piece-img {
+    width: 85%;
+    height: 85%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+}
+
+.chess-piece {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    z-index: 2;
+    position: relative;
+}
+
+/* Animation pour les pièces */
+.chess-piece-img {
+    transition: transform 0.2s ease;
+}
+
+.chess-piece:hover .chess-piece-img {
+    transform: scale(1.05);
+}
+
+.chess-piece:active .chess-piece-img {
+    transform: scale(0.95);
+}
+
+/* Animation de déplacement */
+@keyframes pieceMove {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.piece-moved {
+    animation: pieceMove 0.3s ease;
+}
+
+/* Hover effect */
+.chess-piece:hover {
+    transform: scale(1.05);
+}

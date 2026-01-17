@@ -86,16 +86,20 @@ if (empty($availableBots)) {
                     </div>
                 </div>
 
-                <div class="random-opt">
-                    <div>
-                        <input type="checkbox" id="checkRandomColors">
-                        <label for="checkRandomColors"> Aléatoire</label>
-                    </div>
-                    <div>
-                        <input type="checkbox" id="checkShowDraws">
-                        <label for="checkShowDraws"> Afficher nulles</label>
-                    </div>
-                </div>
+<div class="random-opt">
+    <div>
+        <input type="checkbox" id="checkRandomColors">
+        <label for="checkRandomColors"> Aléatoire</label>
+    </div>
+    <div>
+        <input type="checkbox" id="checkShowDraws">
+        <label for="checkShowDraws"> Afficher nulles</label>
+    </div>
+    <div>
+        <input type="checkbox" id="checkShowStalemates">
+        <label for="checkShowStalemates"> Afficher pats</label>
+    </div>
+</div>
 
                 <div class="config-group">
                     <label>Nombre de parties</label>
