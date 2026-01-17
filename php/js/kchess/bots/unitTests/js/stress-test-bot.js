@@ -318,7 +318,7 @@ class BotStressTest {
 
         this.isRunning = true; 
         if (this.btn) {
-            this.btn.innerText = "STOP TEST"; // Change le texte du bouton
+            this.btn.innerText = "CANCEL"; // Change le texte du bouton
             this.btn.style.background = "#f85149"; // Optionnel : met le bouton en rouge
         }
 
