@@ -13,7 +13,6 @@ $availableBots = [];
 if (is_dir($botDir)) {
     $files = scandir($botDir);
     foreach ($files as $file) {
-        // On ne scanne que les fichiers Level_X.js
         if (preg_match('/Level_(\d+)\.js$/', $file, $matches)) {
             $level = (int)$matches[1];
             $availableBots[] = [
@@ -69,7 +68,7 @@ if (empty($availableBots)) {
                         <label>Blancs</label>
                         <select id="selectBotWhite">
                             <?php foreach ($availableBots as $bot): ?>
-                                <option value="L<?php echo $bot['level']; ?>" <?php echo ($bot['level'] == 3) ? 'selected' : ''; ?>>
+                                <option value="L<?php echo $bot['level']; ?>" <?php echo ($bot['level'] == 1) ? 'selected' : ''; ?>>
                                     <?php echo $bot['name']; ?>
                                 </option>
                             <?php endforeach; ?>
@@ -79,7 +78,7 @@ if (empty($availableBots)) {
                         <label>Noirs</label>
                         <select id="selectBotBlack">
                             <?php foreach ($availableBots as $bot): ?>
-                                <option value="L<?php echo $bot['level']; ?>" <?php echo ($bot['level'] == 2) ? 'selected' : ''; ?>>
+                                <option value="L<?php echo $bot['level']; ?>" <?php echo ($bot['level'] == 1) ? 'selected' : ''; ?>>
                                     <?php echo $bot['name']; ?>
                                 </option>
                             <?php endforeach; ?>
@@ -87,20 +86,20 @@ if (empty($availableBots)) {
                     </div>
                 </div>
 
-                <div class="random-opt">
-                    <div>
-                        <input type="checkbox" id="checkRandomColors">
-                        <label for="checkRandomColors"> Aléatoire</label>
-                    </div>
-                    <div>
-                        <input type="checkbox" id="checkShowDraws">
-                        <label for="checkShowDraws"> Afficher nulles</label>
-                    </div>
-                    <div>
-                        <input type="checkbox" id="checkShowStalemates" checked>
-                        <label for="checkShowStalemates"> Afficher pats</label>
-                    </div>
-                </div>
+<div class="random-opt">
+    <div>
+        <input type="checkbox" id="checkRandomColors">
+        <label for="checkRandomColors"> Aléatoire</label>
+    </div>
+    <div>
+        <input type="checkbox" id="checkShowDraws">
+        <label for="checkShowDraws"> Afficher nulles</label>
+    </div>
+    <div>
+        <input type="checkbox" id="checkShowStalemates">
+        <label for="checkShowStalemates"> Afficher pats</label>
+    </div>
+</div>
 
                 <div class="config-group">
                     <label>Nombre de parties</label>
@@ -171,6 +170,10 @@ if (empty($availableBots)) {
             <span class="dash-label">Total Coups</span>
             <span id="dash-moves" class="dash-value" style="color: #aff5b4;">0</span>
         </div>
+        <div class="dash-item dash-sep">
+            <span class="dash-label">Ratio (W / B)</span>
+            <span id="dash-pure-ratio" class="dash-value" style="color: var(--accent-blue);">0% / 0%</span>
+        </div>
         <div class="dash-item dash-sep" style="min-width: 280px;">
             <span class="dash-label">Win Ratio (W / D / B)</span>
             <div class="ratio-bar-wrapper">
@@ -182,6 +185,7 @@ if (empty($availableBots)) {
                 </div>
                 <div id="badge-b" class="ratio-badge badge-black">0%</div>
             </div>
+            <span id="dash-ratio" style="display:none;">0% / 0% / 0%</span>
         </div>
     </div>
 
@@ -192,15 +196,11 @@ if (empty($availableBots)) {
     echo str_replace('src="js/', 'src="../../../../js/', $engineScripts);
     ?>
 
-    <script src="../BoardAnalyzer.js?v=<?php echo $version; ?>"></script>
-    <script src="../BotCore.js?v=<?php echo $version; ?>"></script>
-
     <?php foreach ($availableBots as $bot): ?>
         <script src="../<?php echo $bot['file']; ?>?v=<?php echo $version; ?>"></script>
     <?php endforeach; ?>
 
     <script src="js/ArenaAnalyst.js?v=<?php echo $version; ?>"></script>
     <script src="js/stress-test-bot.js?v=<?php echo $version; ?>"></script>
-
 </body>
 </html>

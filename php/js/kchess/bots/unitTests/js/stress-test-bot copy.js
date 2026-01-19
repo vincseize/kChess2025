@@ -1,6 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.6.8 - Debug intégré pour Level 16
+ * Version : 7.6.7 - FEN affichée par ligne & Bouton FEN
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -48,6 +48,8 @@ class BotStressTest {
             };
         }
 
+
+
         const clearJsonBtn = document.getElementById('clearJsonBtn');
         if (clearJsonBtn) {
             clearJsonBtn.onclick = async () => {
@@ -68,6 +70,11 @@ class BotStressTest {
                 }
             };
         }
+
+
+
+
+
         
         const copyLogBtn = document.getElementById('copyLogBtn');
         if (copyLogBtn) copyLogBtn.onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
@@ -240,65 +247,29 @@ class BotStressTest {
         game.gameState.gameActive = true;
         let coupsCount = 0;
 
-        // DEBUG: Vérification des noms de bots
-        const whiteBotName = `Level_${pWhite.replace('L','')}`;
-        const blackBotName = `Level_${pBlack.replace('L','')}`;
-        
-        console.log = _log; // Temporairement réactiver les logs pour debug
-        console.log("=== DEBUG SIMULATION ===");
-        console.log(`Partie #${id}: ${pWhite} vs ${pBlack}`);
-        console.log(`whiteBotName: ${whiteBotName}, Existe: ${!!window[whiteBotName]}`);
-        console.log(`blackBotName: ${blackBotName}, Existe: ${!!window[blackBotName]}`);
-        
-        const whiteAI = window[whiteBotName] ? new window[whiteBotName]() : null;
-        const blackAI = window[blackBotName] ? new window[blackBotName]() : null;
-        
-        console.log(`whiteAI créé: ${whiteAI?.name || 'null'}, level: ${whiteAI?.level || 'null'}`);
-        console.log(`blackAI créé: ${blackAI?.name || 'null'}, level: ${blackAI?.level || 'null'}`);
-        console.log("Couleur initiale du jeu:", game.gameState.currentPlayer);
-        console.log("Type de couleur:", typeof game.gameState.currentPlayer);
-        console.log("=== FIN DEBUG ===");
-        
-        console.log = () => {}; // Remettre en mode silencieux
-        
+        const whiteAI = window[`Level_${pWhite.replace('L','')}`] ? new window[`Level_${pWhite.replace('L','')}`]() : null;
+        const blackAI = window[`Level_${pBlack.replace('L','')}`] ? new window[`Level_${pBlack.replace('L','')}`]() : null;
+
         if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
 
         try {
-            let debugFirstMoves = 3; // Debug les 3 premiers coups
-            
             while (coupsCount < maxCoups && game.gameState.gameActive && this.isRunning) {
                 const color = game.gameState.currentPlayer;
-                
-                // DEBUG: Vérification de l'attribution des couleurs
-                if (debugFirstMoves > 0) {
-                    console.log = _log;
-                    console.log(`Coup #${coupsCount}: Tour de ${color}`);
-                    console.log(`isWhiteTurn? ${color === 'white' || color === 'w'}`);
-                    console.log(`whiteAI: ${whiteAI?.name}, blackAI: ${blackAI?.name}`);
-                    debugFirstMoves--;
-                    console.log = () => {};
-                }
-                
                 const currentAI = (color === 'white' || color === 'w') ? whiteAI : blackAI;
                 let move = null;
-                
                 if (currentAI && typeof currentAI.getMove === 'function') {
                     window.chessGame = game;
                     move = await currentAI.getMove();
                 } 
-                
                 if (!move || move.error || move.fromRow === undefined) {
                     const moves = this.getAvailableMoves(game, color);
                     if (moves.length === 0) break;
                     move = moves[Math.floor(Math.random() * moves.length)];
                 }
-                
                 if (await this.executeMove(game, move, color)) {
                     coupsCount++;
                     this.stats.totalMoves++;
-                } else {
-                    break;
-                }
+                } else break;
             }
 
             const gameEndTime = performance.now();
@@ -314,38 +285,21 @@ class BotStressTest {
             const blackInCheck = game.moveValidator.isKingInCheck('black');
 
             if (whiteInCheck && whiteMoves.length === 0) { 
-                winner = 'black'; 
-                resTag = "FIN mat"; 
-                type = "rouge"; 
+                winner = 'black'; resTag = "FIN mat"; type = "rouge"; 
             } else if (blackInCheck && blackMoves.length === 0) { 
-                winner = 'white'; 
-                resTag = "FIN mat"; 
-                type = "rouge"; 
-                this.stats.checkmates++; 
+                winner = 'white'; resTag = "FIN mat"; type = "rouge"; this.stats.checkmates++; 
             } else if ((!whiteInCheck && whiteMoves.length === 0) || (!blackInCheck && blackMoves.length === 0)) { 
-                resTag = "FIN pat"; 
-                type = "orange"; 
+                resTag = "FIN pat"; type = "orange"; 
                 this.stats.stalemates++; 
                 isStalemate = true;
             } else if (coupsCount >= maxCoups) { 
-                resTag = "FIN limite"; 
-                type = "gris"; 
+                resTag = "FIN limite"; type = "gris"; 
                 this.stats.draws++;
             } else { 
                 this.stats.draws++; 
             }
 
             const finalFen = FENGenerator.generateFEN ? FENGenerator.generateFEN(gs, game.board) : FENGenerator.generate(game.board, gs);
-            
-            // DEBUG: Log du résultat
-            console.log = _log;
-            console.log(`🏁 Partie #${id} TERMINÉE`);
-            console.log(`Résultat: ${winner === 'white' ? 'BLANCS' : winner === 'black' ? 'NOIRS' : 'NUL'}`);
-            console.log(`Configuration: ${pWhite} (${whiteAI?.name}) vs ${pBlack} (${blackAI?.name})`);
-            console.log(`Coups joués: ${coupsCount}, Durée: ${gameDuration}s`);
-            console.log(`Score total - W:${this.stats.checkmates} D:${this.stats.draws} S:${this.stats.stalemates}`);
-            console.log("---");
-            console.log = () => {};
             
             window.dispatchEvent(new CustomEvent('arena-game-finished', { 
                 detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount, isStalemate } 
@@ -386,7 +340,6 @@ class BotStressTest {
             const errEl = document.getElementById('errors');
             if (errEl) errEl.innerText = this.stats.errors;
             this.statusUpdate(`FIN CRASH P#${id} : ${e.message}`, "rouge", "FIN CRASH");
-            console.error("Erreur dans simulateGame:", e);
         }
     }
     
