@@ -10,7 +10,7 @@ function isMobile() {
 
 $isMobile = isMobile();
 // On définit la page cible pour la redirection après configuration
-$targetPage = $isMobile ? 'app_mobile.php' : 'app.php';
+$targetPage = $isMobile ? 'app.php' : 'app.php';
 
 // Récupérer la configuration pour accéder aux langues
 require_once __DIR__ . '/config-loader.php';
