@@ -46,10 +46,6 @@
             "black": "Noirs",
             "random": "Aléatoire",
             "start_game": "Démarrer la Partie",
-            "Level": "Niveau",
-            "bot_random_desc": "Bot : Coups aléatoires",
-            "bot_ecmo_desc": "Bot : Échec, Capture, Menace, Optimisation",
-            "bot_ecmo_desc3": "Bot : ECMO, pas de pièce en prise directe",
             "unknown": "Inconnu",
             "computer_player": "Bot",
             "human_player": "Humain",
@@ -108,11 +104,6 @@
             "config_loaded": "Configuration chargée",
             "config_error": "Erreur configuration",
             "plays": "Joue les",
-            "bot_level1": "Bot Niveau 1",
-            "bot_level2": "Bot Niveau 2",
-            "bot_level3": "Bot Niveau 3",
-            "bot_level4": "Bot Niveau 4",
-            "bot_level5": "Bot Niveau 5",
             "fen_generation_error": "Erreur génération FEN",
             "pgn_generation_error": "Erreur génération PGN",
             "no_moves_to_copy": "Aucun coup joué pour copier",
@@ -121,7 +112,16 @@
             "copy_impossible_fen": "Impossible de copier le FEN",
             "copy_impossible_pgn": "Impossible de copier le PGN",
             "copy_error_fen": "Erreur lors de la copie du FEN",
-            "copy_error_pgn": "Erreur lors de la copie du PGN"
+            "copy_error_pgn": "Erreur lors de la copie du PGN",
+            "Level": "Niveau",
+            "bots": {
+                "bot_1": "Level 1 : Aléatoire",
+                "bot_2": "Level 2 : ECMO (Basique)",
+                "bot_3": "Level 3 : ECMO (Avancé)",
+                "bot_4": "Level 4 : Stratège (Agressif)",
+                "bot_5": "Level 5 : Maître (Étrangleur)",
+                "bot_16": "Level 16 : Deep Neural (Test)"
+            }
         },
         "en": {
             "app_name": "CharlyChess",
@@ -144,10 +144,6 @@
             "black": "Black",
             "random": "Random",
             "start_game": "Start Game",
-            "Level": "Level",
-            "bot_random_desc": "Bot: Random moves",
-            "bot_ecmo_desc": "Bot: Check, Capture, Threat, Optimization",
-            "bot_ecmo_desc3": "Bot: ECMO, no piece in direct take",
             "unknown": "Unknown",
             "computer_player": "Bot",
             "human_player": "Human",
@@ -206,11 +202,6 @@
             "config_loaded": "Config loaded",
             "config_error": "Config error",
             "plays": "Plays",
-            "bot_level1": "Bot Level 1",
-            "bot_level2": "Bot Level 2",
-            "bot_level3": "Bot Level 3",
-            "bot_level4": "Bot Level 4",
-            "bot_level5": "Bot Level 5",
             "fen_generation_error": "FEN generation error",
             "pgn_generation_error": "PGN generation error",
             "no_moves_to_copy": "No moves played to copy",
@@ -219,7 +210,16 @@
             "copy_impossible_fen": "Unable to copy FEN",
             "copy_impossible_pgn": "Unable to copy PGN",
             "copy_error_fen": "Error copying FEN",
-            "copy_error_pgn": "Error copying PGN"
+            "copy_error_pgn": "Error copying PGN",
+            "Level": "Level",
+            "bots": {
+            "bot_1": "Level 1: Random",
+            "bot_2": "Level 2: ECMO (Basic)",
+            "bot_3": "Level 3: ECMO (Advanced)",
+            "bot_4": "Level 4: Strategist (Aggressive)",
+            "bot_5": "Level 5: Master (Strangler)",
+            "bot_16": "Level 16: Deep Neural (Experimental)"
+        }
         }
     }
 }

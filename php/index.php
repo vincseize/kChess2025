@@ -101,9 +101,27 @@ if ($isComingFromApp && !$isChangingLang && !$isManualReset) {
         </div>
     </div>
 
-    <script src="js/kchess/bots/Level_1.js?v=<?php echo $version; ?>"></script>
-    <script src="js/kchess/bots/Level_2.js?v=<?php echo $version; ?>"></script>
-    <script src="js/kchess/bots/Level_3.js?v=<?php echo $version; ?>"></script>
+    <?php 
+    $botBaseFile = 'js/kchess/bots/BotBase.js';
+    if (file_exists(__DIR__ . '/' . $botBaseFile)) {
+        echo '    <script src="' . $botBaseFile . '?v=' . $version . '"></script>' . PHP_EOL;
+    }
+    ?>
+
+    <?php 
+    $botDir = __DIR__ . '/js/kchess/bots/';
+    // glob récupère uniquement les fichiers existants correspondant au pattern
+    $botFiles = glob($botDir . 'Level_*.js');
+
+    // Tri naturel pour gérer l'ordre 1, 2, 3... 16
+    sort($botFiles, SORT_NATURAL);
+
+    foreach ($botFiles as $file) {
+        $fileName = basename($file);
+        echo '    <script src="js/kchess/bots/' . $fileName . '?v=' . $version . '"></script>' . PHP_EOL;
+    }
+    ?>
+
     <script src="js/kchess/core/bot-manager.js?v=<?php echo $version; ?>"></script>
 
     <script>
