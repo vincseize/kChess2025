@@ -1,9 +1,9 @@
 /**
  * Level_5 - Grand Maître UI
- * Version 2.0.3 - Base 1.9.5 + Étranglement du Roi
+ * Version 2.0.4 - Base 1.9.6 + Étranglement & Flexibilité
  */
 class Level_5 {
-    static VERSION = '2.0.3';
+    static VERSION = '2.0.4';
 
     constructor() {
         this.name = "Bot Level 5 (Pro)";
@@ -29,48 +29,57 @@ class Level_5 {
             allMoves.forEach(m => {
                 let score = 0;
 
-                // 1. BASE LEVEL 4 (Captures & Sécurité)
+                // 1. CAPTURES & SÉCURITÉ RENFORCÉE
                 if (m.isCapture) {
                     score += (this.pieceValues[m.targetPiece.type] * 20);
                 }
                 if (this._isSquareAttacked(game, m.toRow, m.toCol, oppColor)) {
-                    score -= (this.pieceValues[m.piece.type] * 12); // Sécurité renforcée
+                    score -= (this.pieceValues[m.piece.type] * 12); 
                 }
 
-                // 2. ÉTRANGLEMENT (Spécifique Level 5)
+                // 2. ÉTRANGLEMENT DU ROI
                 if (oppKing) {
                     const distAfter = Math.abs(m.toRow - oppKing.r) + Math.abs(m.toCol - oppKing.c);
-                    
-                    // Bonus de proximité (Chasse au Roi)
                     score += (10 - distAfter) * 20; 
 
-                    // Bonus de "Cage" : On pousse le roi vers les bords (0, 7)
+                    // Bonus de Cage (Pousser vers les bords)
                     const edgeDist = Math.max(Math.abs(oppKing.r - 3.5), Math.abs(oppKing.c - 3.5));
                     score += edgeDist * 25; 
                 }
 
-                // 3. PERCÉE & PROMOTION (Exponentielle)
+                // 3. PROMOTION EXPONENTIELLE
                 if (m.piece.type === 'pawn') {
                     const rank = isWhite ? (7 - m.toRow) : m.toRow;
                     score += (rank * rank * 10); 
-                    if (m.toRow === 0 || m.toRow === 7) score += 10000; // Priorité absolue à la Reine
+                    if (m.toRow === 0 || m.toRow === 7) score += 10000; 
                 }
 
                 // 4. MISE EN ÉCHEC
                 if (m.isCheck) score += 300;
 
-                // 5. ANTI-PAT (Si on est très proche du roi sans échec, on baisse un peu le score)
+                // 5. ANTI-PAT RADICAL
                 if (oppKing && !m.isCheck) {
                     const dist = Math.abs(m.toRow - oppKing.r) + Math.abs(m.toCol - oppKing.c);
-                    if (dist <= 1) score -= 100; 
+                    if (dist <= 1) score -= 200; 
                 }
 
-                m._finalScore = score + (Math.random() * 10);
+                m._finalScore = score;
             });
 
-            allMoves.sort((a, b) => b._finalScore - a._finalScore);
-            return this._finalize(allMoves[0]);
+            return this._finalize(this._getBestMove(allMoves));
+
         } catch (err) { return null; }
+    }
+
+    _getBestMove(moves) {
+        moves.sort((a, b) => b._finalScore - a._finalScore);
+        const bestScore = moves[0]._finalScore;
+
+        // L5 est plus flexible (75%) pour éviter les boucles infinies de parties identiques
+        const threshold = bestScore > 0 ? bestScore * 0.75 : bestScore * 1.25;
+        const candidates = moves.filter(m => m._finalScore >= threshold);
+
+        return candidates[Math.floor(Math.random() * candidates.length)];
     }
 
     _findKing(game, color) {

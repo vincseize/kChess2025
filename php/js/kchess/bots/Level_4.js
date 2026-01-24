@@ -1,9 +1,9 @@
 /**
  * Level_4 - Stratège UI
- * Version 1.9.5 - Focus : Agressivité & Percée
+ * Version 1.9.6 - Focus : Variabilité contrôlée
  */
 class Level_4 {
-    static VERSION = '1.9.5';
+    static VERSION = '1.9.6';
 
     constructor() {
         this.name = "Bot Level 4 (Minimax)";
@@ -29,38 +29,56 @@ class Level_4 {
             allMoves.forEach(m => {
                 let score = 0;
 
-                // 1. CAPTURES AGRESSIVES (x20 au lieu de x15)
+                // 1. CAPTURES AGRESSIVES
                 if (m.isCapture) {
                     score += (this.pieceValues[m.targetPiece.type] * 20);
                 }
 
-                // 2. SÉCURITÉ INTELLIGENTE (Moins punitive pour autoriser les échanges)
+                // 2. SÉCURITÉ
                 if (this._isSquareAttacked(game, m.toRow, m.toCol, oppColor)) {
                     score -= (this.pieceValues[m.piece.type] * 10);
                 }
 
-                // 3. CHASSE AU ROI (Bonus de proximité radical)
+                // 3. CHASSE AU ROI
                 if (oppKing) {
                     const distAfter = Math.abs(m.toRow - oppKing.r) + Math.abs(m.toCol - oppKing.c);
-                    score += (10 - distAfter) * 15; // Plus on est près, plus on gagne de points
+                    score += (10 - distAfter) * 15;
                 }
 
-                // 4. PERCÉE DES PIONS (Forcer la promotion)
+                // 4. PERCÉE DES PIONS
                 if (m.piece.type === 'pawn') {
                     const rank = isWhite ? (7 - m.toRow) : m.toRow;
-                    score += (rank * rank * 5); // Progression exponentielle
+                    score += (rank * rank * 5);
                     if (m.toRow === 0 || m.toRow === 7) score += 5000;
                 }
 
-                // 5. BONUS DE MISE EN ÉCHEC (Si détectable par ton moteur)
+                // 5. BONUS ÉCHEC
                 if (m.isCheck) score += 150;
 
-                m._finalScore = score + (Math.random() * 5);
+                m._finalScore = score;
             });
 
-            allMoves.sort((a, b) => b._finalScore - a._finalScore);
-            return this._finalize(allMoves[0]);
-        } catch (err) { return null; }
+            // Sélection intelligente du coup
+            const selectedMove = this._getBestMove(allMoves);
+            return this._finalize(selectedMove);
+
+        } catch (err) { 
+            console.error("L4 Error:", err);
+            return null; 
+        }
+    }
+
+    _getBestMove(moves) {
+        // Tri par score décroissant
+        moves.sort((a, b) => b._finalScore - a._finalScore);
+        const bestScore = moves[0]._finalScore;
+
+        // On garde les coups qui valent au moins 90% du meilleur coup (marge faible = bot rigide)
+        const threshold = bestScore > 0 ? bestScore * 0.90 : bestScore * 1.10;
+        const candidates = moves.filter(m => m._finalScore >= threshold);
+
+        // Choix aléatoire parmi les excellents coups
+        return candidates[Math.floor(Math.random() * candidates.length)];
     }
 
     _findKing(game, color) {
