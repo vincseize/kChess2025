@@ -1,6 +1,6 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.6.8 - Debug intégré pour Level 16
+ * Version : 7.6.9 - Finalisation Format Temps & Architecture BotBase
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -102,6 +102,20 @@ class BotStressTest {
         }
     }
 
+    /**
+     * Formate les secondes en H m s
+     */
+    formatDuration(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        let res = "";
+        if (h > 0) res += h + "h ";
+        if (m > 0 || h > 0) res += m + "m ";
+        res += s + "s";
+        return res;
+    }
+
     stop() {
         this.isRunning = false;
         this.statusUpdate("🛑 ARRÊT DEMANDÉ...", "orange");
@@ -139,7 +153,6 @@ class BotStressTest {
             formattedMsg += ` <span class="badge-log-win badge-black" style="font-weight:bold; background:#333; color:#fff; padding:0 3px; border-radius:2px; font-size:9px; border:1px solid #555;">WIN BLACK</span>`;
         }
 
-        // AJOUT DE LA FEN DIRECTEMENT DANS LE TEXTE DU LOG (en gris petit)
         if (fenToCopy) {
             formattedMsg += ` <span style="color:#444d56; font-size:10px; font-family:monospace; margin-left:5px;">FEN: ${fenToCopy}</span>`;
         }
@@ -240,45 +253,17 @@ class BotStressTest {
         game.gameState.gameActive = true;
         let coupsCount = 0;
 
-        // DEBUG: Vérification des noms de bots
         const whiteBotName = `Level_${pWhite.replace('L','')}`;
         const blackBotName = `Level_${pBlack.replace('L','')}`;
-        
-        console.log = _log; // Temporairement réactiver les logs pour debug
-        console.log("=== DEBUG SIMULATION ===");
-        console.log(`Partie #${id}: ${pWhite} vs ${pBlack}`);
-        console.log(`whiteBotName: ${whiteBotName}, Existe: ${!!window[whiteBotName]}`);
-        console.log(`blackBotName: ${blackBotName}, Existe: ${!!window[blackBotName]}`);
         
         const whiteAI = window[whiteBotName] ? new window[whiteBotName]() : null;
         const blackAI = window[blackBotName] ? new window[blackBotName]() : null;
         
-        console.log(`whiteAI créé: ${whiteAI?.name || 'null'}, level: ${whiteAI?.level || 'null'}`);
-        console.log(`blackAI créé: ${blackAI?.name || 'null'}, level: ${blackAI?.level || 'null'}`);
-        console.log("Couleur initiale du jeu:", game.gameState.currentPlayer);
-        console.log("Type de couleur:", typeof game.gameState.currentPlayer);
-        console.log("=== FIN DEBUG ===");
-        
-        console.log = () => {}; // Remettre en mode silencieux
-        
         if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
 
         try {
-            let debugFirstMoves = 3; // Debug les 3 premiers coups
-            
             while (coupsCount < maxCoups && game.gameState.gameActive && this.isRunning) {
                 const color = game.gameState.currentPlayer;
-                
-                // DEBUG: Vérification de l'attribution des couleurs
-                if (debugFirstMoves > 0) {
-                    console.log = _log;
-                    console.log(`Coup #${coupsCount}: Tour de ${color}`);
-                    console.log(`isWhiteTurn? ${color === 'white' || color === 'w'}`);
-                    console.log(`whiteAI: ${whiteAI?.name}, blackAI: ${blackAI?.name}`);
-                    debugFirstMoves--;
-                    console.log = () => {};
-                }
-                
                 const currentAI = (color === 'white' || color === 'w') ? whiteAI : blackAI;
                 let move = null;
                 
@@ -336,16 +321,6 @@ class BotStressTest {
             }
 
             const finalFen = FENGenerator.generateFEN ? FENGenerator.generateFEN(gs, game.board) : FENGenerator.generate(game.board, gs);
-            
-            // DEBUG: Log du résultat
-            console.log = _log;
-            console.log(`🏁 Partie #${id} TERMINÉE`);
-            console.log(`Résultat: ${winner === 'white' ? 'BLANCS' : winner === 'black' ? 'NOIRS' : 'NUL'}`);
-            console.log(`Configuration: ${pWhite} (${whiteAI?.name}) vs ${pBlack} (${blackAI?.name})`);
-            console.log(`Coups joués: ${coupsCount}, Durée: ${gameDuration}s`);
-            console.log(`Score total - W:${this.stats.checkmates} D:${this.stats.draws} S:${this.stats.stalemates}`);
-            console.log("---");
-            console.log = () => {};
             
             window.dispatchEvent(new CustomEvent('arena-game-finished', { 
                 detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount, isStalemate } 
@@ -426,8 +401,12 @@ class BotStressTest {
             await new Promise(r => setTimeout(r, 1));
         }
 
-        this.stats.totalDuration = ((performance.now() - this.stats.startTime) / 1000).toFixed(1);
-        this.statusUpdate(`SESSION TERMINEE : ${this.stats.totalDuration}s`, "system");
+        // --- CALCUL ET AFFICHAGE DU TEMPS FORMATE ---
+        const durationInSeconds = (performance.now() - this.stats.startTime) / 1000;
+        this.stats.totalDuration = durationInSeconds.toFixed(1);
+        const formattedTime = this.formatDuration(durationInSeconds);
+
+        this.statusUpdate(`SESSION TERMINEE : ${formattedTime}`, "system");
         
         this.isRunning = false; 
         if (this.btn) {
