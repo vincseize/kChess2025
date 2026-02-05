@@ -72,20 +72,43 @@ class ChessGameUI {
         this.setupBoardEventListeners();
     }
 
-    setupBoardEventListeners() {
+setupBoardEventListeners() {
         const board = document.getElementById('chessBoard');
         if (!board) return;
 
+        // 1. DÉSACTIVER LE CLIC DROIT (CONTEXT MENU)
+        // Empêche l'ouverture du menu contextuel du navigateur sur l'échiquier
+        board.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            return false;
+        });
+
         const handleAction = (e) => {
+            // 2. VERROU ANTI-CLIC (BOT TURN)
+            // On vérifie si le bot est en train de jouer avant de traiter le clic
+            const isBotTurn = this.game.core?.botManager?.isBotTurn?.();
+            
+            if (isBotTurn) {
+                if (this.constructor.consoleLog) {
+                    console.log("⏳ [UI] Clic bloqué : Attente du coup du Bot...");
+                }
+                return; // On sort immédiatement, le clic est ignoré
+            }
+
             const square = e.target.closest('.chess-square');
             if (square) {
+                // Pour le tactile, on empêche le comportement par défaut (zoom/scroll)
                 if (e.type === 'touchstart') e.preventDefault();
+                
                 const r = parseInt(square.dataset.displayRow);
                 const c = parseInt(square.dataset.displayCol);
+                
+                // 3. APPEL DE LA LOGIQUE DE JEU
                 this.game.moveHandler?.handleSquareClick?.(r, c);
             }
         };
 
+        // Écouteurs pour Desktop et Mobile
         board.addEventListener('click', handleAction);
         board.addEventListener('touchstart', handleAction, { passive: false });
     }

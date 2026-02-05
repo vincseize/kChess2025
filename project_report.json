@@ -1,0 +1,312 @@
+{
+    "definitions": {
+        "BoardAnalyzer": {
+            "file": "\\php\\js\\kchess\\bots\\BoardAnalyzer.js"
+        },
+        "BotTestInterface": {
+            "file": "\\php\\js\\kchess\\bots\\bot-test-interface.js"
+        },
+        "BotBase": {
+            "file": "\\php\\js\\kchess\\bots\\BotBase.js"
+        },
+        "BotCore": {
+            "file": "\\php\\js\\kchess\\bots\\BotCore.js"
+        },
+        "ChessScanner": {
+            "file": "\\php\\js\\kchess\\bots\\ChessScanner.js"
+        },
+        "Level_1": {
+            "file": "\\php\\js\\kchess\\bots\\Level_1.js"
+        },
+        "Level_16": {
+            "file": "\\php\\js\\kchess\\bots\\Level_16.js"
+        },
+        "Level_2": {
+            "file": "\\php\\js\\kchess\\bots\\Level_2.js"
+        },
+        "Level_3": {
+            "file": "\\php\\js\\kchess\\bots\\Level_3.js"
+        },
+        "Level_4": {
+            "file": "\\php\\js\\kchess\\bots\\Level_4.js"
+        },
+        "Level_5": {
+            "file": "\\php\\js\\kchess\\bots\\Level_5.js"
+        },
+        "ChessEngine": {
+            "file": "\\php\\js\\kchess\\check\\checkChess.js"
+        },
+        "ChessMateEngine": {
+            "file": "\\php\\js\\kchess\\check\\checkChessMat.js"
+        },
+        "ChessNulleEngine": {
+            "file": "\\php\\js\\kchess\\check\\checkChessNulle.js"
+        },
+        "ChessPatEngine": {
+            "file": "\\php\\js\\kchess\\check\\checkChessPat.js"
+        },
+        "ChessFenPosition": {
+            "file": "\\php\\js\\kchess\\check\\checkFenPostion.js"
+        },
+        "ChessStatusController": {
+            "file": "\\php\\js\\kchess\\check\\chess-status-unified.js"
+        },
+        "BotStressTest": {
+            "file": "\\php\\js\\kchess\\core\\bot-manager.js"
+        },
+        "ChessBoard": {
+            "file": "\\php\\js\\kchess\\core\\chess-board.js"
+        },
+        "ChessGameCore": {
+            "file": "\\php\\js\\kchess\\core\\chess-game-core.js"
+        },
+        "ChessGame": {
+            "file": "\\php\\js\\kchess\\core\\chess-game.js"
+        },
+        "FENGenerator": {
+            "file": "\\php\\js\\kchess\\core\\fen-generator.js"
+        },
+        "GameState": {
+            "file": "\\php\\js\\kchess\\core\\game-state.js"
+        },
+        "GameStatusFix": {
+            "file": "\\php\\js\\kchess\\core\\game-status-fix.js"
+        },
+        "GameStatusManager": {
+            "file": "\\php\\js\\kchess\\core\\game-status-manager.js"
+        },
+        "MoveLogic": {
+            "file": "\\php\\js\\kchess\\core\\move-logic.js"
+        },
+        "PieceManager": {
+            "file": "\\php\\js\\kchess\\core\\pieces.js"
+        },
+        "DeviceLogger": {
+            "file": "\\php\\js\\kchess\\debug\\device-logger.js"
+        },
+        "ChessEventsManager": {
+            "file": "\\php\\js\\kchess\\ui\\chess-events.js"
+        },
+        "ChessClipboardManager": {
+            "file": "\\php\\js\\kchess\\ui\\chess-game-ui-clipboard.js"
+        },
+        "ChessGameUI": {
+            "file": "\\php\\js\\kchess\\ui\\chess-game-ui-core.js"
+        },
+        "ChessModalManager": {
+            "file": "\\php\\js\\kchess\\ui\\chess-game-ui-modals.js"
+        },
+        "ChessMoveHistoryManager": {
+            "file": "\\php\\js\\kchess\\ui\\chess-game-ui-move-history.js"
+        },
+        "ChessStyleManager": {
+            "file": "\\php\\js\\kchess\\ui\\chess-game-ui-styles.js"
+        },
+        "ChessTimerManager": {
+            "file": "\\php\\js\\kchess\\ui\\chess-game-ui-timer.js"
+        },
+        "MoveExecutor": {
+            "file": "\\php\\js\\kchess\\validators\\move-executor.js"
+        },
+        "ChessGameMoveHandler": {
+            "file": "\\php\\js\\kchess\\validators\\move-handler-core.js"
+        },
+        "BishopMoveValidator": {
+            "file": "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-bishop.js"
+        },
+        "KingMoveValidator": {
+            "file": "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-king.js"
+        },
+        "KnightMoveValidator": {
+            "file": "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-knight.js"
+        },
+        "PawnMoveValidator": {
+            "file": "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-pawn.js"
+        },
+        "QueenMoveValidator": {
+            "file": "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-queen.js"
+        },
+        "RookMoveValidator": {
+            "file": "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-rook.js"
+        },
+        "SlidingMoveValidator": {
+            "file": "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-sliding.js"
+        },
+        "MoveValidator": {
+            "file": "\\php\\js\\kchess\\validators\\move-pieces\\move-validator.js"
+        },
+        "MoveStateManager": {
+            "file": "\\php\\js\\kchess\\validators\\move-state-manager.js"
+        },
+        "PromotionManager": {
+            "file": "\\php\\js\\kchess\\validators\\promotion-manager.js"
+        },
+        "SpecialMovesHandler": {
+            "file": "\\php\\js\\kchess\\validators\\special-moves-handler.js"
+        },
+        "ValidatorInterface": {
+            "file": "\\php\\js\\kchess\\validators\\validator-interface.js"
+        },
+        "ChessInterface": {
+            "file": "\\php\\tests\\chess-interface.js"
+        }
+    },
+    "usages": {
+        "BoardAnalyzer": [],
+        "BotTestInterface": [],
+        "BotBase": [
+            "\\php\\app.php",
+            "\\php\\engine-scripts.php",
+            "\\php\\index.php",
+            "\\php\\js\\kchess\\bots\\BotCore.js",
+            "\\php\\js\\kchess\\bots\\Level_1.js"
+        ],
+        "BotCore": [
+            "\\php\\engine-scripts.php"
+        ],
+        "ChessScanner": [],
+        "Level_1": [
+            "\\php\\js\\kchess\\core\\bot-manager.js",
+            "\\php\\js\\kchess\\ui\\chess-events.js",
+            "\\php\\js\\kchess\\ui\\new-game-handler.js"
+        ],
+        "Level_16": [],
+        "Level_2": [
+            "\\php\\js\\kchess\\ui\\chess-events.js"
+        ],
+        "Level_3": [
+            "\\php\\js\\kchess\\core\\bot-manager.js",
+            "\\php\\js\\kchess\\ui\\chess-events.js"
+        ],
+        "Level_4": [],
+        "Level_5": [],
+        "ChessEngine": [
+            "\\php\\js\\kchess\\bots\\BoardAnalyzer.js",
+            "\\php\\js\\kchess\\check\\checkChess copy.js",
+            "\\php\\js\\kchess\\check\\checkChessMat.js",
+            "\\php\\js\\kchess\\check\\checkChessNulle.js",
+            "\\php\\js\\kchess\\check\\checkChessPat.js",
+            "\\php\\js\\kchess\\check\\chess-status-unified.js",
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-bishop.js",
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-king.js",
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-knight.js",
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-pawn.js",
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-rook.js",
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator.js"
+        ],
+        "ChessMateEngine": [
+            "\\php\\js\\kchess\\core\\game-status-fix.js",
+            "\\php\\js\\kchess\\core\\game-status-manager.js"
+        ],
+        "ChessNulleEngine": [
+            "\\php\\js\\kchess\\check\\chess-status-unified.js"
+        ],
+        "ChessPatEngine": [],
+        "ChessFenPosition": [],
+        "ChessStatusController": [
+            "\\php\\js\\kchess\\ui\\chess-game-ui-core.js"
+        ],
+        "BotStressTest": [],
+        "ChessBoard": [
+            "\\php\\js\\kchess\\core\\bot-manager.js",
+            "\\php\\js\\kchess\\core\\chess-game.js"
+        ],
+        "ChessGameCore": [
+            "\\php\\js\\kchess\\core\\chess-game.js",
+            "\\php\\js\\kchess\\core\\game-state.js"
+        ],
+        "ChessGame": [
+            "\\php\\content.php",
+            "\\php\\js\\kchess\\core\\bot-manager.js",
+            "\\php\\js\\kchess\\core\\fen-generator.js",
+            "\\php\\js\\kchess\\core\\move-logic.js",
+            "\\php\\js\\kchess\\ui\\chess-events.js"
+        ],
+        "FENGenerator": [
+            "\\php\\js\\kchess\\bots\\bot-test-interface.js",
+            "\\php\\js\\kchess\\core\\bot-manager.js",
+            "\\php\\js\\kchess\\core\\chess-game-core.js",
+            "\\php\\js\\kchess\\core\\chess-game.js",
+            "\\php\\js\\kchess\\core\\game-status-fix.js",
+            "\\php\\js\\kchess\\core\\game-status-manager.js",
+            "\\php\\js\\kchess\\core\\move-logic.js",
+            "\\php\\js\\kchess\\ui\\chess-game-ui-clipboard.js",
+            "\\php\\js\\kchess\\ui\\chess-game-ui-core.js"
+        ],
+        "GameState": [
+            "\\php\\js\\kchess\\core\\chess-game.js"
+        ],
+        "GameStatusFix": [],
+        "GameStatusManager": [
+            "\\php\\js\\kchess\\core\\chess-game-core.js"
+        ],
+        "MoveLogic": [],
+        "PieceManager": [
+            "\\php\\js\\kchess\\core\\chess-game.js"
+        ],
+        "DeviceLogger": [],
+        "ChessEventsManager": [],
+        "ChessClipboardManager": [
+            "\\php\\js\\kchess\\ui\\chess-game-ui-core.js"
+        ],
+        "ChessGameUI": [
+            "\\php\\js\\kchess\\core\\chess-game-core.js"
+        ],
+        "ChessModalManager": [
+            "\\php\\js\\kchess\\ui\\chess-game-ui-core.js"
+        ],
+        "ChessMoveHistoryManager": [
+            "\\php\\js\\kchess\\ui\\chess-game-ui-core.js"
+        ],
+        "ChessStyleManager": [
+            "\\php\\js\\kchess\\ui\\chess-game-ui-core.js"
+        ],
+        "ChessTimerManager": [
+            "\\php\\js\\kchess\\ui\\chess-game-ui-core.js"
+        ],
+        "MoveExecutor": [
+            "\\php\\js\\kchess\\core\\chess-game-core.js",
+            "\\php\\js\\kchess\\core\\game-state.js",
+            "\\php\\js\\kchess\\validators\\move-handler-core.js"
+        ],
+        "ChessGameMoveHandler": [
+            "\\php\\js\\kchess\\core\\chess-game-core.js"
+        ],
+        "BishopMoveValidator": [
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-queen.js",
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator.js"
+        ],
+        "KingMoveValidator": [
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator.js"
+        ],
+        "KnightMoveValidator": [
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator.js"
+        ],
+        "PawnMoveValidator": [
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator.js"
+        ],
+        "QueenMoveValidator": [
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator.js"
+        ],
+        "RookMoveValidator": [
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator-queen.js",
+            "\\php\\js\\kchess\\validators\\move-pieces\\move-validator.js"
+        ],
+        "SlidingMoveValidator": [],
+        "MoveValidator": [
+            "\\php\\js\\kchess\\core\\chess-game.js",
+            "\\php\\js\\kchess\\core\\game-state.js",
+            "\\php\\js\\kchess\\validators\\validator-interface.js"
+        ],
+        "MoveStateManager": [
+            "\\php\\js\\kchess\\validators\\move-handler-core.js"
+        ],
+        "PromotionManager": [
+            "\\php\\js\\kchess\\core\\chess-game-core.js",
+            "\\php\\js\\kchess\\validators\\move-handler-core.js"
+        ],
+        "SpecialMovesHandler": [],
+        "ValidatorInterface": [],
+        "ChessInterface": []
+    }
+}
