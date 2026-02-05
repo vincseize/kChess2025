@@ -1,6 +1,6 @@
 /**
  * js/ArenaAnalyst.js
- * Correction : Support des rapports globaux et rafraîchissement UI forcé
+ * Correction : Support des rapports globaux et affichage du Ratio Pur
  */
 class ArenaAnalyst {
     constructor() {
@@ -31,8 +31,6 @@ class ArenaAnalyst {
         if (data.gamesPlayed !== undefined) {
             this.counters.draws += (data.draws || 0);
             this.counters.totalMoves += (data.totalMoves || 0);
-            // On déduit les victoires si elles ne sont pas explicites
-            // Ou on utilise tes clés spécifiques si ton script PHP les renvoie
             if (data.checkmatesWhite !== undefined) {
                 this.counters.white += data.checkmatesWhite;
                 this.counters.black += data.checkmatesBlack;
@@ -42,7 +40,6 @@ class ArenaAnalyst {
 
         // Gestion du format "Individuel"
         const w = String(data.winner || '').toLowerCase();
-        const s = String(data.status || '').toLowerCase();
 
         if (w === 'white' || w === 'w') {
             this.counters.white++;
@@ -59,7 +56,7 @@ class ArenaAnalyst {
     updateUI() {
         const total = this.counters.white + this.counters.black + this.counters.draws;
         
-        // Update labels
+        // Update labels basiques
         this._setTxt('dash-win-w', this.counters.white);
         this._setTxt('dash-win-b', this.counters.black);
         this._setTxt('dash-draws', this.counters.draws);
@@ -67,27 +64,32 @@ class ArenaAnalyst {
         this._setTxt('count', total);
 
         if (total > 0) {
+            // 1. Calcul Ratio Global (incluant les nulles)
             const pW = ((this.counters.white / total) * 100).toFixed(1);
             const pD = ((this.counters.draws / total) * 100).toFixed(1);
             const pB = ((this.counters.black / total) * 100).toFixed(1);
 
-            // Update Bars
+            // Mise à jour visuelle des barres
             this._styleWidth('ratio-w', pW + "%");
             this._styleWidth('ratio-d', pD + "%");
             this._styleWidth('ratio-b', pB + "%");
 
-            // Update Badges
+            // Mise à jour des badges texte
             this._setTxt('badge-w', pW + "%");
             this._setTxt('badge-b', pB + "%");
             this._setTxt('ratio-d-text', pD + "%");
 
-            // Ratio Pur (W/B)
+            // 2. Calcul Ratio Pur (Uniquement Blancs vs Noirs)
             const decisive = this.counters.white + this.counters.black;
             if (decisive > 0) {
                 const pureW = Math.round((this.counters.white / decisive) * 100);
                 const pureB = Math.round((this.counters.black / decisive) * 100);
                 this._setTxt('dash-pure-ratio', `${pureW}% / ${pureB}%`);
+            } else {
+                this._setTxt('dash-pure-ratio', `0% / 0%`);
             }
+        } else {
+            this._setTxt('dash-pure-ratio', `0% / 0%`);
         }
     }
 
@@ -114,7 +116,9 @@ class ArenaAnalyst {
                 games.forEach(g => this.parseGame(g));
                 this.updateUI();
             }
-        } catch (e) { console.error("Sync Error", e); }
+        } catch (e) { 
+            console.error("Sync Error", e); 
+        }
     }
 
     reset() {
@@ -122,4 +126,6 @@ class ArenaAnalyst {
         this.updateUI();
     }
 }
+
+// Initialisation globale
 window.arenaAnalyst = new ArenaAnalyst();

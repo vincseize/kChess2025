@@ -171,6 +171,7 @@ if (empty($availableBots)) {
             <span class="dash-label">Total Coups</span>
             <span id="dash-moves" class="dash-value" style="color: #aff5b4;">0</span>
         </div>
+        
         <div class="dash-item dash-sep" style="min-width: 280px;">
             <span class="dash-label">Win Ratio (W / D / B)</span>
             <div class="ratio-bar-wrapper">
@@ -182,6 +183,11 @@ if (empty($availableBots)) {
                 </div>
                 <div id="badge-b" class="ratio-badge badge-black">0%</div>
             </div>
+        </div>
+
+        <div class="dash-item dash-sep">
+            <span class="dash-label">Ratio Victoires (W / B)</span>
+            <span id="dash-pure-ratio" class="dash-value" style="color: #58a6ff;">0% / 0%</span>
         </div>
     </div>
 
