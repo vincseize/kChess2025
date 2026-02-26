@@ -5,6 +5,11 @@
     "author2": "von Vincseize",
     "default_theme": "classic",
     "default_lang": "fr",
+    "splashscreen": {
+        "loading": true,
+        "version": 0,
+        "display_time": 800
+    },
     "features": {
         "flip_board": true,
         "move_history": true,

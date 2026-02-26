@@ -1,10 +1,10 @@
 /**
  * js/kchess/bots/Level_1.js
  * Niveau 1 : Débutant - Coups aléatoires
- * Basé sur BotCore v2.0
+ * Version 3.0.0 - Refactorisée sur BotCore
  */
 class Level_1 extends BotCore {
-    static VERSION = '2.0.1';
+    static VERSION = '3.0.0';
 
     constructor() {
         super();
@@ -12,34 +12,43 @@ class Level_1 extends BotCore {
         this.level = 1;
     }
 
+    /**
+     * Méthode principale de réflexion du bot
+     */
     async getMove() {
         try {
+            // 1. Récupération de l'instance du jeu via BotCore
             const game = this.getGame();
             if (!game) return null;
 
+            // 2. Identification de la couleur
             const color = game.gameState.currentPlayer;
             const myColor = color.toLowerCase().startsWith('w') ? 'white' : 'black';
 
-            // getMoves est hérité de BotCore
+            // 3. Récupération de tous les coups légaux via la méthode héritée de BotCore
             const allMoves = this.getMoves(game, myColor);
 
-            if (!allMoves || allMoves.length === 0) return null;
+            if (!allMoves || allMoves.length === 0) {
+                BotCore.log(`${this.name} : Aucun coup possible (Pat ou Mat)`);
+                return null;
+            }
 
-            // Sélection aléatoire
+            // 4. Sélection purement aléatoire (Logique spécifique au Level 1)
             const selectedMove = allMoves[Math.floor(Math.random() * allMoves.length)];
 
-            // Utilise le logger statique hérité de BotCore
+            // 5. Logging via le système centralisé
             BotCore.log(`${this.name} joue : ${selectedMove.piece.type} vers [${selectedMove.toRow},${selectedMove.toCol}]`);
 
-            // finalize est hérité de BotCore (gère la promotion Queen)
+            // 6. Retourne le coup formaté via finalize (gère automatiquement les promotions en Reine)
             return this.finalize(selectedMove);
 
         } catch (err) {
-            BotCore.log("Erreur L1", err, 'error');
+            // Utilise le logger d'erreur de BotCore
+            BotCore.log("Erreur critique dans Level_1", err, 'error');
             return null;
         }
     }
 }
 
-// Enregistrement global
+// Enregistrement dans le scope global pour être accessible par le BotManager
 window.Level_1 = Level_1;
