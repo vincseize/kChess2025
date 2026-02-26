@@ -20,24 +20,29 @@ class ChessBoard {
         }
     }
 
-    /**
+/**
      * Charge la configuration depuis window.appConfig
      */
     static loadConfig() {
         try {
-            let configValue = true;
+            // Par défaut, on reste sur false
+            let configValue = false; 
 
             if (window.appConfig && window.appConfig.debug) {
                 configValue = window.appConfig.debug.console_log;
             } else if (typeof window.getConfig === 'function') {
-                configValue = window.getConfig('debug.console_log', true);
+                // Ici, on passe 'false' en valeur de secours (3ème argument)
+                configValue = window.getConfig('debug.console_log', false);
             }
 
-            // Conversion stricte pour supporter JSON (string "false") et JS (boolean false)
-            this.consoleLog = !(configValue === "false" || configValue === false);
+            // Conversion stricte
+            // On n'active le log QUE si on a explicitement le booléen true ou la string "true"
+            this.consoleLog = (configValue === true || configValue === "true");
+            
             return true;
         } catch (error) {
-            console.error('❌ [ChessBoard] Erreur config:', error);
+            // En cas d'erreur, on reste silencieux
+            this.consoleLog = false;
             return false;
         }
     }
@@ -46,7 +51,8 @@ class ChessBoard {
      * Logger centralisé pour ChessBoard
      */
     static log(message, data = null, type = 'log') {
-        if (!this.consoleLog && type === 'log') return;
+        // Si les logs sont désactivés, on bloque TOUT (log, info, warn, etc.)
+        if (!this.consoleLog) return; 
         
         const prefix = '♟️ [ChessBoard] ';
         if (data) {

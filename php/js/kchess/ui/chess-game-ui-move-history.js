@@ -94,8 +94,6 @@ class ChessMoveHistoryManager {
         if (this.constructor.consoleLog) {
             console.log('📋 ChessMoveHistoryManager initialisé');
             console.log(`  - UI: ${ui ? '✓' : '✗'}`);
-        } else {
-            console.info('📋 ChessMoveHistoryManager initialisé');
         }
     }
 

@@ -1,32 +1,54 @@
 /**
- * js/kchess/check/checkChessMat.js - Version 1.4.1
+ * js/kchess/check/checkChessMat.js - Version 1.4.2
  * MOTEUR DE DÉTECTION D'ÉCHEC ET MAT (CHECKMATE)
- * Correction : Suppression de la récursion infinie avec checkGameStatus
+ * Mise à jour : Logique d'initialisation BotCore & Config Synchrone
  */
 
 class ChessMateEngine extends ChessEngine {
     
-    static VERSION = '1.4.1';
-    static consoleLog = true;
+    static VERSION = '1.4.2';
+    static consoleLog = false;
+    static initialized = false;
 
+    /**
+     * Initialisation statique (identique à BotCore pour la cohérence)
+     */
+    static init() {
+        this.loadConfig();
+        this.initialized = true;
+        
+        if (this.consoleLog) {
+            console.log(`⚔️ [MateEngine] v${this.VERSION} prêt (Debug ON)`);
+        }
+    }
+
+    /**
+     * Charge la configuration depuis window.appConfig ou window.getConfig
+     */
+    static loadConfig() {
+        try {
+            let configValue = false;
+            if (window.appConfig && window.appConfig.debug) {
+                configValue = window.appConfig.debug.console_log;
+            } else if (typeof window.getConfig === 'function') {
+                configValue = window.getConfig('debug.console_log', false);
+            }
+            // Normalisation en booléen
+            this.consoleLog = (configValue === true || configValue === "true");
+            return true;
+        } catch (e) {
+            this.consoleLog = false;
+            return false;
+        }
+    }
+
+    /**
+     * Logger interne respectant le flag consoleLog
+     */
     static log(message, type = 'info') {
         if (!this.consoleLog && type === 'info') return;
         const icons = { info: '♔', success: '✅', check: '⚔️', mate: '💀' };
         console.log(`${icons[type] || '⚪'} [MateEngine] ${message}`);
-    }
-
-    static init() {
-        this.loadConfig();
-        this.log(`v${this.VERSION} actif (Héritage ChessEngine)`, 'success');
-    }
-
-    static loadConfig() {
-        try {
-            const config = window.appConfig?.debug || window.appConfig?.chess_engine;
-            if (config?.console_log !== undefined) {
-                this.consoleLog = String(config.console_log).toLowerCase() !== "false";
-            }
-        } catch (e) { this.consoleLog = true; }
     }
 
     constructor(fen) {
@@ -35,7 +57,6 @@ class ChessMateEngine extends ChessEngine {
 
     /**
      * Détermine si la couleur donnée est en échec et mat.
-     * Correction : Accès direct aux méthodes logiques pour éviter la récursion.
      */
     isCheckmate(color) {
         const side = (color === 'white' || color === 'w') ? 'w' : 'b';
@@ -43,28 +64,30 @@ class ChessMateEngine extends ChessEngine {
         // 1. Vérifie si le roi est en échec
         const inCheck = this.isKingInCheck(side);
         
-        // 2. Si pas d'échec, pas de mat possible (évite les calculs de coups inutiles)
+        // 2. Si pas d'échec, pas de mat possible
         if (!inCheck) return false;
 
-        // 3. Si échec, on vérifie s'il existe au moins un coup légal
-        // Appel direct à ChessEngine.hasAnyLegalMoves
+        // 3. Si échec, vérifie l'absence de coups légaux
         const hasMoves = this.hasAnyLegalMoves(side);
         const detected = inCheck && !hasMoves;
 
         if (detected) {
-            this.constructor.log(`MAT détecté pour les ${side === 'w' ? 'Blancs' : 'Noirs'} !`, 'mate');
+            // Détermination du vainqueur (l'opposé de 'side')
+            const winner = (side === 'w') ? 'Noirs' : 'Blancs';
+            const loser = (side === 'w') ? 'Blancs' : 'Noirs';
+            
+            this.constructor.log(`MAT détecté pour les ${loser}. ${winner} gagnent!`, 'mate');
         }
 
         return detected;
     }
 
     /**
-     * Diagnostic détaillé sans risque de boucle infinie
+     * Diagnostic complet pour console.table
      */
     debugStatus(color) {
         const side = (color === 'white' || color === 'w') ? 'w' : 'b';
         
-        // On calcule les composants séparément
         const inCheck = this.isKingInCheck(side);
         const hasMoves = this.hasAnyLegalMoves(side);
         
