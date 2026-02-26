@@ -1,6 +1,8 @@
 <?php
 session_start();
 
+// app.php - Point d'entrée principal de l'application, gère le routage, la configuration et le chargement des ressources.
+
 // 1. PROTECTION CACHE & CHARGEMENT CONFIG
 header("Cache-Control: no-cache, no-store, must-revalidate"); 
 header("Pragma: no-cache"); 
@@ -56,31 +58,35 @@ if ($isManualReset) {
             </div>
         </div>
 
-    <?php else: ?>
-        <?php 
-            $_SESSION['from_app'] = true;
-            require_once 'header.php'; 
+<?php else: ?>
+    <?php 
+        $_SESSION['from_app'] = true;
+        require_once 'header.php'; 
 
-            // Choix du contenu selon le device
-            require_once ($isMobile ? 'content_mobile.php' : 'content.php');
+        // Choix du contenu selon le device
+        require_once ($isMobile ? 'content_mobile.php' : 'content.php');
 
-            // Injection dynamique du Bot spécifique
-            if ($_GET['mode'] === 'bot') {
-                $requestedLevel = intval($_GET['level'] ?? 1);
-                $botPath = "js/kchess/bots/Level_" . $requestedLevel . ".js";
-                
-                // 1. On charge TOUJOURS la base d'abord
-                echo '<script src="js/kchess/bots/BotBase.js?v=' . time() . '"></script>';
-
-                // 2. On charge ensuite le niveau spécifique
-                if (file_exists(__DIR__ . "/" . $botPath)) {
-                    echo '<script src="' . $botPath . '?v=' . time() . '"></script>';
-                }
-            }
+        // Injection dynamique du Bot spécifique
+        if ($_GET['mode'] === 'bot') {
+            $requestedLevel = intval($_GET['level'] ?? 1);
+            $botPath = "js/kchess/bots/Level_" . $requestedLevel . ".js";
             
-            require_once 'footer.php';
-        ?>
-    <?php endif; ?>
+            // 1. Charger la BASE (BotCore) - Vérifie bien le nom du fichier sur ton serveur
+            // On utilise BotCore.js car c'est le nouveau nom du moteur parent
+            echo '<script src="js/kchess/bots/BotCore.js?v=' . $version . '"></script>';
+
+            // 2. Charger le NIVEAU spécifique
+            if (file_exists(__DIR__ . "/" . $botPath)) {
+                echo '<script src="' . $botPath . '?v=' . $version . '"></script>';
+            } else {
+                // Sécurité : charger le Level 1 si le niveau demandé n'existe pas
+                echo '<script src="js/kchess/bots/Level_1.js?v=' . $version . '"></script>';
+            }
+        }
+        
+        require_once 'footer.php';
+    ?>
+<?php endif; ?>
 
     <script>
         window.appConfig = <?php echo getAppConfigJson($config); ?>;
