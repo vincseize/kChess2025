@@ -149,32 +149,32 @@ class ChessBoard {
     }
 
     /**
-     * Ajoute les labels 'a-h' et '1-8' sur les bords du plateau
+     * Ajoute les labels 'a-h' et '1-8' à l'intérieur des cases stratégiques
      */
     addCoordinatesLabels(squareElement, row, col) {
         const letters = 'abcdefgh';
         const numbers = '87654321';
         const isFlipped = this.gameState.boardFlipped;
 
-        let hLabel = '', vLabel = '';
+        // 1. On injecte systématiquement les coordonnées dans le dataset de la case
+        // Cela permet au CSS d'y accéder via attr(data-file) et attr(data-rank)
+        squareElement.dataset.file = letters[col];
+        squareElement.dataset.rank = numbers[row];
 
-        // Logique de placement des labels selon l'orientation
-        if (isFlipped) {
-            if (row === 0) hLabel = letters[col];
-            if (col === 7) vLabel = numbers[row];
+        // 2. Logique d'affichage visuel (Classes CSS)
+        // On ne veut afficher les labels que sur les bords du plateau
+        if (!isFlipped) {
+            // Vue BLANCS : Chiffres sur la colonne 'a' (col 0), Lettres sur la rangée '1' (row 7)
+            if (col === 0) squareElement.classList.add('coord-rank');
+            if (row === 7) squareElement.classList.add('coord-file');
         } else {
-            if (row === 7) hLabel = letters[col];
-            if (col === 0) vLabel = numbers[row];
+            // Vue NOIRS : Chiffres sur la colonne 'h' (col 7), Lettres sur la rangée '8' (row 0)
+            if (col === 7) squareElement.classList.add('coord-rank');
+            if (row === 0) squareElement.classList.add('coord-file');
         }
-
-        if (hLabel) squareElement.dataset.coordHorizontal = hLabel;
-        if (vLabel) squareElement.dataset.coordVertical = vLabel;
     }
-
+    
     /**
-     * Place visuellement une pièce sur une case
-     */
-/**
      * Place visuellement une pièce sur une case (Support Texte ou Image)
      */
     placePiece(piece, squareData) {

@@ -26,7 +26,7 @@
 
     .logo-container {
         position: relative;
-        width: 180px; /* Taille ajustable */
+        width: 180px; 
         height: 180px;
         margin-bottom: 20px;
     }
@@ -40,7 +40,6 @@
         filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.1));
     }
 
-    /* Petite lueur derrière le logo */
     .logo-glow {
         position: absolute;
         top: 50%;
@@ -52,20 +51,9 @@
         z-index: -1;
     }
 
-    /* Keyframes */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.95); }
-        to { opacity: 1; transform: scale(1); }
-    }
-
-    @keyframes pulseLogo {
-        0%, 100% { transform: scale(1); opacity: 0.9; }
-        50% { transform: scale(1.05); opacity: 1; }
-    }
-
     /* Barre de chargement minimaliste */
     .loader-line {
-        width: 100px;
+        width: 120px;
         height: 2px;
         background: rgba(255, 255, 255, 0.1);
         position: relative;
@@ -84,6 +72,41 @@
         animation: loadingSlide 1.5s infinite linear;
     }
 
+    /* --- INFOS DE L'APP (JSON) --- */
+    .app-info {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .app-name {
+        color: #ffffff;
+        font-size: 1.4rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        opacity: 0.9;
+    }
+
+    .app-version {
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.8rem;
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* Keyframes */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes pulseLogo {
+        0%, 100% { transform: scale(1); opacity: 0.9; }
+        50% { transform: scale(1.05); opacity: 1; }
+    }
+
     @keyframes loadingSlide {
         0% { left: -100%; }
         100% { left: 100%; }
@@ -98,10 +121,10 @@
         </div>
         
         <div class="loader-line"></div>
+
+        <div class="app-info">
+            <div class="app-name"><?php echo $config['app_name']; ?></div>
+            <div class="app-version">Version <?php echo $config['version']; ?></div>
+        </div>
     </div>
 </div>
-
-<script>
-    // Pas de script complexe ici pour garder le splash ultra-léger et rapide.
-    // La fermeture est gérée par le window.addEventListener('load') dans ton index.php.
-</script>

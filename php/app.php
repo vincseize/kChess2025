@@ -1,8 +1,6 @@
 <?php
 session_start();
 
-// app.php - Point d'entrée principal de l'application, gère le routage, la configuration et le chargement des ressources.
-
 // 1. PROTECTION CACHE & CHARGEMENT CONFIG
 header("Cache-Control: no-cache, no-store, must-revalidate"); 
 header("Pragma: no-cache"); 
@@ -15,9 +13,8 @@ $version = getVersion();
 // 2. LOGIQUE DE ROUTAGE
 $isMobile = preg_match('/(android|iphone|ipad|ipod|blackberry|opera mini|windows phone|mobile)/i', $_SERVER['HTTP_USER_AGENT']);
 $isManualReset = isset($_GET['new']);
-$gameStarted = isset($_GET['mode']); // Si mode est présent, on lance l'interface de jeu
+$gameStarted = isset($_GET['mode']); 
 
-// Gestion de la session pour éviter les boucles de splashscreen
 if ($isManualReset) {
     unset($_SESSION['from_app']);
 }
@@ -35,11 +32,34 @@ if ($isManualReset) {
     <link rel="stylesheet" href="css/bootstrap-icons.css">
 
     <style>
-        :root { --padding-card: clamp(10px, 3vh, 25px); }
-        html, body { height: 100%; margin: 0; padding: 0; background: #f8f9fa; overflow-x: hidden; }
+        :root { 
+            --padding-card: clamp(10px, 3vh, 25px); 
+            
+            /* --- INJECTION DYNAMIQUE DES COULEURS JSON --- */
+            --square-white: <?php echo $config['colors']['square_white']; ?>;
+            --square-black: <?php echo $config['colors']['square_black']; ?>;
+            --chess-selected: <?php echo $config['colors']['selected']; ?>;
+            --chess-move: <?php echo $config['colors']['move_indicator'] ?? '#32CD32'; ?>;
+        }
+
+        /* Styles de base */
+        html, body { height: 100%; margin: 0; padding: 0; background: #f8f9fa; overflow-x: hidden; font-family: system-ui, -apple-system, sans-serif; }
         body { display: flex; flex-direction: column; }
+        
+        /* Application des couleurs sur l'échiquier (Prioritaire) */
+        .chess-square.white { background-color: var(--square-white) !important; }
+        .chess-square.black { background-color: var(--square-black) !important; }
+
+        /* Contraste automatique des coordonnées internes */
+        .chess-square.white::before, .chess-square.white::after { color: var(--square-black); opacity: 0.6; }
+        .chess-square.black::before, .chess-square.black::after { color: var(--square-white); opacity: 0.8; }
+
+        /* Layout Setup */
         #gameSetupWrapper { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; padding: 20px 0; }
-        .card-main-container { width: 95%; max-width: 500px; background: white; border-radius: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); overflow: hidden; }
+        .card-main-container { width: 95%; max-width: 500px; background: white; border-radius: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); overflow: hidden; }
+        
+        /* Transition fluide pour le splash */
+        #splash-screen { transition: opacity 0.8s ease; }
     </style>
 </head>
 <body>
@@ -58,51 +78,55 @@ if ($isManualReset) {
             </div>
         </div>
 
-<?php else: ?>
-    <?php 
-        $_SESSION['from_app'] = true;
-        require_once 'header.php'; 
+    <?php else: ?>
+        <?php 
+            $_SESSION['from_app'] = true;
+            require_once 'header.php'; 
 
-        // Choix du contenu selon le device
-        require_once ($isMobile ? 'content_mobile.php' : 'content.php');
+            // Choix du contenu selon le device
+            require_once ($isMobile ? 'content_mobile.php' : 'content.php');
 
-        // Injection dynamique du Bot spécifique
-        if ($_GET['mode'] === 'bot') {
-            $requestedLevel = intval($_GET['level'] ?? 1);
-            $botPath = "js/kchess/bots/Level_" . $requestedLevel . ".js";
-            
-            // 1. Charger la BASE (BotCore) - Vérifie bien le nom du fichier sur ton serveur
-            // On utilise BotCore.js car c'est le nouveau nom du moteur parent
-            echo '<script src="js/kchess/bots/BotCore.js?v=' . $version . '"></script>';
+            // Injection dynamique du Bot
+            if ($_GET['mode'] === 'bot') {
+                $requestedLevel = intval($_GET['level'] ?? 1);
+                $botPath = "js/kchess/bots/Level_" . $requestedLevel . ".js";
+                
+                echo '<script src="js/kchess/bots/BotCore.js?v=' . $version . '"></script>';
 
-            // 2. Charger le NIVEAU spécifique
-            if (file_exists(__DIR__ . "/" . $botPath)) {
-                echo '<script src="' . $botPath . '?v=' . $version . '"></script>';
-            } else {
-                // Sécurité : charger le Level 1 si le niveau demandé n'existe pas
-                echo '<script src="js/kchess/bots/Level_1.js?v=' . $version . '"></script>';
+                if (file_exists(__DIR__ . "/" . $botPath)) {
+                    echo '<script src="' . $botPath . '?v=' . $version . '"></script>';
+                } else {
+                    echo '<script src="js/kchess/bots/Level_1.js?v=' . $version . '"></script>';
+                }
             }
-        }
-        
-        require_once 'footer.php';
-    ?>
-<?php endif; ?>
+            
+            require_once 'footer.php';
+        ?>
+    <?php endif; ?>
 
     <script>
+        // Passage de la config PHP vers JS
         window.appConfig = <?php echo getAppConfigJson($config); ?>;
         
-        // Gestion unifiée du SplashScreen et Service Worker
+        // PWA Service Worker
         if ('serviceWorker' in navigator) { 
             navigator.serviceWorker.register('sw.js').catch(e => console.error('SW error:', e)); 
         }
 
+        // Nettoyage Splash Screen piloté par le JSON
         window.addEventListener('load', function() {
             const splash = document.getElementById('splash-screen');
+            
+            // On récupère le temps d'affichage depuis la config (800ms dans ton cas)
+            // On ajoute un fallback à 1000 au cas où la variable manquerait
+            const displayTime = window.appConfig.splashscreen.display_time || 1000;
+
             if (splash) {
                 setTimeout(() => {
                     splash.style.opacity = '0';
-                    setTimeout(() => splash.remove(), 800); // On remove carrement du DOM
-                }, 1500);
+                    // On attend la fin de la transition CSS (0.8s) pour supprimer l'élément
+                    setTimeout(() => splash.remove(), 800); 
+                }, displayTime);
             }
         });
     </script>
