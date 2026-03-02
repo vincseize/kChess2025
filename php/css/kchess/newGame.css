@@ -3,7 +3,7 @@
     box-sizing: border-box;
 }
 
-/* --- NEW GAME OVERLAY (L'écran de démarrage) --- */
+/* --- NEW GAME OVERLAY --- */
 .new-game-overlay {
     position: fixed;
     top: 0; left: 0;
@@ -36,7 +36,7 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    margin: 2rem 0;
+    margin: 1.5rem 0;
 }
 
 .game-mode-btn {
@@ -51,39 +51,58 @@
     justify-content: space-between;
     position: relative;
     cursor: pointer;
+    background: #f8f9fa;
+    border: 2px solid transparent;
 }
 
 .game-mode-btn.selected {
     transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.4);
-    border: 3px solid currentColor;
-    filter: brightness(1.1);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+    border-color: currentColor;
+    filter: brightness(1.05);
 }
 
-.btn-human { background: linear-gradient(135deg, #4CAF50, #45a049); color: white; }
-.btn-level-0 { background: linear-gradient(135deg, #2196F3, #1976D2); color: white; }
-.btn-level-1 { background: linear-gradient(135deg, #FF9800, #F57C00); color: white; }
+.btn-human { color: #2e7d32; }
+.btn-level-1 { color: #1565c0; }
+.btn-level-2 { color: #ef6c00; }
+.btn-level-3 { color: #c62828; }
+/* Ajoute d'autres niveaux si nécessaire */
+
+/* --- RAPPEL DE MODE DISCRET --- */
+.mode-reminder {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+}
 
 /* --- SELECTION DES COULEURS --- */
 .color-selection {
     background: #f8f9fa;
     padding: 1.5rem;
-    border-radius: 12px;
-    margin: 1.5rem 0;
+    border-radius: 15px;
+    margin: 1rem 0;
     border: 2px solid #e9ecef;
 }
 
 .color-options {
     display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin-top: 1rem;
+    justify-content: center;
+    align-items: stretch;
+    gap: 1rem;
 }
 
 .color-option {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     cursor: pointer;
     padding: 1rem 0.5rem;
     border-radius: 10px;
@@ -91,6 +110,30 @@
     border: 3px solid transparent;
     background: white;
     flex: 1;
+    min-width: 0;
+}
+
+.color-piece-wrapper {
+    width: 65px;
+    height: 65px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.color-piece-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.color-piece-icon {
+    font-size: 2.5rem !important;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    color: #9C27B0;
 }
 
 .color-option.selected {
@@ -99,6 +142,12 @@
     transform: scale(1.05);
 }
 
+.color-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* --- BOUTON VALIDER --- */
 .start-game-btn {
     padding: 1rem 2rem;
     font-size: 1.2rem;
@@ -109,75 +158,18 @@
     color: white;
     width: 100%;
     max-width: 300px;
+    transition: all 0.2s ease;
 }
 
-.start-game-btn:disabled { background: #ccc; cursor: not-allowed; }
+.start-game-btn:disabled { background: #ccc; cursor: not-allowed; opacity: 0.7; }
 
-/* --- ♟️ SYSTÈME DE COORDONNÉES DANS LES CASES ♟️ --- */
-/* (À appliquer sur les cases générées dans content.php) */
-
-.square {
-    position: relative; /* Indispensable pour placer les coordonnées */
-}
-
-/* Pseudo-éléments pour les labels */
-.square::before, 
-.square::after {
-    position: absolute;
-    font-size: clamp(8px, 1.2vw, 11px);
-    font-weight: bold;
-    pointer-events: none;
-    user-select: none;
-    opacity: 0.8;
-}
-
-/* Chiffres (1-8) : s'affiche uniquement si la case a la classe .coord-rank */
-.square.coord-rank::before {
-    content: attr(data-rank);
-    top: 2px;
-    left: 3px;
-}
-
-/* Lettres (a-h) : s'affiche uniquement si la case a la classe .coord-file */
-.square.coord-file::after {
-    content: attr(data-file);
-    bottom: 2px;
-    right: 3px;
-}
-
-/* Couleurs intelligentes selon le thème de la case */
-.square.light::before, .square.light::after {
-    color: #764ba2; /* Foncé sur case claire */
-}
-
-.square.dark::before, .square.dark::after {
-    color: #ffffff; /* Blanc sur case foncée */
-}
-
-/* --- LANG SELECTOR --- */
-.lang-selector-top-right {
-    position: absolute;
-    top: 15px; right: 15px;
-    z-index: 1000;
-}
-
-.lang-select {
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid #764ba2;
-    border-radius: 8px;
-    padding: 6px 12px;
-    cursor: pointer;
-}
-
-/* --- RESPONSIVE --- */
+/* --- RESPONSIVE MOBILE --- */
 @media (max-width: 768px) {
-    .new-game-content { padding: 1.5rem; max-height: 90vh; }
-    .game-mode-btn { padding: 0.875rem 1rem; font-size: 0.9rem; }
-    .color-piece { width: 35px; height: 35px; }
-    .lang-selector-top-right { top: 10px; right: 10px; }
-}
-
-@media (max-width: 480px) {
-    .color-option { padding: 0.5rem 0.2rem; }
-    .color-option div:last-child { font-size: 0.8rem; }
+    .new-game-content { padding: 1.25rem; max-height: 90vh; }
+    .game-mode-btn { padding: 0.8rem 1rem; font-size: 0.85rem; }
+    .color-options { gap: 0.5rem; }
+    .color-piece-wrapper { width: 50px; height: 50px; }
+    .color-piece-icon { font-size: 2rem !important; }
+    .color-label { font-size: 0.75rem; }
+    .mode-reminder { font-size: 0.7rem; margin-bottom: 8px; }
 }
