@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// index.php - Point d'entrée principal avec Splashscreen piloté par JSON
+// index.php - Point d'entrée principal
 header("Cache-Control: no-cache, no-store, must-revalidate"); 
 header("Pragma: no-cache"); 
 header("Expires: 0"); 
@@ -13,34 +13,31 @@ $version = $config['version'] ?? '1.0';
 logConfigInfo($config);
 
 // --- LOGIQUE DEBUG & CONFIG ---
-$debug_log = [];
 $ssConfig = $config['splashscreen'] ?? ['loading' => false, 'version' => 1, 'display_time' => 800];
 
 $isManualReset = isset($_GET['new']);
 $isChangingLang = isset($_GET['lang']);
 
-// Si on force un "new", on vide la session splash
+// Si on vient de l'application (clic sur Nouvelle Partie)
 if ($isManualReset) {
-    unset($_SESSION['splash_shown']);
+    // On marque le splash comme déjà vu pour éviter qu'il s'affiche
+    $_SESSION['splash_shown'] = true; 
     unset($_SESSION['from_app']);
-    $debug_log[] = "Reset manuel détecté : Session nettoyée.";
 }
 
 // Détermination de l'affichage du splash
 $splashShown = isset($_SESSION['splash_shown']);
-$isComingFromApp = isset($_SESSION['from_app']) && $_SESSION['from_app'] === true;
 
-// On affiche le splash si :
-// 1. Activé dans le JSON
-// 2. ET (C'est la première fois de la session OU c'est un reset manuel)
-// 3. ET ce n'est pas juste un changement de langue
-$shouldShowSplash = $ssConfig['loading'] && (!$splashShown || $isManualReset) && !$isChangingLang;
+// MODIFICATION ICI : 
+// On affiche le splash SEULEMENT SI :
+// 1. Activé dans le JSON 
+// 2. ET qu'il n'a PAS encore été vu 
+// 3. ET que ce n'est PAS un reset manuel (?new)
+// 4. ET que ce n'est PAS un changement de langue
+$shouldShowSplash = $ssConfig['loading'] && !$splashShown && !$isManualReset && !$isChangingLang;
 
 if ($shouldShowSplash) {
-    $_SESSION['splash_shown'] = true; // On marque comme "vu" pour le prochain F5
-    $debug_log[] = "Affichage du splash validé.";
-} else {
-    $debug_log[] = "Splash ignoré. Raisons : Loading=".($ssConfig['loading']?'Oui':'Non').", Déjà vu=".($splashShown?'Oui':'Non').", Langue=".($isChangingLang?'Oui':'Non');
+    $_SESSION['splash_shown'] = true; 
 }
 ?>
 <!DOCTYPE html>
@@ -62,13 +59,12 @@ if ($shouldShowSplash) {
         html, body { height: 100%; margin: 0; padding: 0; background: #f8f9fa; }
         body { display: flex; flex-direction: column; overflow-y: auto !important; }
 
-        /* Style de base pour éviter le flash blanc avant le chargement du splash */
         #splash-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
             z-index: 1000000; display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             transition: opacity 0.8s ease;
-            background: #1a2a6c; /* Couleur par défaut */
+            background: #1a2a6c; 
         }
 
         #gameWrapper { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; padding: 20px 0; }
@@ -83,9 +79,6 @@ if ($shouldShowSplash) {
         $splashPath = 'splashscreens/splashscreen'. $ssConfig['version'] .'.php';
         if (file_exists(__DIR__ . '/' . $splashPath)) {
             include $splashPath; 
-        } else {
-            // Backup visuel si le fichier PHP est introuvable
-            echo '<div id="splash-screen" style="background:red; color:white;">DEBUG: Fichier manquant : '.$splashPath.'</div>';
         }
     }
     ?>
@@ -122,37 +115,21 @@ if ($shouldShowSplash) {
     <script src="js/kchess/core/bot-manager.js?v=<?php echo $version; ?>"></script>
 
     <script>
-        console.log("🚀 Initialisation de l'application...");
-        
-        // Injection de la config PHP dans l'espace global JS
         window.appConfig = <?php echo getAppConfigJson($config); ?>;
 
         window.addEventListener('load', function() {
-            console.log("🌐 Window Load : DOM et ressources prêts.");
             const splash = document.getElementById('splash-screen');
-            
             if (splash) {
-                // On récupère le temps du JSON ou 1500ms par défaut
                 const displayTime = window.appConfig?.splashscreen?.display_time ?? 1500;
-                console.log("⏲️ Splash détecté. Fermeture programmée dans : " + displayTime + "ms");
-
                 setTimeout(() => {
-                    console.log("🎬 Lancement de l'animation de sortie...");
                     splash.style.opacity = '0';
-                    
-                    // On attend la fin de la transition CSS (0.8s) pour nettoyer le DOM
                     setTimeout(() => { 
-                        splash.style.display = 'none';
                         splash.remove(); 
-                        console.log("🧹 Splash screen retiré du DOM.");
                     }, 800);
                 }, displayTime);
-            } else {
-                console.log("ℹ️ Pas de splash screen à retirer.");
             }
         });
 
-        // Service Worker
         if ('serviceWorker' in navigator) { 
             navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err)); 
         }

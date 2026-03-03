@@ -10,22 +10,21 @@ $targetPage = 'app.php';
 
 <link rel="stylesheet" href="css/kchess/newGame.css?version=<?php echo $version; ?>">
 
+<div class="lang-selector-screen-edge">
+    <form method="GET" class="d-inline">
+        <?php if(isset($_GET['new'])): ?><input type="hidden" name="new" value="1"><?php endif; ?>
+        <select name="lang" class="form-select form-select-sm lang-select-minimal" onchange="this.form.submit()">
+            <?php foreach ($config['lang'] as $langCode => $langData): ?>
+                <option value="<?php echo $langCode; ?>" <?php echo $currentLang === $langCode ? 'selected' : ''; ?>>
+                    <?php echo $langCode === 'fr' ? '🇫🇷' : '🇬🇧'; ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </form>
+</div>
+
 <div class="new-game-overlay">
     <div class="new-game-content">
-
-        <div class="lang-selector-top-right">
-            <form method="GET" class="d-inline">
-                <?php if(isset($_GET['new'])): ?><input type="hidden" name="new" value="1"><?php endif; ?>
-                <select name="lang" class="form-select form-select-sm w-auto d-inline lang-select" onchange="this.form.submit()">
-                    <?php foreach ($config['lang'] as $langCode => $langData): ?>
-                        <option value="<?php echo $langCode; ?>" <?php echo $currentLang === $langCode ? 'selected' : ''; ?>>
-                            <?php echo $langCode === 'fr' ? '🇫🇷' : '🇬🇧'; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </form>
-        </div>
-
         <div class="new-game-buttons">
             <button class="game-mode-btn btn-human" data-mode="human" data-level="0">
                 <div class="mode-description">
@@ -63,7 +62,7 @@ $targetPage = 'app.php';
                     <div class="color-piece-wrapper">
                         <img src="img/chesspieces/wikipedia/wK.png" alt="W" class="color-piece-img">
                     </div>
-                    <div class="color-label"><?php echo $translations['white'] ?? 'White'; ?></div>
+                    <div class="color-label"><?php echo $translations['white'] ?? 'Blancs'; ?></div>
                 </div>
 
                 <div class="color-option" data-color="random">
@@ -77,12 +76,12 @@ $targetPage = 'app.php';
                     <div class="color-piece-wrapper">
                         <img src="img/chesspieces/wikipedia/bK.png" alt="B" class="color-piece-img">
                     </div>
-                    <div class="color-label"><?php echo $translations['black'] ?? 'Black'; ?></div>
+                    <div class="color-label"><?php echo $translations['black'] ?? 'Noirs'; ?></div>
                 </div>
             </div>
         </div>
 
-        <div class="mt-4">
+        <div class="mt-4 text-center">
             <button class="start-game-btn" id="startGameBtn" disabled>
                 <i class="bi bi-play-circle me-2"></i>
                 <?php echo $translations['start_game'] ?? 'Jouer'; ?>
@@ -91,6 +90,35 @@ $targetPage = 'app.php';
     </div>
 </div>
 
+<style>
+/* Positionnement fixe en haut à droite du viewport */
+.lang-selector-screen-edge {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 10000; /* Très élevé pour passer au dessus des overlays */
+}
+
+.lang-select-minimal {
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    background: white;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    width: auto !important;
+}
+
+/* Ajustement mobile pour éviter les encoches/safe areas */
+@supports (padding: env(safe-area-inset-top)) {
+    .lang-selector-screen-edge {
+        top: calc(10px + env(safe-area-inset-top));
+        right: calc(10px + env(safe-area-inset-right));
+    }
+}
+</style>
+
 <script src="js/kchess/ui/new-game-handler.js?v=<?php echo $version; ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -98,14 +126,15 @@ document.addEventListener('DOMContentLoaded', function() {
         NewGameHandler.init('<?php echo $targetPage; ?>');
     }
 
-    // Script pour mettre à jour le rappel textuel
     const modeButtons = document.querySelectorAll('.game-mode-btn');
     const reminderText = document.getElementById('mode-reminder-text');
 
     modeButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             const title = this.querySelector('.mode-description span').innerText;
-            reminderText.innerText = title;
+            if (reminderText) {
+                reminderText.innerText = title;
+            }
         });
     });
 });

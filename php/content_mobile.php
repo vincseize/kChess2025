@@ -23,6 +23,10 @@ $translations = $config['lang'][$lang];
                             <i class="bi bi-plus-circle me-1"></i> <?php echo htmlspecialchars($translations['new_game']); ?>
                         </button>
 
+                        <button type="button" class="btn btn-outline-success btn-sm" id="playAgain">
+                            <i class="bi bi-arrow-clockwise me-1"></i> <?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?>
+                        </button>
+
                         <button type="button" class="btn btn-outline-dark btn-sm flip-board-btn" id="flipBoardMobile"
                                 title="<?php echo htmlspecialchars($translations['flip_board']); ?>">
                             <i class="bi bi-arrow-repeat me-1"></i> <?php echo htmlspecialchars($translations['flip_board']); ?>
@@ -92,7 +96,7 @@ $translations = $config['lang'][$lang];
                 <?php echo htmlspecialchars($translations['app_name']); ?> v<?php echo htmlspecialchars($config['version']); ?>
             </div>
             <div class="col-md-6 text-md-end text-white-50 small">
-                <?php echo $translations['footer_copyright']; ?><?php echo date('Y'); ?>
+                <?php echo $translations['footer_copyright'] ?? '© '; ?><?php echo date('Y'); ?>
             </div>
         </div>
     </div>
@@ -102,6 +106,7 @@ $translations = $config['lang'][$lang];
 window.translations = <?php echo json_encode($translations, JSON_UNESCAPED_UNICODE); ?>;
 window.getTranslation = (key, def = '') => window.translations[key] || def;
 
+// Mise à jour des labels (Bot vs Humain)
 window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLevel = null) {
     const top = document.getElementById('topPlayerLabel');
     const bottom = document.getElementById('bottomPlayerLabel');
@@ -111,7 +116,11 @@ window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLeve
     const white = window.getTranslation('white_player', 'Blancs');
     const black = window.getTranslation('black_player', 'Noirs');
     let botName = window.getTranslation('computer_player', 'Bot');
-    if (botLevel) botName = window.getTranslation('bot_level' + botLevel, botName);
+    
+    if (botLevel) {
+        botName = window.getTranslation('bot_level' + botLevel, botName);
+        if (botName === 'Bot') botName = window.getTranslation('bot_' + botLevel, 'Niveau ' + botLevel);
+    }
 
     if (isBotGame && botColor === 'black') {
         top.innerHTML = `<i class="bi bi-cpu"></i> ${botName} (${black})`;
@@ -139,20 +148,35 @@ window.updateTimeDisplay = function(w, b) {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. GESTION DU BOUTON NOUVELLE PARTIE (CORRECTIF DOUBLE DIALOGUE)
-    document.querySelectorAll('.new-game-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
+    
+// 1. NOUVELLE PARTIE DIRECTE (FORCE)
+document.querySelectorAll('.new-game-btn').forEach(btn => {
+    // On clone le bouton pour supprimer tous les anciens écouteurs d'événements (le confirm qui traîne)
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+
+    newBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopImmediatePropagation(); // Empêche les autres scripts JS de voir le clic
+        
+        // Nettoyage manuel au cas où pour être sûr de repartir à zéro
+        if (window.localStorage) localStorage.clear();
+        if (window.sessionStorage) sessionStorage.clear();
+        
+        window.location.replace('index.php?new'); // .replace est mieux pour éviter les boucles de retour arrière
+    }, true); 
+});
+
+    // 2. REJOUER (Reload URL actuelle)
+    const playAgainBtn = document.getElementById('playAgain');
+    if (playAgainBtn) {
+        playAgainBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopImmediatePropagation(); 
+            window.location.href = window.location.href;
+        });
+    }
 
-            const msg = window.getTranslation('new_game', 'Nouvelle Partie') + ' ?';
-            if (confirm(msg)) {
-                window.location.replace('index.php?new');
-            }
-        }, true); 
-    });
-
-    // 2. RESTAURATION DU BOUTON FLIP BOARD
+    // 3. TOURNER LE PLATEAU
     document.querySelectorAll('.flip-board-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
@@ -162,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Paramètres URL
+    // Initialisation
     const params = new URLSearchParams(window.location.search);
     if (params.get('mode') === 'bot') {
         const bCol = (params.get('color') === 'white') ? 'black' : 'white';
@@ -171,6 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.updatePlayerLabels(false);
     }
 
+    // Synchronisation moteur
     const engineCheck = setInterval(() => {
         if (window.chessGame?.getBotStatus) {
             const s = window.chessGame.getBotStatus();
@@ -185,6 +210,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <style>
 .chess-board-container { width: 100%; max-width: 500px; aspect-ratio: 1 / 1; }
 .move-history { font-family: monospace; font-size: 0.8rem; }
+.move-history::-webkit-scrollbar { width: 4px; }
+.move-history::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
 .btn-xs { padding: 1px 5px; font-size: 0.75rem; }
 @media (max-width: 767px) {
     .badge { font-size: 0.7rem !important; }
