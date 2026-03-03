@@ -36,6 +36,7 @@
             "traitAuxNoirs": "Trait aux Noirs",
             "accueil": "Accueil",
             "new_game": "Nouvelle Partie",
+            "play_again": "Rejouer",
             "flip_board": "Tourner",
             "white_time": "Temps Blancs",
             "black_time": "Temps Noirs",
@@ -121,11 +122,17 @@
             "Level": "Niveau",
             "bots": {
                 "bot_1": "Level 1 : Aléatoire",
+                "bot_1_info": "Le bot joue des coups totalement au hasard.",
                 "bot_2": "Level 2 : ECMO (Basique)",
+                "bot_2_info": "Stratégie ECMO : Échec → Capture → Menace → Optimisation.",
                 "bot_3": "Level 3 : ECMO (Avancé)",
-                "bot_4": "Level 4 : Stratège (Agressif)",
-                "bot_5": "Level 5 : Maître (Étrangleur)",
-                "bot_16": "Level 16 : Deep Neural (Test)"
+                "bot_3_info": "Analyse ECMO avec une meilleure évaluation des échanges.",
+                "bot_4": "Level 4 : Stratège",
+                "bot_4_info": "Bot agressif privilégiant l'attaque du roi.",
+                "bot_5": "Level 5 : Maître",
+                "bot_5_info": "Jeu positionnel serré visant l'étouffement de l'adversaire.",
+                "bot_16": "Level 16 : Deep Neural",
+                "bot_16_info": "Test de réseau de neurones profonds."
             }
         },
         "en": {
@@ -134,6 +141,7 @@
             "traitAuxNoirs": "Black to move",
             "accueil": "Home",
             "new_game": "New Game",
+            "play_again": "Play again",
             "flip_board": "Flip",
             "white_time": "White Time",
             "black_time": "Black Time",
@@ -218,13 +226,19 @@
             "copy_error_pgn": "Error copying PGN",
             "Level": "Level",
             "bots": {
-            "bot_1": "Level 1: Random",
-            "bot_2": "Level 2: ECMO (Basic)",
-            "bot_3": "Level 3: ECMO (Advanced)",
-            "bot_4": "Level 4: Strategist (Aggressive)",
-            "bot_5": "Level 5: Master (Strangler)",
-            "bot_16": "Level 16: Deep Neural (Experimental)"
-        }
+                "bot_1": "Level 1: Random",
+                "bot_1_info": "The bot plays moves completely at random.",
+                "bot_2": "Level 2: ECMO (Basic)",
+                "bot_2_info": "ECMO Strategy: Check → Capture → Threat → Optimization.",
+                "bot_3": "Level 3: ECMO (Advanced)",
+                "bot_3_info": "ECMO analysis with improved exchange evaluation.",
+                "bot_4": "Level 4: Strategist (Aggressive)",
+                "bot_4_info": "Aggressive bot focusing on king-side attacks.",
+                "bot_5": "Level 5: Master (Strangler)",
+                "bot_5_info": "Tight positional play aiming to suffocate the opponent.",
+                "bot_16": "Level 16: Deep Neural (Experimental)",
+                "bot_16_info": "Deep neural network testing phase."
+            }
         }
     }
 }
