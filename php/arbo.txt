@@ -60,6 +60,8 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
   📄 favicon.png
   📄 icon-192x192.png
   📄 icon-512x512.png
+  📄 icon.svg
+  📄 logo.psd
 📄 index.php
 📁 js
   📄 bootstrap.bundle.min.js
@@ -98,7 +100,6 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
           📄 stress-test-bot.js
         📄 log_error.php
         📁 results
-          📄 stress_test-White_L3-vs-Black_L2.json
     📁 check
       📄 checkChess.js
       📄 checkChessMat.js
@@ -155,5 +156,6 @@ Arborescence du dossier : C:\xampp\htdocs\__kChess2025\php
 📄 newGame.php
 📄 project_flow_mapper.php
 📁 splashscreens
+  📄 splashscreen0.php
   📄 splashscreen1.php
 📄 sw.js

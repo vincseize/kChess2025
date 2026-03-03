@@ -121,18 +121,42 @@
             "copy_error_pgn": "Erreur lors de la copie du PGN",
             "Level": "Niveau",
             "bots": {
-                "bot_1": "Level 1 : Aléatoire",
-                "bot_1_info": "Le bot joue des coups totalement au hasard.",
-                "bot_2": "Level 2 : ECMO (Basique)",
-                "bot_2_info": "Stratégie ECMO : Échec → Capture → Menace → Optimisation.",
-                "bot_3": "Level 3 : ECMO (Avancé)",
-                "bot_3_info": "Analyse ECMO avec une meilleure évaluation des échanges.",
-                "bot_4": "Level 4 : Stratège",
-                "bot_4_info": "Bot agressif privilégiant l'attaque du roi.",
-                "bot_5": "Level 5 : Maître",
-                "bot_5_info": "Jeu positionnel serré visant l'étouffement de l'adversaire.",
-                "bot_16": "Level 16 : Deep Neural",
-                "bot_16_info": "Test de réseau de neurones profonds."
+                "bot_1": {
+                    "title": "Niveau 1 : Aléatoire",
+                    "description": "Le bot joue des coups totalement au hasard.",
+                    "clock": "00:01:00",
+                    "increment": "00:00:02"
+                },
+                "bot_2": {
+                    "title": "Niveau 2 : ECMO (Basique)",
+                    "description": "Stratégie ECMO : Échec → Capture → Menace → Optimisation.",
+                    "clock": "00:02:00",
+                    "increment": "00:00:02"
+                },
+                "bot_3": {
+                    "title": "Niveau 3 : ECMO (Avancé)",
+                    "description": "Analyse ECMO avec une meilleure évaluation des échanges.",
+                    "clock": "00:03:00",
+                    "increment": "00:00:02"
+                },
+                "bot_4": {
+                    "title": "Niveau 4 : Petit Stratège (Agressif)",
+                    "description": "Bot agressif privilégiant l'attaque sur le petit/grand roque.",
+                    "clock": "00:05:00",
+                    "increment": "00:00:03"
+                },
+                "bot_5": {
+                    "title": "Niveau 5 : Petit Maître (Étrangleur)",
+                    "description": "Jeu positionnel serré visant à étouffer l'adversaire.",
+                    "clock": "00:10:00",
+                    "increment": "00:00:05"
+                },
+                "bot_16": {
+                    "title": "Niveau 16 : Deep Neural (Expérimental)",
+                    "description": "Phase de test du réseau de neurones profonds.",
+                    "clock": "Illimité",
+                    "increment": "00:00:00"
+                }
             }
         },
         "en": {
@@ -226,18 +250,42 @@
             "copy_error_pgn": "Error copying PGN",
             "Level": "Level",
             "bots": {
-                "bot_1": "Level 1: Random",
-                "bot_1_info": "The bot plays moves completely at random.",
-                "bot_2": "Level 2: ECMO (Basic)",
-                "bot_2_info": "ECMO Strategy: Check → Capture → Threat → Optimization.",
-                "bot_3": "Level 3: ECMO (Advanced)",
-                "bot_3_info": "ECMO analysis with improved exchange evaluation.",
-                "bot_4": "Level 4: Strategist (Aggressive)",
-                "bot_4_info": "Aggressive bot focusing on king-side attacks.",
-                "bot_5": "Level 5: Master (Strangler)",
-                "bot_5_info": "Tight positional play aiming to suffocate the opponent.",
-                "bot_16": "Level 16: Deep Neural (Experimental)",
-                "bot_16_info": "Deep neural network testing phase."
+                "bot_1": {
+                    "title": "Level 1: Random",
+                    "description": "The bot plays moves completely at random.",
+                    "clock": "00:01:00",
+                    "increment": "00:00:02"
+                },
+                "bot_2": {
+                    "title": "Level 2: ECMO (Basic)",
+                    "description": "ECMO Strategy: Check → Capture → Threat → Optimization.",
+                    "clock": "00:02:00",
+                    "increment": "00:00:02"
+                },
+                "bot_3": {
+                    "title": "Level 3: ECMO (Advanced)",
+                    "description": "ECMO analysis with improved exchange evaluation.",
+                    "clock": "00:03:00",
+                    "increment": "00:00:02"
+                },
+                "bot_4": {
+                    "title": "Level 4: Little Strategist (Aggressive)",
+                    "description": "Aggressive bot focusing on king-side/queen-side attacks.",
+                    "clock": "00:05:00",
+                    "increment": "00:00:03"
+                },
+                "bot_5": {
+                    "title": "Level 5: Little Master (Strangler)",
+                    "description": "Tight positional play aiming to suffocate the opponent.",
+                    "clock": "00:10:00",
+                    "increment": "00:00:05"
+                },
+                "bot_16": {
+                    "title": "Level 16: Deep Neural (Experimental)",
+                    "description": "Deep neural network testing phase.",
+                    "clock": "Unlimited",
+                    "increment": "00:00:00"
+                }
             }
         }
     }
