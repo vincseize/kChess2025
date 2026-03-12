@@ -1,0 +1,133 @@
+/* chess-board-base.css - Styles de l'échiquier pilotés par JSON */
+
+:root {
+    /* Fallbacks au cas où le JSON mettrait du temps à charger */
+    --square-white: #F0D9B5;
+    --square-black: #B58863;
+    --chess-selected: #aec6cf;
+}
+
+.chess-board-container {
+    position: relative;
+    display: inline-block;
+    margin: 20px auto 0 auto;
+    width: 100%;
+}
+
+.chess-board {
+    width: 100%;
+    max-width: 500px;
+    aspect-ratio: 1 / 1;
+    border: 3px solid var(--square-black);
+    background: var(--square-black);
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    position: relative;
+}
+
+.chess-square {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative; 
+    font-size: clamp(2rem, 5vw, 3rem);
+    cursor: pointer;
+    transition: background-color 0.2s ease, filter 0.2s ease;
+    
+    /* Mobile UX */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+/* --- COULEURS DES CASES (Variables JSON) --- */
+.chess-square.white {
+    background-color: var(--square-white);
+}
+
+.chess-square.black {
+    background-color: var(--square-black);
+}
+
+.chess-square.selected {
+    background-color: var(--chess-selected) !important;
+}
+
+/* --- SYSTÈME DE COORDONNÉES INTERNES --- */
+
+.chess-square::before, 
+.chess-square::after {
+    position: absolute;
+    font-size: clamp(8px, 1.5vw, 11px);
+    font-weight: 800;
+    pointer-events: none;
+    user-select: none;
+    line-height: 1;
+    text-transform: uppercase;
+    z-index: 5;
+}
+
+/* CHIFFRES (data-rank) : Haut-Gauche */
+.chess-square.coord-rank::before {
+    content: attr(data-rank);
+    top: 3px;
+    left: 3px;
+    right: auto;
+    bottom: auto;
+}
+
+/* LETTRES (data-file) : Bas-Droite */
+.chess-square.coord-file::after {
+    content: attr(data-file);
+    bottom: 3px;
+    right: 3px;
+    top: auto;
+    left: auto;
+}
+
+/* --- COULEURS DES LABELS (Contraste Auto) --- */
+.chess-square.white::before, 
+.chess-square.white::after {
+    color: var(--square-black);
+    opacity: 0.7;
+}
+
+.chess-square.black::before, 
+.chess-square.black::after {
+    color: var(--square-white);
+    opacity: 0.8;
+}
+
+/* --- ÉTAT ÉCHEC --- */
+.chess-square.square-check {
+    background-color: #ff4d4d !important;
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.chess-square.square-check img {
+    animation: king-pulse 0.8s infinite alternate ease-in-out;
+}
+
+@keyframes king-pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.08); }
+}
+
+/* --- INTERACTIONS --- */
+.chess-square:hover {
+    filter: brightness(1.05);
+}
+
+.chess-piece {
+    transition: transform 0.2s ease-in-out;
+    z-index: 10;
+}
+
+/* Optimisations mobiles */
+@media (max-width: 768px) {
+    .chess-square:active {
+        filter: brightness(0.95);
+    }
+}

@@ -193,7 +193,6 @@ class GameState {
      */
     checkIfMoveCausesCheck() {
         try {
-            // On vérifie si l'engine est disponible pour valider l'échec
             if (window.chessGame?.moveValidator) {
                 const opponentColor = this.currentPlayer === 'white' ? 'black' : 'white';
                 return window.chessGame.moveValidator.isKingInCheck?.(opponentColor);
@@ -204,19 +203,31 @@ class GameState {
         }
     }
 
-switchPlayer() {
+    /**
+     * Change le joueur actif et déclenche l'incrément de temps
+     */
+    switchPlayer() {
+        // Changement de couleur
         this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
         this.constructor.log('🔄', `Tour : ${this.currentPlayer.toUpperCase()}`);
 
-        // --- AJOUT CRITIQUE : Affichage de la FEN à chaque changement de tour ---
+        // --- AJOUT : Gestion de l'incrément dans le Timer ---
+        try {
+            if (window.chessGame?.core?.ui?.timerManager) {
+                // On notifie le timer du changement de tour pour appliquer l'incrément
+                window.chessGame.core.ui.timerManager.switchTurn(this.currentPlayer);
+            }
+        } catch (e) {
+            // Silencieux si le timer n'est pas encore prêt
+        }
+
+        // --- AJOUT CRITIQUE : Affichage de la FEN ---
         try {
             if (this.constructor.consoleLog && window.chessGame?.getFEN) {
                 const currentFEN = window.chessGame.getFEN();
                 console.log(`🧩 [FEN] ${currentFEN}`);
             }
-        } catch (e) {
-            // On ignore silencieusement si ChessGameCore n'est pas encore lié
-        }
+        } catch (e) {}
     }
 
     /**

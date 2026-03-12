@@ -1,0 +1,402 @@
+/* layout.css */
+html, body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+footer {
+    flex-shrink: 0;
+}
+
+.chess-container {
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    height: 100%;
+}
+
+.game-info-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Correction position badges joueurs */
+.chess-container .position-absolute.top-0.start-0 {
+    top: 10px !important;
+    left: 10px !important;
+}
+
+.chess-container .position-absolute.bottom-0.start-0 {
+    bottom: 10px !important;
+    left: 10px !important;
+}
+
+/* STYLES POUR LES BOUTONS PGN/FEN AVEC TEXTE */
+.btn-group {
+    display: inline-flex;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    gap: 1px;
+}
+
+.btn-group .btn {
+    border-radius: 0 !important;
+    margin-left: 0 !important;
+    border: none;
+    position: relative;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    min-width: 45px;
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: 0.25rem !important;
+    border-bottom-left-radius: 0.25rem !important;
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: 0.25rem !important;
+    border-bottom-right-radius: 0.25rem !important;
+}
+
+/* Style spécifique pour les boutons PGN/FEN */
+#copyPGN {
+    background-color: #495057; /* Gris foncé */
+    color: white;
+}
+
+#copyPGN:hover {
+    background-color: #343a40;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+#copyFEN {
+    background-color: #212529; /* Noir */
+    color: white;
+}
+
+#copyFEN:hover {
+    background-color: #000;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Animation pour le feedback de copie */
+@keyframes copySuccess {
+    0% { 
+        transform: scale(1);
+        background-color: #28a745;
+    }
+    50% { 
+        transform: scale(1.05);
+        background-color: #20c997;
+    }
+    100% { 
+        transform: scale(1);
+        background-color: #28a745;
+    }
+}
+
+.btn-success {
+    animation: copySuccess 0.5s ease;
+    background-color: #28a745 !important;
+}
+
+/* Focus styles pour accessibilité */
+.btn-group .btn:focus {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+    z-index: 2;
+}
+
+/* Effet de pression au clic */
+.btn-group .btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Réduction taille du board sur desktop */
+@media (min-width: 768px) {
+    .chess-board {
+        max-width: 550px !important;
+        border-width: 2px !important;
+    }
+}
+
+/* Ajustement pour très grands écrans */
+@media (min-width: 1400px) {
+    .chess-board {
+        max-width: 650px !important;
+    }
+}
+
+@media (min-width: 1600px) {
+    .chess-board {
+        max-width: 750px !important;
+    }
+}
+
+/* STYLES POUR L'HISTORIQUE DES COUPS */
+.move-history {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
+}
+
+.move-history::-webkit-scrollbar {
+    width: 6px;
+}
+
+.move-history::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.move-history::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 3px;
+}
+
+.move-history::-webkit-scrollbar-thumb:hover {
+    background-color: #aaa;
+}
+
+.move-item {
+    transition: background-color 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.move-item:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.move-item:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.move-item:nth-child(even):hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Style pour les coups avec échec */
+.move-item .text-danger {
+    font-weight: bold;
+    animation: pulse-check 1.5s infinite;
+}
+
+@keyframes pulse-check {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+/* Améliorations mobiles */
+@media (max-width: 767.98px) {
+    .menu-container .card-body {
+        padding: 1rem !important;
+    }
+    
+    /* Espacement amélioré sur mobile */
+    .d-grid.gap-2 {
+        gap: 0.75rem !important;
+    }
+    
+    /* MENU TOUJOURS OUVERT SUR MOBILE - RÉTABLI */
+    #menuContent {
+        display: block !important;
+    }
+    
+    /* CACHER le bouton toggle sur mobile puisque le menu est toujours ouvert */
+    .btn[data-bs-toggle="collapse"] {
+        display: none !important;
+    }
+    
+    /* Taille des boutons sur mobile */
+    .btn-sm {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        min-height: 44px; /* Taille minimale pour le touch */
+    }
+    
+    /* Ajustement des boutons groupés sur mobile */
+    .btn-group .btn-sm {
+        padding: 0.4rem 0.6rem;
+        min-height: 36px;
+        font-size: 0.75rem;
+        min-width: 40px;
+    }
+    
+    /* Réduction padding container chess */
+    .chess-container {
+        padding: 0.5rem !important;
+    }
+    
+    /* Ajustement badges sur mobile */
+    .chess-container .badge {
+        font-size: 0.7rem;
+        padding: 0.4rem 0.6rem;
+    }
+    
+    /* Améliorer le touch sur mobile */
+    .btn {
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+    }
+    
+    /* Style pour les boutons d'actions rapides sur mobile */
+    .d-md-none .btn {
+        border-width: 2px;
+    }
+    
+    /* Ajustement historique sur mobile */
+    .move-item {
+        padding: 0.75rem 0.5rem !important;
+        font-size: 0.85rem;
+    }
+    
+    .move-item small {
+        font-size: 0.75rem;
+    }
+}
+
+/* Très petits écrans */
+@media (max-width: 480px) {
+    .chess-board {
+        max-width: 100%;
+    }
+    
+    .badge {
+        font-size: 0.65rem;
+        padding: 0.3rem 0.5rem;
+    }
+    
+    .chess-container .position-absolute.top-0.start-0,
+    .chess-container .position-absolute.bottom-0.start-0 {
+        margin: 5px !important;
+    }
+    
+    /* Ajustement supplémentaire pour très petits écrans */
+    .menu-container .card-body {
+        padding: 0.75rem !important;
+    }
+    
+    .btn-sm {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.85rem;
+        min-height: 42px;
+    }
+    
+    /* Ajustement des boutons groupés sur très petits écrans */
+    .btn-group .btn-sm {
+        padding: 0.35rem 0.5rem;
+        min-height: 34px;
+        font-size: 0.7rem;
+        min-width: 38px;
+    }
+    
+    /* Réduire l'espacement sur très petits écrans */
+    .d-grid.gap-2 {
+        gap: 0.5rem !important;
+    }
+    
+    /* Ajuster la taille des textes */
+    .btn-sm {
+        font-size: 0.8rem;
+    }
+    
+    /* Ajustement historique sur très petits écrans */
+    .move-item {
+        padding: 0.6rem 0.4rem !important;
+        font-size: 0.8rem;
+    }
+    
+    .move-item small {
+        font-size: 0.7rem;
+    }
+    
+    /* Réduire l'en-tête de l'historique */
+    .card-header h4 {
+        font-size: 0.9rem;
+    }
+    
+    .btn-group {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+}
+
+/* Styles pour le statut de la partie */
+.game-status {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#gameStatus {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+#currentPlayer {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Amélioration des cartes */
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.125);
+    transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.card-header {
+    font-weight: 600;
+    border-bottom: 2px solid rgba(0,0,0,0.1);
+}
+
+/* Responsive pour les colonnes */
+@media (max-width: 991.98px) {
+    .col-lg-3, .col-md-4 {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Animation subtile pour les interactions */
+.btn, .card, .chess-square {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Focus styles pour accessibilité */
+.btn:focus, .btn:active {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    outline: none;
+}
+
+/* Loading state pour les boutons */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

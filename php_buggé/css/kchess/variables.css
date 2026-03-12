@@ -1,0 +1,17 @@
+/* variables.css */
+:root {
+    /* Couleurs échiquier */
+    --chess-brown-dark: #8B4513;
+    --chess-brown-light: #DEB887;
+    --chess-square-white: #F0D9B5;
+    --chess-square-black: #B58863;
+    
+    /* États */
+    --chess-selected: #aec6cf;
+    --chess-move-indicator: #32CD32;
+    --chess-capture-indicator: #ff4444;
+    
+    /* Couleurs Bootstrap personnalisées */
+    --primary-color: #0d6efd;
+    --success-color: #198754;
+}

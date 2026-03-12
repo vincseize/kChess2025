@@ -1,0 +1,26 @@
+/* chess-board-special.css - États spéciaux */
+.chess-square.promotion-square {
+    background: linear-gradient(45deg, var(--chess-square-white) 25%, #ffeb3b 25%, #ffeb3b 50%, var(--chess-square-white) 50%, var(--chess-square-white) 75%, #ffeb3b 75%) !important;
+    background-size: 20px 20px;
+}
+
+.chess-square.black.promotion-square {
+    background: linear-gradient(45deg, var(--chess-square-black) 25%, #ff9800 25%, #ff9800 50%, var(--chess-square-black) 50%, var(--chess-square-black) 75%, #ff9800 75%) !important;
+    background-size: 20px 20px;
+}
+
+.chess-square.check {
+    background-color: #ff4444 !important;
+    animation: pulse-check 1s infinite;
+}
+
+@keyframes pulse-check {
+    0% { background-color: #ff4444; }
+    50% { background-color: #ff6666; }
+    100% { background-color: #ff4444; }
+}
+
+.chess-square.checkmate {
+    background-color: #990000 !important;
+    color: white;
+}

@@ -1,0 +1,145 @@
+/* ==========================================================================
+   SÉLECTIONS ET ÉTATS TEMPORAIRES (Pendant le choix du coup)
+   ========================================================================== */
+
+/* Case de la pièce actuellement sélectionnée */
+#chessBoard .chess-square.selected {
+    background-color: rgba(74, 144, 226, 0.5) !important;
+    box-shadow: inset 0 0 0 3px #4a90e2 !important;
+    z-index: 3;
+}
+
+/* --- SUGGESTIONS DE MOUVEMENTS --- */
+
+/* Fond léger pour les cases cibles */
+#chessBoard .chess-square.possible-move { background-color: rgba(50, 205, 50, 0.1) !important; }
+#chessBoard .chess-square.possible-capture { background-color: rgba(255, 68, 68, 0.1) !important; }
+#chessBoard .chess-square.possible-en-passant { background-color: rgba(255, 107, 53, 0.1) !important; }
+#chessBoard .chess-square.possible-castle { background-color: rgba(255, 193, 7, 0.1) !important; }
+
+/* Indicateurs (Points et Cercles) */
+#chessBoard .chess-square.possible-move::before,
+#chessBoard .chess-square.possible-capture::before,
+#chessBoard .chess-square.possible-en-passant::before,
+#chessBoard .chess-square.possible-castle::before {
+    content: "";
+    position: absolute;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 2;
+    pointer-events: none; /* Ne bloque pas le clic */
+}
+
+/* Petit point central pour déplacement simple */
+#chessBoard .chess-square.possible-move::before {
+    width: 25%;
+    height: 25%;
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 50%;
+}
+
+/* Grand cercle pour capture */
+#chessBoard .chess-square.possible-capture::before {
+    width: 85%;
+    height: 85%;
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+#chessBoard .chess-square.possible-en-passant::before {
+    width: 85%;
+    height: 85%;
+    border: 4px solid #ff6b35;
+    border-radius: 50%;
+    opacity: 0.4;
+    box-sizing: border-box;
+    animation: pulse-en-passant 1.5s infinite;
+}
+
+#chessBoard .chess-square.possible-castle::before {
+    content: "🏰";
+    font-size: 1.2rem;
+    opacity: 0.7;
+    animation: pulse-castle 2s infinite;
+}
+
+/* ==========================================================================
+   HIGHLIGHTS PERSISTANTS (Une fois le coup validé)
+   ========================================================================== */
+
+/* Case de DÉPART du dernier coup */
+#chessBoard .chess-square.last-move-source {
+    background-color: rgba(245, 246, 130, 0.4) !important; /* Jaune pâle */
+}
+
+/* Case d'ARRIVÉE du dernier coup */
+#chessBoard .chess-square.last-move-dest {
+    background-color: rgba(245, 246, 130, 0.7) !important; /* Jaune marqué */
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ==========================================================================
+   ÉTATS SPÉCIAUX (Échec, Mat, Pat)
+   ========================================================================== */
+
+#chessBoard .chess-square.king-in-check {
+    background: radial-gradient(circle, rgba(255, 68, 68, 0.4) 0%, rgba(255, 0, 0, 0.2) 60%, transparent 100%) !important;
+    box-shadow: inset 0 0 0 3px rgba(255, 0, 0, 0.8) !important;
+    animation: pulse-check 1.5s infinite alternate;
+    z-index: 4;
+}
+
+#chessBoard .chess-square.checkmate {
+    background-color: rgba(255, 0, 0, 0.6) !important;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.8) !important;
+}
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+
+@keyframes pulse-check {
+    from { opacity: 0.8; box-shadow: inset 0 0 0 2px rgba(255, 0, 0, 0.5); }
+    to { opacity: 1; box-shadow: inset 0 0 0 4px rgba(255, 0, 0, 1); }
+}
+
+@keyframes pulse-en-passant {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.4; }
+    50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.6; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0.4; }
+}
+
+@keyframes pulse-castle {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.9; }
+}
+
+/* ==========================================================================
+   NOTIFICATIONS
+   ========================================================================== */
+
+.chess-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    z-index: 9999;
+    font-family: sans-serif;
+    font-weight: 600;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    backdrop-filter: blur(8px);
+    transition: all 0.4s ease;
+    animation: slideIn 0.3s ease-out;
+}
+
+.type-info { background: rgba(33, 150, 243, 0.9); color: white; border-left: 5px solid #0d47a1; }
+.type-danger { background: rgba(244, 67, 54, 0.9); color: white; border-left: 5px solid #b71c1c; }
+.type-warning { background: rgba(255, 193, 7, 0.9); color: #333; border-left: 5px solid #ff8f00; }
+
+@keyframes slideIn {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}

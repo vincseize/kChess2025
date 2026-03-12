@@ -1,0 +1,71 @@
+{
+    "app_name": "CharlyChess",
+    "version": "0.99",
+    "author": "Karlova",
+    "author2": "von Vincseize",
+    "default_theme": "classic",
+    "default_lang": "fr",
+    "splashscreen": {
+        "loading": true,
+        "version": 0,
+        "display_time": 1500
+    },
+    "//": "--- PARAMETRES TECHNIQUES UNIQUES ---",
+    "bots_logic": {
+        "bot_1": { "clock": "00:01:00", "increment": "00:00:02" },
+        "bot_2": { "clock": "00:02:00", "increment": "00:00:02" },
+        "bot_3": { "clock": "00:03:00", "increment": "00:00:02" },
+        "bot_4": { "clock": "00:05:00", "increment": "00:00:03" },
+        "bot_5": { "clock": "00:10:00", "increment": "00:00:05" },
+        "bot_16": { "clock": "99:59:59", "increment": "00:00:00" }
+    },
+    "features": {
+        "flip_board": true,
+        "move_history": true,
+        "move_validation": true,
+        "responsive": true
+    },
+    "colors": {
+        "square_white": "#F0D9B5",
+        "square_black": "#B58863",
+        "selected": "#aec6cf",
+        "move_indicator": "#32CD32",
+        "capture_indicator": "#ff4444"
+    },
+    "debug": { "console_log": true },
+    "chess_engine": { "console_log": true },
+    "lang": {
+        "fr": {
+            "accueil": "Accueil",
+            "new_game": "Nouvelle Partie",
+            "play_again": "Rejouer",
+            "white": "Blancs",
+            "black": "Noirs",
+            "thinking": "réfléchit...",
+            "bots": {
+                "bot_1": { "title": "Niveau 1 : Aléatoire", "description": "Le bot joue des coups totalement au hasard." },
+                "bot_2": { "title": "Niveau 2 : ECMO (Basique)", "description": "Stratégie ECMO : Échec → Capture → Menace → Optimisation." },
+                "bot_3": { "title": "Niveau 3 : ECMO (Avancé)", "description": "Analyse ECMO avec une meilleure évaluation des échanges." },
+                "bot_4": { "title": "Niveau 4 : Petit Stratège", "description": "Bot agressif privilégiant l'attaque." },
+                "bot_5": { "title": "Niveau 5 : Petit Maître", "description": "Jeu positionnel serré visant à étouffer l'adversaire." },
+                "bot_16": { "title": "Niveau 16 : Deep Neural", "description": "Phase de test du réseau de neurones." }
+            }
+        },
+        "en": {
+            "accueil": "Home",
+            "new_game": "New Game",
+            "play_again": "Play again",
+            "white": "White",
+            "black": "Black",
+            "thinking": "thinking...",
+            "bots": {
+                "bot_1": { "title": "Level 1: Random", "description": "The bot plays moves completely at random." },
+                "bot_2": { "title": "Level 2: ECMO (Basic)", "description": "ECMO Strategy: Check → Capture → Threat → Optimization." },
+                "bot_3": { "title": "Level 3: ECMO (Advanced)", "description": "ECMO analysis with improved exchange evaluation." },
+                "bot_4": { "title": "Level 4: Little Strategist", "description": "Aggressive bot focusing on attack." },
+                "bot_5": { "title": "Level 5: Little Master", "description": "Tight positional play aiming to suffocate the opponent." },
+                "bot_16": { "title": "Level 16: Deep Neural", "description": "Deep neural network testing phase." }
+            }
+        }
+    }
+}
