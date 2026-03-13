@@ -98,17 +98,21 @@ $botsClock = $config['bots_clock'] ?? [];
 </footer>
 
 <script>
-// Transfert des données JSON vers le JS
+/**
+ * Transfert des données JSON vers le JS
+ */
 window.translations = <?php echo json_encode($translations, JSON_UNESCAPED_UNICODE); ?>;
 window.botsConfig = <?php echo json_encode($config['bots_clock'] ?? []); ?>;
 
+/**
+ * Helper de traduction pour gérer les clés imbriquées (ex: 'bots.bot_1.title')
+ */
 window.getTranslation = (key, def = '') => {
-    // Gestion des clés imbriquées (ex: 'bots.bot_1.title')
     return key.split('.').reduce((o, i) => (o ? o[i] : def), window.translations) || def;
 };
 
 /**
- * Met à jour les labels des joueurs en haut et en bas
+ * Met à jour les labels des joueurs (haut et bas) selon le mode de jeu
  */
 window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLevel = null) {
     const top = document.getElementById('topPlayerLabel');
@@ -119,7 +123,6 @@ window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLeve
     const blackLabel = window.getTranslation('black_player', 'Noirs');
     const humanName = window.getTranslation('human_player', 'Humain');
     
-    // Récupération dynamique du nom du bot depuis le JSON
     let botName = window.getTranslation('computer_player', 'Bot');
     if (botLevel) {
         botName = window.getTranslation(`bots.bot_${botLevel}.title`, `Bot Niv.${botLevel}`);
@@ -140,48 +143,65 @@ window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLeve
 };
 
 /**
- * Affiche le temps initial basé sur la config bots_clock du JSON
+ * Affiche le temps initial statique basé sur la config bots_clock du JSON
  */
 window.initTimeDisplay = (botLevel = null) => {
     let timeStr = "10:00"; // Défaut
     if (botLevel && window.botsConfig[`bot_${botLevel}`]) {
-        // On prend le format "00:05:00" et on garde "05:00"
         const fullClock = window.botsConfig[`bot_${botLevel}`].clock;
+        // Formatage MM:SS (on retire le "00:" initial du format HH:MM:SS si présent)
         timeStr = fullClock.startsWith("00:") ? fullClock.substring(3) : fullClock;
     }
     
-    document.getElementById('whiteTime').textContent = timeStr;
-    document.getElementById('blackTime').textContent = timeStr;
+    const wEl = document.getElementById('whiteTime');
+    const bEl = document.getElementById('blackTime');
+    if (wEl) wEl.textContent = timeStr;
+    if (bEl) bEl.textContent = timeStr;
 };
 
+/**
+ * INITIALISATION PRINCIPALE
+ */
 document.addEventListener('DOMContentLoaded', function() {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode');
     const level = params.get('level');
     const color = params.get('color') || 'white';
 
-    // Initialisation affichage
+    // 1. Initialisation de l'affichage UI
     if (mode === 'bot') {
         const botColor = (color === 'white') ? 'black' : 'white';
         window.updatePlayerLabels(true, botColor, level);
         window.initTimeDisplay(level);
+
+        // 2. Synchronisation dynamique avec le moteur de jeu (Incrément + Horloge logicielle)
+        setTimeout(() => {
+            const timer = window.chessGame?.core?.ui?.timerManager;
+            const botConfig = window.botsConfig[`bot_${level}`];
+            
+            if (timer && botConfig) {
+                console.log(`⏱️ Config Timer appliquée : Bot Niveau ${level} (+${botConfig.increment}s)`);
+                timer.setTimerConfig(botConfig);
+            }
+        }, 500); // Délai de sécurité pour l'instanciation de chessGame
     } else {
         window.updatePlayerLabels(false);
     }
 
-    // Gestion New Game
+    // 3. Gestion des boutons d'interface
     document.querySelectorAll('.new-game-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', () => {
             if (confirm(window.getTranslation('new_game') + ' ?')) {
                 window.location.href = 'index.php?new';
             }
         });
     });
 
-    // Gestion Flip
     document.querySelectorAll('.flip-board-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            if (window.chessGame?.flipBoard) window.chessGame.flipBoard();
+            if (window.chessGame?.flipBoard) {
+                window.chessGame.flipBoard();
+            }
         });
     });
 });
