@@ -8,7 +8,7 @@
     "splashscreen": {
         "loading": true,
         "version": 0,
-        "display_time": 1500
+        "display_time": 2500
     },
     "features": {
         "flip_board": true,

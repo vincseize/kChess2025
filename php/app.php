@@ -13,9 +13,8 @@ $version = getVersion();
 // 2. LOGIQUE DE ROUTAGE
 $isMobile = preg_match('/(android|iphone|ipad|ipod|blackberry|opera mini|windows phone|mobile)/i', $_SERVER['HTTP_USER_AGENT']);
 $isManualReset = isset($_GET['new']);
-$gameStarted = isset($_GET['mode']); // Si mode est présent, on lance l'interface de jeu
+$gameStarted = isset($_GET['mode']); 
 
-// Gestion de la session pour éviter les boucles de splashscreen
 if ($isManualReset) {
     unset($_SESSION['from_app']);
 }
@@ -27,7 +26,7 @@ if ($isManualReset) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title><?php echo htmlspecialchars($config['app_name']); ?> v<?php echo $version; ?></title>
     
-    <link rel="icon" href="img/favicon.png">
+    <link rel="icon" href="img/icon.svg" type="image/svg+xml">
     <link rel="manifest" href="manifest.json">
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/bootstrap-icons.css">
@@ -44,8 +43,14 @@ if ($isManualReset) {
 
     <?php if (!$gameStarted): ?>
         <?php 
-            if (!$isManualReset && file_exists('splashscreens/splashscreen1.php')) {
-                include 'splashscreens/splashscreen1.php'; 
+            // CHARGEMENT DYNAMIQUE DU SPLASHSCREEN
+            $splashVersion = $config['splashscreen']['version'] ?? 0;
+            $splashFile = 'splashscreens/splashscreen' . $splashVersion . '.php';
+            
+            if (file_exists(__DIR__ . '/' . $splashFile)) {
+                require_once $splashFile;
+            } else {
+                require_once 'splashscreens/splashscreen0.php';
             }
         ?>
         <div id="gameSetupWrapper">
@@ -69,10 +74,9 @@ if ($isManualReset) {
                 $requestedLevel = intval($_GET['level'] ?? 1);
                 $botPath = "js/kchess/bots/Level_" . $requestedLevel . ".js";
                 
-                // 1. On charge TOUJOURS la base d'abord
+                echo '';
                 echo '<script src="js/kchess/bots/BotBase.js?v=' . time() . '"></script>';
 
-                // 2. On charge ensuite le niveau spécifique
                 if (file_exists(__DIR__ . "/" . $botPath)) {
                     echo '<script src="' . $botPath . '?v=' . time() . '"></script>';
                 }
@@ -85,18 +89,20 @@ if ($isManualReset) {
     <script>
         window.appConfig = <?php echo getAppConfigJson($config); ?>;
         
-        // Gestion unifiée du SplashScreen et Service Worker
         if ('serviceWorker' in navigator) { 
             navigator.serviceWorker.register('sw.js').catch(e => console.error('SW error:', e)); 
         }
 
         window.addEventListener('load', function() {
             const splash = document.getElementById('splash-screen');
+            // TEMPS D'AFFICHAGE DYNAMIQUE DEPUIS JSON
+            const displayTime = <?php echo $config['splashscreen']['display_time'] ?? 1500; ?>;
+            
             if (splash) {
                 setTimeout(() => {
                     splash.style.opacity = '0';
-                    setTimeout(() => splash.remove(), 800); // On remove carrement du DOM
-                }, 1500);
+                    setTimeout(() => splash.remove(), 800);
+                }, displayTime);
             }
         });
     </script>
