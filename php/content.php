@@ -17,6 +17,12 @@ $botsClock = $config['bots_clock'] ?? [];
                     <div class="card-body p-2">
                         <div id="menuContent" class="d-md-block">
                             <div class="d-grid gap-2">
+                                <a href="js/kchess/bots/unitTests/Bot_vs_Bot.php" 
+                                   target="_blank" 
+                                   class="btn btn-outline-danger btn-sm d-none d-md-block shadow-sm">
+                                    <i class="bi bi-speedometer2 me-1"></i> Stress Test
+                                </a>
+
                                 <a href="index.php" class="btn btn-primary btn-sm">
                                     <i class="bi bi-house-door me-1"></i> <?php echo htmlspecialchars($translations['accueil']); ?>
                                 </a>
@@ -104,16 +110,10 @@ $botsClock = $config['bots_clock'] ?? [];
 window.translations = <?php echo json_encode($translations, JSON_UNESCAPED_UNICODE); ?>;
 window.botsConfig = <?php echo json_encode($config['bots_clock'] ?? []); ?>;
 
-/**
- * Helper de traduction pour gérer les clés imbriquées (ex: 'bots.bot_1.title')
- */
 window.getTranslation = (key, def = '') => {
     return key.split('.').reduce((o, i) => (o ? o[i] : def), window.translations) || def;
 };
 
-/**
- * Met à jour les labels des joueurs (haut et bas) selon le mode de jeu
- */
 window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLevel = null) {
     const top = document.getElementById('topPlayerLabel');
     const bottom = document.getElementById('bottomPlayerLabel');
@@ -142,53 +142,40 @@ window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLeve
     }
 };
 
-/**
- * Affiche le temps initial statique basé sur la config bots_clock du JSON
- */
 window.initTimeDisplay = (botLevel = null) => {
-    let timeStr = "10:00"; // Défaut
+    let timeStr = "10:00"; 
     if (botLevel && window.botsConfig[`bot_${botLevel}`]) {
         const fullClock = window.botsConfig[`bot_${botLevel}`].clock;
-        // Formatage MM:SS (on retire le "00:" initial du format HH:MM:SS si présent)
         timeStr = fullClock.startsWith("00:") ? fullClock.substring(3) : fullClock;
     }
-    
     const wEl = document.getElementById('whiteTime');
     const bEl = document.getElementById('blackTime');
     if (wEl) wEl.textContent = timeStr;
     if (bEl) bEl.textContent = timeStr;
 };
 
-/**
- * INITIALISATION PRINCIPALE
- */
 document.addEventListener('DOMContentLoaded', function() {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode');
     const level = params.get('level');
     const color = params.get('color') || 'white';
 
-    // 1. Initialisation de l'affichage UI
     if (mode === 'bot') {
         const botColor = (color === 'white') ? 'black' : 'white';
         window.updatePlayerLabels(true, botColor, level);
         window.initTimeDisplay(level);
 
-        // 2. Synchronisation dynamique avec le moteur de jeu (Incrément + Horloge logicielle)
         setTimeout(() => {
             const timer = window.chessGame?.core?.ui?.timerManager;
             const botConfig = window.botsConfig[`bot_${level}`];
-            
             if (timer && botConfig) {
-                console.log(`⏱️ Config Timer appliquée : Bot Niveau ${level} (+${botConfig.increment}s)`);
                 timer.setTimerConfig(botConfig);
             }
-        }, 500); // Délai de sécurité pour l'instanciation de chessGame
+        }, 500);
     } else {
         window.updatePlayerLabels(false);
     }
 
-    // 3. Gestion des boutons d'interface
     document.querySelectorAll('.new-game-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             if (confirm(window.getTranslation('new_game') + ' ?')) {
@@ -199,9 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.querySelectorAll('.flip-board-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            if (window.chessGame?.flipBoard) {
-                window.chessGame.flipBoard();
-            }
+            if (window.chessGame?.flipBoard) window.chessGame.flipBoard();
         });
     });
 });
