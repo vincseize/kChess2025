@@ -99,8 +99,7 @@
 }
 
 .board-preview {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
+    display: block;
     width: 100%;
     aspect-ratio: 1;
     margin: 0;
@@ -111,32 +110,15 @@
     transform: rotate(-3deg);
 }
 
-.board-square {
-    display: grid;
-    place-items: center;
-    min-width: 0;
-    aspect-ratio: 1;
-    font-family: "Segoe UI Symbol", "DejaVu Sans", serif;
-    font-size: clamp(15px, 2.45vw, 30px);
-    line-height: 1;
+.board-preview picture,
+.board-preview img {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
-.board-square.is-light {
-    background: var(--chess-square-white);
-}
-
-.board-square.is-dark {
-    background: var(--chess-square-black);
-}
-
-.board-square.piece-black {
-    color: #262421;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.board-square.piece-white {
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+.board-preview img {
+    object-fit: cover;
 }
 
 .home-feature-actions {
@@ -560,10 +542,6 @@
         min-height: 34px;
         padding: 5px 3px;
         font-size: 0.72rem;
-    }
-
-    .board-square {
-        font-size: clamp(12px, 4vw, 18px);
     }
 
     .local-game-note {

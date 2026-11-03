@@ -12,16 +12,7 @@ $config = loadGameConfig();
 $currentLang = $config['current_lang'] ?? 'fr'; // Défaut fr si vide
 $translations = $config['lang'][$currentLang] ?? [];
 $assetVersion = $version ?? getVersion();
-$previewBoard = [
-    ['♜', '♞', '♝', '♛', '♚', '♝', '♞', '♜'],
-    array_fill(0, 8, '♟'),
-    array_fill(0, 8, ''),
-    array_fill(0, 8, ''),
-    array_fill(0, 8, ''),
-    array_fill(0, 8, ''),
-    array_fill(0, 8, '♙'),
-    ['♖', '♘', '♗', '♕', '♔', '♗', '♘', '♖'],
-];
+$operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Morphy, 1858";
 ?>
 
 <link rel="stylesheet" href="css/kchess/newGame.css?v=<?php echo htmlspecialchars((string)$assetVersion); ?>">
@@ -45,12 +36,11 @@ $previewBoard = [
             </div>
 
             <div class="board-preview-group">
-                <div class="board-preview" aria-hidden="true">
-                    <?php foreach ($previewBoard as $rowIndex => $row): ?>
-                        <?php foreach ($row as $columnIndex => $piece): ?>
-                            <span class="board-square <?php echo ($rowIndex + $columnIndex) % 2 === 0 ? 'is-light' : 'is-dark'; ?><?php echo $piece !== '' ? ($rowIndex < 2 ? ' piece-black' : ' piece-white') : ''; ?>"><?php echo $piece; ?></span>
-                        <?php endforeach; ?>
-                    <?php endforeach; ?>
+                <div class="board-preview">
+                    <picture>
+                        <source media="(prefers-reduced-motion: reduce)" srcset="img/opera-game-poster.png?v=<?php echo htmlspecialchars((string)$assetVersion); ?>">
+                        <img src="img/opera-game.gif?v=<?php echo htmlspecialchars((string)$assetVersion); ?>" alt="<?php echo htmlspecialchars($operaGameAlt); ?>" width="280" height="280">
+                    </picture>
                 </div>
 
                 <div class="home-feature-actions" aria-label="Modes de jeu supplémentaires">
