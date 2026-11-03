@@ -8,6 +8,12 @@
     const openSettingsButton = document.getElementById('openClockSettings');
     const tempoSelectionButton = document.getElementById('openTempoSelection');
     const closeSettingsButton = document.getElementById('closeClockSettings');
+    const settingsFooter = document.querySelector('.clock-settings-footer');
+    const homeButton = document.getElementById('clockHome');
+    const customClockButton = document.getElementById('customClockButton');
+    const customClockForm = document.getElementById('customClockForm');
+    const customMinutesInput = document.getElementById('customMinutes');
+    const customIncrementInput = document.getElementById('customIncrement');
     const finishedDialog = document.getElementById('clockFinished');
     const finishedMessage = document.getElementById('clockFinishedMessage');
     const restartButton = document.getElementById('restartClock');
@@ -24,15 +30,16 @@
     let intervalId = null;
     let lastTick = 0;
 
-    if (savedPreset) {
-        const selectedPreset = presetButtons.find(button =>
-            `${button.dataset.minutes}:${button.dataset.increment}` === savedPreset
-        );
-        if (selectedPreset) {
-            initialTime = Number(selectedPreset.dataset.minutes) * 60;
-            increment = Number(selectedPreset.dataset.increment);
+    const savedValues = savedPreset?.match(/^(\d+):(\d+)$/);
+    if (savedValues) {
+        const savedMinutes = Number(savedValues[1]);
+        const savedIncrement = Number(savedValues[2]);
+        if (savedMinutes >= 1 && savedMinutes <= 180 && savedIncrement <= 60) {
+            initialTime = savedMinutes * 60;
+            increment = savedIncrement;
             presetButtons.forEach(button => {
-                const selected = button === selectedPreset;
+                const selected = Number(button.dataset.minutes) === savedMinutes
+                    && Number(button.dataset.increment) === savedIncrement;
                 button.classList.toggle('selected', selected);
                 button.setAttribute('aria-pressed', String(selected));
             });
@@ -69,6 +76,7 @@
             : 'bi bi-play-fill';
         presetButtons.forEach(button => button.disabled = running);
         closeSettingsButton.hidden = !hasStarted;
+        settingsFooter.classList.toggle('without-close', closeSettingsButton.hidden);
     }
 
     function stopAtFlag() {
@@ -164,6 +172,7 @@
             initialTime = Number(button.dataset.minutes) * 60;
             increment = Number(button.dataset.increment);
             localStorage.setItem('kchess.clock.lastPreset', `${button.dataset.minutes}:${button.dataset.increment}`);
+            customClockForm.hidden = true;
             presetButtons.forEach(preset => {
                 const selected = preset === button;
                 preset.classList.toggle('selected', selected);
@@ -171,6 +180,38 @@
             });
             reset();
         });
+    });
+
+    customClockButton.addEventListener('click', () => {
+        customClockForm.hidden = !customClockForm.hidden;
+        if (!customClockForm.hidden) {
+            customMinutesInput.value = String(Math.floor(initialTime / 60));
+            customIncrementInput.value = String(increment);
+            customMinutesInput.focus();
+        }
+    });
+
+    customClockForm.addEventListener('submit', event => {
+        event.preventDefault();
+        if (!customClockForm.reportValidity()) return;
+
+        const minutes = Number(customMinutesInput.value);
+        const customIncrement = Number(customIncrementInput.value);
+        if (!Number.isInteger(minutes) || minutes < 1 || minutes > 180
+            || !Number.isInteger(customIncrement) || customIncrement < 0 || customIncrement > 60) {
+            return;
+        }
+
+        initialTime = minutes * 60;
+        increment = customIncrement;
+        localStorage.setItem('kchess.clock.lastPreset', `${minutes}:${customIncrement}`);
+        presetButtons.forEach(button => {
+            button.classList.remove('selected');
+            button.setAttribute('aria-pressed', 'false');
+        });
+        customClockForm.hidden = true;
+        reset();
+        status.textContent = `Cadence personnalisée : ${minutes}+${customIncrement}.`;
     });
 
     clockButtons.forEach(button => button.addEventListener('click', () => {
@@ -195,6 +236,12 @@
     tempoSelectionButton.addEventListener('click', openSettings);
     closeSettingsButton.addEventListener('click', () => {
         settings.hidden = true;
+    });
+    homeButton.addEventListener('click', () => {
+        running = false;
+        clearInterval(intervalId);
+        intervalId = null;
+        ready = false;
     });
     restartButton.addEventListener('click', () => {
         reset();

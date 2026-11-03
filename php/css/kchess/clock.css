@@ -194,9 +194,13 @@ body {
 
 .clock-presets {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 7px;
     margin-bottom: 14px;
+}
+
+.clock-preset-group {
+    display: flex;
+    gap: 2px;
 }
 
 .clock-preset,
@@ -209,6 +213,7 @@ body {
     color: var(--site-text);
     background: var(--site-surface-alt);
     font: inherit;
+    font-size: 0.92rem;
     font-weight: 700;
     cursor: pointer;
 }
@@ -244,13 +249,64 @@ body {
     background: var(--success-color);
 }
 
+.clock-settings-footer {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+    margin-top: 9px;
+}
+
+.clock-settings-footer.without-close {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .clock-close-button {
     width: 100%;
-    margin-top: 9px;
+}
+
+.clock-settings-footer .clock-close-button,
+.clock-settings-footer .clock-home-link {
+    padding-inline: 5px;
+    font-size: 0.8rem;
+    text-align: center;
+    white-space: normal;
 }
 
 .clock-close-button[hidden] {
     display: none;
+}
+
+.clock-custom-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    margin: -4px 0 14px;
+}
+
+.clock-custom-form[hidden] {
+    display: none;
+}
+
+.clock-custom-form label {
+    display: grid;
+    gap: 4px;
+    color: var(--site-text-muted);
+    font-size: 0.8rem;
+}
+
+.clock-custom-form input {
+    width: 100%;
+    min-height: 40px;
+    padding: 6px 9px;
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
+    color: var(--site-text);
+    background: var(--site-surface-alt);
+    font: inherit;
+}
+
+.clock-custom-form button {
+    grid-column: 1 / -1;
 }
 
 .clock-finished-panel {
@@ -300,7 +356,9 @@ body {
     }
 
     .clock-preset {
+        flex: 1 1 0;
+        min-width: 0;
         padding-inline: 5px;
-        font-size: 0.84rem;
+        font-size: 0.78rem;
     }
 }
