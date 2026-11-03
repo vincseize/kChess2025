@@ -30,7 +30,7 @@ $previewBoard = [
     <main class="new-game-layout">
         <section class="new-game-intro" aria-labelledby="home-title">
             <div class="hero-copy">
-                <p class="hero-kicker">CHESS · LOCAL</p>
+                <p class="hero-kicker">Chess Local Club Training</p>
                 <h1 id="home-title">
                     <?php echo htmlspecialchars($translations['home_title_first'] ?? 'Les échecs,'); ?><br>
                     <span><?php echo htmlspecialchars($translations['home_title_second'] ?? 'à votre façon.'); ?></span>
@@ -57,7 +57,6 @@ $previewBoard = [
         <section class="new-game-content" aria-labelledby="setup-title">
             <header class="setup-header">
                 <div>
-                    <p class="setup-kicker"><?php echo htmlspecialchars($translations['new_game'] ?? 'Nouvelle partie'); ?></p>
                     <h2 id="setup-title"><?php echo htmlspecialchars($translations['setup_title'] ?? 'Préparez votre partie'); ?></h2>
                 </div>
                 <div class="lang-selector">
