@@ -106,6 +106,14 @@ body {
     color: var(--chess-clock-black, var(--primary-color)) !important;
 }
 
+.game-turn-status {
+    display: block;
+    min-height: 1.25em;
+    color: var(--site-text-muted);
+    opacity: 1;
+    visibility: visible;
+}
+
 .btn-primary {
     border-color: var(--primary-color);
     background-color: var(--primary-color);
@@ -164,7 +172,11 @@ footer.bg-dark {
     }
 
     .game-actions > .btn {
+        display: flex;
         flex: 1 1 0;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
         min-width: 0;
         padding-right: 6px;
         padding-left: 6px;
@@ -172,8 +184,7 @@ footer.bg-dark {
     }
 
     .game-actions .btn i {
-        margin-right: 3px !important;
-        margin-left: 0 !important;
+        margin: 0 !important;
     }
 }
 

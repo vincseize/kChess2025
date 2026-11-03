@@ -8,7 +8,7 @@ $lang = $config['current_lang'];
 $translations = $config['lang'][$lang];
 ?>
 
-<main class="container-fluid py-2 py-md-3">
+<main class="container-fluid py-2 py-md-3 game-page">
     <div class="row g-2 g-md-3">
         <div class="col-md-4 col-lg-3 col-xxl-2">
             <div class="card shadow-sm mb-2 mb-md-0 border-0">
@@ -52,7 +52,7 @@ $translations = $config['lang'][$lang];
         <div class="col-12 col-lg-3 col-xxl-2">
             <div class="card mb-2 border-primary shadow-sm">
                 <div class="card-body p-2 text-center">
-                    <div id="currentPlayer" class="small fw-bold mb-2 p-1 rounded bg-light border">
+                    <div id="currentPlayer" class="game-turn-status small fw-bold p-1 rounded bg-light border" role="status" aria-live="polite" aria-atomic="true">
                         <?php echo htmlspecialchars($translations['traitAuBlancs']); ?>
                     </div>
                     <div class="row g-0 small font-monospace">
@@ -176,6 +176,5 @@ document.addEventListener('DOMContentLoaded', function() {
 .btn-xs { padding: 1px 5px; font-size: 0.75rem; }
 @media (max-width: 767px) {
     .badge { font-size: 0.7rem !important; }
-    .chess-board-container { max-width: 95vw; }
 }
 </style>

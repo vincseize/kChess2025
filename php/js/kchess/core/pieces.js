@@ -80,14 +80,26 @@ class PieceManager {
     /**
      * Génère la structure de données pour le placement initial (Style FEN)
      */
-    getInitialPosition() {
+    getInitialPosition(chess960 = false) {
         const position = {};
+        const backRank = chess960 ? this.getChess960BackRank() : ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
+
+        if (chess960) {
+            const kingCol = backRank.indexOf('king');
+            this.lastChess960Layout = {
+                kingCol,
+                rookCols: backRank
+                    .map((type, col) => type === 'rook' ? col : -1)
+                    .filter(col => col >= 0)
+            };
+        } else {
+            this.lastChess960Layout = null;
+        }
 
         // Remplissage automatique des rangées
         const setupRow = (row, color, isBackRow) => {
             if (isBackRow) {
-                const pieces = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
-                pieces.forEach((type, col) => position[`${row}-${col}`] = { type, color });
+                backRank.forEach((type, col) => position[`${row}-${col}`] = { type, color });
             } else {
                 for (let col = 0; col < 8; col++) {
                     position[`${row}-${col}`] = { type: 'pawn', color };
@@ -104,6 +116,31 @@ class PieceManager {
             console.log('🎲 [PieceManager] Position initiale générée (32 pièces)');
         }
         return position;
+    }
+
+    getChess960BackRank() {
+        const rank = Array(8).fill(null);
+        const randomIndex = length => Math.floor(Math.random() * length);
+        const darkSquares = [0, 2, 4, 6];
+        const lightSquares = [1, 3, 5, 7];
+
+        rank[darkSquares.splice(randomIndex(darkSquares.length), 1)[0]] = 'bishop';
+        rank[lightSquares.splice(randomIndex(lightSquares.length), 1)[0]] = 'bishop';
+
+        let emptyCols = rank.map((piece, col) => piece === null ? col : -1).filter(col => col >= 0);
+        rank[emptyCols.splice(randomIndex(emptyCols.length), 1)[0]] = 'queen';
+
+        emptyCols = rank.map((piece, col) => piece === null ? col : -1).filter(col => col >= 0);
+        const firstKnight = randomIndex(emptyCols.length);
+        rank[emptyCols.splice(firstKnight, 1)[0]] = 'knight';
+        const secondKnight = randomIndex(emptyCols.length);
+        rank[emptyCols.splice(secondKnight, 1)[0]] = 'knight';
+
+        emptyCols = rank.map((piece, col) => piece === null ? col : -1).filter(col => col >= 0);
+        rank[emptyCols[0]] = 'rook';
+        rank[emptyCols[1]] = 'king';
+        rank[emptyCols[2]] = 'rook';
+        return rank;
     }
 
     /**

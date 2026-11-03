@@ -33,6 +33,10 @@ const NewGameHandler = {
         if (startBtn) {
             startBtn.addEventListener('click', () => this.startGame());
         }
+
+        document.getElementById('startChess960')?.addEventListener('click', () => {
+            this.startGame({ mode: 'human', level: '0', profondeur: 'false', variant: 'chess960' });
+        });
     },
 
     handleModeSelection(btn) {
@@ -78,17 +82,18 @@ const NewGameHandler = {
         return 'Inconnu';
     },
 
-    startGame() {
+    startGame(overrides = {}) {
         let finalColor = this.selectedColor;
         if (this.selectedColor === 'random') {
             finalColor = Math.random() > 0.5 ? 'white' : 'black';
         }
 
         const params = new URLSearchParams({
-            mode: this.selectedMode,
-            level: this.selectedLevel,
-            profondeur: this.selectedProfondeur,
-            color: finalColor
+            mode: overrides.mode || this.selectedMode,
+            level: overrides.level || this.selectedLevel,
+            profondeur: overrides.profondeur || this.selectedProfondeur,
+            color: finalColor,
+            ...(overrides.variant ? { variant: overrides.variant } : {})
         });
 
         const finalUrl = `${this.targetPage}?${params.toString()}`;

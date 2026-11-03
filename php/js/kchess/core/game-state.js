@@ -98,6 +98,12 @@ class GameState {
             white: { kingside: true, queenside: true },
             black: { kingside: true, queenside: true }
         };
+        this.chess960 = false;
+        this.kingStartCols = { white: 4, black: 4 };
+        this.rookStartCols = {
+            white: { kingside: 7, queenside: 0 },
+            black: { kingside: 7, queenside: 0 }
+        };
         this.enPassantTarget = null;
         this.halfMoveClock = 0;
         this.fullMoveNumber = 1;

@@ -9,7 +9,7 @@ $translations = $config['lang'][$lang];
 $botsClock = $config['bots_clock'] ?? [];
 ?>
 
-<main class="container-fluid py-3">
+<main class="container-fluid py-3 game-page">
     <div class="row g-3">
         <div class="col-xxl-2 col-xl-3 col-lg-3 col-md-4 col-12">
             <div class="menu-container h-100">
@@ -62,7 +62,7 @@ $botsClock = $config['bots_clock'] ?? [];
                 <div class="card mb-3 flex-grow-0 shadow-sm">
                     <div class="card-body p-2">
                         <div class="game-status text-center">
-                            <div class="small text-muted mb-2" id="currentPlayer">
+                            <div class="game-turn-status small mb-2" id="currentPlayer" role="status" aria-live="polite" aria-atomic="true">
                                 <?php echo htmlspecialchars($translations['traitAuBlancs']); ?>
                             </div>
                             <div class="row text-center small g-1">
@@ -100,7 +100,7 @@ $botsClock = $config['bots_clock'] ?? [];
 
 <footer class="bg-dark py-3 mt-auto">
     <div class="container text-center text-white-50">
-        <small><?php echo htmlspecialchars($translations['app_name']); ?> v<?php echo $config['version']; ?> | <?php echo date('Y'); ?></small>
+        <small><?php echo htmlspecialchars($translations['app_name']); ?> v<?php echo $config['version']; ?> | 2025 - <?php echo date('Y'); ?></small>
     </div>
 </footer>
 

@@ -44,12 +44,25 @@ $previewBoard = [
                 </p>
             </div>
 
-            <div class="board-preview" aria-hidden="true">
-                <?php foreach ($previewBoard as $rowIndex => $row): ?>
-                    <?php foreach ($row as $columnIndex => $piece): ?>
-                        <span class="board-square <?php echo ($rowIndex + $columnIndex) % 2 === 0 ? 'is-light' : 'is-dark'; ?><?php echo $piece !== '' ? ($rowIndex < 2 ? ' piece-black' : ' piece-white') : ''; ?>"><?php echo $piece; ?></span>
+            <div class="board-preview-group">
+                <div class="board-preview" aria-hidden="true">
+                    <?php foreach ($previewBoard as $rowIndex => $row): ?>
+                        <?php foreach ($row as $columnIndex => $piece): ?>
+                            <span class="board-square <?php echo ($rowIndex + $columnIndex) % 2 === 0 ? 'is-light' : 'is-dark'; ?><?php echo $piece !== '' ? ($rowIndex < 2 ? ' piece-black' : ' piece-white') : ''; ?>"><?php echo $piece; ?></span>
+                        <?php endforeach; ?>
                     <?php endforeach; ?>
-                <?php endforeach; ?>
+                </div>
+
+                <div class="mobile-home-features" aria-label="Modes de jeu supplémentaires">
+                    <a class="home-feature-btn" href="clock.php">
+                        <i class="bi bi-clock" aria-hidden="true"></i>
+                        <span>Clock</span>
+                    </a>
+                    <button class="home-feature-btn" type="button" id="startChess960">
+                        <i class="bi bi-shuffle" aria-hidden="true"></i>
+                        <span>Chess960</span>
+                    </button>
+                </div>
             </div>
 
             <p class="local-game-note">

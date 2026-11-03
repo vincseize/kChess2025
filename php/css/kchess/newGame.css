@@ -93,12 +93,17 @@
     line-height: 1.7;
 }
 
+.board-preview-group {
+    width: clamp(180px, 23vw, 270px);
+    margin-top: clamp(28px, 5vh, 48px);
+}
+
 .board-preview {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
-    width: clamp(180px, 23vw, 270px);
+    width: 100%;
     aspect-ratio: 1;
-    margin-top: clamp(28px, 5vh, 48px);
+    margin: 0;
     overflow: hidden;
     border: 5px solid var(--site-border);
     border-radius: 8px;
@@ -132,6 +137,46 @@
 .board-square.piece-white {
     color: #fff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.mobile-home-features {
+    display: none;
+}
+
+.home-feature-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 38px;
+    padding: 6px;
+    border: 1px solid var(--site-border);
+    border-radius: 9px;
+    color: var(--site-text);
+    background: var(--site-surface);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.1;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+}
+
+.home-feature-btn:hover,
+.home-feature-btn:focus-visible {
+    border-color: var(--success-color);
+    background: var(--site-surface-alt);
+    color: var(--site-text);
+}
+
+.home-feature-btn:active {
+    transform: translateY(1px);
+}
+
+.home-feature-btn i {
+    color: var(--success-color);
 }
 
 .local-game-note {
@@ -434,8 +479,19 @@
     }
 
     .board-preview {
+        width: 100%;
+    }
+
+    .board-preview-group {
         width: clamp(120px, 25vw, 190px);
         margin: 0 8px 0 0;
+    }
+
+    .mobile-home-features {
+        display: grid;
+        gap: 6px;
+        width: 100%;
+        margin-top: 8px;
     }
 
     .local-game-note {
@@ -492,8 +548,22 @@
     }
 
     .board-preview {
-        width: clamp(96px, 29vw, 132px);
+        width: 100%;
         border-width: 3px;
+    }
+
+    .board-preview-group {
+        width: clamp(96px, 29vw, 132px);
+    }
+
+    .mobile-home-features {
+        margin-top: 6px;
+    }
+
+    .home-feature-btn {
+        min-height: 34px;
+        padding: 5px 3px;
+        font-size: 0.72rem;
     }
 
     .board-square {

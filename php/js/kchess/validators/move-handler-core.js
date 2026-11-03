@@ -82,20 +82,40 @@ class ChessGameMoveHandler {
         }
 
         if (square.piece && square.piece.color === this.game.gameState.currentPlayer) {
+            const castleMove = this.game.possibleMoves?.find(move =>
+                move.type === 'castling' && move.row === row && move.col === col
+            );
+            if (castleMove) {
+                const fromRow = selectedPiece.row;
+                const fromCol = selectedPiece.col;
+                this.executeMove(row, col);
+                this.moveStateManager?.highlightLastMove(
+                    fromRow,
+                    fromCol,
+                    castleMove.kingTo?.row ?? row,
+                    castleMove.kingTo?.col ?? col
+                );
+                return;
+            }
             this.handleSelectionPhase(row, col, square);
             return;
         }
 
-        const isPossible = this.game.possibleMoves?.some(m => m.row === row && m.col === col);
+        const move = this.game.possibleMoves?.find(m => m.row === row && m.col === col);
         
-        if (isPossible) {
+        if (move) {
             const fromRow = selectedPiece.row;
             const fromCol = selectedPiece.col;
             
             this.executeMove(row, col);
 
             if (this.moveStateManager) {
-                this.moveStateManager.highlightLastMove(fromRow, fromCol, row, col);
+                this.moveStateManager.highlightLastMove(
+                    fromRow,
+                    fromCol,
+                    move.kingTo?.row ?? row,
+                    move.kingTo?.col ?? col
+                );
             }
         } else {
             if (this.constructor.consoleLog) console.log("❌ Mouvement non autorisé");

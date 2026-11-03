@@ -62,6 +62,10 @@ class MoveExecutor {
     }
 
     executeNormalMove(fromSquare, toSquare, selectedPiece, move, toRow, toCol) {
+        if (move?.type === 'castling' && this.game.gameState?.chess960) {
+            return this.executeChess960Castle(selectedPiece, move);
+        }
+
         const pieceElement = fromSquare.element.querySelector('.chess-piece');
         if (!pieceElement) return;
         const isCapture = toSquare.piece !== null || move?.type === 'en-passant';
@@ -82,6 +86,53 @@ class MoveExecutor {
             this.finalizeMove(toRow, toCol, move, selectedPiece, isCapture);
         }
         if (this.constructor.consoleLog) console.groupEnd();
+    }
+
+    executeChess960Castle(selectedPiece, move) {
+        const color = selectedPiece.piece.color;
+        const row = selectedPiece.row;
+        const board = this.game.board;
+        const kingFrom = board.getSquare(row, selectedPiece.col);
+        const rookFrom = board.getSquare(move.rookFrom.row, move.rookFrom.col);
+        const kingTo = board.getSquare(move.kingTo.row, move.kingTo.col);
+        const rookTo = board.getSquare(move.rookTo.row, move.rookTo.col);
+        const king = kingFrom?.piece;
+        const rook = rookFrom?.piece;
+
+        if (!king || !rook || rook.type !== 'rook' || rook.color !== color || !kingTo || !rookTo) {
+            console.error('Roque Chess960 impossible : pièces ou cases manquantes.');
+            return false;
+        }
+
+        const affectedSquares = new Set([kingFrom, rookFrom, kingTo, rookTo]);
+        affectedSquares.forEach(square => {
+            square.piece = null;
+            square.element.innerHTML = '';
+        });
+
+        king.row = move.kingTo.row;
+        king.col = move.kingTo.col;
+        king.hasMoved = true;
+        rook.row = move.rookTo.row;
+        rook.col = move.rookTo.col;
+        rook.hasMoved = true;
+        board.placePiece(king, kingTo);
+        board.placePiece(rook, rookTo);
+
+        const state = this.game.gameState;
+        state.hasKingMoved[color] = true;
+        state.hasRookMoved[color][move.side] = true;
+        state.recordMove(
+            selectedPiece.row,
+            selectedPiece.col,
+            move.kingTo.row,
+            move.kingTo.col,
+            king,
+            null,
+            'castling'
+        );
+        this.completeTurn();
+        return true;
     }
 
     handlePromotion(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement, isCapture) {
@@ -186,8 +237,9 @@ class MoveExecutor {
         const color = piece.color;
         if (piece.type === 'king') state.hasKingMoved[color] = true;
         if (piece.type === 'rook') {
-            if (fromCol === 0) state.hasRookMoved[color].queenside = true;
-            else if (fromCol === 7) state.hasRookMoved[color].kingside = true;
+            const rookCols = state.rookStartCols?.[color];
+            if (fromCol === (rookCols?.queenside ?? 0)) state.hasRookMoved[color].queenside = true;
+            else if (fromCol === (rookCols?.kingside ?? 7)) state.hasRookMoved[color].kingside = true;
         }
     }
 }
