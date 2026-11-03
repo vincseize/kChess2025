@@ -8,6 +8,7 @@ class ChessTimerManager {
         this.whiteTime = 600; // 10 minutes par défaut
         this.blackTime = 600;
         this.increment = 0;   // Secondes à ajouter par coup
+        this.initialTime = 600;
         this.timerInterval = null;
         this.isTimerRunning = false;
 
@@ -28,6 +29,7 @@ class ChessTimerManager {
         // Configuration du temps de base
         if (config.clock) {
             const baseSeconds = this.parseTimeString(config.clock);
+            this.initialTime = baseSeconds;
             this.whiteTime = baseSeconds;
             this.blackTime = baseSeconds;
         }
@@ -142,8 +144,8 @@ class ChessTimerManager {
 
     resetTimers() {
         this.stopTimer();
-        this.whiteTime = 600;
-        this.blackTime = 600;
+        this.whiteTime = this.initialTime;
+        this.blackTime = this.initialTime;
         this.updateTimerDisplay();
     }
 }

@@ -66,10 +66,42 @@ $botsClock = $config['bots_clock'] ?? [];
                             <div class="game-turn-status small mb-2" id="currentPlayer" role="status" aria-live="polite" aria-atomic="true">
                                 <?php echo htmlspecialchars($translations['traitAuBlancs']); ?>
                             </div>
-                            <button type="button" class="chess960-start-btn" id="startChess960Game" hidden>
-                                <i class="bi bi-play-fill" aria-hidden="true"></i>
-                                <?php echo htmlspecialchars($translations['start_game'] ?? 'Démarrer la partie'); ?>
-                            </button>
+                            <div class="chess960-actions" id="chess960Actions" hidden>
+                                <button type="button" class="chess960-start-btn" id="startChess960Game">
+                                    <i class="bi bi-play-fill" aria-hidden="true"></i>
+                                    <?php echo htmlspecialchars($translations['start_game'] ?? 'Démarrer la partie'); ?>
+                                </button>
+                                <label class="chess960-time-control" title="<?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?>">
+                                    <i class="bi bi-clock" aria-hidden="true"></i>
+                                    <span class="visually-hidden"><?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?></span>
+                                    <select id="chess960TimeControl" aria-label="<?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?>">
+                                        <option value="1:0">1 +0</option>
+                                        <option value="1:2">1 +2</option>
+                                        <option value="1:5">1 +5</option>
+                                        <option value="1:10">1 +10</option>
+                                        <option value="3:0">3 +0</option>
+                                        <option value="3:2">3 +2</option>
+                                        <option value="3:5">3 +5</option>
+                                        <option value="3:10">3 +10</option>
+                                        <option value="5:0">5 +0</option>
+                                        <option value="5:5">5 +5</option>
+                                        <option value="5:10">5 +10</option>
+                                        <option value="5:15">5 +15</option>
+                                        <option value="10:0" selected>10 +0</option>
+                                        <option value="10:5">10 +5</option>
+                                        <option value="10:10">10 +10</option>
+                                        <option value="10:15">10 +15</option>
+                                        <option value="12:0">12 +0</option>
+                                        <option value="12:5">12 +5</option>
+                                        <option value="12:10">12 +10</option>
+                                        <option value="12:15">12 +15</option>
+                                        <option value="15:0">15 +0</option>
+                                        <option value="15:5">15 +5</option>
+                                        <option value="15:10">15 +10</option>
+                                        <option value="15:15">15 +15</option>
+                                    </select>
+                                </label>
+                            </div>
                             <div class="row text-center small g-1">
                                 <div class="col-6 border-end">
                                     <div class="fw-bold"><?php echo htmlspecialchars($translations['white_time_label']); ?></div>

@@ -59,6 +59,16 @@ class ChessGameUI {
             this.updateUI();
             this.timerManager?.startTimer?.();
         });
+
+        const timeControl = document.getElementById('chess960TimeControl');
+        timeControl?.addEventListener('change', () => {
+            if (!this.game?.gameState?.chess960 || !timeControl.value) return;
+            const [minutes, increment] = timeControl.value.split(':').map(Number);
+            this.timerManager?.setTimerConfig({
+                clock: `${minutes}:00`,
+                increment: String(increment)
+            });
+        });
     }
 
     setupEventListeners() {
@@ -148,14 +158,16 @@ setupBoardEventListeners() {
         const state = this.game?.gameState;
         const position = document.getElementById('chess960Position');
         const startButton = document.getElementById('startChess960Game');
-        if (!state || !position || !startButton) return;
+        const actions = document.getElementById('chess960Actions');
+        if (!state || !position || !startButton || !actions) return;
 
         const isChess960 = state.chess960 === true;
         position.hidden = !isChess960;
+        actions.hidden = !isChess960;
         if (isChess960) {
             position.textContent = `Chess960 #${state.chess960PositionNumber} / 960`;
         }
-        startButton.hidden = !isChess960 || state.chess960Started;
+        startButton.hidden = state.chess960Started;
     }
 
     /**
@@ -172,6 +184,7 @@ setupBoardEventListeners() {
         if (!fen) return;
 
         const statusInfo = ChessStatusController.checkGameStatus(fen);
+        const isChess960 = this.game.gameState.chess960 === true;
         const t = this.getTranslations();
         let statusText = "";
         let isGameOver = false;
@@ -190,17 +203,23 @@ setupBoardEventListeners() {
         }
         else if (statusInfo.status === 'check') {
             const turn = this.game.gameState.currentPlayer === 'white' ? (t.traitAuBlancs || 'Aux blancs') : (t.traitAuxNoirs || 'Aux noirs');
-            statusText = `${turn} - ⚠️ ${t.check || 'ÉCHEC'}`;
+            statusText = isChess960
+                ? `⚠️ ${t.check || 'ÉCHEC'}`
+                : `${turn} - ⚠️ ${t.check || 'ÉCHEC'}`;
             el.style.color = '#ffc107'; 
             
             if (this.constructor.consoleLog) console.log("📣 [UI] Échec détecté, appel du highlight...");
             this.highlightKingInCheck(); 
         } 
         else {
-            statusText = this.game.gameState.currentPlayer === 'white' ? (t.traitAuBlancs || 'Aux blancs') : (t.traitAuxNoirs || 'Aux noirs');
+            statusText = isChess960
+                ? ""
+                : this.game.gameState.currentPlayer === 'white' ? (t.traitAuBlancs || 'Aux blancs') : (t.traitAuxNoirs || 'Aux noirs');
             el.style.color = '';
         }
 
+        el.hidden = isChess960 && statusInfo.status !== 'check'
+            && statusInfo.status !== 'checkmate' && statusInfo.status !== 'stalemate';
         el.textContent = statusText;
         if (isGameOver) this.timerManager?.stopTimer?.();
     }

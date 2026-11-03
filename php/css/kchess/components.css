@@ -115,10 +115,14 @@ body {
 }
 
 .chess960-start-btn {
-    display: block;
-    width: 100%;
-    margin: 0 0 0.5rem;
-    padding: 0.45rem 0.75rem;
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0.45rem 0.5rem;
     border: 0;
     border-radius: 0.5rem;
     color: var(--site-background);
@@ -127,6 +131,53 @@ body {
     font-size: 0.9rem;
     font-weight: 700;
     cursor: pointer;
+}
+
+.chess960-actions {
+    display: flex;
+    align-items: stretch;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+}
+
+.chess960-actions[hidden] {
+    display: none;
+}
+
+.chess960-time-control {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-width: 96px;
+    padding: 0 0.4rem 0 0.55rem;
+    border: 1px solid var(--primary-color);
+    border-radius: 0.5rem;
+    color: var(--site-text);
+    background: var(--primary-color);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.chess960-time-control select {
+    width: 76px;
+    min-width: 0;
+    padding: 0.4rem 0.15rem;
+    border: 0;
+    outline-offset: 2px;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.chess960-time-control:hover,
+.chess960-time-control:focus-within {
+    border-color: var(--success-color);
+    color: var(--site-background);
+    background: var(--success-color);
 }
 
 .chess960-start-btn:hover,
@@ -145,6 +196,10 @@ body {
     color: var(--site-text-muted);
     opacity: 1;
     visibility: visible;
+}
+
+.game-turn-status[hidden] {
+    display: none !important;
 }
 
 .btn-primary {

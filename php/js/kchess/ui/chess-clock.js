@@ -1,4 +1,5 @@
 (() => {
+    const text = window.clockTranslations;
     const presetButtons = [...document.querySelectorAll('.clock-preset')];
     const clockButtons = [...document.querySelectorAll('.clock-face')];
     const status = document.getElementById('clockStatus');
@@ -69,8 +70,8 @@
         }
 
         startPauseButton.querySelector('span').textContent = running
-            ? 'Pause'
-            : hasStarted ? 'Reprendre' : 'Prêt';
+            ? text.pause
+            : hasStarted ? text.resume : text.ready;
         startPauseButton.querySelector('i').className = running
             ? 'bi bi-pause-fill'
             : 'bi bi-play-fill';
@@ -83,9 +84,9 @@
         running = false;
         clearInterval(intervalId);
         intervalId = null;
-        const loser = activePlayer === 'white' ? 'Blancs' : 'Noirs';
-        status.textContent = `${loser} : temps écoulé.`;
-        finishedMessage.textContent = `Le temps des ${loser.toLowerCase()} est écoulé.`;
+        const loser = text[activePlayer];
+        status.textContent = text.player_flagged.replace('{player}', loser);
+        finishedMessage.textContent = text.player_flagged.replace('{player}', loser);
         finishedDialog.hidden = false;
         updateDisplay();
     }
@@ -106,14 +107,14 @@
 
     function start() {
         if (times.white <= 0 || times.black <= 0) {
-            status.textContent = 'Réinitialisez la pendule avant de reprendre.';
+            status.textContent = text.reset_before_resume;
             return;
         }
         running = true;
         hasStarted = true;
         lastTick = Date.now();
         settings.hidden = true;
-        status.textContent = `Aux ${activePlayer === 'white' ? 'Blancs' : 'Noirs'} de jouer.`;
+        status.textContent = text.turn.replace('{player}', text[activePlayer]);
         intervalId = window.setInterval(tick, 100);
         updateDisplay();
     }
@@ -125,7 +126,7 @@
         running = false;
         clearInterval(intervalId);
         intervalId = null;
-        status.textContent = 'Pendule en pause.';
+        status.textContent = text.paused;
         updateDisplay();
     }
 
@@ -143,14 +144,14 @@
         times[activePlayer] += increment;
         activePlayer = activePlayer === 'white' ? 'black' : 'white';
         lastTick = Date.now();
-        status.textContent = `Aux ${activePlayer === 'white' ? 'Blancs' : 'Noirs'} de jouer.`;
+        status.textContent = text.turn.replace('{player}', text[activePlayer]);
         updateDisplay();
     }
 
     function prepareStart() {
         ready = true;
         settings.hidden = true;
-        status.textContent = 'Les Noirs appuient sur leur pendule pour démarrer.';
+        status.textContent = text.start_with_black;
         updateDisplay();
     }
 
@@ -163,7 +164,7 @@
         hasStarted = false;
         ready = false;
         finishedDialog.hidden = true;
-        status.textContent = 'Choisissez une cadence puis démarrez.';
+        status.textContent = text.choose_tempo_start;
         updateDisplay();
     }
 
@@ -211,7 +212,9 @@
         });
         customClockForm.hidden = true;
         reset();
-        status.textContent = `Cadence personnalisée : ${minutes}+${customIncrement}.`;
+        status.textContent = text.custom_tempo
+            .replace('{minutes}', minutes)
+            .replace('{increment}', customIncrement);
     });
 
     clockButtons.forEach(button => button.addEventListener('click', () => {
@@ -247,7 +250,7 @@
         reset();
         ready = true;
         finishedDialog.hidden = true;
-        status.textContent = 'Les Noirs appuient sur leur pendule pour démarrer.';
+        status.textContent = text.start_with_black;
         updateDisplay();
     });
     chooseAnotherTempoButton.addEventListener('click', openSettings);
