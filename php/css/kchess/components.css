@@ -106,6 +106,39 @@ body {
     color: var(--chess-clock-black, var(--primary-color)) !important;
 }
 
+.chess960-position {
+    margin-bottom: 0.35rem;
+    color: var(--site-text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.chess960-start-btn {
+    display: block;
+    width: 100%;
+    margin: 0 0 0.5rem;
+    padding: 0.45rem 0.75rem;
+    border: 0;
+    border-radius: 0.5rem;
+    color: var(--site-background);
+    background: var(--success-color);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.chess960-start-btn:hover,
+.chess960-start-btn:focus-visible {
+    filter: brightness(1.08);
+}
+
+.chess960-start-btn[hidden],
+.chess960-position[hidden] {
+    display: none;
+}
+
 .game-turn-status {
     display: block;
     min-height: 1.25em;

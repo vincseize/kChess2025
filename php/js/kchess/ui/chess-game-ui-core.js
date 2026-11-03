@@ -51,6 +51,14 @@ class ChessGameUI {
         setTimeout(() => {
             this.timerManager?.startTimer?.();
         }, 1000);
+
+        document.getElementById('startChess960Game')?.addEventListener('click', () => {
+            if (!this.game?.gameState?.chess960 || this.game.gameState.chess960Started) return;
+            this.game.gameState.chess960Started = true;
+            this.game.gameState.gameActive = true;
+            this.updateUI();
+            this.timerManager?.startTimer?.();
+        });
     }
 
     setupEventListeners() {
@@ -115,6 +123,8 @@ setupBoardEventListeners() {
      * MISE À JOUR UI PRINCIPALE
      */
     updateUI() {
+        this.updateChess960Controls();
+
         // 1. Nettoyage global
         this.clearCheckEffects();
 
@@ -132,6 +142,20 @@ setupBoardEventListeners() {
         if (this.game.core?.botManager?.isBotTurn()) {
             setTimeout(() => this.game.core.botManager.playBotMove(), 250);
         }
+    }
+
+    updateChess960Controls() {
+        const state = this.game?.gameState;
+        const position = document.getElementById('chess960Position');
+        const startButton = document.getElementById('startChess960Game');
+        if (!state || !position || !startButton) return;
+
+        const isChess960 = state.chess960 === true;
+        position.hidden = !isChess960;
+        if (isChess960) {
+            position.textContent = `Chess960 #${state.chess960PositionNumber} / 960`;
+        }
+        startButton.hidden = !isChess960 || state.chess960Started;
     }
 
     /**

@@ -53,7 +53,7 @@ $previewBoard = [
                     <?php endforeach; ?>
                 </div>
 
-                <div class="mobile-home-features" aria-label="Modes de jeu supplémentaires">
+                <div class="home-feature-actions" aria-label="Modes de jeu supplémentaires">
                     <a class="home-feature-btn" href="clock.php">
                         <i class="bi bi-clock" aria-hidden="true"></i>
                         <span>Clock</span>

@@ -52,9 +52,14 @@ $translations = $config['lang'][$lang];
         <div class="col-12 col-lg-3 col-xxl-2">
             <div class="card mb-2 border-primary shadow-sm">
                 <div class="card-body p-2 text-center">
+                    <div id="chess960Position" class="chess960-position" hidden></div>
                     <div id="currentPlayer" class="game-turn-status small fw-bold p-1 rounded bg-light border" role="status" aria-live="polite" aria-atomic="true">
                         <?php echo htmlspecialchars($translations['traitAuBlancs']); ?>
                     </div>
+                    <button type="button" class="chess960-start-btn" id="startChess960Game" hidden>
+                        <i class="bi bi-play-fill" aria-hidden="true"></i>
+                        <?php echo htmlspecialchars($translations['start_game'] ?? 'Démarrer la partie'); ?>
+                    </button>
                     <div class="row g-0 small font-monospace">
                         <div class="col-6 border-end">
                             <div class="text-muted" style="font-size:0.7rem"><?php echo htmlspecialchars($translations['white_time_label']); ?></div>

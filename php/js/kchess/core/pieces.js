@@ -82,7 +82,9 @@ class PieceManager {
      */
     getInitialPosition(chess960 = false) {
         const position = {};
-        const backRank = chess960 ? this.getChess960BackRank() : ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
+        const backRank = chess960
+            ? this.getChess960BackRank()
+            : ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
 
         if (chess960) {
             const kingCol = backRank.indexOf('king');
@@ -120,26 +122,34 @@ class PieceManager {
 
     getChess960BackRank() {
         const rank = Array(8).fill(null);
-        const randomIndex = length => Math.floor(Math.random() * length);
-        const darkSquares = [0, 2, 4, 6];
-        const lightSquares = [1, 3, 5, 7];
+        const positionNumber = Math.floor(Math.random() * 960);
+        let remaining = positionNumber;
+        const darkBishopCol = (remaining % 4) * 2 + 1;
+        remaining = Math.floor(remaining / 4);
+        const lightBishopCol = (remaining % 4) * 2;
+        remaining = Math.floor(remaining / 4);
 
-        rank[darkSquares.splice(randomIndex(darkSquares.length), 1)[0]] = 'bishop';
-        rank[lightSquares.splice(randomIndex(lightSquares.length), 1)[0]] = 'bishop';
+        rank[darkBishopCol] = 'bishop';
+        rank[lightBishopCol] = 'bishop';
 
         let emptyCols = rank.map((piece, col) => piece === null ? col : -1).filter(col => col >= 0);
-        rank[emptyCols.splice(randomIndex(emptyCols.length), 1)[0]] = 'queen';
+        rank[emptyCols.splice(remaining % 6, 1)[0]] = 'queen';
+        remaining = Math.floor(remaining / 6);
 
         emptyCols = rank.map((piece, col) => piece === null ? col : -1).filter(col => col >= 0);
-        const firstKnight = randomIndex(emptyCols.length);
-        rank[emptyCols.splice(firstKnight, 1)[0]] = 'knight';
-        const secondKnight = randomIndex(emptyCols.length);
-        rank[emptyCols.splice(secondKnight, 1)[0]] = 'knight';
+        const knightCombinations = [
+            [0, 1], [0, 2], [0, 3], [0, 4], [1, 2],
+            [1, 3], [1, 4], [2, 3], [2, 4], [3, 4]
+        ];
+        const [firstKnight, secondKnight] = knightCombinations[remaining];
+        rank[emptyCols[firstKnight]] = 'knight';
+        rank[emptyCols[secondKnight]] = 'knight';
 
         emptyCols = rank.map((piece, col) => piece === null ? col : -1).filter(col => col >= 0);
         rank[emptyCols[0]] = 'rook';
         rank[emptyCols[1]] = 'king';
         rank[emptyCols[2]] = 'rook';
+        this.lastChess960PositionNumber = positionNumber;
         return rank;
     }
 

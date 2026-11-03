@@ -19,46 +19,75 @@ $version = htmlspecialchars((string) getVersion(), ENT_QUOTES, 'UTF-8');
 <body>
     <main class="clock-page">
         <header class="clock-header">
-            <a class="clock-back" href="index.php">
+            <button type="button" class="clock-back" id="openTempoSelection" aria-label="Retour au choix des cadences">
                 <i class="bi bi-arrow-left" aria-hidden="true"></i>
-                <span>Accueil</span>
-            </a>
+            </button>
             <h1>Clock</h1>
-            <span class="clock-header-spacer" aria-hidden="true"></span>
+            <button type="button" class="clock-menu-button" id="openClockSettings" aria-label="Paramètres de la pendule">
+                <i class="bi bi-gear-fill" aria-hidden="true"></i>
+            </button>
         </header>
 
-        <section class="clock-panel" aria-label="Pendule d'échecs">
-            <div class="clock-presets" role="group" aria-label="Cadence">
-                <button type="button" class="clock-preset" data-minutes="3" data-increment="2" aria-pressed="false">3 + 2</button>
-                <button type="button" class="clock-preset" data-minutes="5" data-increment="0" aria-pressed="false">5 + 0</button>
-                <button type="button" class="clock-preset selected" data-minutes="10" data-increment="0" aria-pressed="true">10 + 0</button>
-                <button type="button" class="clock-preset" data-minutes="15" data-increment="10" aria-pressed="false">15 + 10</button>
-            </div>
-
-            <div class="clock-players">
-                <button type="button" class="clock-player" id="blackClock" data-player="black" disabled>
+        <section class="clock-players" aria-label="Pendule d'échecs">
+            <div class="clock-player black-player" data-player-panel="black">
+                <button type="button" class="clock-face" id="blackClock" data-player="black" disabled aria-label="Pendule des Noirs">
                     <span class="clock-player-name">Noirs</span>
                     <span class="clock-time" id="blackTime">10:00</span>
                 </button>
-                <button type="button" class="clock-player active" id="whiteClock" data-player="white" disabled>
+            </div>
+            <div class="clock-player white-player" data-player-panel="white">
+                <button type="button" class="clock-face" id="whiteClock" data-player="white" disabled aria-label="Pendule des Blancs">
                     <span class="clock-player-name">Blancs</span>
                     <span class="clock-time" id="whiteTime">10:00</span>
                 </button>
             </div>
+        </section>
 
-            <p class="clock-status" id="clockStatus" role="status" aria-live="polite">Choisissez une cadence puis démarrez.</p>
+        <p class="visually-hidden" id="clockStatus" role="status" aria-live="polite">Choisissez une cadence puis démarrez.</p>
 
-            <div class="clock-controls">
-                <button type="button" class="clock-control primary" id="startPause">
-                    <i class="bi bi-play-fill" aria-hidden="true"></i>
-                    <span>Démarrer</span>
-                </button>
-                <button type="button" class="clock-control" id="resetClock">
-                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
-                    <span>Réinitialiser</span>
-                </button>
+        <section class="clock-settings-overlay" id="clockSettings" role="dialog" aria-modal="true" aria-labelledby="clockSettingsTitle">
+            <div class="clock-settings-panel">
+                <h2 id="clockSettingsTitle">Pendule d’échecs</h2>
+                <div class="clock-presets" role="group" aria-label="Cadence">
+                    <button type="button" class="clock-preset" data-minutes="1" data-increment="0" aria-pressed="false">1 + 0</button>
+                    <button type="button" class="clock-preset" data-minutes="1" data-increment="2" aria-pressed="false">1 + 2</button>
+                    <button type="button" class="clock-preset" data-minutes="1" data-increment="5" aria-pressed="false">1 + 5</button>
+                    <button type="button" class="clock-preset" data-minutes="3" data-increment="0" aria-pressed="false">3 + 0</button>
+                    <button type="button" class="clock-preset" data-minutes="3" data-increment="2" aria-pressed="false">3 + 2</button>
+                    <button type="button" class="clock-preset" data-minutes="3" data-increment="5" aria-pressed="false">3 + 5</button>
+                    <button type="button" class="clock-preset" data-minutes="5" data-increment="0" aria-pressed="false">5 + 0</button>
+                    <button type="button" class="clock-preset" data-minutes="5" data-increment="10" aria-pressed="false">5 + 10</button>
+                    <button type="button" class="clock-preset selected" data-minutes="10" data-increment="0" aria-pressed="true">10 + 0</button>
+                    <button type="button" class="clock-preset" data-minutes="10" data-increment="10" aria-pressed="false">10 + 10</button>
+                    <button type="button" class="clock-preset" data-minutes="15" data-increment="0" aria-pressed="false">15 + 0</button>
+                    <button type="button" class="clock-preset" data-minutes="15" data-increment="10" aria-pressed="false">15 + 10</button>
+                    <button type="button" class="clock-preset" data-minutes="15" data-increment="15" aria-pressed="false">15 + 15</button>
+                </div>
+                <div class="clock-controls">
+                    <button type="button" class="clock-control primary" id="startPause">
+                        <i class="bi bi-play-fill" aria-hidden="true"></i>
+                        <span>Prêt</span>
+                    </button>
+                    <button type="button" class="clock-control" id="resetClock">
+                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                        <span>Réinitialiser</span>
+                    </button>
+                </div>
+                <button type="button" class="clock-close-button" id="closeClockSettings">Fermer</button>
+                <p class="clock-help">Les Noirs appuient d’abord sur leur pendule pour lancer la partie. Ensuite, touchez la pendule active après chaque coup.</p>
             </div>
-            <p class="clock-help">Appuyez sur le bouton de votre camp après chaque coup. Espace : changer de tour, Échap : pause.</p>
+        </section>
+
+        <section class="clock-settings-overlay" id="clockFinished" role="dialog" aria-modal="true" aria-labelledby="clockFinishedTitle" hidden>
+            <div class="clock-settings-panel clock-finished-panel">
+                <h2 id="clockFinishedTitle">Temps écoulé</h2>
+                <p id="clockFinishedMessage" class="clock-finished-message"></p>
+                <div class="clock-finished-actions">
+                    <button type="button" class="clock-control primary" id="restartClock">Réinitialiser</button>
+                    <button type="button" class="clock-control" id="chooseAnotherTempo">Choisir un autre tempo</button>
+                    <a class="clock-control clock-home-link" href="./index.php?new=1">Quitter et retourner à l’accueil</a>
+                </div>
+            </div>
         </section>
     </main>
     <script src="js/kchess/ui/chess-clock.js?v=<?php echo $version; ?>"></script>

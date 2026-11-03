@@ -1,17 +1,44 @@
 (() => {
     const presetButtons = [...document.querySelectorAll('.clock-preset')];
-    const clockButtons = [...document.querySelectorAll('.clock-player')];
+    const clockButtons = [...document.querySelectorAll('.clock-face')];
     const status = document.getElementById('clockStatus');
     const startPauseButton = document.getElementById('startPause');
     const resetButton = document.getElementById('resetClock');
+    const settings = document.getElementById('clockSettings');
+    const openSettingsButton = document.getElementById('openClockSettings');
+    const tempoSelectionButton = document.getElementById('openTempoSelection');
+    const closeSettingsButton = document.getElementById('closeClockSettings');
+    const finishedDialog = document.getElementById('clockFinished');
+    const finishedMessage = document.getElementById('clockFinishedMessage');
+    const restartButton = document.getElementById('restartClock');
+    const chooseAnotherTempoButton = document.getElementById('chooseAnotherTempo');
+    const savedPreset = localStorage.getItem('kchess.clock.lastPreset');
 
     let initialTime = 600;
     let increment = 0;
     let times = { white: initialTime, black: initialTime };
     let activePlayer = 'white';
     let running = false;
+    let hasStarted = false;
+    let ready = false;
     let intervalId = null;
     let lastTick = 0;
+
+    if (savedPreset) {
+        const selectedPreset = presetButtons.find(button =>
+            `${button.dataset.minutes}:${button.dataset.increment}` === savedPreset
+        );
+        if (selectedPreset) {
+            initialTime = Number(selectedPreset.dataset.minutes) * 60;
+            increment = Number(selectedPreset.dataset.increment);
+            presetButtons.forEach(button => {
+                const selected = button === selectedPreset;
+                button.classList.toggle('selected', selected);
+                button.setAttribute('aria-pressed', String(selected));
+            });
+            times = { white: initialTime, black: initialTime };
+        }
+    }
 
     const timeElements = {
         white: document.getElementById('whiteTime'),
@@ -26,31 +53,41 @@
     function updateDisplay() {
         for (const player of ['white', 'black']) {
             timeElements[player].textContent = formatTime(times[player]);
-            const button = document.querySelector(`[data-player="${player}"]`);
-            button.classList.toggle('active', player === activePlayer && running);
-            button.classList.toggle('expired', times[player] <= 0);
-            button.disabled = !running || player !== activePlayer;
+            const panel = document.querySelector(`[data-player-panel="${player}"]`);
+            const face = document.querySelector(`[data-player="${player}"].clock-face`);
+            panel.classList.toggle('active', player === activePlayer && running);
+            panel.classList.toggle('expired', times[player] <= 0);
+            face.disabled = !(running && player === activePlayer)
+                && !(ready && !hasStarted && player === 'black');
         }
 
-        startPauseButton.querySelector('span').textContent = running ? 'Pause' : 'Démarrer';
-        startPauseButton.querySelector('i').className = running ? 'bi bi-pause-fill' : 'bi bi-play-fill';
+        startPauseButton.querySelector('span').textContent = running
+            ? 'Pause'
+            : hasStarted ? 'Reprendre' : 'Prêt';
+        startPauseButton.querySelector('i').className = running
+            ? 'bi bi-pause-fill'
+            : 'bi bi-play-fill';
         presetButtons.forEach(button => button.disabled = running);
-        resetButton.disabled = false;
+        closeSettingsButton.hidden = !hasStarted;
     }
 
     function stopAtFlag() {
         running = false;
         clearInterval(intervalId);
         intervalId = null;
-        status.textContent = `${activePlayer === 'white' ? 'Blancs' : 'Noirs'} : temps écoulé.`;
+        const loser = activePlayer === 'white' ? 'Blancs' : 'Noirs';
+        status.textContent = `${loser} : temps écoulé.`;
+        finishedMessage.textContent = `Le temps des ${loser.toLowerCase()} est écoulé.`;
+        finishedDialog.hidden = false;
         updateDisplay();
     }
 
     function tick() {
         if (!running) return;
         const now = Date.now();
-        times[activePlayer] -= (now - lastTick) / 1000;
+        const elapsed = (now - lastTick) / 1000;
         lastTick = now;
+        times[activePlayer] -= elapsed;
         if (times[activePlayer] <= 0) {
             times[activePlayer] = 0;
             stopAtFlag();
@@ -60,15 +97,21 @@
     }
 
     function start() {
-        if (times.white <= 0 || times.black <= 0) return;
+        if (times.white <= 0 || times.black <= 0) {
+            status.textContent = 'Réinitialisez la pendule avant de reprendre.';
+            return;
+        }
         running = true;
+        hasStarted = true;
         lastTick = Date.now();
+        settings.hidden = true;
         status.textContent = `Aux ${activePlayer === 'white' ? 'Blancs' : 'Noirs'} de jouer.`;
         intervalId = window.setInterval(tick, 100);
         updateDisplay();
     }
 
     function pause() {
+        if (!running) return;
         tick();
         if (!running) return;
         running = false;
@@ -76,6 +119,13 @@
         intervalId = null;
         status.textContent = 'Pendule en pause.';
         updateDisplay();
+    }
+
+    function openSettings() {
+        pause();
+        finishedDialog.hidden = true;
+        settings.hidden = false;
+        startPauseButton.focus();
     }
 
     function switchTurn() {
@@ -89,12 +139,22 @@
         updateDisplay();
     }
 
+    function prepareStart() {
+        ready = true;
+        settings.hidden = true;
+        status.textContent = 'Les Noirs appuient sur leur pendule pour démarrer.';
+        updateDisplay();
+    }
+
     function reset() {
         running = false;
         clearInterval(intervalId);
         intervalId = null;
         times = { white: initialTime, black: initialTime };
         activePlayer = 'white';
+        hasStarted = false;
+        ready = false;
+        finishedDialog.hidden = true;
         status.textContent = 'Choisissez une cadence puis démarrez.';
         updateDisplay();
     }
@@ -103,6 +163,7 @@
         button.addEventListener('click', () => {
             initialTime = Number(button.dataset.minutes) * 60;
             increment = Number(button.dataset.increment);
+            localStorage.setItem('kchess.clock.lastPreset', `${button.dataset.minutes}:${button.dataset.increment}`);
             presetButtons.forEach(preset => {
                 const selected = preset === button;
                 preset.classList.toggle('selected', selected);
@@ -113,19 +174,45 @@
     });
 
     clockButtons.forEach(button => button.addEventListener('click', () => {
-        if (button.dataset.player === activePlayer) switchTurn();
+        if (!hasStarted && ready && button.dataset.player === 'black') {
+            start();
+        } else if (running && button.dataset.player === activePlayer) {
+            switchTurn();
+        }
     }));
 
-    startPauseButton.addEventListener('click', () => running ? pause() : start());
+    startPauseButton.addEventListener('click', () => {
+        if (running) {
+            pause();
+        } else if (hasStarted) {
+            start();
+        } else {
+            prepareStart();
+        }
+    });
     resetButton.addEventListener('click', reset);
+    openSettingsButton.addEventListener('click', openSettings);
+    tempoSelectionButton.addEventListener('click', openSettings);
+    closeSettingsButton.addEventListener('click', () => {
+        settings.hidden = true;
+    });
+    restartButton.addEventListener('click', () => {
+        reset();
+        ready = true;
+        finishedDialog.hidden = true;
+        status.textContent = 'Les Noirs appuient sur leur pendule pour démarrer.';
+        updateDisplay();
+    });
+    chooseAnotherTempoButton.addEventListener('click', openSettings);
 
     document.addEventListener('keydown', event => {
         const targetIsButton = event.target instanceof Element && event.target.closest('button');
         if (event.code === 'Space' && !event.repeat && !targetIsButton) {
             event.preventDefault();
             switchTurn();
-        } else if (event.key === 'Escape' && running) {
-            pause();
+        } else if (event.key === 'Escape') {
+            if (settings.hidden) openSettings();
+            else if (hasStarted) settings.hidden = true;
         }
     });
 

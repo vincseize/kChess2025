@@ -132,12 +132,18 @@ setBotLevel(level, color = 'black') {
         const pos = this.pieceManager.getInitialPosition(chess960);
         if (chess960 && this.pieceManager.lastChess960Layout) {
             const { kingCol, rookCols } = this.pieceManager.lastChess960Layout;
+            this.gameState.chess960PositionNumber = this.pieceManager.lastChess960PositionNumber;
+            this.gameState.chess960Started = false;
+            this.gameState.gameActive = false;
             this.gameState.kingStartCols = { white: kingCol, black: kingCol };
             this.gameState.rookStartCols = {
                 white: { queenside: rookCols[0], kingside: rookCols[1] },
                 black: { queenside: rookCols[0], kingside: rookCols[1] }
             };
         } else {
+            this.gameState.chess960PositionNumber = null;
+            this.gameState.chess960Started = true;
+            this.gameState.gameActive = true;
             this.gameState.kingStartCols = { white: 4, black: 4 };
             this.gameState.rookStartCols = {
                 white: { kingside: 7, queenside: 0 },

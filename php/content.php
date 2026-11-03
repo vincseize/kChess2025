@@ -62,9 +62,14 @@ $botsClock = $config['bots_clock'] ?? [];
                 <div class="card mb-3 flex-grow-0 shadow-sm">
                     <div class="card-body p-2">
                         <div class="game-status text-center">
+                            <div id="chess960Position" class="chess960-position" hidden></div>
                             <div class="game-turn-status small mb-2" id="currentPlayer" role="status" aria-live="polite" aria-atomic="true">
                                 <?php echo htmlspecialchars($translations['traitAuBlancs']); ?>
                             </div>
+                            <button type="button" class="chess960-start-btn" id="startChess960Game" hidden>
+                                <i class="bi bi-play-fill" aria-hidden="true"></i>
+                                <?php echo htmlspecialchars($translations['start_game'] ?? 'Démarrer la partie'); ?>
+                            </button>
                             <div class="row text-center small g-1">
                                 <div class="col-6 border-end">
                                     <div class="fw-bold"><?php echo htmlspecialchars($translations['white_time_label']); ?></div>

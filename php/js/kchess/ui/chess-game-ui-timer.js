@@ -67,8 +67,8 @@ class ChessTimerManager {
     }
 
     startTimer() {
-        if (this.timerInterval) clearInterval(this.timerInterval);
         if (!this.ui.game.gameState.gameActive) return;
+        if (this.isTimerRunning) return;
 
         this.isTimerRunning = true;
         this.timerInterval = setInterval(() => {
