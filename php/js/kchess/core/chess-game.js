@@ -56,6 +56,13 @@ class ChessGame {
         
         // Configuration via URL (Bot, Couleur, etc.)
         this.applyUrlParamsConfiguration();
+        const params = this.getUrlParams();
+        if (params.mode === 'human' && !this.gameState.chess960) {
+            this.gameState.gameActive = false;
+        }
+        if (params.mode === 'human') {
+            this.gameState.clockGameStarted = false;
+        }
         
         // Liaison UI
         if (this.core.ui) {

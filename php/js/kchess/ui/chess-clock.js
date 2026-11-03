@@ -1,6 +1,7 @@
 (() => {
     const text = window.clockTranslations;
-    const presetButtons = [...document.querySelectorAll('.clock-preset')];
+    let presetButtons = [...document.querySelectorAll('.clock-preset')];
+    const savedCustomTimesContainer = document.getElementById('savedCustomTimes');
     const clockButtons = [...document.querySelectorAll('.clock-face')];
     const status = document.getElementById('clockStatus');
     const startPauseButton = document.getElementById('startPause');
@@ -20,6 +21,7 @@
     const restartButton = document.getElementById('restartClock');
     const chooseAnotherTempoButton = document.getElementById('chooseAnotherTempo');
     const savedPreset = localStorage.getItem('kchess.clock.lastPreset');
+    const customTimeStorageKey = 'kchess.clock.customTimes';
 
     let initialTime = 600;
     let increment = 0;
@@ -30,6 +32,72 @@
     let ready = false;
     let intervalId = null;
     let lastTick = 0;
+
+    function readCustomTimes() {
+        try {
+            const customTimes = JSON.parse(localStorage.getItem(customTimeStorageKey) || '[]');
+            if (!Array.isArray(customTimes)) return [];
+            const seen = new Set();
+            return customTimes.filter(item => {
+                if (!Number.isInteger(item.minutes) || item.minutes < 1 || item.minutes > 180
+                    || !Number.isInteger(item.increment) || item.increment < 0 || item.increment > 60
+                    || document.querySelector(`.clock-preset:not([data-custom="true"])[data-minutes="${item.minutes}"][data-increment="${item.increment}"]`)) {
+                    return false;
+                }
+                const key = `${item.minutes}:${item.increment}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        } catch (error) {
+            console.error('Unable to read saved custom time controls.', error);
+            return [];
+        }
+    }
+
+    function renderCustomTimes() {
+        savedCustomTimesContainer.replaceChildren();
+        let customTimes = readCustomTimes();
+        const lastValues = localStorage.getItem('kchess.clock.lastPreset')?.match(/^(\d+):(\d+)$/);
+        if (lastValues) {
+            const lastMinutes = Number(lastValues[1]);
+            const lastIncrement = Number(lastValues[2]);
+            const isPredefined = document.querySelector(
+                `.clock-preset:not([data-custom="true"])[data-minutes="${lastMinutes}"][data-increment="${lastIncrement}"]`
+            );
+            if (!isPredefined && !customTimes.some(item =>
+                item.minutes === lastMinutes && item.increment === lastIncrement
+            )) {
+                customTimes.push({ minutes: lastMinutes, increment: lastIncrement });
+                localStorage.setItem(customTimeStorageKey, JSON.stringify(customTimes));
+            }
+        }
+        savedCustomTimesContainer.hidden = customTimes.length === 0;
+        customTimes.forEach(({ minutes, increment: customIncrement }) => {
+            const group = document.createElement('span');
+            group.className = 'clock-saved-preset';
+            const preset = document.createElement('button');
+            preset.type = 'button';
+            preset.className = 'clock-preset';
+            preset.dataset.minutes = String(minutes);
+            preset.dataset.increment = String(customIncrement);
+            preset.dataset.custom = 'true';
+            preset.setAttribute('aria-pressed', 'false');
+            preset.textContent = `${minutes} +${customIncrement}`;
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'clock-remove-preset';
+            remove.dataset.minutes = String(minutes);
+            remove.dataset.increment = String(customIncrement);
+            remove.setAttribute('aria-label', text.remove_custom_time);
+            remove.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+            group.append(preset, remove);
+            savedCustomTimesContainer.append(group);
+        });
+        presetButtons = [...document.querySelectorAll('.clock-preset')];
+    }
+
+    renderCustomTimes();
 
     const savedValues = savedPreset?.match(/^(\d+):(\d+)$/);
     if (savedValues) {
@@ -168,19 +236,48 @@
         updateDisplay();
     }
 
-    presetButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            initialTime = Number(button.dataset.minutes) * 60;
-            increment = Number(button.dataset.increment);
-            localStorage.setItem('kchess.clock.lastPreset', `${button.dataset.minutes}:${button.dataset.increment}`);
-            customClockForm.hidden = true;
-            presetButtons.forEach(preset => {
-                const selected = preset === button;
-                preset.classList.toggle('selected', selected);
-                preset.setAttribute('aria-pressed', String(selected));
-            });
-            reset();
+    function selectPreset(button) {
+        initialTime = Number(button.dataset.minutes) * 60;
+        increment = Number(button.dataset.increment);
+        localStorage.setItem('kchess.clock.lastPreset', `${button.dataset.minutes}:${button.dataset.increment}`);
+        customClockForm.hidden = true;
+        presetButtons.forEach(preset => {
+            const selected = preset === button;
+            preset.classList.toggle('selected', selected);
+            preset.setAttribute('aria-pressed', String(selected));
         });
+        reset();
+    }
+
+    function bindPresetButton(button) {
+        button.addEventListener('click', () => {
+            selectPreset(button);
+        });
+    }
+
+    presetButtons.forEach(bindPresetButton);
+
+    savedCustomTimesContainer.addEventListener('click', event => {
+        const removeButton = event.target.closest('.clock-remove-preset');
+        if (!removeButton) return;
+
+        const minutes = Number(removeButton.dataset.minutes);
+        const removedIncrement = Number(removeButton.dataset.increment);
+        const remainingTimes = readCustomTimes().filter(item =>
+            item.minutes !== minutes || item.increment !== removedIncrement
+        );
+        localStorage.setItem(customTimeStorageKey, JSON.stringify(remainingTimes));
+        const wasSelected = localStorage.getItem('kchess.clock.lastPreset') === `${minutes}:${removedIncrement}`;
+        if (wasSelected) localStorage.setItem('kchess.clock.lastPreset', '10:0');
+        renderCustomTimes();
+        if (wasSelected) {
+            const fallbackPreset = presetButtons.find(button =>
+                button.dataset.minutes === '10' && button.dataset.increment === '0'
+            );
+            selectPreset(fallbackPreset);
+        } else {
+            updateDisplay();
+        }
     });
 
     customClockButton.addEventListener('click', () => {
@@ -206,12 +303,28 @@
         initialTime = minutes * 60;
         increment = customIncrement;
         localStorage.setItem('kchess.clock.lastPreset', `${minutes}:${customIncrement}`);
-        presetButtons.forEach(button => {
-            button.classList.remove('selected');
-            button.setAttribute('aria-pressed', 'false');
-        });
-        customClockForm.hidden = true;
-        reset();
+        const isPredefined = presetButtons.some(button =>
+            button.dataset.custom !== 'true'
+            && Number(button.dataset.minutes) === minutes
+            && Number(button.dataset.increment) === customIncrement
+        );
+        if (!isPredefined) {
+            const customTimes = readCustomTimes().filter(item =>
+                item.minutes !== minutes || item.increment !== customIncrement
+            );
+            customTimes.push({ minutes, increment: customIncrement });
+            localStorage.setItem(customTimeStorageKey, JSON.stringify(customTimes));
+            renderCustomTimes();
+        }
+        const selectedButton = presetButtons.find(button =>
+            Number(button.dataset.minutes) === minutes
+            && Number(button.dataset.increment) === customIncrement
+        );
+        if (selectedButton) {
+            selectPreset(selectedButton);
+        } else {
+            reset();
+        }
         status.textContent = text.custom_tempo
             .replace('{minutes}', minutes)
             .replace('{increment}', customIncrement);

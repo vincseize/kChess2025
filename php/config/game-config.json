@@ -55,6 +55,8 @@
             "clock": {
                 "title": "Pendule",
                 "time_control": "Cadence",
+                "remove_custom_time": "Supprimer cette cadence personnalisée",
+                "saved_custom_times": "Cadences personnalisées enregistrées",
                 "settings": "Paramètres de la pendule",
                 "back_to_tempos": "Retour au choix des cadences",
                 "board_label": "Pendule d’échecs",
@@ -229,6 +231,8 @@
             "clock": {
                 "title": "Clock",
                 "time_control": "Time control",
+                "remove_custom_time": "Remove this custom time control",
+                "saved_custom_times": "Saved custom time controls",
                 "settings": "Clock settings",
                 "back_to_tempos": "Back to time controls",
                 "board_label": "Chess clock",

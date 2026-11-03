@@ -56,7 +56,7 @@ $translations = $config['lang'][$lang];
                     <div id="currentPlayer" class="game-turn-status small fw-bold p-1 rounded bg-light border" role="status" aria-live="polite" aria-atomic="true">
                         <?php echo htmlspecialchars($translations['traitAuBlancs']); ?>
                     </div>
-                    <div class="chess960-actions" id="chess960Actions" hidden>
+                    <div class="chess960-actions" id="gameClockActions" hidden>
                         <button type="button" class="chess960-start-btn" id="startChess960Game">
                             <i class="bi bi-play-fill" aria-hidden="true"></i>
                             <?php echo htmlspecialchars($translations['start_game'] ?? 'Démarrer la partie'); ?>
@@ -64,7 +64,7 @@ $translations = $config['lang'][$lang];
                         <label class="chess960-time-control" title="<?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?>">
                             <i class="bi bi-clock" aria-hidden="true"></i>
                             <span class="visually-hidden"><?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?></span>
-                            <select id="chess960TimeControl" aria-label="<?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?>">
+                            <select id="gameTimeControl" aria-label="<?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?>">
                                 <option value="1:0">1 +0</option>
                                 <option value="1:2">1 +2</option>
                                 <option value="1:5">1 +5</option>

@@ -18,6 +18,12 @@ class ChessTimerManager {
                 || window.appConfig?.bots_clock?.[`bot_${params.get('level')}`];
             if (botConfig) this.setTimerConfig(botConfig);
         }
+
+        const gameTimeControl = document.getElementById('gameTimeControl');
+        if (params.get('mode') === 'human' && gameTimeControl) {
+            const [minutes, increment] = gameTimeControl.value.split(':').map(Number);
+            this.setTimerConfig({ clock: `${minutes}:00`, increment: String(increment) });
+        }
     }
 
     /**

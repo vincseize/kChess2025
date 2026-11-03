@@ -101,6 +101,7 @@ class GameState {
         this.chess960 = false;
         this.chess960PositionNumber = null;
         this.chess960Started = true;
+        this.clockGameStarted = false;
         this.kingStartCols = { white: 4, black: 4 };
         this.rookStartCols = {
             white: { kingside: 7, queenside: 0 },

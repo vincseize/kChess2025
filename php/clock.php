@@ -90,6 +90,7 @@ $version = htmlspecialchars((string) getVersion(), ENT_QUOTES, 'UTF-8');
                         <button type="button" class="clock-preset" data-minutes="15" data-increment="10" aria-pressed="false">15 +10</button>
                         <button type="button" class="clock-preset" data-minutes="15" data-increment="15" aria-pressed="false">15 +15</button>
                     </div>
+                    <div class="clock-preset-group clock-saved-customs" id="savedCustomTimes" aria-label="<?php echo $translate('saved_custom_times'); ?>" hidden></div>
                 </div>
                 <form class="clock-custom-form" id="customClockForm" hidden>
                     <label>

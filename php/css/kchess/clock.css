@@ -203,6 +203,35 @@ body {
     gap: 2px;
 }
 
+.clock-preset-group[hidden] {
+    display: none;
+}
+
+.clock-saved-preset {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 2px;
+}
+
+.clock-saved-customs {
+    flex-wrap: wrap;
+}
+
+.clock-remove-preset {
+    min-width: 32px;
+    border: 1px solid var(--site-border);
+    border-radius: 9px;
+    color: var(--site-text-muted);
+    background: var(--site-surface-alt);
+    cursor: pointer;
+}
+
+.clock-remove-preset:hover,
+.clock-remove-preset:focus-visible {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
 .clock-preset,
 .clock-control,
 .clock-close-button {
