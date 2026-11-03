@@ -67,8 +67,10 @@
         border-radius: 0 !important;
     }
 
-    .game-page .chess-container > .position-absolute {
-        display: none !important;
+    .game-page .chess-player-labels {
+        width: 100%;
+        margin: 0;
+        padding: 0.25rem 0.5rem;
     }
 
     .game-page .chess-board-container {
@@ -77,7 +79,7 @@
         max-width: none !important;
         height: auto;
         min-height: 0;
-        margin: 2rem 0 0;
+        margin: 0;
     }
 
     .game-page .chess-board {

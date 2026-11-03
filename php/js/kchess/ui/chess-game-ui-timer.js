@@ -14,9 +14,10 @@ class ChessTimerManager {
 
         const params = new URLSearchParams(window.location.search);
         if (params.get('mode') === 'bot') {
-            const botConfig = window.botsConfig?.[`bot_${params.get('level')}`]
-                || window.appConfig?.bots_clock?.[`bot_${params.get('level')}`];
-            if (botConfig) this.setTimerConfig(botConfig);
+            const levelMinutes = Number(params.get('level'));
+            if (Number.isInteger(levelMinutes) && levelMinutes > 0) {
+                this.setTimerConfig({ clock: `${levelMinutes}:00`, increment: '0' });
+            }
         }
 
         const gameTimeControl = document.getElementById('gameTimeControl');

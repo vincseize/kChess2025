@@ -52,37 +52,19 @@ class ChessEventsManager {
 
         try {
             const t = this.getTranslations();
-            const game = window.chessGame?.core || window.chessGame;
-            const isFlipped = game?.gameState?.boardFlipped || false;
-            
             const urlParams = new URLSearchParams(window.location.search);
             const isBotMode = urlParams.get('mode') === 'bot';
             const levelFromUrl = urlParams.get('level') || 1;
-            const playerColor = urlParams.get('color') || 'white';
-            const botColor = (playerColor === 'white') ? 'black' : 'white';
+            const humanColor = urlParams.get('color') === 'black' ? 'black' : 'white';
+            const botColor = humanColor === 'white' ? 'black' : 'white';
 
             const labels = { white: t.white || 'Blancs', black: t.black || 'Noirs' };
-            let topColor = isFlipped ? 'white' : 'black';
-            let bottomColor = isFlipped ? 'black' : 'white';
-
-            const buildUI = (color) => {
-                let text = labels[color];
-                const isBot = isBotMode && color === botColor;
-                let cssClass = `badge p-2 ${color === 'white' ? 'bg-white text-dark border border-dark' : 'bg-dark text-white'}`;
-                
-                if (isBot) {
-                    text += ` (Bot Niv. ${levelFromUrl})`;
-                    cssClass += ` bot-player bot-color-${color}`;
-                }
-                const icon = isBot ? 'bi-cpu' : 'bi-person';
-                return { html: `<i class="bi ${icon} me-1"></i> ${text}`, className: cssClass };
-            };
-
-            const topUI = buildUI(topColor);
-            const bottomUI = buildUI(bottomColor);
-
-            topLabel.innerHTML = topUI.html; topLabel.className = topUI.className;
-            bottomLabel.innerHTML = bottomUI.html; bottomLabel.className = bottomUI.className;
+            const humanLabel = t.human_player || 'Humain';
+            const botLabel = `${t.bot_level_label || 'Bot Level'} ${levelFromUrl}`;
+            topLabel.innerHTML = `<i class="bi ${isBotMode ? 'bi-cpu' : 'bi-person'} me-1"></i> ${isBotMode ? botLabel : labels.black}`;
+            bottomLabel.innerHTML = `<i class="bi bi-person me-1"></i> ${isBotMode ? humanLabel : labels.white}`;
+            topLabel.className = `badge player-label player-label-${isBotMode ? botColor : 'black'}`;
+            bottomLabel.className = `badge player-label player-label-${isBotMode ? humanColor : 'white'}`;
         } catch (error) {
             this.log(`Erreur labels: ${error.message}`, 'error');
         }

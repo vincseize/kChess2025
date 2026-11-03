@@ -35,12 +35,9 @@ $translations = $config['lang'][$lang];
 
         <div class="col-md-8 col-lg-6 col-xxl-8">
             <div class="chess-container bg-light rounded-3 p-1 p-md-2 position-relative shadow-sm border">
-                <div class="position-absolute top-0 start-0 m-2" style="z-index: 10;">
-                    <span id="topPlayerLabel" class="badge bg-dark text-white p-2 shadow-sm border border-secondary"></span>
-                </div>
-                
-                <div class="position-absolute bottom-0 start-0 m-2" style="z-index: 10;">
-                    <span id="bottomPlayerLabel" class="badge bg-white text-dark border border-dark p-2 shadow-sm"></span>
+                <div class="chess-player-labels" aria-label="<?php echo htmlspecialchars($translations['players'] ?? 'Players'); ?>">
+                    <span id="topPlayerLabel" class="badge player-label"></span>
+                    <span id="bottomPlayerLabel" class="badge player-label"></span>
                 </div>
                 
                 <div class="chess-board-container mx-auto d-flex align-items-center justify-content-center">
@@ -144,23 +141,20 @@ window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLeve
     const top = document.getElementById('topPlayerLabel');
     const bottom = document.getElementById('bottomPlayerLabel');
     if (!top || !bottom) return;
+    const humanColor = new URLSearchParams(window.location.search).get('color') === 'black' ? 'black' : 'white';
+    const resolvedBotColor = botColor === 'white' || botColor === 'black'
+        ? botColor
+        : humanColor === 'white' ? 'black' : 'white';
 
-    const human = window.getTranslation('human_player', 'Humain');
-    const white = window.getTranslation('white_player', 'Blancs');
-    const black = window.getTranslation('black_player', 'Noirs');
-    let botName = window.getTranslation('computer_player', 'Bot');
-    if (botLevel) botName = window.getTranslation('bot_level' + botLevel, botName);
-
-    if (isBotGame && botColor === 'black') {
-        top.innerHTML = `<i class="bi bi-cpu"></i> ${botName} (${black})`;
-        bottom.innerHTML = `<i class="bi bi-person"></i> ${human} (${white})`;
-    } else if (isBotGame && botColor === 'white') {
-        top.innerHTML = `<i class="bi bi-person"></i> ${human} (${black})`;
-        bottom.innerHTML = `<i class="bi bi-cpu"></i> ${botName} (${white})`;
+    if (isBotGame) {
+        top.innerHTML = `<i class="bi bi-cpu me-1"></i> ${window.getTranslation('bot_level_label', 'Bot Level')} ${botLevel || 1}`;
+        bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('human_player', 'Human')}`;
     } else {
-        top.innerHTML = `<i class="bi bi-person"></i> ${human} (${black})`;
-        bottom.innerHTML = `<i class="bi bi-person"></i> ${human} (${white})`;
+        top.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('black_player', 'Black')}`;
+        bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('white_player', 'White')}`;
     }
+    top.className = `badge player-label player-label-${isBotGame ? resolvedBotColor : 'black'}`;
+    bottom.className = `badge player-label player-label-${isBotGame ? humanColor : 'white'}`;
 };
 
 window.updateGameStatus = function(currentPlayer) {

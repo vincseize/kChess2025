@@ -37,15 +37,54 @@ footer {
     flex-direction: column;
 }
 
-/* Correction position badges joueurs */
-.chess-container .position-absolute.top-0.start-0 {
-    top: 10px !important;
-    left: 10px !important;
+.chess-player-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto 8px;
 }
 
-.chess-container .position-absolute.bottom-0.start-0 {
-    bottom: 10px !important;
-    left: 10px !important;
+.chess-player-labels .player-label {
+    max-width: 48%;
+    overflow: hidden;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chess-player-labels .player-label-white {
+    border: 1px solid #aeb8bf;
+    background: #f8f9fa;
+    color: #172126;
+}
+
+.chess-player-labels .player-label-black {
+    border: 1px solid #253238;
+    background: #172126;
+    color: #f8f9fa;
+}
+
+@media (min-width: 768px) {
+    .chess-player-labels {
+        max-width: 550px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .chess-player-labels {
+        max-width: 650px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .chess-player-labels {
+        max-width: 750px;
+    }
 }
 
 /* STYLES POUR LES BOUTONS PGN/FEN AVEC TEXTE */
@@ -300,11 +339,6 @@ footer {
     .badge {
         font-size: 0.65rem;
         padding: 0.3rem 0.5rem;
-    }
-    
-    .chess-container .position-absolute.top-0.start-0,
-    .chess-container .position-absolute.bottom-0.start-0 {
-        margin: 5px !important;
     }
     
     /* Ajustement supplémentaire pour très petits écrans */

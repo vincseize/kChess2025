@@ -84,12 +84,6 @@ body {
     color: var(--site-text) !important;
 }
 
-#bottomPlayerLabel.badge.bg-white {
-    border-color: var(--site-border) !important;
-    background-color: var(--site-surface-alt) !important;
-    color: var(--site-text) !important;
-}
-
 .text-muted {
     color: var(--site-text-muted) !important;
 }

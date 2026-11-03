@@ -62,6 +62,7 @@ class ChessGameUI {
         });
 
         const timeControl = document.getElementById('gameTimeControl');
+        const usesSelectableTimeControl = new URLSearchParams(window.location.search).get('mode') === 'human';
         let savedCustomTimes = [];
         try {
             const storedCustomTimes = JSON.parse(localStorage.getItem('kchess.clock.customTimes') || '[]');
@@ -81,7 +82,7 @@ class ChessGameUI {
             console.error('Unable to read the last selected time control.', error);
         }
         const lastValue = savedLastTime || '10:0';
-        if (timeControl) {
+        if (timeControl && usesSelectableTimeControl) {
             for (const customTime of savedCustomTimes) {
                 if (!Number.isInteger(customTime.minutes) || !Number.isInteger(customTime.increment)) continue;
                 const value = `${customTime.minutes}:${customTime.increment}`;
@@ -99,7 +100,7 @@ class ChessGameUI {
                 increment: String(increment)
             });
         }
-        timeControl?.addEventListener('change', () => {
+        if (timeControl && usesSelectableTimeControl) timeControl.addEventListener('change', () => {
             if (!this.game?.gameState || !timeControl.value) return;
             const [minutes, increment] = timeControl.value.split(':').map(Number);
             localStorage.setItem('kchess.clock.lastPreset', `${minutes}:${increment}`);

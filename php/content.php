@@ -45,11 +45,9 @@ $botsClock = $config['bots_clock'] ?? [];
 
         <div class="col-xxl-8 col-xl-6 col-lg-6 col-md-8 col-12">
             <div class="chess-container bg-light rounded-3 p-2 h-100 position-relative">
-                <div class="position-absolute top-0 start-0 m-2" style="z-index: 10;">
-                    <span id="topPlayerLabel" class="badge bg-dark text-white p-2 shadow-sm">--</span>
-                </div>
-                <div class="position-absolute bottom-0 start-0 m-2" style="z-index: 10;">
-                    <span id="bottomPlayerLabel" class="badge bg-white text-dark border border-dark p-2 shadow-sm">--</span>
+                <div class="chess-player-labels" aria-label="<?php echo htmlspecialchars($translations['players'] ?? 'Players'); ?>">
+                    <span id="topPlayerLabel" class="badge player-label">--</span>
+                    <span id="bottomPlayerLabel" class="badge player-label">--</span>
                 </div>
                 <div class="chess-board-container mx-auto w-100 h-100 d-flex align-items-center justify-content-center">
                     <div id="chessBoard" class="chess-board"></div>
@@ -156,35 +154,27 @@ window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLeve
     const top = document.getElementById('topPlayerLabel');
     const bottom = document.getElementById('bottomPlayerLabel');
     if (!top || !bottom) return;
-
-    const whiteLabel = window.getTranslation('white_player', 'Blancs');
-    const blackLabel = window.getTranslation('black_player', 'Noirs');
-    const humanName = window.getTranslation('human_player', 'Humain');
-    
-    let botName = window.getTranslation('computer_player', 'Bot');
-    if (botLevel) {
-        botName = window.getTranslation(`bots.bot_${botLevel}.title`, `Bot Niv.${botLevel}`);
-    }
+    const humanColor = new URLSearchParams(window.location.search).get('color') === 'black' ? 'black' : 'white';
+    const resolvedBotColor = botColor === 'white' || botColor === 'black'
+        ? botColor
+        : humanColor === 'white' ? 'black' : 'white';
 
     if (isBotGame) {
-        if (botColor === 'black') {
-            top.innerHTML = `<i class="bi bi-cpu me-1"></i> ${botName} (${blackLabel})`;
-            bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${humanName} (${whiteLabel})`;
-        } else {
-            top.innerHTML = `<i class="bi bi-person me-1"></i> ${humanName} (${blackLabel})`;
-            bottom.innerHTML = `<i class="bi bi-cpu me-1"></i> ${botName} (${whiteLabel})`;
-        }
+        top.innerHTML = `<i class="bi bi-cpu me-1"></i> ${window.getTranslation('bot_level_label', 'Bot Level')} ${botLevel || 1}`;
+        bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('human_player', 'Human')}`;
     } else {
-        top.innerHTML = `<i class="bi bi-person me-1"></i> ${humanName} (${blackLabel})`;
-        bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${humanName} (${whiteLabel})`;
+        top.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('black_player', 'Black')}`;
+        bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('white_player', 'White')}`;
     }
+    top.className = `badge player-label player-label-${isBotGame ? resolvedBotColor : 'black'}`;
+    bottom.className = `badge player-label player-label-${isBotGame ? humanColor : 'white'}`;
 };
 
 window.initTimeDisplay = (botLevel = null) => {
     let timeStr = "10:00"; 
-    if (botLevel && window.botsConfig[`bot_${botLevel}`]) {
-        const fullClock = window.botsConfig[`bot_${botLevel}`].clock;
-        timeStr = fullClock.startsWith("00:") ? fullClock.substring(3) : fullClock;
+    const levelMinutes = Number(botLevel);
+    if (Number.isInteger(levelMinutes) && levelMinutes > 0) {
+        timeStr = `${String(levelMinutes).padStart(2, '0')}:00`;
     }
     const wEl = document.getElementById('whiteTime');
     const bEl = document.getElementById('blackTime');
