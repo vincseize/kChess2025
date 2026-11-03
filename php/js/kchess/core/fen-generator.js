@@ -135,10 +135,20 @@ class FENGenerator {
 
         let rights = '';
         
-        if (this.canCastle(gameState, board, 'white', 'kingside')) rights += 'K';
-        if (this.canCastle(gameState, board, 'white', 'queenside')) rights += 'Q';
-        if (this.canCastle(gameState, board, 'black', 'kingside')) rights += 'k';
-        if (this.canCastle(gameState, board, 'black', 'queenside')) rights += 'q';
+        const appendRight = (color, side, standardRight) => {
+            if (!this.canCastle(gameState, board, color, side)) return '';
+            if (gameState.chess960) {
+                const rookCol = gameState.rookStartCols[color][side];
+                const file = String.fromCharCode('a'.charCodeAt(0) + rookCol);
+                return color === 'white' ? file.toUpperCase() : file;
+            }
+            return standardRight;
+        };
+
+        rights += appendRight('white', 'kingside', 'K');
+        rights += appendRight('white', 'queenside', 'Q');
+        rights += appendRight('black', 'kingside', 'k');
+        rights += appendRight('black', 'queenside', 'q');
         
         return rights || '-';
     }
@@ -148,7 +158,9 @@ class FENGenerator {
      */
     static canCastle(gameState, board, color, side) {
         const row = (color === 'white') ? 7 : 0;
-        const rookCol = (side === 'kingside') ? 7 : 0;
+        const rookCol = gameState.rookStartCols?.[color]?.[side]
+            ?? ((side === 'kingside') ? 7 : 0);
+        const kingCol = gameState.kingStartCols?.[color] ?? 4;
 
         // 1. Le roi a-t-il bougé ?
         if (gameState.hasKingMoved?.[color] === true) return false;
@@ -162,7 +174,7 @@ class FENGenerator {
             return s?.piece || (s?.type ? s : null);
         };
 
-        const king = getP(row, 4);
+        const king = getP(row, kingCol);
         const rook = getP(row, rookCol);
 
         if (king?.type !== 'king' || king?.color !== color) return false;

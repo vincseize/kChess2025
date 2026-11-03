@@ -20,7 +20,7 @@ logConfigInfo($config);
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="KChess">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#764ba2">
+    <meta name="theme-color" content="<?php echo htmlspecialchars($config['colors']['background'] ?? '#0B2024'); ?>">
 
     <!-- Apple Touch Icons -->
     <link rel="apple-touch-icon" href="img/icon-180x180.png">
@@ -66,6 +66,8 @@ logConfigInfo($config);
     <link href="css/kchess/responsive.css?version=<?php echo $version; ?>" rel="stylesheet">
     <link href="css/kchess/promotion-modal.css?version=<?php echo $version; ?>" rel="stylesheet">
 
-
+    <style>
+        :root { <?php echo getThemeCssVariables($config); ?> }
+    </style>
 
 </head>

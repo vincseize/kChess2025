@@ -1,321 +1,159 @@
-// ui/chess-game-ui-timer.js - Version SILENCIEUX (Sans protection)
-
+/**
+ * ui/chess-game-ui-timer.js
+ * Gère le décompte et l'application des incréments de temps.
+ */
 class ChessTimerManager {
-    
-    // FORCÉ À FALSE - Ignorer complètement la config JSON
-    static consoleLog = false; // Toujours false
-    
-    static init() {
-        // NE PAS charger la configuration (elle pourrait changer consoleLog à true)
-        this.forceSilentMode();
-        
-        // Ne loguer que si consoleLog est true (mais il est toujours false)
-        if (this.consoleLog) {
-            console.log('⏱️ ui/chess-game-ui-timer.js chargé');
-            console.log(`⚙️ Configuration: console_log = ${this.consoleLog} (${this.getConfigSource()})`);
-        } else {
-            // Message silencieux
-            console.info('⏱️ ChessTimerManager: Mode silencieux forcé (ignoré config globale)');
-        }
-    }
-    
-    // Méthode pour charger la configuration - MODIFIÉE POUR IGNORER CONFIG
-    static loadConfig() {
-        try {
-            // TOUJOURS FALSE - Ignorer complètement window.appConfig
-            this.consoleLog = false;
-            return true;
-        } catch (error) {
-            // Pas de log d'erreur non plus
-            return false;
-        }
-    }
-    
-    // Méthode pour forcer le mode silencieux
-    static forceSilentMode() {
-        this.consoleLog = false;
-    }
-    
-    // Méthode pour déterminer la source de la configuration
-    static getConfigSource() {
-        return 'FORCÉ SILENCIEUX (ignoré config JSON)';
-    }
-    
-    // Méthode pour vérifier si on est en mode debug
-    static isDebugMode() {
-        return false; // Toujours false
-    }
-
     constructor(ui) {
-        // S'assurer que consoleLog est false
-        ChessTimerManager.consoleLog = false;
-        
         this.ui = ui;
-        this.whiteTime = 0;
-        this.blackTime = 0;
-        this.gameStartTime = null;
+        this.whiteTime = 600; // 10 minutes par défaut
+        this.blackTime = 600;
+        this.increment = 0;   // Secondes à ajouter par coup
+        this.initialTime = 600;
         this.timerInterval = null;
         this.isTimerRunning = false;
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mode') === 'bot') {
+            const levelMinutes = Number(params.get('level'));
+            if (Number.isInteger(levelMinutes) && levelMinutes > 0) {
+                this.setTimerConfig({ clock: `${levelMinutes}:00`, increment: '0' });
+            }
+        }
+
+        const gameTimeControl = document.getElementById('gameTimeControl');
+        if (params.get('mode') === 'human' && gameTimeControl) {
+            const [minutes, increment] = gameTimeControl.value.split(':').map(Number);
+            this.setTimerConfig({ clock: `${minutes}:00`, increment: String(increment) });
+        }
+    }
+
+    /**
+     * Reçoit la configuration (temps + incrément) du bot sélectionné
+     */
+    setTimerConfig(config) {
+        if (!config) return;
+
+        // Configuration du temps de base
+        if (config.clock) {
+            const baseSeconds = this.parseTimeString(config.clock);
+            this.initialTime = baseSeconds;
+            this.whiteTime = baseSeconds;
+            this.blackTime = baseSeconds;
+        }
+
+        // Configuration de l'incrément
+        if (config.increment !== undefined) {
+            this.increment = parseInt(config.increment) || 0;
+        }
+
+        console.info(`⏱️ Timer Configuré : ${this.whiteTime}s | Incrément : +${this.increment}s`);
+        this.updateTimerDisplay();
+    }
+
+    /**
+     * Appelé par GameState.switchPlayer()
+     */
+    switchTurn(newColor) {
+        // Le joueur qui vient de FINIR son coup (couleur opposée à newColor) reçoit l'incrément
+        const previousPlayer = (newColor === 'white') ? 'black' : 'white';
         
-        // Aucun log ici (consoleLog = false)
+        if (this.increment > 0) {
+            if (previousPlayer === 'white') {
+                this.whiteTime += this.increment;
+            } else {
+                this.blackTime += this.increment;
+            }
+            console.log(`➕ Incrément +${this.increment}s appliqué aux ${previousPlayer}`);
+        }
+        
+        // On arrête le décompte en cours, on met à jour, et on relance pour le nouveau joueur
+        this.stopTimer();
+        this.updateTimerDisplay();
+
+        if (this.ui.game.gameState.gameActive) {
+            this.startTimer();
+        }
     }
 
     startTimer() {
-        const isDebug = ChessTimerManager.consoleLog; // = false
-        
-        if (this.timerInterval) {
-            this.stopTimer();
-        }
-        
-        if (!this.ui.game.gameState.gameActive) {
-            return;
-        }
-        
-        this.gameStartTime = Date.now();
+        if (!this.ui.game.gameState.gameActive) return;
+        if (this.isTimerRunning) return;
+
         this.isTimerRunning = true;
-        
         this.timerInterval = setInterval(() => {
-            if (!this.ui.game.gameState.gameActive) {
-                this.stopTimer();
-                return;
-            }
-            
             const currentPlayer = this.ui.game.gameState.currentPlayer;
             
             if (currentPlayer === 'white') {
-                this.whiteTime++;
+                if (this.whiteTime > 0) this.whiteTime--;
             } else {
-                this.blackTime++;
+                if (this.blackTime > 0) this.blackTime--;
             }
             
             this.updateTimerDisplay();
+
+            if (this.whiteTime <= 0 || this.blackTime <= 0) {
+                this.stopTimer();
+                const loser = this.whiteTime <= 0 ? 'white' : 'black';
+                this.ui.game.gameState.gameActive = false;
+                this.updateTimerDisplay();
+                this.ui.modalManager?.showTimeLoss?.(loser);
+            }
         }, 1000);
     }
 
     stopTimer() {
-        const isDebug = ChessTimerManager.consoleLog; // = false
-        
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
         }
-        
         this.isTimerRunning = false;
     }
 
-    resumeTimer() {
-        const isDebug = ChessTimerManager.consoleLog; // = false
-        
-        if (this.ui.game.gameState.gameActive && !this.isTimerRunning) {
-            this.startTimer();
-        }
-    }
-
-    resetTimers() {
-        const isDebug = ChessTimerManager.consoleLog; // = false
-        
-        this.stopTimer();
-        
-        this.whiteTime = 0;
-        this.blackTime = 0;
-        this.gameStartTime = null;
-        
-        this.updateTimerDisplay();
-    }
-
     updateTimerDisplay() {
-        const isDebug = ChessTimerManager.consoleLog; // = false
+        const whiteEl = document.getElementById('whiteTime');
+        const blackEl = document.getElementById('blackTime');
+        const currentPlayer = this.ui.game.gameState.currentPlayer;
+        const colors = window.appConfig?.colors || {};
+        const whiteColor = colors.clock_white || '#FFFFFF';
+        const blackColor = colors.clock_black || colors.primary || '#0891B2';
+        const expiredColor = colors.clock_expired || '#ff0000';
         
-        const whiteTimerElement = document.getElementById('whiteTime');
-        const blackTimerElement = document.getElementById('blackTime');
-        
-        if (whiteTimerElement) {
-            const whiteFormatted = this.formatTime(this.whiteTime);
-            whiteTimerElement.textContent = whiteFormatted;
-            
-            if (this.ui.game.gameState.currentPlayer === 'white') {
-                whiteTimerElement.style.fontWeight = 'bold';
-                whiteTimerElement.style.color = '#28a745';
-            } else {
-                whiteTimerElement.style.fontWeight = 'normal';
-                whiteTimerElement.style.color = '';
-            }
+        if (whiteEl) {
+            whiteEl.textContent = this.formatTime(this.whiteTime);
+            whiteEl.style.fontWeight = (currentPlayer === 'white') ? 'bold' : 'normal';
+            if (this.whiteTime <= 0) whiteEl.style.setProperty('color', expiredColor, 'important');
+            else whiteEl.style.setProperty('color', whiteColor, 'important');
         }
         
-        if (blackTimerElement) {
-            const blackFormatted = this.formatTime(this.blackTime);
-            blackTimerElement.textContent = blackFormatted;
-            
-            if (this.ui.game.gameState.currentPlayer === 'black') {
-                blackTimerElement.style.fontWeight = 'bold';
-                blackTimerElement.style.color = '#28a745';
-            } else {
-                blackTimerElement.style.fontWeight = 'normal';
-                blackTimerElement.style.color = '';
-            }
+        if (blackEl) {
+            blackEl.textContent = this.formatTime(this.blackTime);
+            blackEl.style.fontWeight = (currentPlayer === 'black') ? 'bold' : 'normal';
+            if (this.blackTime <= 0) blackEl.style.setProperty('color', expiredColor, 'important');
+            else blackEl.style.setProperty('color', blackColor, 'important');
         }
+    }
+
+    parseTimeString(timeStr) {
+        if (!timeStr) return 600;
+        const parts = timeStr.split(':').map(Number);
+        // Format HH:MM:SS
+        if (parts.length === 3) return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+        // Format MM:SS
+        if (parts.length === 2) return (parts[0] * 60) + parts[1];
+        return parseInt(timeStr) || 600;
     }
 
     formatTime(seconds) {
-        if (seconds < 0) {
-            seconds = 0;
-        }
-        
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
+        const mins = Math.floor(Math.max(0, seconds) / 60);
+        const secs = Math.max(0, seconds) % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
 
-    getTimerStats() {
-        return {
-            whiteTime: this.whiteTime,
-            blackTime: this.blackTime,
-            totalTime: this.whiteTime + this.blackTime,
-            isRunning: this.isTimerRunning,
-            currentPlayer: this.ui.game.gameState.currentPlayer,
-            gameActive: this.ui.game.gameState.gameActive,
-            elapsedSinceStart: this.gameStartTime ? Date.now() - this.gameStartTime : 0
-        };
-    }
-    
-    getFormattedTimes() {
-        return {
-            white: this.formatTime(this.whiteTime),
-            black: this.formatTime(this.blackTime),
-            whiteSeconds: this.whiteTime,
-            blackSeconds: this.blackTime
-        };
-    }
-    
-    checkTimerHealth() {
-        return {
-            timerRunning: this.isTimerRunning,
-            intervalSet: !!this.timerInterval,
-            gameActive: this.ui.game.gameState.gameActive,
-            uiValid: !!this.ui,
-            gameStateValid: !!this.ui?.game?.gameState,
-            timeElementsExist: {
-                white: !!document.getElementById('whiteTime'),
-                black: !!document.getElementById('blackTime')
-            }
-        };
-    }
-    
-    repairTimer() {
-        const health = this.checkTimerHealth();
-        
-        if (health.gameActive && !health.timerRunning && health.gameStateValid) {
-            this.stopTimer();
-            this.startTimer();
-            return { repaired: true, reason: 'Timer arrêté mais jeu actif' };
-        }
-        
-        if (!health.gameActive && health.timerRunning) {
-            this.stopTimer();
-            return { repaired: true, reason: 'Timer en cours mais jeu inactif' };
-        }
-        
-        return { repaired: false, reason: 'Aucune réparation nécessaire' };
+    resetTimers() {
+        this.stopTimer();
+        this.whiteTime = this.initialTime;
+        this.blackTime = this.initialTime;
+        this.updateTimerDisplay();
     }
 }
-
-// Initialisation statique
-ChessTimerManager.init();
-
-// Exposer la classe globalement
 window.ChessTimerManager = ChessTimerManager;
-
-// Ajouter des fonctions utilitaires globales
-window.TimerManagerUtils = {
-    reloadConfig: () => {
-        ChessTimerManager.loadConfig();
-        return ChessTimerManager.consoleLog;
-    },
-    
-    getState: () => ({
-        consoleLog: ChessTimerManager.consoleLog,
-        source: ChessTimerManager.getConfigSource(),
-        debugMode: ChessTimerManager.isDebugMode(),
-        configValue: false
-    }),
-    
-    setConsoleLog: (value) => {
-        ChessTimerManager.consoleLog = false;
-        return ChessTimerManager.consoleLog;
-    },
-    
-    testTimerManager: (ui) => {
-        return new ChessTimerManager(ui);
-    },
-    
-    testTimerFunctions: (timerManager) => {
-        if (!timerManager) return null;
-        
-        const tests = {
-            startTimer: false,
-            stopTimer: false,
-            resetTimer: false,
-            updateDisplay: false,
-            formatTime: false,
-            getStats: false
-        };
-        
-        try {
-            const formatted = timerManager.formatTime(65);
-            tests.formatTime = formatted === '01:05';
-            
-            const stats = timerManager.getTimerStats();
-            tests.getStats = !!stats;
-            
-            timerManager.updateTimerDisplay();
-            tests.updateDisplay = true;
-            
-            if (timerManager.isTimerRunning) {
-                timerManager.stopTimer();
-                tests.stopTimer = !timerManager.isTimerRunning;
-            }
-            
-            timerManager.startTimer();
-            tests.startTimer = timerManager.isTimerRunning;
-            
-            timerManager.resetTimers();
-            const afterReset = timerManager.getTimerStats();
-            tests.resetTimer = afterReset.whiteTime === 0 && afterReset.blackTime === 0;
-            
-            timerManager.stopTimer();
-            
-        } catch (error) {}
-        
-        return { tests, passed: false };
-    }
-};
-
-// Méthodes statiques additionnelles
-ChessTimerManager.getConfigStatus = function() {
-    return {
-        consoleLog: this.consoleLog,
-        source: this.getConfigSource(),
-        debugMode: this.isDebugMode(),
-        appConfigAvailable: !!window.appConfig,
-        configValue: false
-    };
-};
-
-ChessTimerManager.reloadConfig = function() {
-    this.loadConfig();
-    return this.consoleLog;
-};
-
-// Vérification finale au chargement
-const forceReload = () => {
-    setTimeout(() => {
-        ChessTimerManager.loadConfig();
-    }, 100);
-};
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', forceReload);
-} else {
-    forceReload();
-}
-

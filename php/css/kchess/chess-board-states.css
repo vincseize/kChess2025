@@ -4,18 +4,18 @@
 
 /* Case de la pièce actuellement sélectionnée */
 #chessBoard .chess-square.selected {
-    background-color: rgba(74, 144, 226, 0.5) !important;
-    box-shadow: inset 0 0 0 3px #4a90e2 !important;
+    background-color: color-mix(in srgb, var(--chess-selected) 50%, transparent) !important;
+    box-shadow: inset 0 0 0 3px var(--chess-selected) !important;
     z-index: 3;
 }
 
 /* --- SUGGESTIONS DE MOUVEMENTS --- */
 
 /* Fond léger pour les cases cibles */
-#chessBoard .chess-square.possible-move { background-color: rgba(50, 205, 50, 0.1) !important; }
-#chessBoard .chess-square.possible-capture { background-color: rgba(255, 68, 68, 0.1) !important; }
-#chessBoard .chess-square.possible-en-passant { background-color: rgba(255, 107, 53, 0.1) !important; }
-#chessBoard .chess-square.possible-castle { background-color: rgba(255, 193, 7, 0.1) !important; }
+#chessBoard .chess-square.possible-move { background-color: color-mix(in srgb, var(--chess-move-indicator) 18%, transparent) !important; }
+#chessBoard .chess-square.possible-capture { background-color: color-mix(in srgb, var(--chess-capture-indicator) 18%, transparent) !important; }
+#chessBoard .chess-square.possible-en-passant { background-color: color-mix(in srgb, var(--chess-capture-indicator) 24%, transparent) !important; }
+#chessBoard .chess-square.possible-castle { background-color: color-mix(in srgb, var(--primary-color) 18%, transparent) !important; }
 
 /* Indicateurs (Points et Cercles) */
 #chessBoard .chess-square.possible-move::before,
@@ -35,7 +35,7 @@
 #chessBoard .chess-square.possible-move::before {
     width: 25%;
     height: 25%;
-    background-color: rgba(0, 0, 0, 0.15);
+    background-color: color-mix(in srgb, var(--chess-move-indicator) 75%, transparent);
     border-radius: 50%;
 }
 
@@ -43,7 +43,7 @@
 #chessBoard .chess-square.possible-capture::before {
     width: 85%;
     height: 85%;
-    border: 4px solid rgba(0, 0, 0, 0.1);
+    border: 4px solid var(--chess-capture-indicator);
     border-radius: 50%;
     box-sizing: border-box;
 }
@@ -51,7 +51,7 @@
 #chessBoard .chess-square.possible-en-passant::before {
     width: 85%;
     height: 85%;
-    border: 4px solid #ff6b35;
+    border: 4px solid var(--chess-capture-indicator);
     border-radius: 50%;
     opacity: 0.4;
     box-sizing: border-box;
@@ -71,12 +71,12 @@
 
 /* Case de DÉPART du dernier coup */
 #chessBoard .chess-square.last-move-source {
-    background-color: rgba(245, 246, 130, 0.4) !important; /* Jaune pâle */
+    background-color: color-mix(in srgb, var(--chess-selected) 30%, transparent) !important;
 }
 
 /* Case d'ARRIVÉE du dernier coup */
 #chessBoard .chess-square.last-move-dest {
-    background-color: rgba(245, 246, 130, 0.7) !important; /* Jaune marqué */
+    background-color: color-mix(in srgb, var(--chess-selected) 55%, transparent) !important;
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1) !important;
 }
 
@@ -85,15 +85,15 @@
    ========================================================================== */
 
 #chessBoard .chess-square.king-in-check {
-    background: radial-gradient(circle, rgba(255, 68, 68, 0.4) 0%, rgba(255, 0, 0, 0.2) 60%, transparent 100%) !important;
-    box-shadow: inset 0 0 0 3px rgba(255, 0, 0, 0.8) !important;
+    background: radial-gradient(circle, color-mix(in srgb, var(--chess-capture-indicator) 40%, transparent) 0%, color-mix(in srgb, var(--chess-capture-indicator) 20%, transparent) 60%, transparent 100%) !important;
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--chess-capture-indicator) 80%, transparent) !important;
     animation: pulse-check 1.5s infinite alternate;
     z-index: 4;
 }
 
 #chessBoard .chess-square.checkmate {
-    background-color: rgba(255, 0, 0, 0.6) !important;
-    box-shadow: 0 0 15px rgba(255, 0, 0, 0.8) !important;
+    background-color: color-mix(in srgb, var(--chess-capture-indicator) 60%, transparent) !important;
+    box-shadow: 0 0 15px color-mix(in srgb, var(--chess-capture-indicator) 80%, transparent) !important;
 }
 
 /* ==========================================================================
@@ -101,8 +101,8 @@
    ========================================================================== */
 
 @keyframes pulse-check {
-    from { opacity: 0.8; box-shadow: inset 0 0 0 2px rgba(255, 0, 0, 0.5); }
-    to { opacity: 1; box-shadow: inset 0 0 0 4px rgba(255, 0, 0, 1); }
+    from { opacity: 0.8; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--chess-capture-indicator) 50%, transparent); }
+    to { opacity: 1; box-shadow: inset 0 0 0 4px var(--chess-capture-indicator); }
 }
 
 @keyframes pulse-en-passant {

@@ -90,31 +90,35 @@ class KingMoveValidator {
     canAttemptCastle(color, row, col) {
         const startRow = color === 'white' ? 7 : 0;
         const hasMoved = this.gameState?.hasKingMoved?.[color] === true;
-        return (row === startRow && col === 4) && !hasMoved;
+        const startCol = this.gameState?.kingStartCols?.[color] ?? 4;
+        return (row === startRow && col === startCol) && !hasMoved;
     }
 
     getCastleMoves(king, row, col) {
         const moves = [];
         const color = king.color;
+        const chess960 = this.gameState?.chess960 === true;
 
         if (this.isKingInCheckNow(color)) return moves;
 
         if (this.canCastleSide(color, 'kingside')) {
             moves.push({ 
-                row, col: 6, 
+                row, col: chess960 ? this.gameState.rookStartCols[color].kingside : 6,
                 type: 'castling', 
                 side: 'kingside',
-                rookFrom: { row, col: 7 },
+                kingTo: { row, col: 6 },
+                rookFrom: { row, col: this.gameState.rookStartCols?.[color]?.kingside ?? 7 },
                 rookTo: { row, col: 5 }
             });
         }
 
         if (this.canCastleSide(color, 'queenside')) {
             moves.push({ 
-                row, col: 2, 
+                row, col: chess960 ? this.gameState.rookStartCols[color].queenside : 2,
                 type: 'castling', 
                 side: 'queenside',
-                rookFrom: { row, col: 0 },
+                kingTo: { row, col: 2 },
+                rookFrom: { row, col: this.gameState.rookStartCols?.[color]?.queenside ?? 0 },
                 rookTo: { row, col: 3 }
             });
         }
@@ -124,28 +128,65 @@ class KingMoveValidator {
 
     canCastleSide(color, side) {
         const row = color === 'white' ? 7 : 0;
-        const opponentColor = color === 'white' ? 'black' : 'white';
         
         if (this.hasRookMoved(color, side)) return false;
 
-        const emptyCols = side === 'kingside' ? [5, 6] : [1, 2, 3];
-        for (let c of emptyCols) {
-            if (this.board.getPiece(row, c)) return false;
+        const kingStartCol = this.gameState?.kingStartCols?.[color] ?? 4;
+        const rookStartCol = this.gameState?.rookStartCols?.[color]?.[side]
+            ?? (side === 'kingside' ? 7 : 0);
+        const kingToCol = side === 'kingside' ? 6 : 2;
+        const rookToCol = side === 'kingside' ? 5 : 3;
+        const king = this.board.getPiece(row, kingStartCol);
+        const rook = this.board.getPiece(row, rookStartCol);
+
+        if (king?.type !== 'king' || king.color !== color
+            || rook?.type !== 'rook' || rook.color !== color) return false;
+
+        for (const col of this.columnsBetween(kingStartCol, kingToCol)) {
+            if (col !== kingStartCol && col !== rookStartCol && this.board.getPiece(row, col)) return false;
         }
 
-        const pathCols = side === 'kingside' ? [5, 6] : [3, 2];
-        for (let c of pathCols) {
-            if (this.isSquareAttacked(row, c, opponentColor)) return false;
+        for (const col of this.columnsBetween(rookStartCol, rookToCol)) {
+            if (col !== kingStartCol && col !== rookStartCol && this.board.getPiece(row, col)) return false;
+        }
+
+        const boardWithoutCastlePieces = this.createTempBoard();
+        boardWithoutCastlePieces[row][kingStartCol] = null;
+        boardWithoutCastlePieces[row][rookStartCol] = null;
+        const kingPath = this.columnsBetween(kingStartCol, kingToCol);
+        for (const col of kingPath) {
+            const boardAtStep = boardWithoutCastlePieces.map(boardRow => boardRow.slice());
+            boardAtStep[row][col] = { type: 'king', color };
+            if (col === kingToCol) {
+                boardAtStep[row][rookToCol] = { type: 'rook', color };
+            }
+            if (this.isKingInCheckOnBoard(boardAtStep, color)) return false;
         }
 
         return true;
+    }
+
+    columnsBetween(from, to) {
+        if (from === to) return [to];
+        const direction = to > from ? 1 : -1;
+        return Array.from({ length: Math.abs(to - from) }, (_, index) => from + direction * (index + 1));
+    }
+
+    isKingInCheckOnBoard(board, color) {
+        if (typeof ChessEngine === 'undefined') {
+            throw new Error('ChessEngine est requis pour vérifier le roque Chess960.');
+        }
+        const fen = this.generateTempFEN(board, color);
+        const engine = new ChessEngine(fen);
+        return engine.isKingInCheck(color === 'white' ? 'w' : 'b');
     }
 
     hasRookMoved(color, side) {
         if (this.gameState?.hasRookMoved?.[color]?.[side] !== undefined) {
             return this.gameState.hasRookMoved[color][side];
         }
-        const rookCol = side === 'kingside' ? 7 : 0;
+        const rookCol = this.gameState?.rookStartCols?.[color]?.[side]
+            ?? (side === 'kingside' ? 7 : 0);
         const row = color === 'white' ? 7 : 0;
         const piece = this.board.getPiece(row, rookCol);
         return !(piece && piece.type === 'rook' && piece.color === color);

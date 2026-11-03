@@ -33,15 +33,31 @@ const NewGameHandler = {
         if (startBtn) {
             startBtn.addEventListener('click', () => this.startGame());
         }
+
+        document.getElementById('startChess960')?.addEventListener('click', () => {
+            this.startGame({ mode: 'human', level: '0', profondeur: 'false', variant: 'chess960' });
+        });
     },
 
     handleModeSelection(btn) {
-        document.querySelectorAll('.game-mode-btn').forEach(b => b.classList.remove('selected'));
+        document.querySelectorAll('.game-mode-btn').forEach(b => {
+            b.classList.remove('selected');
+            b.setAttribute('aria-pressed', 'false');
+        });
         btn.classList.add('selected');
+        btn.setAttribute('aria-pressed', 'true');
 
         this.selectedMode = btn.dataset.mode;
         this.selectedLevel = btn.dataset.level;
         this.selectedProfondeur = btn.dataset.profondeur;
+
+        if (this.selectedMode === 'bot') {
+            try {
+                localStorage.setItem('kchess.selectedBotLevel', this.selectedLevel);
+            } catch (error) {
+                console.warn('Impossible de mémoriser le niveau du bot.', error);
+            }
+        }
 
         document.getElementById('startGameBtn').disabled = false;
 
@@ -50,8 +66,12 @@ const NewGameHandler = {
     },
 
     handleColorSelection(option) {
-        document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+        document.querySelectorAll('.color-option').forEach(opt => {
+            opt.classList.remove('selected');
+            opt.setAttribute('aria-pressed', 'false');
+        });
         option.classList.add('selected');
+        option.setAttribute('aria-pressed', 'true');
         this.selectedColor = option.dataset.color;
     },
 
@@ -62,17 +82,18 @@ const NewGameHandler = {
         return 'Inconnu';
     },
 
-    startGame() {
+    startGame(overrides = {}) {
         let finalColor = this.selectedColor;
         if (this.selectedColor === 'random') {
             finalColor = Math.random() > 0.5 ? 'white' : 'black';
         }
 
         const params = new URLSearchParams({
-            mode: this.selectedMode,
-            level: this.selectedLevel,
-            profondeur: this.selectedProfondeur,
-            color: finalColor
+            mode: overrides.mode || this.selectedMode,
+            level: overrides.level || this.selectedLevel,
+            profondeur: overrides.profondeur || this.selectedProfondeur,
+            color: finalColor,
+            ...(overrides.variant ? { variant: overrides.variant } : {})
         });
 
         const finalUrl = `${this.targetPage}?${params.toString()}`;
@@ -82,13 +103,18 @@ const NewGameHandler = {
     },
 
     selectDefaultMode() {
-        const humanBtn = document.querySelector('.btn-human');
-        if (humanBtn) humanBtn.click();
+        let savedLevel = null;
+        try {
+            savedLevel = localStorage.getItem('kchess.selectedBotLevel');
+        } catch (error) {
+            console.warn('Impossible de lire le niveau du bot mémorisé.', error);
+        }
 
-        // Scroll fluide pour mobile
-        setTimeout(() => {
-            const content = document.querySelector('.new-game-content');
-            if (content) content.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
+        const botButtons = [...document.querySelectorAll('.game-mode-btn[data-mode="bot"]')];
+        const defaultBot = botButtons.find(btn => btn.dataset.level === savedLevel)
+            || botButtons.find(btn => btn.dataset.level === '1');
+
+        if (defaultBot) defaultBot.click();
+        else document.querySelector('.btn-human')?.click();
     }
 };

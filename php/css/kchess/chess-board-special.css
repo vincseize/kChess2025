@@ -10,14 +10,14 @@
 }
 
 .chess-square.check {
-    background-color: #ff4444 !important;
+    background-color: var(--chess-capture-indicator) !important;
     animation: pulse-check 1s infinite;
 }
 
 @keyframes pulse-check {
-    0% { background-color: #ff4444; }
-    50% { background-color: #ff6666; }
-    100% { background-color: #ff4444; }
+    0% { background-color: var(--chess-capture-indicator); }
+    50% { background-color: color-mix(in srgb, var(--chess-capture-indicator) 78%, white); }
+    100% { background-color: var(--chess-capture-indicator); }
 }
 
 .chess-square.checkmate {

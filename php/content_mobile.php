@@ -8,24 +8,25 @@ $lang = $config['current_lang'];
 $translations = $config['lang'][$lang];
 ?>
 
-<main class="container-fluid py-2 py-md-3">
+<main class="container-fluid py-2 py-md-3 game-page">
     <div class="row g-2 g-md-3">
         <div class="col-md-4 col-lg-3 col-xxl-2">
             <div class="card shadow-sm mb-2 mb-md-0 border-0">
                 <div class="card-body p-2">
-                    <div class="d-grid gap-2">
+                    <div class="d-grid gap-2 game-actions">
                         <a href="index.php" class="btn btn-primary btn-sm">
-                            <i class="bi bi-house-door me-1"></i> <?php echo htmlspecialchars($translations['accueil']); ?>
+                            <i class="bi bi-house-door me-1" aria-hidden="true"></i> <span><?php echo htmlspecialchars($translations['accueil']); ?></span>
                         </a>
 
                         <button type="button" class="btn btn-success btn-sm new-game-btn" id="newGame" 
-                                title="<?php echo htmlspecialchars($translations['new_game']); ?>">
-                            <i class="bi bi-plus-circle me-1"></i> <?php echo htmlspecialchars($translations['new_game']); ?>
+                                title="<?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?>">
+                            <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> <span><?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?></span>
                         </button>
 
                         <button type="button" class="btn btn-outline-dark btn-sm flip-board-btn" id="flipBoardMobile"
-                                title="<?php echo htmlspecialchars($translations['flip_board']); ?>">
-                            <i class="bi bi-arrow-repeat me-1"></i> <?php echo htmlspecialchars($translations['flip_board']); ?>
+                                title="<?php echo htmlspecialchars($translations['flip_board']); ?>"
+                                aria-label="<?php echo htmlspecialchars($translations['flip_board']); ?>">
+                            <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> <span class="flip-board-label"><?php echo htmlspecialchars($translations['flip_board']); ?></span>
                         </button>
                     </div>
                 </div>
@@ -34,12 +35,9 @@ $translations = $config['lang'][$lang];
 
         <div class="col-md-8 col-lg-6 col-xxl-8">
             <div class="chess-container bg-light rounded-3 p-1 p-md-2 position-relative shadow-sm border">
-                <div class="position-absolute top-0 start-0 m-2" style="z-index: 10;">
-                    <span id="topPlayerLabel" class="badge bg-dark text-white p-2 shadow-sm border border-secondary"></span>
-                </div>
-                
-                <div class="position-absolute bottom-0 start-0 m-2" style="z-index: 10;">
-                    <span id="bottomPlayerLabel" class="badge bg-white text-dark border border-dark p-2 shadow-sm"></span>
+                <div class="chess-player-labels" aria-label="<?php echo htmlspecialchars($translations['players'] ?? 'Players'); ?>">
+                    <span id="topPlayerLabel" class="badge player-label"></span>
+                    <span id="bottomPlayerLabel" class="badge player-label"></span>
                 </div>
                 
                 <div class="chess-board-container mx-auto d-flex align-items-center justify-content-center">
@@ -51,8 +49,45 @@ $translations = $config['lang'][$lang];
         <div class="col-12 col-lg-3 col-xxl-2">
             <div class="card mb-2 border-primary shadow-sm">
                 <div class="card-body p-2 text-center">
-                    <div id="currentPlayer" class="small fw-bold mb-2 p-1 rounded bg-light border">
+                    <div id="chess960Position" class="chess960-position" hidden></div>
+                    <div id="currentPlayer" class="game-turn-status small fw-bold p-1 rounded bg-light border" role="status" aria-live="polite" aria-atomic="true">
                         <?php echo htmlspecialchars($translations['traitAuBlancs']); ?>
+                    </div>
+                    <div class="chess960-actions" id="gameClockActions" hidden>
+                        <button type="button" class="chess960-start-btn" id="startChess960Game">
+                            <i class="bi bi-play-fill" aria-hidden="true"></i>
+                            <?php echo htmlspecialchars($translations['start_game'] ?? 'Démarrer la partie'); ?>
+                        </button>
+                        <label class="chess960-time-control" title="<?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?>">
+                            <i class="bi bi-clock" aria-hidden="true"></i>
+                            <span class="visually-hidden"><?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?></span>
+                            <select id="gameTimeControl" aria-label="<?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?>">
+                                <option value="1:0">1 +0</option>
+                                <option value="1:2">1 +2</option>
+                                <option value="1:5">1 +5</option>
+                                <option value="1:10">1 +10</option>
+                                <option value="3:0">3 +0</option>
+                                <option value="3:2">3 +2</option>
+                                <option value="3:5">3 +5</option>
+                                <option value="3:10">3 +10</option>
+                                <option value="5:0">5 +0</option>
+                                <option value="5:5">5 +5</option>
+                                <option value="5:10">5 +10</option>
+                                <option value="5:15">5 +15</option>
+                                <option value="10:0" selected>10 +0</option>
+                                <option value="10:5">10 +5</option>
+                                <option value="10:10">10 +10</option>
+                                <option value="10:15">10 +15</option>
+                                <option value="12:0">12 +0</option>
+                                <option value="12:5">12 +5</option>
+                                <option value="12:10">12 +10</option>
+                                <option value="12:15">12 +15</option>
+                                <option value="15:0">15 +0</option>
+                                <option value="15:5">15 +5</option>
+                                <option value="15:10">15 +10</option>
+                                <option value="15:15">15 +15</option>
+                            </select>
+                        </label>
                     </div>
                     <div class="row g-0 small font-monospace">
                         <div class="col-6 border-end">
@@ -106,23 +141,20 @@ window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLeve
     const top = document.getElementById('topPlayerLabel');
     const bottom = document.getElementById('bottomPlayerLabel');
     if (!top || !bottom) return;
+    const humanColor = new URLSearchParams(window.location.search).get('color') === 'black' ? 'black' : 'white';
+    const resolvedBotColor = botColor === 'white' || botColor === 'black'
+        ? botColor
+        : humanColor === 'white' ? 'black' : 'white';
 
-    const human = window.getTranslation('human_player', 'Humain');
-    const white = window.getTranslation('white_player', 'Blancs');
-    const black = window.getTranslation('black_player', 'Noirs');
-    let botName = window.getTranslation('computer_player', 'Bot');
-    if (botLevel) botName = window.getTranslation('bot_level' + botLevel, botName);
-
-    if (isBotGame && botColor === 'black') {
-        top.innerHTML = `<i class="bi bi-cpu"></i> ${botName} (${black})`;
-        bottom.innerHTML = `<i class="bi bi-person"></i> ${human} (${white})`;
-    } else if (isBotGame && botColor === 'white') {
-        top.innerHTML = `<i class="bi bi-person"></i> ${human} (${black})`;
-        bottom.innerHTML = `<i class="bi bi-cpu"></i> ${botName} (${white})`;
+    if (isBotGame) {
+        top.innerHTML = `<i class="bi bi-cpu me-1"></i> ${window.getTranslation('bot_level_label', 'Bot Level')} ${botLevel || 1}`;
+        bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('human_player', 'Human')}`;
     } else {
-        top.innerHTML = `<i class="bi bi-person"></i> ${human} (${black})`;
-        bottom.innerHTML = `<i class="bi bi-person"></i> ${human} (${white})`;
+        top.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('black_player', 'Black')}`;
+        bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('white_player', 'White')}`;
     }
+    top.className = `badge player-label player-label-${isBotGame ? resolvedBotColor : 'black'}`;
+    bottom.className = `badge player-label player-label-${isBotGame ? humanColor : 'white'}`;
 };
 
 window.updateGameStatus = function(currentPlayer) {
@@ -139,20 +171,7 @@ window.updateTimeDisplay = function(w, b) {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. GESTION DU BOUTON NOUVELLE PARTIE (CORRECTIF DOUBLE DIALOGUE)
-    document.querySelectorAll('.new-game-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopImmediatePropagation(); 
-
-            const msg = window.getTranslation('new_game', 'Nouvelle Partie') + ' ?';
-            if (confirm(msg)) {
-                window.location.replace('index.php?new');
-            }
-        }, true); 
-    });
-
-    // 2. RESTAURATION DU BOUTON FLIP BOARD
+    // RESTAURATION DU BOUTON FLIP BOARD
     document.querySelectorAll('.flip-board-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
@@ -188,6 +207,5 @@ document.addEventListener('DOMContentLoaded', function() {
 .btn-xs { padding: 1px 5px; font-size: 0.75rem; }
 @media (max-width: 767px) {
     .badge { font-size: 0.7rem !important; }
-    .chess-board-container { max-width: 95vw; }
 }
 </style>

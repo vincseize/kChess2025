@@ -1,10 +1,15 @@
 {
     "app_name": "CharlyChess",
-    "version": "0.98",
+    "version": "1",
     "author": "Karlova",
     "author2": "von Vincseize",
     "default_theme": "classic",
     "default_lang": "fr",
+    "splashscreen": {
+        "loading": true,
+        "version": 0,
+        "display_time": 2500
+    },
     "features": {
         "flip_board": true,
         "move_history": true,
@@ -12,11 +17,23 @@
         "responsive": true
     },
     "colors": {
-        "square_white": "#F0D9B5",
-        "square_black": "#B58863",
-        "selected": "#aec6cf",
-        "move_indicator": "#32CD32",
-        "capture_indicator": "#ff4444"
+        "background": "#0B2024",
+        "surface": "#12383C",
+        "surface_alt": "#17464A",
+        "text": "#E6FFFA",
+        "text_muted": "#9BC6C1",
+        "border": "#28656A",
+        "primary": "#0891B2",
+        "success": "#10B981",
+        "square_white": "#C9F3E9",
+        "square_black": "#168B8D",
+        "selected": "#5EEAD4",
+        "move_indicator": "#34D399",
+        "capture_indicator": "#ff4444",
+        "clock_white": "#FFFFFF",
+        "clock_black": "#38BDF8",
+        "clock_active": "#28a745",
+        "clock_expired": "#ff0000"
     },
     "debug": {
         "console_log": true
@@ -24,19 +41,76 @@
     "chess_engine": {
         "console_log": true
     },
+        "bots_clock": {
+        "bot_1": { "clock": "00:01:00", "increment": "2" },
+        "bot_2": { "clock": "00:02:00", "increment": "2" },
+        "bot_3": { "clock": "00:03:00", "increment": "2" },
+        "bot_4": { "clock": "00:05:00", "increment": "5" },
+        "bot_5": { "clock": "00:10:00", "increment": "5" },
+        "bot_16": { "clock": "99:59:59", "increment": "15" }
+    },
     "lang": {
         "fr": {
             "app_name": "CharlyChess",
+            "clock": {
+                "title": "Pendule",
+                "time_control": "Cadence",
+                "remove_custom_time": "Supprimer cette cadence personnalisée",
+                "saved_custom_times": "Cadences personnalisées enregistrées",
+                "settings": "Paramètres de la pendule",
+                "back_to_tempos": "Retour au choix des cadences",
+                "board_label": "Pendule d’échecs",
+                "black": "Noirs",
+                "white": "Blancs",
+                "initial_status": "Choisissez une cadence puis démarrez.",
+                "cadence": "Cadence",
+                "minute": "minute",
+                "minutes": "minutes",
+                "increment_seconds": "Incrément (secondes)",
+                "apply": "Appliquer",
+                "ready": "Prêt",
+                "pause": "Pause",
+                "resume": "Reprendre",
+                "reset": "Réinitialiser",
+                "close": "Fermer",
+                "custom": "Personnalisé",
+                "home": "Accueil",
+                "instructions": "Les Noirs appuient d’abord sur leur pendule pour lancer la partie. Ensuite, touchez la pendule active après chaque coup.",
+                "time_expired": "Temps écoulé",
+                "player_flagged": "Le temps des {player} est écoulé.",
+                "choose_another_tempo": "Choisir un autre tempo",
+                "quit_home": "Quitter et retourner à l’accueil",
+                "reset_before_resume": "Réinitialisez la pendule avant de reprendre.",
+                "turn": "Aux {player} de jouer.",
+                "paused": "Pendule en pause.",
+                "start_with_black": "Les Noirs appuient sur leur pendule pour démarrer.",
+                "choose_tempo_start": "Choisissez une cadence puis démarrez.",
+                "custom_tempo": "Cadence personnalisée : {minutes} +{increment}."
+            },
             "traitAuBlancs": "Trait aux Blancs",
             "traitAuxNoirs": "Trait aux Noirs",
             "accueil": "Accueil",
             "new_game": "Nouvelle Partie",
+            "play_again": "Rejouer",
+            "cancel": "Annuler",
+            "close": "Fermer",
+            "time_lost": "Perdu au temps",
+            "time_lost_message": "Votre temps est écoulé.",
             "flip_board": "Tourner",
             "white_time": "Temps Blancs",
             "black_time": "Temps Noirs",
             "moves": "Coups",
             "copy_pgn": "PGN",
             "copy_fen": "FEN",
+            "home_title_first": "Les échecs,",
+            "home_title_second": "progressivement.",
+            "home_tagline": "Défiez un bot ; le niveau correspond à la durée de la partie.",
+            "opera_game_alt": "Partie de l'Opera de Paul Morphy, 1858",
+            "local_game_note": "Parties locales, sans inscription.",
+            "setup_title": "Préparez votre partie",
+            "choose_mode": "1. Choisissez votre mode",
+            "choose_color": "2. Choisissez votre camp",
+            "language": "Langue",
             "human_vs_human": "Humain vs Humain",
             "random_bot": "Niveau 1 - Aléatoire",
             "ccmo_bot": "Niveau 2 - CCMO",
@@ -48,9 +122,11 @@
             "start_game": "Démarrer la Partie",
             "unknown": "Inconnu",
             "computer_player": "Bot",
+            "bot_level_label": "Bot Niveau",
             "human_player": "Humain",
             "white_player": "Blancs",
             "black_player": "Noirs",
+            "players": "Joueurs",
             "game_status": "Statut de la partie",
             "white_time_label": "Temps Blancs",
             "black_time_label": "Temps Noirs",
@@ -61,7 +137,7 @@
             "no_moves_played": "Aucun coup joué",
             "footer_app": "CharlyChess",
             "footer_dev": "Dev.",
-            "footer_copyright": "&copy; LRDS 2024-",
+            "footer_copyright": "&copy; LRDS 2025 - ",
             "footer_and": "et",
             "mobile_icon": "Téléphone",
             "tablet_icon": "Tablette",
@@ -115,26 +191,105 @@
             "copy_error_pgn": "Erreur lors de la copie du PGN",
             "Level": "Niveau",
             "bots": {
-                "bot_1": "Level 1 : Aléatoire",
-                "bot_2": "Level 2 : ECMO (Basique)",
-                "bot_3": "Level 3 : ECMO (Avancé)",
-                "bot_4": "Level 4 : Stratège (Agressif)",
-                "bot_5": "Level 5 : Maître (Étrangleur)",
-                "bot_16": "Level 16 : Deep Neural (Test)"
+                "bot_1": {
+                    "title": "Niveau 1 : Aléatoire",
+                    "description": "Le bot joue des coups totalement au hasard.",
+                    "clock": "00:01:00",
+                    "increment": "00:00:02"
+                },
+                "bot_2": {
+                    "title": "Niveau 2 : ECMO (Basique)",
+                    "description": "Stratégie ECMO : Échec → Capture → Menace → Optimisation.",
+                    "clock": "00:02:00",
+                    "increment": "00:00:02"
+                },
+                "bot_3": {
+                    "title": "Niveau 3 : ECMO (Avancé)",
+                    "description": "Analyse ECMO avec une meilleure évaluation des échanges.",
+                    "clock": "00:03:00",
+                    "increment": "00:00:02"
+                },
+                "bot_4": {
+                    "title": "Niveau 4 : Petit Stratège (Agressif)",
+                    "description": "Bot agressif privilégiant l'attaque sur le petit/grand roque.",
+                    "clock": "00:05:00",
+                    "increment": "00:00:03"
+                },
+                "bot_5": {
+                    "title": "Niveau 5 : Petit Maître (Étrangleur)",
+                    "description": "Jeu positionnel serré visant à étouffer l'adversaire.",
+                    "clock": "00:10:00",
+                    "increment": "00:00:05"
+                },
+                "bot_16": {
+                    "title": "Niveau 16 : Deep Neural (Expérimental)",
+                    "description": "Phase de test du réseau de neurones profonds.",
+                    "clock": "Illimité",
+                    "increment": "00:00:00"
+                }
             }
         },
         "en": {
             "app_name": "CharlyChess",
+            "clock": {
+                "title": "Clock",
+                "time_control": "Time control",
+                "remove_custom_time": "Remove this custom time control",
+                "saved_custom_times": "Saved custom time controls",
+                "settings": "Clock settings",
+                "back_to_tempos": "Back to time controls",
+                "board_label": "Chess clock",
+                "black": "Black",
+                "white": "White",
+                "initial_status": "Choose a time control, then get ready.",
+                "cadence": "Time control",
+                "minute": "minute",
+                "minutes": "minutes",
+                "increment_seconds": "Increment (seconds)",
+                "apply": "Apply",
+                "ready": "Ready",
+                "pause": "Pause",
+                "resume": "Resume",
+                "reset": "Reset",
+                "close": "Close",
+                "custom": "Custom",
+                "home": "Home",
+                "instructions": "Black presses their clock first to start the game. After each move, tap the active clock.",
+                "time_expired": "Time expired",
+                "player_flagged": "{player} ran out of time.",
+                "choose_another_tempo": "Choose another time control",
+                "quit_home": "Quit and return to home",
+                "reset_before_resume": "Reset the clock before resuming.",
+                "turn": "{player} to move.",
+                "paused": "Clock paused.",
+                "start_with_black": "Black presses their clock to start.",
+                "choose_tempo_start": "Choose a time control, then start.",
+                "custom_tempo": "Custom time control: {minutes} +{increment}."
+            },
             "traitAuBlancs": "White to move",
             "traitAuxNoirs": "Black to move",
             "accueil": "Home",
             "new_game": "New Game",
+            "play_again": "Play again",
+            "cancel": "Cancel",
+            "close": "Close",
+            "time_lost": "Out of time",
+            "time_lost_message": "Your time has run out.",
             "flip_board": "Flip",
             "white_time": "White Time",
             "black_time": "Black Time",
             "moves": "Moves",
             "copy_pgn": "PGN",
             "copy_fen": "FEN",
+            "home_title_first": "Chess,",
+            "home_title_second": "your way.",
+            "home_tagline": "Challenge a bot; the level determines the game duration.",
+            "opera_game_alt": "Paul Morphy's Opera Game, 1858",
+            "local_game_note": "A local game, no sign-up needed.",
+            "setup_title": "Set up your game",
+            "choose_mode": "1. Choose your opponent",
+            "choose_color": "2. Choose your side",
+            "language": "Language",
             "human_vs_human": "Human vs Human",
             "random_bot": "Level 1 - Random",
             "ccmo_bot": "Level 2 - CCMO",
@@ -146,9 +301,11 @@
             "start_game": "Start Game",
             "unknown": "Unknown",
             "computer_player": "Bot",
+            "bot_level_label": "Bot Level",
             "human_player": "Human",
             "white_player": "White",
             "black_player": "Black",
+            "players": "Players",
             "game_status": "Game Status",
             "white_time_label": "White Time",
             "black_time_label": "Black Time",
@@ -159,7 +316,7 @@
             "no_moves_played": "No moves played",
             "footer_app": "CharlyChess",
             "footer_dev": "Dev.",
-            "footer_copyright": "&copy; LRDS 2024-",
+            "footer_copyright": "&copy; LRDS 2025 - ",
             "footer_and": "and",
             "mobile_icon": "Phone",
             "tablet_icon": "Tablet",
@@ -213,13 +370,43 @@
             "copy_error_pgn": "Error copying PGN",
             "Level": "Level",
             "bots": {
-            "bot_1": "Level 1: Random",
-            "bot_2": "Level 2: ECMO (Basic)",
-            "bot_3": "Level 3: ECMO (Advanced)",
-            "bot_4": "Level 4: Strategist (Aggressive)",
-            "bot_5": "Level 5: Master (Strangler)",
-            "bot_16": "Level 16: Deep Neural (Experimental)"
-        }
+                "bot_1": {
+                    "title": "Level 1: Random",
+                    "description": "The bot plays moves completely at random.",
+                    "clock": "00:01:00",
+                    "increment": "00:00:02"
+                },
+                "bot_2": {
+                    "title": "Level 2: ECMO (Basic)",
+                    "description": "ECMO Strategy: Check → Capture → Threat → Optimization.",
+                    "clock": "00:02:00",
+                    "increment": "00:00:02"
+                },
+                "bot_3": {
+                    "title": "Level 3: ECMO (Advanced)",
+                    "description": "ECMO analysis with improved exchange evaluation.",
+                    "clock": "00:03:00",
+                    "increment": "00:00:02"
+                },
+                "bot_4": {
+                    "title": "Level 4: Little Strategist (Aggressive)",
+                    "description": "Aggressive bot focusing on king-side/queen-side attacks.",
+                    "clock": "00:05:00",
+                    "increment": "00:00:03"
+                },
+                "bot_5": {
+                    "title": "Level 5: Little Master (Strangler)",
+                    "description": "Tight positional play aiming to suffocate the opponent.",
+                    "clock": "00:10:00",
+                    "increment": "00:00:05"
+                },
+                "bot_16": {
+                    "title": "Level 16: Deep Neural (Experimental)",
+                    "description": "Deep neural network testing phase.",
+                    "clock": "Unlimited",
+                    "increment": "00:00:00"
+                }
+            }
         }
     }
 }

@@ -1,36 +1,41 @@
 <?php
-// content.php - Layout avec menu à gauche
+// content.php - Layout avec menu à gauche - Synchronisé JSON v0.99
 require_once __DIR__ . '/config-loader.php';
 $config = loadGameConfig();
 
-$lang = $config['current_lang'];
+$lang = $config['current_lang'] ?? 'fr';
 $translations = $config['lang'][$lang];
+// On récupère la config des horloges pour l'affichage initial
+$botsClock = $config['bots_clock'] ?? [];
 ?>
 
-<main class="container-fluid py-3">
+<main class="container-fluid py-3 game-page">
     <div class="row g-3">
         <div class="col-xxl-2 col-xl-3 col-lg-3 col-md-4 col-12">
             <div class="menu-container h-100">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body p-2">
-                        
-            
-
                         <div id="menuContent" class="d-md-block">
-                            <div class="d-grid gap-2 d-none d-md-block">
-                            <a href="index.php" class="btn btn-primary btn-sm">
-                                <i class="bi bi-house-door me-1"></i> <?php echo htmlspecialchars($translations['accueil']); ?>
-                            </a>
+                            <div class="d-grid gap-2 game-actions">
+                                <a href="js/kchess/bots/unitTests/Bot_vs_Bot.php" 
+                                   target="_blank" 
+                                   class="btn btn-outline-danger btn-sm d-none d-md-block shadow-sm">
+                                    <i class="bi bi-speedometer2 me-1"></i> Stress Test
+                                </a>
+
+                                <a href="index.php" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-house-door me-1" aria-hidden="true"></i> <span><?php echo htmlspecialchars($translations['accueil']); ?></span>
+                                </a>
                                 
                                 <button type="button" class="btn btn-success btn-sm new-game-btn" id="newGame">
-                                    <i class="bi bi-plus-circle me-1"></i> <?php echo htmlspecialchars($translations['new_game']); ?>
+                                    <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> <span><?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?></span>
                                 </button>
                                 
-                            <button class="btn btn-outline-dark btn-sm flip-board-btn" id="flipBoardMobile"
-                                    title="<?php echo htmlspecialchars($translations['flip_board']); ?>">
-                                <i class="bi bi-arrow-repeat me-1"></i> <?php echo htmlspecialchars($translations['flip_board']); ?>
-                            </button>
-
+                                <button class="btn btn-outline-dark btn-sm flip-board-btn" id="flipBoard"
+                                        title="<?php echo htmlspecialchars($translations['flip_board']); ?>"
+                                        aria-label="<?php echo htmlspecialchars($translations['flip_board']); ?>">
+                                    <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> <span class="flip-board-label"><?php echo htmlspecialchars($translations['flip_board']); ?></span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -40,11 +45,9 @@ $translations = $config['lang'][$lang];
 
         <div class="col-xxl-8 col-xl-6 col-lg-6 col-md-8 col-12">
             <div class="chess-container bg-light rounded-3 p-2 h-100 position-relative">
-                <div class="position-absolute top-0 start-0 m-2" style="z-index: 10;">
-                    <span id="topPlayerLabel" class="badge bg-dark text-white p-2 shadow-sm"></span>
-                </div>
-                <div class="position-absolute bottom-0 start-0 m-2" style="z-index: 10;">
-                    <span id="bottomPlayerLabel" class="badge bg-white text-dark border border-dark p-2 shadow-sm"></span>
+                <div class="chess-player-labels" aria-label="<?php echo htmlspecialchars($translations['players'] ?? 'Players'); ?>">
+                    <span id="topPlayerLabel" class="badge player-label">--</span>
+                    <span id="bottomPlayerLabel" class="badge player-label">--</span>
                 </div>
                 <div class="chess-board-container mx-auto w-100 h-100 d-flex align-items-center justify-content-center">
                     <div id="chessBoard" class="chess-board"></div>
@@ -57,17 +60,54 @@ $translations = $config['lang'][$lang];
                 <div class="card mb-3 flex-grow-0 shadow-sm">
                     <div class="card-body p-2">
                         <div class="game-status text-center">
-                            <div class="small text-muted mb-2" id="currentPlayer">
+                            <div id="chess960Position" class="chess960-position" hidden></div>
+                            <div class="game-turn-status small mb-2" id="currentPlayer" role="status" aria-live="polite" aria-atomic="true">
                                 <?php echo htmlspecialchars($translations['traitAuBlancs']); ?>
                             </div>
+                            <div class="chess960-actions" id="gameClockActions" hidden>
+                                <button type="button" class="chess960-start-btn" id="startChess960Game">
+                                    <i class="bi bi-play-fill" aria-hidden="true"></i>
+                                    <?php echo htmlspecialchars($translations['start_game'] ?? 'Démarrer la partie'); ?>
+                                </button>
+                                <label class="chess960-time-control" title="<?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?>">
+                                    <i class="bi bi-clock" aria-hidden="true"></i>
+                                    <span class="visually-hidden"><?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?></span>
+                                    <select id="gameTimeControl" aria-label="<?php echo htmlspecialchars($translations['clock']['time_control'] ?? 'Time control'); ?>">
+                                        <option value="1:0">1 +0</option>
+                                        <option value="1:2">1 +2</option>
+                                        <option value="1:5">1 +5</option>
+                                        <option value="1:10">1 +10</option>
+                                        <option value="3:0">3 +0</option>
+                                        <option value="3:2">3 +2</option>
+                                        <option value="3:5">3 +5</option>
+                                        <option value="3:10">3 +10</option>
+                                        <option value="5:0">5 +0</option>
+                                        <option value="5:5">5 +5</option>
+                                        <option value="5:10">5 +10</option>
+                                        <option value="5:15">5 +15</option>
+                                        <option value="10:0" selected>10 +0</option>
+                                        <option value="10:5">10 +5</option>
+                                        <option value="10:10">10 +10</option>
+                                        <option value="10:15">10 +15</option>
+                                        <option value="12:0">12 +0</option>
+                                        <option value="12:5">12 +5</option>
+                                        <option value="12:10">12 +10</option>
+                                        <option value="12:15">12 +15</option>
+                                        <option value="15:0">15 +0</option>
+                                        <option value="15:5">15 +5</option>
+                                        <option value="15:10">15 +10</option>
+                                        <option value="15:15">15 +15</option>
+                                    </select>
+                                </label>
+                            </div>
                             <div class="row text-center small g-1">
-                                <div class="col-6">
+                                <div class="col-6 border-end">
                                     <div class="fw-bold"><?php echo htmlspecialchars($translations['white_time_label']); ?></div>
-                                    <div id="whiteTime" class="text-primary font-monospace">00:00</div>
+                                    <div id="whiteTime" class="text-primary font-monospace fw-bold fs-5">00:00</div>
                                 </div>
                                 <div class="col-6">
                                     <div class="fw-bold"><?php echo htmlspecialchars($translations['black_time_label']); ?></div>
-                                    <div id="blackTime" class="text-primary font-monospace">00:00</div>
+                                    <div id="blackTime" class="text-primary font-monospace fw-bold fs-5">00:00</div>
                                 </div>
                             </div>
                         </div>
@@ -83,7 +123,7 @@ $translations = $config['lang'][$lang];
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        <div id="moveHistory" class="move-history" style="max-height: 300px; overflow-y: auto;">
+                        <div id="moveHistory" class="move-history" style="max-height: 400px; overflow-y: auto;">
                             <div class="text-center text-muted small p-3"><?php echo htmlspecialchars($translations['no_moves_played']); ?></div>
                         </div>
                     </div>
@@ -95,98 +135,72 @@ $translations = $config['lang'][$lang];
 
 <footer class="bg-dark py-3 mt-auto">
     <div class="container text-center text-white-50">
-        <small><?php echo htmlspecialchars($translations['app_name']); ?> v<?php echo $config['version']; ?> | <?php echo date('Y'); ?></small>
+        <small><?php echo htmlspecialchars($translations['app_name']); ?> v<?php echo $config['version']; ?> | 2025 - <?php echo date('Y'); ?></small>
     </div>
 </footer>
 
 <script>
+/**
+ * Transfert des données JSON vers le JS
+ */
 window.translations = <?php echo json_encode($translations, JSON_UNESCAPED_UNICODE); ?>;
-window.getTranslation = (key, def = '') => window.translations[key] || def;
+window.botsConfig = <?php echo json_encode($config['bots_clock'] ?? []); ?>;
 
-// Fonctions de mise à jour (Labels, Temps, Statut)
+window.getTranslation = (key, def = '') => {
+    return key.split('.').reduce((o, i) => (o ? o[i] : def), window.translations) || def;
+};
+
 window.updatePlayerLabels = function(isBotGame = false, botColor = null, botLevel = null) {
     const top = document.getElementById('topPlayerLabel');
     const bottom = document.getElementById('bottomPlayerLabel');
     if (!top || !bottom) return;
+    const humanColor = new URLSearchParams(window.location.search).get('color') === 'black' ? 'black' : 'white';
+    const resolvedBotColor = botColor === 'white' || botColor === 'black'
+        ? botColor
+        : humanColor === 'white' ? 'black' : 'white';
 
-    const levelNum = Number(botLevel);
-    let topName = window.getTranslation('human_player', 'Humain');
-    let bottomName = window.getTranslation('human_player', 'Humain');
-    let botText = window.getTranslation('computer_player', 'Bot');
-    if (levelNum === 1) botText = window.getTranslation('bot_level1', 'Niveau 1');
-    else if (levelNum === 2) botText = window.getTranslation('bot_level2', 'Niveau 2');
-
-    const whiteLabel = window.getTranslation('white_player', 'Blancs');
-    const blackLabel = window.getTranslation('black_player', 'Noirs');
-
-    if (isBotGame && botColor === 'black') {
-        top.innerHTML = `<i class="bi bi-cpu me-1"></i> ${botText} (${blackLabel})`;
-        bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${bottomName} (${whiteLabel})`;
-    } else if (isBotGame && botColor === 'white') {
-        top.innerHTML = `<i class="bi bi-person me-1"></i> ${topName} (${blackLabel})`;
-        bottom.innerHTML = `<i class="bi bi-cpu me-1"></i> ${botText} (${whiteLabel})`;
+    if (isBotGame) {
+        top.innerHTML = `<i class="bi bi-cpu me-1"></i> ${window.getTranslation('bot_level_label', 'Bot Level')} ${botLevel || 1}`;
+        bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('human_player', 'Human')}`;
     } else {
-        top.innerHTML = `<i class="bi bi-person me-1"></i> ${topName} (${blackLabel})`;
-        bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${bottomName} (${whiteLabel})`;
+        top.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('black_player', 'Black')}`;
+        bottom.innerHTML = `<i class="bi bi-person me-1"></i> ${window.getTranslation('white_player', 'White')}`;
     }
+    top.className = `badge player-label player-label-${isBotGame ? resolvedBotColor : 'black'}`;
+    bottom.className = `badge player-label player-label-${isBotGame ? humanColor : 'white'}`;
 };
 
-window.updateGameStatus = (currentPlayer) => {
-    const el = document.getElementById('currentPlayer');
-    if (el) el.textContent = window.getTranslation(currentPlayer === 'white' ? 'traitAuBlancs' : 'traitAuxNoirs');
-};
-
-window.updateTimeDisplay = (w, b) => {
-    const f = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
-    if (document.getElementById('whiteTime')) document.getElementById('whiteTime').textContent = f(w);
-    if (document.getElementById('blackTime')) document.getElementById('blackTime').textContent = f(b);
+window.initTimeDisplay = (botLevel = null) => {
+    let timeStr = "10:00"; 
+    const levelMinutes = Number(botLevel);
+    if (Number.isInteger(levelMinutes) && levelMinutes > 0) {
+        timeStr = `${String(levelMinutes).padStart(2, '0')}:00`;
+    }
+    const wEl = document.getElementById('whiteTime');
+    const bEl = document.getElementById('blackTime');
+    if (wEl) wEl.textContent = timeStr;
+    if (bEl) bEl.textContent = timeStr;
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    
-    // 1. GESTION DU BOUTON NOUVELLE PARTIE (CORRECTIF DOUBLE DIALOGUE)
-    document.querySelectorAll('.new-game-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopImmediatePropagation(); 
-
-            const msg = window.getTranslation('new_game', 'Nouvelle Partie') + ' ?';
-            if (confirm(msg)) {
-                window.location.href = 'index.php?new';
-            }
-        }, true); 
-    });
-
-    // 2. GESTION DU BOUTON RETOURNER LE PLATEAU (FLIP BOARD)
-    document.querySelectorAll('.flip-board-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            // On appelle la méthode flipBoard sur l'instance globale du jeu
-            if (window.chessGame && typeof window.chessGame.flipBoard === 'function') {
-                window.chessGame.flipBoard();
-            } else {
-                console.warn("⚠️ ChessGame.flipBoard() n'est pas encore prêt");
-            }
-        });
-    });
-
-    // Paramètres initiaux (URL)
     const params = new URLSearchParams(window.location.search);
-    if (params.get('mode') === 'bot') {
-        const bCol = (params.get('color') === 'white') ? 'black' : 'white';
-        window.updatePlayerLabels(true, bCol, params.get('level'));
+    const mode = params.get('mode');
+    const level = params.get('level');
+    const color = params.get('color') || 'white';
+
+    if (mode === 'bot') {
+        const botColor = (color === 'white') ? 'black' : 'white';
+        window.updatePlayerLabels(true, botColor, level);
+        window.initTimeDisplay(level);
+
     } else {
         window.updatePlayerLabels(false);
     }
 
-    // Vérification de l'état du bot pour les labels
-    const engineCheck = setInterval(() => {
-        if (window.chessGame?.getBotStatus) {
-            const s = window.chessGame.getBotStatus();
-            if (s.active) window.updatePlayerLabels(true, s.color, s.level);
-            clearInterval(engineCheck);
-        }
-    }, 200);
-    setTimeout(() => clearInterval(engineCheck), 5000);
+    document.querySelectorAll('.flip-board-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (window.chessGame?.flipBoard) window.chessGame.flipBoard();
+        });
+    });
 });
 </script>

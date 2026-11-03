@@ -51,21 +51,77 @@ class ChessGameUI {
         setTimeout(() => {
             this.timerManager?.startTimer?.();
         }, 1000);
+
+        document.getElementById('startChess960Game')?.addEventListener('click', () => {
+            if (!this.game || (this.game.gameState.chess960 && this.game.gameState.chess960Started)) return;
+            if (this.game.gameState.chess960) this.game.gameState.chess960Started = true;
+            this.game.gameState.clockGameStarted = true;
+            this.game.gameState.gameActive = true;
+            this.updateUI();
+            this.timerManager?.startTimer?.();
+        });
+
+        const timeControl = document.getElementById('gameTimeControl');
+        const usesSelectableTimeControl = new URLSearchParams(window.location.search).get('mode') === 'human';
+        let savedCustomTimes = [];
+        try {
+            const storedCustomTimes = JSON.parse(localStorage.getItem('kchess.clock.customTimes') || '[]');
+            if (Array.isArray(storedCustomTimes)) {
+                savedCustomTimes = storedCustomTimes.filter(customTime =>
+                    Number.isInteger(customTime.minutes) && customTime.minutes >= 1 && customTime.minutes <= 180
+                    && Number.isInteger(customTime.increment) && customTime.increment >= 0 && customTime.increment <= 60
+                );
+            }
+        } catch (error) {
+            console.error('Unable to read saved custom time controls.', error);
+        }
+        let savedLastTime = '10:0';
+        try {
+            savedLastTime = localStorage.getItem('kchess.clock.lastPreset') || savedLastTime;
+        } catch (error) {
+            console.error('Unable to read the last selected time control.', error);
+        }
+        const lastValue = savedLastTime || '10:0';
+        if (timeControl && usesSelectableTimeControl) {
+            for (const customTime of savedCustomTimes) {
+                if (!Number.isInteger(customTime.minutes) || !Number.isInteger(customTime.increment)) continue;
+                const value = `${customTime.minutes}:${customTime.increment}`;
+                if ([...timeControl.options].some(option => option.value === value)) continue;
+                const option = new Option(`${customTime.minutes} +${customTime.increment}`, value);
+                option.dataset.custom = 'true';
+                timeControl.add(option);
+            }
+            if ([...timeControl.options].some(option => option.value === lastValue)) {
+                timeControl.value = lastValue;
+            }
+            const [minutes, increment] = timeControl.value.split(':').map(Number);
+            this.timerManager?.setTimerConfig({
+                clock: `${minutes}:00`,
+                increment: String(increment)
+            });
+        }
+        if (timeControl && usesSelectableTimeControl) timeControl.addEventListener('change', () => {
+            if (!this.game?.gameState || !timeControl.value) return;
+            const [minutes, increment] = timeControl.value.split(':').map(Number);
+            localStorage.setItem('kchess.clock.lastPreset', `${minutes}:${increment}`);
+            this.timerManager?.setTimerConfig({
+                clock: `${minutes}:00`,
+                increment: String(increment)
+            });
+        });
     }
 
     setupEventListeners() {
-        document.getElementById('newGame')?.addEventListener('click', () => this.modalManager?.confirmNewGame?.());
         document.getElementById('flipBoard')?.addEventListener('click', () => this.game?.flipBoard?.());
         document.getElementById('copyFEN')?.addEventListener('click', () => this.clipboardManager?.copyFENToClipboard?.());
         document.getElementById('copyPGN')?.addEventListener('click', () => this.clipboardManager?.copyPGNToClipboard?.());
 
         // Mobiles
-        const mobileEvents = ['newGameMobile', 'flipBoardMobile'];
+        const mobileEvents = ['flipBoardMobile'];
         mobileEvents.forEach(id => {
             document.getElementById(id)?.addEventListener('click', (e) => {
                 e.preventDefault();
-                if(id.includes('newGame')) this.modalManager?.confirmNewGame?.();
-                else this.game?.flipBoard?.();
+                this.game?.flipBoard?.();
             });
         });
 
@@ -117,6 +173,8 @@ setupBoardEventListeners() {
      * MISE À JOUR UI PRINCIPALE
      */
     updateUI() {
+        this.updateChess960Controls();
+
         // 1. Nettoyage global
         this.clearCheckEffects();
 
@@ -136,6 +194,26 @@ setupBoardEventListeners() {
         }
     }
 
+    updateChess960Controls() {
+        const state = this.game?.gameState;
+        const position = document.getElementById('chess960Position');
+        const startButton = document.getElementById('startChess960Game');
+        const actions = document.getElementById('gameClockActions');
+        const timeControl = document.getElementById('gameTimeControl');
+        if (!state || !position || !startButton || !actions) return;
+
+        const isChess960 = state.chess960 === true;
+        const isHumanGame = new URLSearchParams(window.location.search).get('mode') === 'human';
+        const clockGameStarted = isChess960 ? state.chess960Started : state.clockGameStarted;
+        position.hidden = !isChess960;
+        actions.hidden = !isChess960 && !isHumanGame;
+        if (isChess960) {
+            position.textContent = `Chess960 #${state.chess960PositionNumber} / 960`;
+        }
+        startButton.hidden = !isHumanGame || clockGameStarted;
+        if (timeControl) timeControl.disabled = clockGameStarted;
+    }
+
     /**
      * ANALYSE DU STATUT ET AFFICHAGE TEXTE
      */
@@ -150,6 +228,7 @@ setupBoardEventListeners() {
         if (!fen) return;
 
         const statusInfo = ChessStatusController.checkGameStatus(fen);
+        const isChess960 = this.game.gameState.chess960 === true;
         const t = this.getTranslations();
         let statusText = "";
         let isGameOver = false;
@@ -168,17 +247,25 @@ setupBoardEventListeners() {
         }
         else if (statusInfo.status === 'check') {
             const turn = this.game.gameState.currentPlayer === 'white' ? (t.traitAuBlancs || 'Aux blancs') : (t.traitAuxNoirs || 'Aux noirs');
-            statusText = `${turn} - ⚠️ ${t.check || 'ÉCHEC'}`;
+            statusText = isChess960
+                ? `⚠️ ${t.check || 'ÉCHEC'}`
+                : `${turn} - ⚠️ ${t.check || 'ÉCHEC'}`;
             el.style.color = '#ffc107'; 
             
             if (this.constructor.consoleLog) console.log("📣 [UI] Échec détecté, appel du highlight...");
             this.highlightKingInCheck(); 
         } 
         else {
-            statusText = this.game.gameState.currentPlayer === 'white' ? (t.traitAuBlancs || 'Aux blancs') : (t.traitAuxNoirs || 'Aux noirs');
+            statusText = isChess960
+                ? ""
+                : this.game.gameState.currentPlayer === 'white' ? (t.traitAuBlancs || 'Aux blancs') : (t.traitAuxNoirs || 'Aux noirs');
             el.style.color = '';
         }
 
+        const waitingForClockStart = !this.game.gameState.clockGameStarted
+            && new URLSearchParams(window.location.search).get('mode') === 'human';
+        el.hidden = waitingForClockStart || isChess960 && statusInfo.status !== 'check'
+            && statusInfo.status !== 'checkmate' && statusInfo.status !== 'stalemate';
         el.textContent = statusText;
         if (isGameOver) this.timerManager?.stopTimer?.();
     }

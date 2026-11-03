@@ -59,3 +59,229 @@
 .move-item:last-child {
     border-bottom: none;
 }
+
+body {
+    background-color: var(--site-background);
+    color: var(--site-text);
+}
+
+.card,
+.chess-container {
+    border: 1px solid var(--site-border) !important;
+    background-color: var(--site-surface) !important;
+    color: var(--site-text);
+}
+
+.card-header.bg-warning {
+    border-color: var(--site-border);
+    background-color: var(--site-surface-alt) !important;
+    color: var(--site-text) !important;
+}
+
+.bg-light,
+#currentPlayer.bg-light {
+    background-color: var(--site-surface-alt) !important;
+    color: var(--site-text) !important;
+}
+
+.text-muted {
+    color: var(--site-text-muted) !important;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+#whiteTime {
+    color: var(--chess-clock-white, #fff) !important;
+}
+
+#blackTime {
+    color: var(--chess-clock-black, var(--primary-color)) !important;
+}
+
+.chess960-position {
+    margin-bottom: 0.35rem;
+    color: var(--site-text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.chess960-start-btn {
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0.45rem 0.5rem;
+    border: 0;
+    border-radius: 0.5rem;
+    color: var(--site-background);
+    background: var(--success-color);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.chess960-actions {
+    display: flex;
+    align-items: stretch;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+}
+
+.chess960-actions[hidden] {
+    display: none;
+}
+
+.chess960-time-control {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-width: 96px;
+    padding: 0 0.4rem 0 0.55rem;
+    border: 1px solid var(--primary-color);
+    border-radius: 0.5rem;
+    color: var(--site-text);
+    background: var(--primary-color);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.chess960-time-control select {
+    width: 76px;
+    min-width: 0;
+    padding: 0.4rem 0.15rem;
+    border: 0;
+    outline-offset: 2px;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.chess960-time-control:hover,
+.chess960-time-control:focus-within {
+    border-color: var(--success-color);
+    color: var(--site-background);
+    background: var(--success-color);
+}
+
+.chess960-start-btn:hover,
+.chess960-start-btn:focus-visible {
+    filter: brightness(1.08);
+}
+
+.chess960-start-btn[hidden],
+.chess960-position[hidden] {
+    display: none;
+}
+
+.game-turn-status {
+    display: block;
+    min-height: 1.25em;
+    color: var(--site-text-muted);
+    opacity: 1;
+    visibility: visible;
+}
+
+.game-turn-status[hidden] {
+    display: none !important;
+}
+
+.btn-primary {
+    border-color: var(--primary-color);
+    background-color: var(--primary-color);
+    color: var(--site-text);
+}
+
+.btn-primary:hover {
+    border-color: var(--primary-color);
+    background-color: color-mix(in srgb, var(--primary-color) 82%, var(--site-background));
+}
+
+.btn-success {
+    border-color: var(--success-color);
+    background-color: var(--success-color);
+    color: var(--site-background);
+}
+
+.btn-success:hover {
+    border-color: var(--success-color);
+    background-color: color-mix(in srgb, var(--success-color) 82%, var(--site-background));
+    color: var(--site-background);
+}
+
+.btn-outline-dark {
+    border-color: var(--site-border);
+    color: var(--site-text-muted);
+}
+
+.btn-outline-dark:hover {
+    border-color: var(--primary-color);
+    background-color: var(--site-surface-alt);
+    color: var(--site-text);
+}
+
+.move-item {
+    border-color: var(--site-border);
+    color: var(--site-text);
+}
+
+.move-item:hover,
+.move-item:nth-child(even),
+.move-item:nth-child(even):hover {
+    background-color: var(--site-surface-alt);
+}
+
+footer.bg-dark {
+    border-top: 1px solid var(--site-border);
+    background-color: var(--site-background) !important;
+}
+
+@media (max-width: 767.98px) {
+    .game-actions {
+        display: flex !important;
+        flex-flow: row nowrap;
+        gap: 8px;
+    }
+
+    .game-actions > .btn {
+        display: flex;
+        flex: 1 1 0;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        min-width: 0;
+        padding-right: 6px;
+        padding-left: 6px;
+        white-space: nowrap;
+    }
+
+    .game-actions .btn i {
+        margin: 0 !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .game-actions > .flip-board-btn {
+        flex: 0 0 44px;
+        padding-right: 0;
+        padding-left: 0;
+    }
+
+    .game-actions > .flip-board-btn .flip-board-label {
+        display: none;
+    }
+
+    .game-actions > .flip-board-btn i {
+        margin: 0 !important;
+    }
+}

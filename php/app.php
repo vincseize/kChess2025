@@ -12,11 +12,15 @@ $version = getVersion();
 
 // 2. LOGIQUE DE ROUTAGE
 $isMobile = preg_match('/(android|iphone|ipad|ipod|blackberry|opera mini|windows phone|mobile)/i', $_SERVER['HTTP_USER_AGENT']);
-$isManualReset = isset($_GET['new']);
-$gameStarted = isset($_GET['mode']); // Si mode est présent, on lance l'interface de jeu
+$gameStarted = isset($_GET['mode']); 
 
-// Gestion de la session pour éviter les boucles de splashscreen
-if ($isManualReset) {
+// Si on est dans l'app, on marque la session pour index.php
+if ($gameStarted) {
+    $_SESSION['from_app'] = true;
+}
+
+// Reset manuel de la session si demandé
+if (isset($_GET['new'])) {
     unset($_SESSION['from_app']);
 }
 ?>
@@ -24,10 +28,10 @@ if ($isManualReset) {
 <html lang="<?php echo $config['current_lang']; ?>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?php echo htmlspecialchars($config['app_name']); ?> v<?php echo $version; ?></title>
     
-    <link rel="icon" href="img/favicon.png">
+    <link rel="icon" type="image/svg+xml" href="img/icon.svg">
     <link rel="manifest" href="manifest.json">
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/bootstrap-icons.css">
@@ -38,14 +42,22 @@ if ($isManualReset) {
         body { display: flex; flex-direction: column; }
         #gameSetupWrapper { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; padding: 20px 0; }
         .card-main-container { width: 95%; max-width: 500px; background: white; border-radius: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); overflow: hidden; }
+        
+        /* Style pour le splash screen dans app.php (au cas où il s'affiche) */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
+            z-index: 1000000; transition: opacity 0.8s ease-out;
+        }
     </style>
 </head>
 <body>
 
     <?php if (!$gameStarted): ?>
         <?php 
-            if (!$isManualReset && file_exists('splashscreens/splashscreen1.php')) {
-                include 'splashscreens/splashscreen1.php'; 
+            $splashVersion = $config['splashscreen']['version'] ?? 0;
+            $splashFile = 'splashscreens/splashscreen' . $splashVersion . '.php';
+            if (file_exists(__DIR__ . '/' . $splashFile)) {
+                require_once $splashFile;
             }
         ?>
         <div id="gameSetupWrapper">
@@ -58,21 +70,15 @@ if ($isManualReset) {
 
     <?php else: ?>
         <?php 
-            $_SESSION['from_app'] = true;
             require_once 'header.php'; 
-
-            // Choix du contenu selon le device
             require_once ($isMobile ? 'content_mobile.php' : 'content.php');
 
-            // Injection dynamique du Bot spécifique
+            // Injection dynamique des scripts de Bot
             if ($_GET['mode'] === 'bot') {
                 $requestedLevel = intval($_GET['level'] ?? 1);
                 $botPath = "js/kchess/bots/Level_" . $requestedLevel . ".js";
                 
-                // 1. On charge TOUJOURS la base d'abord
                 echo '<script src="js/kchess/bots/BotBase.js?v=' . time() . '"></script>';
-
-                // 2. On charge ensuite le niveau spécifique
                 if (file_exists(__DIR__ . "/" . $botPath)) {
                     echo '<script src="' . $botPath . '?v=' . time() . '"></script>';
                 }
@@ -85,7 +91,6 @@ if ($isManualReset) {
     <script>
         window.appConfig = <?php echo getAppConfigJson($config); ?>;
         
-        // Gestion unifiée du SplashScreen et Service Worker
         if ('serviceWorker' in navigator) { 
             navigator.serviceWorker.register('sw.js').catch(e => console.error('SW error:', e)); 
         }
@@ -93,10 +98,11 @@ if ($isManualReset) {
         window.addEventListener('load', function() {
             const splash = document.getElementById('splash-screen');
             if (splash) {
+                const displayTime = <?php echo $config['splashscreen']['display_time'] ?? 1500; ?>;
                 setTimeout(() => {
                     splash.style.opacity = '0';
-                    setTimeout(() => splash.remove(), 800); // On remove carrement du DOM
-                }, 1500);
+                    setTimeout(() => splash.remove(), 800);
+                }, displayTime);
             }
         });
     </script>

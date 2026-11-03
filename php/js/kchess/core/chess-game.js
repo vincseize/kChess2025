@@ -56,6 +56,13 @@ class ChessGame {
         
         // Configuration via URL (Bot, Couleur, etc.)
         this.applyUrlParamsConfiguration();
+        const params = this.getUrlParams();
+        if (params.mode === 'human' && !this.gameState.chess960) {
+            this.gameState.gameActive = false;
+        }
+        if (params.mode === 'human') {
+            this.gameState.clockGameStarted = false;
+        }
         
         // Liaison UI
         if (this.core.ui) {
@@ -127,7 +134,29 @@ setBotLevel(level, color = 'black') {
             this.board.createBoard();
         }
         
-        const pos = this.pieceManager.getInitialPosition();
+        const chess960 = new URLSearchParams(window.location.search).get('variant') === 'chess960';
+        this.gameState.chess960 = chess960;
+        const pos = this.pieceManager.getInitialPosition(chess960);
+        if (chess960 && this.pieceManager.lastChess960Layout) {
+            const { kingCol, rookCols } = this.pieceManager.lastChess960Layout;
+            this.gameState.chess960PositionNumber = this.pieceManager.lastChess960PositionNumber;
+            this.gameState.chess960Started = false;
+            this.gameState.gameActive = false;
+            this.gameState.kingStartCols = { white: kingCol, black: kingCol };
+            this.gameState.rookStartCols = {
+                white: { queenside: rookCols[0], kingside: rookCols[1] },
+                black: { queenside: rookCols[0], kingside: rookCols[1] }
+            };
+        } else {
+            this.gameState.chess960PositionNumber = null;
+            this.gameState.chess960Started = true;
+            this.gameState.gameActive = true;
+            this.gameState.kingStartCols = { white: 4, black: 4 };
+            this.gameState.rookStartCols = {
+                white: { kingside: 7, queenside: 0 },
+                black: { kingside: 7, queenside: 0 }
+            };
+        }
         this.board.clearBoard?.(); // Optionnel : vider le plateau avant de poser
         
         Object.keys(pos).forEach(key => {
@@ -175,4 +204,3 @@ setBotLevel(level, color = 'black') {
         return this.core.getFEN ? this.core.getFEN() : "";
     }
 }
-
