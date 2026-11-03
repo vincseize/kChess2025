@@ -105,23 +105,22 @@ class ChessTimerManager {
         const blackEl = document.getElementById('blackTime');
         const currentPlayer = this.ui.game.gameState.currentPlayer;
         const colors = window.appConfig?.colors || {};
-        const activeColor = colors.clock_active || '#28a745';
+        const whiteColor = colors.clock_white || '#FFFFFF';
+        const blackColor = colors.clock_black || colors.primary || '#0891B2';
         const expiredColor = colors.clock_expired || '#ff0000';
         
         if (whiteEl) {
             whiteEl.textContent = this.formatTime(this.whiteTime);
             whiteEl.style.fontWeight = (currentPlayer === 'white') ? 'bold' : 'normal';
             if (this.whiteTime <= 0) whiteEl.style.setProperty('color', expiredColor, 'important');
-            else if (currentPlayer === 'white') whiteEl.style.setProperty('color', activeColor, 'important');
-            else whiteEl.style.removeProperty('color');
+            else whiteEl.style.setProperty('color', whiteColor, 'important');
         }
         
         if (blackEl) {
             blackEl.textContent = this.formatTime(this.blackTime);
             blackEl.style.fontWeight = (currentPlayer === 'black') ? 'bold' : 'normal';
             if (this.blackTime <= 0) blackEl.style.setProperty('color', expiredColor, 'important');
-            else if (currentPlayer === 'black') blackEl.style.setProperty('color', activeColor, 'important');
-            else blackEl.style.removeProperty('color');
+            else blackEl.style.setProperty('color', blackColor, 'important');
         }
     }
 

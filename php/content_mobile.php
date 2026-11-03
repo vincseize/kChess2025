@@ -13,19 +13,20 @@ $translations = $config['lang'][$lang];
         <div class="col-md-4 col-lg-3 col-xxl-2">
             <div class="card shadow-sm mb-2 mb-md-0 border-0">
                 <div class="card-body p-2">
-                    <div class="d-grid gap-2">
+                    <div class="d-grid gap-2 game-actions">
                         <a href="index.php" class="btn btn-primary btn-sm">
-                            <i class="bi bi-house-door me-1"></i> <?php echo htmlspecialchars($translations['accueil']); ?>
+                            <i class="bi bi-house-door me-1" aria-hidden="true"></i> <span><?php echo htmlspecialchars($translations['accueil']); ?></span>
                         </a>
 
                         <button type="button" class="btn btn-success btn-sm new-game-btn" id="newGame" 
                                 title="<?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?>">
-                            <i class="bi bi-arrow-repeat me-1"></i> <?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?>
+                            <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> <span><?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?></span>
                         </button>
 
                         <button type="button" class="btn btn-outline-dark btn-sm flip-board-btn" id="flipBoardMobile"
-                                title="<?php echo htmlspecialchars($translations['flip_board']); ?>">
-                            <i class="bi bi-arrow-repeat me-1"></i> <?php echo htmlspecialchars($translations['flip_board']); ?>
+                                title="<?php echo htmlspecialchars($translations['flip_board']); ?>"
+                                aria-label="<?php echo htmlspecialchars($translations['flip_board']); ?>">
+                            <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> <span class="flip-board-label"><?php echo htmlspecialchars($translations['flip_board']); ?></span>
                         </button>
                     </div>
                 </div>

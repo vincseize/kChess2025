@@ -144,6 +144,8 @@ function getThemeCssVariables($config) {
         '--chess-selected' => 'selected',
         '--chess-move-indicator' => 'move_indicator',
         '--chess-capture-indicator' => 'capture_indicator',
+        '--chess-clock-white' => 'clock_white',
+        '--chess-clock-black' => 'clock_black',
         '--chess-clock-active' => 'clock_active',
         '--chess-clock-expired' => 'clock_expired',
     ];

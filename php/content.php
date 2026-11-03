@@ -16,7 +16,7 @@ $botsClock = $config['bots_clock'] ?? [];
                 <div class="card h-100 shadow-sm">
                     <div class="card-body p-2">
                         <div id="menuContent" class="d-md-block">
-                            <div class="d-grid gap-2">
+                            <div class="d-grid gap-2 game-actions">
                                 <a href="js/kchess/bots/unitTests/Bot_vs_Bot.php" 
                                    target="_blank" 
                                    class="btn btn-outline-danger btn-sm d-none d-md-block shadow-sm">
@@ -24,16 +24,17 @@ $botsClock = $config['bots_clock'] ?? [];
                                 </a>
 
                                 <a href="index.php" class="btn btn-primary btn-sm">
-                                    <i class="bi bi-house-door me-1"></i> <?php echo htmlspecialchars($translations['accueil']); ?>
+                                    <i class="bi bi-house-door me-1" aria-hidden="true"></i> <span><?php echo htmlspecialchars($translations['accueil']); ?></span>
                                 </a>
                                 
                                 <button type="button" class="btn btn-success btn-sm new-game-btn" id="newGame">
-                                    <i class="bi bi-arrow-repeat me-1"></i> <?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?>
+                                    <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> <span><?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?></span>
                                 </button>
                                 
                                 <button class="btn btn-outline-dark btn-sm flip-board-btn" id="flipBoard"
-                                        title="<?php echo htmlspecialchars($translations['flip_board']); ?>">
-                                    <i class="bi bi-arrow-repeat me-1"></i> <?php echo htmlspecialchars($translations['flip_board']); ?>
+                                        title="<?php echo htmlspecialchars($translations['flip_board']); ?>"
+                                        aria-label="<?php echo htmlspecialchars($translations['flip_board']); ?>">
+                                    <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> <span class="flip-board-label"><?php echo htmlspecialchars($translations['flip_board']); ?></span>
                                 </button>
                             </div>
                         </div>

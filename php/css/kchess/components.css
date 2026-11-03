@@ -98,6 +98,14 @@ body {
     color: var(--primary-color) !important;
 }
 
+#whiteTime {
+    color: var(--chess-clock-white, #fff) !important;
+}
+
+#blackTime {
+    color: var(--chess-clock-black, var(--primary-color)) !important;
+}
+
 .btn-primary {
     border-color: var(--primary-color);
     background-color: var(--primary-color);
@@ -146,4 +154,41 @@ body {
 footer.bg-dark {
     border-top: 1px solid var(--site-border);
     background-color: var(--site-background) !important;
+}
+
+@media (max-width: 767.98px) {
+    .game-actions {
+        display: flex !important;
+        flex-flow: row nowrap;
+        gap: 8px;
+    }
+
+    .game-actions > .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-right: 6px;
+        padding-left: 6px;
+        white-space: nowrap;
+    }
+
+    .game-actions .btn i {
+        margin-right: 3px !important;
+        margin-left: 0 !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .game-actions > .flip-board-btn {
+        flex: 0 0 44px;
+        padding-right: 0;
+        padding-left: 0;
+    }
+
+    .game-actions > .flip-board-btn .flip-board-label {
+        display: none;
+    }
+
+    .game-actions > .flip-board-btn i {
+        margin: 0 !important;
+    }
 }

@@ -30,6 +30,8 @@
         "selected": "#5EEAD4",
         "move_indicator": "#34D399",
         "capture_indicator": "#ff4444",
+        "clock_white": "#FFFFFF",
+        "clock_black": "#38BDF8",
         "clock_active": "#28a745",
         "clock_expired": "#ff0000"
     },
