@@ -36,8 +36,12 @@ const NewGameHandler = {
     },
 
     handleModeSelection(btn) {
-        document.querySelectorAll('.game-mode-btn').forEach(b => b.classList.remove('selected'));
+        document.querySelectorAll('.game-mode-btn').forEach(b => {
+            b.classList.remove('selected');
+            b.setAttribute('aria-pressed', 'false');
+        });
         btn.classList.add('selected');
+        btn.setAttribute('aria-pressed', 'true');
 
         this.selectedMode = btn.dataset.mode;
         this.selectedLevel = btn.dataset.level;
@@ -50,8 +54,12 @@ const NewGameHandler = {
     },
 
     handleColorSelection(option) {
-        document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+        document.querySelectorAll('.color-option').forEach(opt => {
+            opt.classList.remove('selected');
+            opt.setAttribute('aria-pressed', 'false');
+        });
         option.classList.add('selected');
+        option.setAttribute('aria-pressed', 'true');
         this.selectedColor = option.dataset.color;
     },
 
@@ -84,11 +92,5 @@ const NewGameHandler = {
     selectDefaultMode() {
         const humanBtn = document.querySelector('.btn-human');
         if (humanBtn) humanBtn.click();
-
-        // Scroll fluide pour mobile
-        setTimeout(() => {
-            const content = document.querySelector('.new-game-content');
-            if (content) content.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
     }
 };

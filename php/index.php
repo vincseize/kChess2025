@@ -39,7 +39,7 @@ if (isset($_GET['lang'])) {
 <html lang="<?php echo htmlspecialchars($config['current_lang']); ?>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?php echo htmlspecialchars($config['app_name']); ?> v<?php echo htmlspecialchars($config['version']); ?></title>
     
     <link rel="icon" type="image/svg+xml" href="img/icon.svg">
@@ -49,7 +49,7 @@ if (isset($_GET['lang'])) {
     
     <style>
         :root { --padding-card: clamp(10px, 3vh, 25px); }
-        html, body { height: 100%; margin: 0; padding: 0; background: #f8f9fa; }
+        html, body { min-height: 100%; margin: 0; padding: 0; background: #201f1d; }
         body { display: flex; flex-direction: column; overflow-y: auto; }
         
         #splash-screen {
@@ -58,10 +58,9 @@ if (isset($_GET['lang'])) {
         }
 
         #gameWrapper { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; padding: 20px 0; }
-        .card-main-container { width: 95%; max-width: 500px; background: white; border-radius: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+        .card-main-container { width: 100%; max-width: 1120px; background: transparent; }
         
         /* Tags flottants */
-        .version-tag { position: fixed; top: 0px; left: 0px; font-size: 0.65rem; color: rgba(255,255,255,0.7); z-index: 99999; font-family: monospace; background-color: #000; padding: 4px 8px; border-radius: 0 0 8px 0; }
         .stress-test-tag { position: fixed; bottom: 15px; right: 15px; z-index: 99999; }
     </style>
 </head>
@@ -77,13 +76,12 @@ if (isset($_GET['lang'])) {
     }
 ?>
 
-    <div class="version-tag">v<?php echo htmlspecialchars($config['version']); ?></div>
-
     <div class="stress-test-tag d-none d-md-block">
         <a href="js/kchess/bots/unitTests/Bot_vs_Bot.php" 
            target="_blank" 
-           class="btn btn-outline-danger btn-sm shadow-sm"
-           style="background: rgba(255,255,255,0.9); backdrop-filter: blur(4px); border-radius: 10px; font-weight: 600;">
+           rel="noopener noreferrer"
+           class="btn btn-outline-secondary btn-sm shadow-sm"
+           style="background: rgba(41,40,37,0.92); color: #c3c0ba; border-color: #57544e; backdrop-filter: blur(4px); border-radius: 10px; font-weight: 600;">
             <i class="bi bi-speedometer2 me-1"></i> Stress Test
         </a>
     </div>

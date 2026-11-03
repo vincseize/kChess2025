@@ -28,7 +28,7 @@ if (isset($_GET['new'])) {
 <html lang="<?php echo $config['current_lang']; ?>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?php echo htmlspecialchars($config['app_name']); ?> v<?php echo $version; ?></title>
     
     <link rel="icon" type="image/svg+xml" href="img/icon.svg">
