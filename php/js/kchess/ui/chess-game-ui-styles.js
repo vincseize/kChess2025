@@ -299,28 +299,28 @@ class ChessStyleManager {
                         line-height: 1.4;
                         max-height: 400px;
                         overflow-y: auto;
-                        border: 1px solid #e0e0e0;
+                        border: 1px solid var(--site-border);
                         border-radius: 8px;
-                        background: #fafafa;
+                        background: var(--site-surface);
                     }
                     
                     .move-row {
                         display: flex;
                         align-items: center;
                         padding: 8px 12px;
-                        border-bottom: 1px solid #e8e8e8;
+                        border-bottom: 1px solid var(--site-border);
                         cursor: pointer;
                         transition: all 0.2s ease;
                         min-height: 36px;
                     }
                     
                     .move-row:hover {
-                        background-color: #f0f8ff;
+                        background-color: var(--site-surface-alt);
                     }
                     
                     .move-row.selected {
-                        background-color: #007bff !important;
-                        color: white !important;
+                        background-color: var(--primary-color) !important;
+                        color: var(--site-text) !important;
                     }
                     
                     .move-row:last-child {
@@ -328,7 +328,7 @@ class ChessStyleManager {
                     }
                     
                     .move-number {
-                        color: #666;
+                        color: var(--site-text-muted);
                         font-weight: 600;
                         min-width: 28px;
                         margin-right: 8px;
@@ -336,14 +336,14 @@ class ChessStyleManager {
                     }
                     
                     .white-move {
-                        color: #2c3e50;
+                        color: var(--site-text);
                         font-weight: 600;
                         min-width: 80px;
                         margin-right: 8px;
                     }
                     
                     .black-move {
-                        color: #7f8c8d;
+                        color: var(--site-text-muted);
                         font-weight: 600;
                         min-width: 80px;
                     }
@@ -351,7 +351,7 @@ class ChessStyleManager {
                     .move-row.selected .white-move,
                     .move-row.selected .black-move,
                     .move-row.selected .move-number {
-                        color: white !important;
+                        color: var(--site-text) !important;
                     }
                     
                     @media (max-width: 768px) {
@@ -413,28 +413,28 @@ class ChessStyleManager {
                     line-height: 1.4;
                     max-height: 400px;
                     overflow-y: auto;
-                    border: 1px solid #e0e0e0;
+                    border: 1px solid var(--site-border);
                     border-radius: 8px;
-                    background: #fafafa;
+                    background: var(--site-surface);
                 }
                 
                 .move-row {
                     display: flex;
                     align-items: center;
                     padding: 8px 12px;
-                    border-bottom: 1px solid #e8e8e8;
+                    border-bottom: 1px solid var(--site-border);
                     cursor: pointer;
                     transition: all 0.2s ease;
                     min-height: 36px;
                 }
                 
                 .move-row:hover {
-                    background-color: #f0f8ff;
+                    background-color: var(--site-surface-alt);
                 }
                 
                 .move-row.selected {
-                    background-color: #007bff !important;
-                    color: white !important;
+                    background-color: var(--primary-color) !important;
+                    color: var(--site-text) !important;
                 }
                 
                 .move-row:last-child {
@@ -442,7 +442,7 @@ class ChessStyleManager {
                 }
                 
                 .move-number {
-                    color: #666;
+                    color: var(--site-text-muted);
                     font-weight: 600;
                     min-width: 28px;
                     margin-right: 8px;
@@ -450,14 +450,14 @@ class ChessStyleManager {
                 }
                 
                 .white-move {
-                    color: #2c3e50;
+                    color: var(--site-text);
                     font-weight: 600;
                     min-width: 80px;
                     margin-right: 8px;
                 }
                 
                 .black-move {
-                    color: #7f8c8d;
+                    color: var(--site-text-muted);
                     font-weight: 600;
                     min-width: 80px;
                 }
@@ -465,7 +465,7 @@ class ChessStyleManager {
                 .move-row.selected .white-move,
                 .move-row.selected .black-move,
                 .move-row.selected .move-number {
-                    color: white !important;
+                    color: var(--site-text) !important;
                 }
                 
                 @media (max-width: 768px) {

@@ -59,3 +59,91 @@
 .move-item:last-child {
     border-bottom: none;
 }
+
+body {
+    background-color: var(--site-background);
+    color: var(--site-text);
+}
+
+.card,
+.chess-container {
+    border: 1px solid var(--site-border) !important;
+    background-color: var(--site-surface) !important;
+    color: var(--site-text);
+}
+
+.card-header.bg-warning {
+    border-color: var(--site-border);
+    background-color: var(--site-surface-alt) !important;
+    color: var(--site-text) !important;
+}
+
+.bg-light,
+#currentPlayer.bg-light {
+    background-color: var(--site-surface-alt) !important;
+    color: var(--site-text) !important;
+}
+
+#bottomPlayerLabel.badge.bg-white {
+    border-color: var(--site-border) !important;
+    background-color: var(--site-surface-alt) !important;
+    color: var(--site-text) !important;
+}
+
+.text-muted {
+    color: var(--site-text-muted) !important;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.btn-primary {
+    border-color: var(--primary-color);
+    background-color: var(--primary-color);
+    color: var(--site-text);
+}
+
+.btn-primary:hover {
+    border-color: var(--primary-color);
+    background-color: color-mix(in srgb, var(--primary-color) 82%, var(--site-background));
+}
+
+.btn-success {
+    border-color: var(--success-color);
+    background-color: var(--success-color);
+    color: var(--site-background);
+}
+
+.btn-success:hover {
+    border-color: var(--success-color);
+    background-color: color-mix(in srgb, var(--success-color) 82%, var(--site-background));
+    color: var(--site-background);
+}
+
+.btn-outline-dark {
+    border-color: var(--site-border);
+    color: var(--site-text-muted);
+}
+
+.btn-outline-dark:hover {
+    border-color: var(--primary-color);
+    background-color: var(--site-surface-alt);
+    color: var(--site-text);
+}
+
+.move-item {
+    border-color: var(--site-border);
+    color: var(--site-text);
+}
+
+.move-item:hover,
+.move-item:nth-child(even),
+.move-item:nth-child(even):hover {
+    background-color: var(--site-surface-alt);
+}
+
+footer.bg-dark {
+    border-top: 1px solid var(--site-border);
+    background-color: var(--site-background) !important;
+}

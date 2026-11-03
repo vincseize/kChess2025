@@ -118,6 +118,51 @@ class ChessModalManager {
         return true;
     }
 
+    showTimeLoss(loserColor) {
+        if (this.currentResultModal) this.removeResultModal();
+
+        const t = (key, fallback) => (window.translations && window.translations[key]) || fallback;
+        const modal = document.createElement('div');
+        modal.id = 'timeLossModal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55);';
+
+        const panel = document.createElement('div');
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-modal', 'true');
+        panel.style.cssText = 'width:min(100%,340px);padding:24px;border-radius:14px;background:#fff;text-align:center;box-shadow:0 12px 36px rgba(0,0,0,.3);';
+
+        const title = document.createElement('h2');
+        title.textContent = t('time_lost', 'Perdu au temps');
+        title.style.cssText = 'margin:0 0 10px;color:#dc3545;font-size:1.35rem;';
+
+        const message = document.createElement('p');
+        const loserName = loserColor === 'white' ? t('white_player', 'Blancs') : t('black_player', 'Noirs');
+        message.textContent = `${loserName} — ${t('time_lost_message', 'Votre temps est écoulé.')}`;
+        message.style.cssText = 'margin:0 0 18px;color:#444;';
+
+        const replayButton = document.createElement('button');
+        replayButton.type = 'button';
+        replayButton.className = 'btn btn-success me-2';
+        replayButton.textContent = t('play_again', 'Rejouer');
+        replayButton.addEventListener('click', () => {
+            modal.remove();
+            window.showReplayColorPicker?.();
+        });
+
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn btn-outline-secondary';
+        closeButton.textContent = t('close', 'Fermer');
+        closeButton.addEventListener('click', () => modal.remove());
+
+        panel.append(title, message, replayButton, closeButton);
+        modal.appendChild(panel);
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) modal.remove();
+        });
+        document.body.appendChild(modal);
+    }
+
     // ✅ MODALE DE CONFIRMATION (AJOUTÉE)
     showConfirmModal(title, message, options = {}) {
         return new Promise((resolve) => {
@@ -298,7 +343,7 @@ class ChessModalManager {
                         transition: all 0.3s;
                         flex: 1;
                         min-width: 150px;
-                    ">Nouvelle Partie</button>
+                    ">${(window.translations && window.translations.play_again) || 'Rejouer'}</button>
                     <button id="closeModalBtn" class="modal-btn secondary-btn" style="
                         padding: 15px 30px;
                         background: #6c757d;
@@ -382,7 +427,7 @@ getResultDetails(gameStatus, winner, details) {
                 console.log('🎮 Nouvelle partie demandée depuis modal résultat');
             }
             this.removeResultModal();
-            this.startNewGame();
+            window.showReplayColorPicker?.();
         });
         
         // Fermer

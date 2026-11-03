@@ -28,7 +28,7 @@ $botsClock = $config['bots_clock'] ?? [];
                                 </a>
                                 
                                 <button type="button" class="btn btn-success btn-sm new-game-btn" id="newGame">
-                                    <i class="bi bi-plus-circle me-1"></i> <?php echo htmlspecialchars($translations['new_game']); ?>
+                                    <i class="bi bi-arrow-repeat me-1"></i> <?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?>
                                 </button>
                                 
                                 <button class="btn btn-outline-dark btn-sm flip-board-btn" id="flipBoard"
@@ -165,24 +165,9 @@ document.addEventListener('DOMContentLoaded', function() {
         window.updatePlayerLabels(true, botColor, level);
         window.initTimeDisplay(level);
 
-        setTimeout(() => {
-            const timer = window.chessGame?.core?.ui?.timerManager;
-            const botConfig = window.botsConfig[`bot_${level}`];
-            if (timer && botConfig) {
-                timer.setTimerConfig(botConfig);
-            }
-        }, 500);
     } else {
         window.updatePlayerLabels(false);
     }
-
-    document.querySelectorAll('.new-game-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (confirm(window.getTranslation('new_game') + ' ?')) {
-                window.location.href = 'index.php?new';
-            }
-        });
-    });
 
     document.querySelectorAll('.flip-board-btn').forEach(btn => {
         btn.addEventListener('click', () => {

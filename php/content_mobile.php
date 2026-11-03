@@ -19,8 +19,8 @@ $translations = $config['lang'][$lang];
                         </a>
 
                         <button type="button" class="btn btn-success btn-sm new-game-btn" id="newGame" 
-                                title="<?php echo htmlspecialchars($translations['new_game']); ?>">
-                            <i class="bi bi-plus-circle me-1"></i> <?php echo htmlspecialchars($translations['new_game']); ?>
+                                title="<?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?>">
+                            <i class="bi bi-arrow-repeat me-1"></i> <?php echo htmlspecialchars($translations['play_again'] ?? 'Rejouer'); ?>
                         </button>
 
                         <button type="button" class="btn btn-outline-dark btn-sm flip-board-btn" id="flipBoardMobile"
@@ -139,20 +139,7 @@ window.updateTimeDisplay = function(w, b) {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. GESTION DU BOUTON NOUVELLE PARTIE (CORRECTIF DOUBLE DIALOGUE)
-    document.querySelectorAll('.new-game-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopImmediatePropagation(); 
-
-            const msg = window.getTranslation('new_game', 'Nouvelle Partie') + ' ?';
-            if (confirm(msg)) {
-                window.location.replace('index.php?new');
-            }
-        }, true); 
-    });
-
-    // 2. RESTAURATION DU BOUTON FLIP BOARD
+    // RESTAURATION DU BOUTON FLIP BOARD
     document.querySelectorAll('.flip-board-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();

@@ -54,18 +54,16 @@ class ChessGameUI {
     }
 
     setupEventListeners() {
-        document.getElementById('newGame')?.addEventListener('click', () => this.modalManager?.confirmNewGame?.());
         document.getElementById('flipBoard')?.addEventListener('click', () => this.game?.flipBoard?.());
         document.getElementById('copyFEN')?.addEventListener('click', () => this.clipboardManager?.copyFENToClipboard?.());
         document.getElementById('copyPGN')?.addEventListener('click', () => this.clipboardManager?.copyPGNToClipboard?.());
 
         // Mobiles
-        const mobileEvents = ['newGameMobile', 'flipBoardMobile'];
+        const mobileEvents = ['flipBoardMobile'];
         mobileEvents.forEach(id => {
             document.getElementById(id)?.addEventListener('click', (e) => {
                 e.preventDefault();
-                if(id.includes('newGame')) this.modalManager?.confirmNewGame?.();
-                else this.game?.flipBoard?.();
+                this.game?.flipBoard?.();
             });
         });
 

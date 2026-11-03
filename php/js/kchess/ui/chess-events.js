@@ -199,9 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    bindActions('#newGame, .new-game-btn', () => {
-        if (confirm('Nouvelle partie ?')) window.location.reload();
-    });
+    bindActions('#newGame, .new-game-btn', () => window.showReplayColorPicker?.());
 
     bindActions('#flipBoard, .flip-board-btn', () => {
         const target = window.chessGame?.core || window.chessGame;
@@ -217,6 +215,40 @@ document.addEventListener('DOMContentLoaded', () => {
         handleBotTurn(); // Au cas où le bot doit commencer (si joueur = noir)
     }, 1000);
 });
+
+window.showReplayColorPicker = function() {
+    document.getElementById('replayColorPicker')?.remove();
+
+    const t = (key, fallback) => window.getTranslation?.(key, fallback) || fallback;
+    const overlay = document.createElement('div');
+    overlay.id = 'replayColorPicker';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML = `
+        <div role="dialog" aria-modal="true" aria-labelledby="replayColorTitle" style="width:min(100%,420px);padding:24px;border-radius:16px;background:#fff;text-align:center;box-shadow:0 16px 50px rgba(0,0,0,.35)">
+            <h2 id="replayColorTitle" style="margin:0 0 20px;font-size:1.35rem">${t('select_color', 'Choisir votre couleur')}</h2>
+            <div style="display:flex;gap:12px">
+                <button type="button" data-replay-color="white" class="btn btn-light border" style="flex:1;padding:14px;font-weight:600">♔ ${t('white_player', 'Blancs')}</button>
+                <button type="button" data-replay-color="black" class="btn btn-dark" style="flex:1;padding:14px;font-weight:600">♚ ${t('black_player', 'Noirs')}</button>
+            </div>
+            <button type="button" data-replay-cancel class="btn btn-link mt-3">${t('cancel', 'Annuler')}</button>
+        </div>`;
+
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay || event.target.closest('[data-replay-cancel]')) {
+            overlay.remove();
+            return;
+        }
+
+        const colorButton = event.target.closest('[data-replay-color]');
+        if (!colorButton) return;
+
+        const params = new URLSearchParams(window.location.search);
+        params.set('color', colorButton.dataset.replayColor);
+        window.location.assign(`${window.location.pathname}?${params.toString()}`);
+    });
+
+    document.body.appendChild(overlay);
+};
 
 // Exports
 window.ChessEventsManager = ChessEventsManager;

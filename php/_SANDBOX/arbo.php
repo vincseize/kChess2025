@@ -18,8 +18,8 @@ function scan($dir, $exclude, $depth=0, $h) {
     }
 }
 
-fwrite($h, "Arborescence du dossier : " . __DIR__ . "\n");
-scan(__DIR__, $exclude, 0, $h);
+fwrite($h, "Arborescence du dossier : " . dirname(__DIR__, 2) . "\n");
+scan(dirname(__DIR__, 2), $exclude, 0, $h);
 fclose($h);
 
 echo "Fichier '$output' créé !\n";

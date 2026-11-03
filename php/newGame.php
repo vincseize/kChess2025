@@ -25,12 +25,16 @@ $previewBoard = [
 ?>
 
 <link rel="stylesheet" href="css/kchess/newGame.css?v=<?php echo htmlspecialchars((string)$assetVersion); ?>">
+<link rel="stylesheet" href="css/kchess/variables.css?v=<?php echo htmlspecialchars((string)$assetVersion); ?>">
+<style>
+    :root { <?php echo getThemeCssVariables($config); ?> }
+</style>
 
 <div class="new-game-overlay">
     <main class="new-game-layout">
         <section class="new-game-intro" aria-labelledby="home-title">
             <div class="hero-copy">
-                <p class="hero-kicker">Chess Local Club Training</p>
+                <p class="hero-kicker">La Dame de Bellefontaine<br>App Chess Club training</p>
                 <h1 id="home-title">
                     <?php echo htmlspecialchars($translations['home_title_first'] ?? 'Les échecs,'); ?><br>
                     <span><?php echo htmlspecialchars($translations['home_title_second'] ?? 'à votre façon.'); ?></span>
@@ -155,7 +159,9 @@ $previewBoard = [
 document.addEventListener('DOMContentLoaded', function() {
     const params = new URLSearchParams(window.location.search);
     if (params.has('new')) {
+        const savedBotLevel = localStorage.getItem('kchess.selectedBotLevel');
         localStorage.clear();
+        if (savedBotLevel) localStorage.setItem('kchess.selectedBotLevel', savedBotLevel);
         sessionStorage.clear();
         const startBtn = document.getElementById('startGameBtn');
         if (startBtn) startBtn.disabled = true;

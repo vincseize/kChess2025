@@ -10,6 +10,13 @@ class ChessTimerManager {
         this.increment = 0;   // Secondes à ajouter par coup
         this.timerInterval = null;
         this.isTimerRunning = false;
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mode') === 'bot') {
+            const botConfig = window.botsConfig?.[`bot_${params.get('level')}`]
+                || window.appConfig?.bots_clock?.[`bot_${params.get('level')}`];
+            if (botConfig) this.setTimerConfig(botConfig);
+        }
     }
 
     /**
@@ -77,13 +84,10 @@ class ChessTimerManager {
 
             if (this.whiteTime <= 0 || this.blackTime <= 0) {
                 this.stopTimer();
-                const winner = this.whiteTime <= 0 ? 'black' : 'white';
-                // Optionnel : notifier le GameStatusManager de la fin de partie par temps
-                if (this.ui.game.gameStatusManager) {
-                    this.ui.game.gameStatusManager.endGameByTime?.(winner);
-                } else {
-                    alert(`Temps écoulé ! Les ${winner === 'white' ? 'Blancs' : 'Noirs'} gagnent.`);
-                }
+                const loser = this.whiteTime <= 0 ? 'white' : 'black';
+                this.ui.game.gameState.gameActive = false;
+                this.updateTimerDisplay();
+                this.ui.modalManager?.showTimeLoss?.(loser);
             }
         }, 1000);
     }
@@ -100,17 +104,24 @@ class ChessTimerManager {
         const whiteEl = document.getElementById('whiteTime');
         const blackEl = document.getElementById('blackTime');
         const currentPlayer = this.ui.game.gameState.currentPlayer;
+        const colors = window.appConfig?.colors || {};
+        const activeColor = colors.clock_active || '#28a745';
+        const expiredColor = colors.clock_expired || '#ff0000';
         
         if (whiteEl) {
             whiteEl.textContent = this.formatTime(this.whiteTime);
             whiteEl.style.fontWeight = (currentPlayer === 'white') ? 'bold' : 'normal';
-            whiteEl.style.color = (currentPlayer === 'white') ? '#28a745' : '';
+            if (this.whiteTime <= 0) whiteEl.style.setProperty('color', expiredColor, 'important');
+            else if (currentPlayer === 'white') whiteEl.style.setProperty('color', activeColor, 'important');
+            else whiteEl.style.removeProperty('color');
         }
         
         if (blackEl) {
             blackEl.textContent = this.formatTime(this.blackTime);
             blackEl.style.fontWeight = (currentPlayer === 'black') ? 'bold' : 'normal';
-            blackEl.style.color = (currentPlayer === 'black') ? '#28a745' : '';
+            if (this.blackTime <= 0) blackEl.style.setProperty('color', expiredColor, 'important');
+            else if (currentPlayer === 'black') blackEl.style.setProperty('color', activeColor, 'important');
+            else blackEl.style.removeProperty('color');
         }
     }
 

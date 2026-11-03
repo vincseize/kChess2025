@@ -48,8 +48,8 @@ if (isset($_GET['lang'])) {
     <link rel="stylesheet" href="css/bootstrap-icons.css">
     
     <style>
-        :root { --padding-card: clamp(10px, 3vh, 25px); }
-        html, body { min-height: 100%; margin: 0; padding: 0; background: #201f1d; }
+        :root { --padding-card: clamp(10px, 3vh, 25px); <?php echo getThemeCssVariables($config); ?> }
+        html, body { min-height: 100%; margin: 0; padding: 0; background: var(--site-background); }
         body { display: flex; flex-direction: column; overflow-y: auto; }
         
         #splash-screen {
@@ -81,7 +81,7 @@ if (isset($_GET['lang'])) {
            target="_blank" 
            rel="noopener noreferrer"
            class="btn btn-outline-secondary btn-sm shadow-sm"
-           style="background: rgba(41,40,37,0.92); color: #c3c0ba; border-color: #57544e; backdrop-filter: blur(4px); border-radius: 10px; font-weight: 600;">
+           style="background: var(--site-surface); color: var(--site-text-muted); border-color: var(--site-border); backdrop-filter: blur(4px); border-radius: 10px; font-weight: 600;">
             <i class="bi bi-speedometer2 me-1"></i> Stress Test
         </a>
     </div>

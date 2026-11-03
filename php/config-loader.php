@@ -129,6 +129,40 @@ function getAppConfigJson($config) {
     return json_encode($config, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE);
 }
 
+function getThemeCssVariables($config) {
+    $colorVariables = [
+        '--site-background' => 'background',
+        '--site-surface' => 'surface',
+        '--site-surface-alt' => 'surface_alt',
+        '--site-text' => 'text',
+        '--site-text-muted' => 'text_muted',
+        '--site-border' => 'border',
+        '--primary-color' => 'primary',
+        '--success-color' => 'success',
+        '--chess-square-white' => 'square_white',
+        '--chess-square-black' => 'square_black',
+        '--chess-selected' => 'selected',
+        '--chess-move-indicator' => 'move_indicator',
+        '--chess-capture-indicator' => 'capture_indicator',
+        '--chess-clock-active' => 'clock_active',
+        '--chess-clock-expired' => 'clock_expired',
+    ];
+
+    $declarations = [
+        '--chess-brown-dark: var(--site-border);',
+        '--chess-brown-light: var(--chess-square-white);',
+    ];
+
+    foreach ($colorVariables as $cssVariable => $configKey) {
+        $color = $config['colors'][$configKey] ?? null;
+        if (is_string($color) && preg_match('/^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$/', $color)) {
+            $declarations[] = $cssVariable . ': ' . $color . ';';
+        }
+    }
+
+    return implode("\n", $declarations);
+}
+
 function logConfigInfo($config) {
     if (isset($config['debug']['console_log']) && $config['debug']['console_log'] === true) {
         error_log("⚙️ Configuration chargée - debug: " . 
