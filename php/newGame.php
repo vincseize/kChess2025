@@ -50,7 +50,7 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
                     </a>
                     <button class="home-feature-btn" type="button" id="startChess960">
                         <i class="bi bi-shuffle" aria-hidden="true"></i>
-                        <span>Chess960</span>
+                        <span><?php echo htmlspecialchars($translations['random_chess960_position'] ?? 'Random Chess960 position'); ?></span>
                     </button>
                 </div>
             </div>
@@ -89,17 +89,7 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
                 </div>
             </header>
 
-            <h3 class="section-title" id="mode-title"><?php echo htmlspecialchars($translations['choose_mode'] ?? '1. Choisissez votre mode'); ?></h3>
-            <div class="new-game-buttons" role="group" aria-labelledby="mode-title">
-                <button type="button" class="game-mode-btn btn-human" data-mode="human" data-level="0" data-profondeur="false" aria-pressed="false">
-                    <div class="mode-description">
-                        <div><i class="bi bi-people-fill mode-icon" aria-hidden="true"></i>
-                            <?php echo htmlspecialchars($translations['human_vs_human'] ?? 'Humain vs Humain'); ?>
-                        </div>
-                    </div>
-                    <i class="bi bi-check-lg check-icon" aria-hidden="true"></i>
-                </button>
-
+            <div class="new-game-buttons" role="group" aria-labelledby="setup-title">
                 <?php
                 $botDir = __DIR__ . '/js/kchess/bots/';
                 $botFiles = glob($botDir . 'Level_*.js');
@@ -168,6 +158,27 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
                         <i class="bi bi-check-lg check-icon" aria-hidden="true"></i>
                     </button>
                 <?php endforeach; ?>
+
+                <button type="button" class="game-mode-btn btn-human" data-mode="human" data-level="0" data-profondeur="false" aria-pressed="false">
+                    <div class="mode-description">
+                        <div><i class="bi bi-people-fill mode-icon" aria-hidden="true"></i>
+                            <?php echo htmlspecialchars($translations['human_vs_human'] ?? 'Humain vs Humain'); ?>
+                        </div>
+                    </div>
+                    <i class="bi bi-check-lg check-icon" aria-hidden="true"></i>
+                </button>
+
+                <button type="button" class="game-mode-btn btn-human-960" data-mode="human" data-level="0" data-profondeur="false" data-variant="chess960" aria-pressed="false">
+                    <div class="mode-description">
+                        <div><i class="bi bi-people-fill mode-icon" aria-hidden="true"></i>
+                            <?php echo htmlspecialchars($translations['human_vs_human_960'] ?? 'Humain vs Humain 960'); ?>
+                        </div>
+                        <div class="mode-difficulty">
+                            <?php echo htmlspecialchars($translations['random_chess960_position'] ?? 'Position Chess960 aléatoire'); ?>
+                        </div>
+                    </div>
+                    <i class="bi bi-check-lg check-icon" aria-hidden="true"></i>
+                </button>
             </div>
 
             <div class="color-selection">

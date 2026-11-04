@@ -9,7 +9,9 @@
         position: fixed;
         top: 0; left: 0;
         width: 100vw; height: 100dvh;
-        background: #000000;
+        background:
+            radial-gradient(ellipse at 18% 44%, color-mix(in srgb, #0891B2 20%, transparent), transparent 38%),
+            #0B2024;
         z-index: 1000000;
         display: flex;
         flex-direction: column;

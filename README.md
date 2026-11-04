@@ -1,6 +1,6 @@
 # CharlyChess
 
-CharlyChess is a responsive, local chess application built with PHP, JavaScript, and CSS. It supports human-vs-human games, chess bots, Chess960, and a standalone chess clock.
+CharlyChess V1.2 is a responsive, local chess application built with PHP, JavaScript, and CSS. It supports human-vs-human games, chess bots, Chess960, and a standalone chess clock.
 
 ## Run locally with XAMPP
 
@@ -13,7 +13,8 @@ No separate package installation or database setup is required for the web app.
 ## Game modes
 
 - **Human vs Human:** choose a time control before starting. The clock stays stopped until **Start Game** is pressed.
-- **Chess960:** displays the randomized position number and uses the same time-control selector and explicit start behavior.
+- **Human vs Human 960:** choose either side or a random side; the board uses a randomized Chess960 starting position and the same time-control selector and explicit start behavior.
+- **Chess960 home shortcut:** opens a game with a newly randomized Chess960 position.
 - **Bots:** choose a bot level and side. The level sets the game duration in minutes (level 1 = 1 minute, level 2 = 2 minutes, and so on), with no increment.
 - **Clock:** open the standalone clock from the home page. Choose a preset or enter a custom time control. Black presses their clock to start; players tap the active clock after each move.
 

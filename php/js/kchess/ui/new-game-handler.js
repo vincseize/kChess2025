@@ -7,6 +7,7 @@ const NewGameHandler = {
     selectedMode: null,
     selectedLevel: null,
     selectedProfondeur: null,
+    selectedVariant: null,
     selectedColor: 'white',
     targetPage: 'app.php',
 
@@ -50,6 +51,7 @@ const NewGameHandler = {
         this.selectedMode = btn.dataset.mode;
         this.selectedLevel = btn.dataset.level;
         this.selectedProfondeur = btn.dataset.profondeur;
+        this.selectedVariant = btn.dataset.variant || null;
 
         if (this.selectedMode === 'bot') {
             try {
@@ -94,7 +96,7 @@ const NewGameHandler = {
             profondeur: overrides.profondeur || this.selectedProfondeur,
             color: finalColor,
             ...((overrides.mode || this.selectedMode) === 'bot' ? { trainingColor: this.selectedColor } : {}),
-            ...(overrides.variant ? { variant: overrides.variant } : {})
+            ...((overrides.variant || this.selectedVariant) ? { variant: overrides.variant || this.selectedVariant } : {})
         });
 
         const finalUrl = `${this.targetPage}?${params.toString()}`;

@@ -14,7 +14,8 @@ The application uses PHP, JavaScript, and browser storage. It does not require a
 
 - **Bot:** the selected bot level determines the initial clock in minutes: level 1 gets 1 minute, level 2 gets 2 minutes, and so forth. Bot games use a zero-second increment.
 - **Human vs Human:** select a cadence before starting; the clocks remain stopped until the start button is pressed.
-- **Chess960:** select a cadence and explicitly start the game.
+- **Human vs Human 960:** select a side (or a random side), then select a cadence and explicitly start the game. A random Chess960 starting position is generated for each new game.
+- The Chess960 button below **Clock** on the home page opens a game with a random starting position.
 - **Clock:** the standalone clock offers built-in and custom cadences. Black starts by pressing their clock; after a move, press the active player's clock.
 
 Human vs Human and Chess960 remember their last selected cadence in browser local storage. The standalone clock remembers its selected cadence and custom cadences separately; saved custom cadences can be removed from its settings.
