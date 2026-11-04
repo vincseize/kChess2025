@@ -81,6 +81,8 @@ if (isset($_GET['new'])) {
                 echo '<script src="js/kchess/bots/game_fonctions.js?v=' . time() . '"></script>';
                 echo '<script src="js/kchess/bots/game_ouverture.js?v=' . time() . '"></script>';
                 echo '<script src="js/kchess/bots/BotBase.js?v=' . time() . '"></script>';
+                echo '<script src="js/kchess/bots/Evaluator.js?v=' . time() . '"></script>';
+                echo '<script src="js/kchess/bots/SearchEngine.js?v=' . time() . '"></script>';
                 if (file_exists(__DIR__ . "/" . $botPath)) {
                     echo '<script src="' . $botPath . '?v=' . time() . '"></script>';
                 }

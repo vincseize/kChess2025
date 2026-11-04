@@ -1,59 +1,51 @@
 /**
  * Level_16 - Bot Killer
- * Version 6.0.0 - Basé sur SearchEngine + Evaluator
+ * Version 6.0.1 - Basé sur SearchEngine + Evaluator
  *
- * Ce fichier ne contient plus la logique : il configure seulement
- * un Evaluator (pondérations) et un SearchEngine (pipeline).
+ * Changelog v6.0.1 :
+ *   - CORRIGÉ : pieceValues en échelle pawn=100 partout
+ *     (cohérence entre GameFonctions et Evaluator).
+ *   - Poids calibrés sur l'échelle pawn=100.
  */
 class Level_16 {
-    static VERSION = '6.0.0';
+    static VERSION = '6.0.1';
 
     constructor() {
         this.name = "Bot Level 16 (Killer)";
         this.level = 16;
 
-        // Attache GameFonctions avec les valeurs de pièces du bot
+        // ⚠️ Échelle pawn=100 UNIQUE pour GameFonctions et Evaluator
         this.pieceValues = {
-            pawn: 1,
-            knight: 3.2,
-            bishop: 3.3,
-            rook: 5,
-            queen: 9,
-            king: 100
+            pawn: 100,
+            knight: 320,
+            bishop: 330,
+            rook: 500,
+            queen: 900,
+            king: 20000
         };
         this.gameFonctions = GameFonctions.attach(this);
 
-        // Construit l'évaluateur avec les pondérations du niveau 16
-        // Poids ajustés pour équilibrer capture vs pénalité réponse adverse
         this.evaluator = new Evaluator({
-            pieceValues: {
-                pawn: 100,
-                knight: 320,
-                bishop: 330,
-                rook: 500,
-                queen: 900,
-                king: 20000
-            },
+            pieceValues: this.pieceValues,
             weights: {
-                capture: 10,
-                promotion: 1000,
-                check: 1.5,
-                centerOccupancy: 0.1,
-                development: 0.05,
-                exposure: -0.5,
-                centerControl: 0.2,
-                doubledPawns: -0.5,
-                pawnIslands: -0.5,
-                majorFile: 0.2,
-                connectedPawns: 0.3,
-                doubledRooks: 0.8,
-                advancedRanks: 0.5,
-                castling: 0.5
+                capture: 10,             // × 100..900 → 1000..9000
+                promotion: 100000,
+                check: 150,
+                centerOccupancy: 10,
+                development: 5,
+                exposure: -50,           // × (exposure/100)
+                centerControl: 20,
+                doubledPawns: -50,
+                pawnIslands: -50,
+                majorFile: 20,
+                connectedPawns: 30,
+                doubledRooks: 80,
+                advancedRanks: 50,
+                castling: 50
             },
             gameFonctions: this.gameFonctions
         });
 
-        // Construit le moteur de recherche
         this.search = new SearchEngine(
             this.evaluator,
             this.gameFonctions,

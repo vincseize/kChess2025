@@ -2,31 +2,17 @@
  * bots/SearchEngine.js
  * Moteur de recherche : orchestre la pipeline de décision d'un bot.
  *
- * Pipeline standard :
- *   0. Ouverture (optionnel)
- *   1. Mat en 1
- *   2. Évaluation depth-1 avec pénalité réponse adverse
- *   3. Mat en 2 (optionnel)
- *   4. Promotions prioritaires
- *   5. Comportement de finale (optionnel)
- *   6. Sélection finale
+ * Version : 1.1.0
  *
- * Version : 1.0.0
+ * Changelog v1.1.0 :
+ *   - CORRIGÉ : _scoreDepthOne passe `simulated` à scoreMove
+ *     (plus de double simulation par coup).
+ *   - CORRIGÉ : _opponentBestReplyPenalty aligné sur l'échelle pawn=100
+ *     de l'Evaluator (pieceValues + bonus cohérents).
  */
 class SearchEngine {
-    static VERSION = '1.0.0';
+    static VERSION = '1.1.0';
 
-    /**
-     * @param {Evaluator} evaluator
-     * @param {Object} gameFonctions  Instance GameFonctions attachée
-     * @param {Object} options
-     * @param {Boolean} options.enableOpening     Active le livre GameOuverture
-     * @param {Boolean} options.enableMateInOne   Active la détection mat en 1
-     * @param {Boolean} options.enableMateInTwo   Active la détection mat en 2
-     * @param {Number}  options.maxOppReplies     Limite de réponses adverses examinées
-     * @param {Boolean} options.enableEndgame     Active le comportement agressif en finale
-     * @param {Number}  options.mateInTwoMaxCandidates
-     */
     constructor(evaluator, gameFonctions, options = {}) {
         if (!evaluator) throw new Error('SearchEngine: evaluator requis.');
         if (!gameFonctions) throw new Error('SearchEngine: gameFonctions requis.');
@@ -52,50 +38,42 @@ class SearchEngine {
         const color = game.gameState.currentPlayer;
         const oppColor = this._opposite(color);
 
-        // 0. Ouverture
         if (this.enableOpening) {
             const openingMove = this._tryOpeningMove(game, color);
             if (openingMove) return this._finalize(openingMove);
         }
 
-        // 1. Coups légaux
         const allMoves = this.gf.getAllLegalMoves(game, color);
         if (allMoves.length === 0) return null;
 
-        // 2. Mat en 1
         if (this.enableMateInOne) {
             const mateMove = this._findMateInOne(game, color, allMoves);
             if (mateMove) return this._finalize(mateMove);
         }
 
-        // 3. Depth-1 avec pénalité réponse adverse
         const scoredMoves = this._scoreDepthOne(game, allMoves, color, oppColor);
 
-        // 4. Mat en 2
         if (this.enableMateInTwo) {
             const mateInTwo = this._findMateInTwo(game, color, oppColor, scoredMoves);
             if (mateInTwo) return this._finalize(mateInTwo);
         }
 
-        // 5. Promotions
         const promotions = scoredMoves.filter(m => this.gf.isPromotionMove(m));
         if (promotions.length > 0) {
             promotions.sort((a, b) => b._score - a._score);
             return this._finalize(promotions[0]);
         }
 
-        // 6. Finale
         if (this.enableEndgame && this._isEndgame(game)) {
             const endgamePick = this._pickEndgameMove(game, scoredMoves, color, oppColor);
             if (endgamePick) return this._finalize(endgamePick);
         }
 
-        // 7. Sélection finale
         return this._finalize(this._pickBest(scoredMoves));
     }
 
     // =====================================================================
-    // 0. OUVERTURE
+    // OUVERTURE
     // =====================================================================
 
     _tryOpeningMove(game, color) {
@@ -149,7 +127,7 @@ class SearchEngine {
     }
 
     // =====================================================================
-    // 2. MAT EN 1
+    // MAT EN 1
     // =====================================================================
 
     _findMateInOne(game, color, moves) {
@@ -165,7 +143,7 @@ class SearchEngine {
     }
 
     // =====================================================================
-    // 3. ECMO DEPTH-1
+    // ECMO DEPTH-1
     // =====================================================================
 
     _scoreDepthOne(game, allMoves, color, oppColor) {
@@ -178,7 +156,10 @@ class SearchEngine {
             const exposure = this.gf.evaluateMoveExposure(game, move, oppColor, simulated);
             move._exposure = exposure;
 
-            let score = this.evaluator.scoreMove(game, move, color, baseline, exposure);
+            // CORRIGÉ : passe `simulated` pour éviter la 2e simulation dans scoreMove
+            let score = this.evaluator.scoreMove(
+                game, move, color, baseline, exposure, simulated
+            );
             score -= this._opponentBestReplyPenalty(simulated, oppColor, color);
 
             move._score = score;
@@ -199,6 +180,7 @@ class SearchEngine {
 
             let penalty = 0;
 
+            // CORRIGÉ : échelle pawn=100 cohérente avec Evaluator
             if (reply.isCapture && reply.targetPiece) {
                 const attackVal = this.evaluator.pieceValues[reply.piece.type] || 0;
                 const targetVal = this.evaluator.pieceValues[reply.targetPiece.type] || 0;
@@ -206,20 +188,20 @@ class SearchEngine {
                     simulatedGame, reply.toRow, reply.toCol, myColor
                 );
                 const gain = defended ? (targetVal - attackVal) : targetVal;
-                if (gain > 0) penalty += (gain / 100) * 1.5;
+                if (gain > 0) penalty += gain * 1.5;
             }
 
-            if (reply.isCheck) penalty += 1.5;
-            if (this.gf.isPromotionMove(reply)) penalty += 50;
+            if (reply.isCheck) penalty += 150;
+            if (this.gf.isPromotionMove(reply)) penalty += 5000;
 
             if (penalty > worst) worst = penalty;
-            if (worst > 20) break;
+            if (worst > 2000) break;
         }
         return worst * 2;
     }
 
     // =====================================================================
-    // 4. MAT EN 2
+    // MAT EN 2
     // =====================================================================
 
     _findMateInTwo(game, color, oppColor, candidateMoves) {
@@ -253,7 +235,7 @@ class SearchEngine {
     }
 
     // =====================================================================
-    // 5/6. FINALE + SÉLECTION
+    // FINALE + SÉLECTION
     // =====================================================================
 
     _pickEndgameMove(game, scoredMoves, color, oppColor) {

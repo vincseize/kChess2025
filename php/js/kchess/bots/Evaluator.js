@@ -1,17 +1,25 @@
 /**
  * bots/Evaluator.js
  * Moteur d'évaluation pur : score une position ou un coup.
- * Aucune boucle de recherche, aucune simulation — juste du scoring.
+ * Aucune boucle de recherche — juste du scoring.
  *
- * Version : 1.0.0
+ * Version : 1.1.0
+ *
+ * Changelog v1.1.0 :
+ *   - CORRIGÉ : scoreMove n'appelle plus simulateMove (double simulation).
+ *     Le paramètre `simulated` est reçu du SearchEngine.
+ *   - CORRIGÉ : le gain de capture n'est plus divisé par 100
+ *     (incohérence d'échelle qui écrasait les captures).
+ *   - CORRIGÉ : getFavorableTradeBonus aligné sur l'échelle pawn=100.
+ *   - Toutes les valeurs (pieceValues, weights, bonus) en échelle pawn=100.
  */
 class Evaluator {
-    static VERSION = '1.0.0';
+    static VERSION = '1.1.0';
 
     /**
      * @param {Object} options
      * @param {Object} options.pieceValues  { pawn, knight, bishop, rook, queen, king }
-     * @param {Object} options.weights      Pondérations des heuristiques
+     * @param {Object} options.weights      Pondérations des heuristiques (échelle pawn=100)
      * @param {Object} options.gameFonctions Instance GameFonctions attachée
      */
     constructor(options = {}) {
@@ -25,33 +33,32 @@ class Evaluator {
             ...(options.pieceValues || {})
         };
 
-        // Pondérations par défaut (peuvent être surchargées par niveau)
+        // Pondérations en échelle "pawn = 100" cohérente avec pieceValues
         this.weights = {
-            centerControl: 0.2,
-            doubledPawns: -0.5,
-            pawnIslands: -0.5,
-            majorFile: 0.2,
-            connectedPawns: 0.3,
-            doubledRooks: 0.8,
-            advancedRanks: 0.5,
-            exposure: -0.5,
-            check: 1.5,
-            capture: 10,
-            promotion: 1000,
-            castling: 0.5,
-            development: 0.05,
-            centerOccupancy: 0.1,
+            centerControl: 20,       // × centerScore (0..8) → max ~160
+            doubledPawns: -50,       // × count (0..8) → max -400
+            pawnIslands: -50,
+            majorFile: 20,
+            connectedPawns: 30,
+            doubledRooks: 80,
+            advancedRanks: 50,
+            exposure: -50,           // × (exposure/100)
+            check: 150,
+            capture: 10,             // × capVal direct → knight = 3200
+            promotion: 100000,       // promotion = énorme
+            castling: 50,
+            development: 5,
+            centerOccupancy: 10,
             ...(options.weights || {})
         };
 
-        // Fonctions utilitaires (GameFonctions)
         this.gf = options.gameFonctions;
         if (!this.gf) throw new Error('Evaluator: gameFonctions requis.');
     }
 
     /**
      * Évalue une position statique du point de vue de `color`.
-     * Retourne un score en "centipawns" (pawn = 100).
+     * Retourne un score en centipawns (pawn = 100).
      */
     scorePosition(game, color) {
         const opp = this._opposite(color);
@@ -66,7 +73,6 @@ class Evaluator {
             }
         }
 
-        // Bonus structurels (deltas entre les deux camps)
         score += this.weights.centerControl * this.gf.getCenterControlScore(game, color);
         score -= this.weights.centerControl * this.gf.getCenterControlScore(game, opp);
         score += this.weights.doubledPawns * this.gf.getDoubledPawnCount(game, color);
@@ -80,91 +86,91 @@ class Evaluator {
     }
 
     /**
-     * Évalue un coup candidat par rapport à une position de référence.
-     * Combine : captures, promotion, échec, structure, exposition, fourchettes.
+     * Évalue un coup candidat.
      *
-     * @param {Object} game     Position avant le coup
-     * @param {Object} move     Coup candidat (format GameFonctions)
-     * @param {String} color    Couleur qui joue
-     * @param {Object} baseline Scores précalculés de la position avant (économise des appels)
-     * @param {Number} exposure Valeur exposée après le coup (calculée par SearchEngine)
+     * @param {Object} game      Position avant le coup
+     * @param {Object} move      Coup candidat
+     * @param {String} color     Couleur qui joue
+     * @param {Object} baseline  Scores de structure avant le coup
+     * @param {Number} exposure  Valeur exposée après le coup
+     * @param {Object} simulated Position simulée (calculée par SearchEngine, optionnelle)
      */
-    scoreMove(game, move, color, baseline = {}, exposure = 0) {
+    scoreMove(game, move, color, baseline = {}, exposure = 0, simulated = null) {
         const opp = this._opposite(color);
-        const simulated = this.gf.simulateMove(game, move);
-        if (!simulated) return -Infinity;
+        const afterMove = simulated || this.gf.simulateMove(game, move);
+        if (!afterMove) return -Infinity;
 
         let score = 0;
 
-        // 1. Capture
+        // 1. Capture — échelle pawn=100 (knight capturé = 320 × 10 = 3200)
         if (move.isCapture && move.targetPiece) {
             const capVal = this.pieceValues[move.targetPiece.type] || 0;
             const atkVal = this.pieceValues[move.piece.type] || 0;
-            score += this.weights.capture * (capVal / 100);
+            score += this.weights.capture * capVal;
             score += this.gf.getFavorableTradeBonus(
-                simulated, move, color, this.pieceValues.knight, 2
+                afterMove, move, color, this.pieceValues.knight, 50
             );
-            if (capVal > atkVal * 0.7) score += 0.5;
-            if (exposure === 0) score += 0.3;
+            if (capVal > atkVal * 0.7) score += 50;
+            if (exposure === 0) score += 30;
         }
 
         // 2. Promotion
         if (this.gf.isPromotionMove(move)) score += this.weights.promotion;
 
         // 3. Échec
-        if (this._isKingInCheck(simulated, opp)) score += this.weights.check;
+        if (this._isKingInCheck(afterMove, opp)) score += this.weights.check;
 
-        // 4. Centre
+        // 4. Centre (occupation de la case d'arrivée)
         if (move.toRow >= 2 && move.toRow <= 5 && move.toCol >= 2 && move.toCol <= 5) {
             score += this.weights.centerOccupancy;
         }
 
         // 5. Développement en ouverture
-        if (this.gf.countPieces(simulated) > 20
+        if (this.gf.countPieces(afterMove) > 20
             && (move.piece?.type === 'knight' || move.piece?.type === 'bishop')) {
             score += this.weights.development;
         }
 
-        // 6. Structure (deltas vs baseline)
+        // 6. Structure — deltas vs baseline
         score += this.weights.exposure * (exposure / 100);
         score += this.weights.centerControl *
-            (this.gf.getCenterControlScore(simulated, color) - (baseline.center || 0));
+            (this.gf.getCenterControlScore(afterMove, color) - (baseline.center || 0));
         score += this.weights.doubledPawns *
-            (this.gf.getDoubledPawnCount(simulated, color) - (baseline.doubledPawns || 0));
+            (this.gf.getDoubledPawnCount(afterMove, color) - (baseline.doubledPawns || 0));
         score += this.weights.pawnIslands *
-            (this.gf.getPawnIslandCount(simulated, color) - (baseline.islands || 0));
+            (this.gf.getPawnIslandCount(afterMove, color) - (baseline.islands || 0));
         score += this.weights.majorFile *
-            (this.gf.getMajorPieceFileScore(simulated, color) - (baseline.majorFiles || 0));
+            (this.gf.getMajorPieceFileScore(afterMove, color) - (baseline.majorFiles || 0));
         score += this.weights.connectedPawns *
-            (this.gf.getConnectedPawnPairCount(simulated, color) - (baseline.connectedPawns || 0));
+            (this.gf.getConnectedPawnPairCount(afterMove, color) - (baseline.connectedPawns || 0));
         score += this.weights.doubledRooks *
-            (this.gf.getDoubledRookFileCount(simulated, color) - (baseline.doubledRooks || 0));
+            (this.gf.getDoubledRookFileCount(afterMove, color) - (baseline.doubledRooks || 0));
         score += this.weights.advancedRanks *
-            (this.gf.getAdvancedMajorPieceRankCount(simulated, color) - (baseline.advancedRanks || 0));
+            (this.gf.getAdvancedMajorPieceRankCount(afterMove, color) - (baseline.advancedRanks || 0));
 
-        // 7. Fourchette de cavalier
-        score += this.gf.getSafeKnightForkBonus(simulated, move, color, {
-            simulated,
+        // 7. Fourchette de cavalier — échelle pawn=100
+        score += this.gf.getSafeKnightForkBonus(afterMove, move, color, {
+            simulated: afterMove,
             exposure,
-            baseBonus: 1.2,
-            perExtraTarget: 0.4,
+            baseBonus: 120,
+            perExtraTarget: 40,
             targetValueFactor: 0.1,
-            maximumBonus: 2.5
+            maximumBonus: 250
         });
 
         // 8. Roque
         if (move.details?.type === 'castling') score += this.weights.castling;
 
         // 9. Sauver une pièce attaquée
-        if (this._isSquareAttacked(simulated, move.fromRow, move.fromCol, opp)) {
-            score += (this.pieceValues[move.piece.type] || 0) * 0.005;
+        if (this._isSquareAttacked(afterMove, move.fromRow, move.fromCol, opp)) {
+            score += (this.pieceValues[move.piece.type] || 0) * 0.5;
         }
 
         return score;
     }
 
     /**
-     * Capture les scores de structure d'une position (optimisation).
+     * Capture les scores de structure d'une position.
      * Appelé une fois avant de scorer N coups candidats.
      */
     captureBaseline(game, color) {
