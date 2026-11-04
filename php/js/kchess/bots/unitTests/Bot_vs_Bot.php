@@ -203,8 +203,11 @@ if (empty($availableBots)) {
     ?>
 
     <script src="../game_fonctions.js?v=<?php echo $version; ?>"></script>
+    <script src="../game_ouverture.js?v=<?php echo $version; ?>"></script>
     <script src="../BoardAnalyzer.js?v=<?php echo $version; ?>"></script>
     <script src="../BotCore.js?v=<?php echo $version; ?>"></script>
+    <script src="../Evaluator.js?v=<?php echo $version; ?>"></script>
+    <script src="../SearchEngine.js?v=<?php echo $version; ?>"></script>
 
     <?php foreach ($availableBots as $bot): ?>
         <script src="../<?php echo $bot['file']; ?>?v=<?php echo $version; ?>"></script>
