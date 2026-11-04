@@ -1,9 +1,9 @@
 /**
  * Level_16 - Bot Killer (Simplifié mais efficace)
- * Version 3.3 - Contrôle des cases centrales
+ * Version 3.5 - Promotion prioritaire
  */
 class Level_16 {
-    static VERSION = '3.3.0';
+    static VERSION = '3.5.0';
 
     constructor() {
         this.name = "Bot Level 16 (Killer)";
@@ -22,6 +22,7 @@ class Level_16 {
         
         const allMoves = this._getAllLegalMoves(game, color);
         if (allMoves.length === 0) return null;
+        const hasPromotionMove = allMoves.some(move => this._isPromotionMove(move));
 
         // --- 1. MAT EN 1 COUP ---
         const mateMove = this._findMateInOne(game, color, allMoves);
@@ -31,9 +32,20 @@ class Level_16 {
         let bestMove = null;
         let bestScore = -Infinity;
         const centerControlBefore = this._getCenterControlScore(game, color);
+        const doubledPawnsBefore = this._getDoubledPawnCount(game, color);
+        const majorPieceFilesBefore = this._getMajorPieceFileScore(game, color);
         
         for (const move of allMoves) {
-            const score = this._evaluateMove(game, move, color, oppColor, centerControlBefore);
+            const score = this._evaluateMove(
+                game,
+                move,
+                color,
+                oppColor,
+                centerControlBefore,
+                doubledPawnsBefore,
+                majorPieceFilesBefore
+            );
+            move._score = score;
             
             if (score > bestScore) {
                 bestScore = score;
@@ -42,9 +54,15 @@ class Level_16 {
                 // Bonus supplémentaire pour attaquer le roi en finale
                 if (this._isEndgame(game) && this._isMoveAttackingKing(game, move, oppColor)) {
                     bestMove = move;
-                    break; // Prendre ce coup immédiatement
+                    if (!hasPromotionMove) break; // Garder le repli tactique si aucune promotion n'est possible
                 }
             }
+        }
+
+        const promotionMoves = allMoves.filter(move => this._isPromotionMove(move));
+        if (promotionMoves.length > 0) {
+            promotionMoves.sort((a, b) => b._score - a._score);
+            return this._finalize(promotionMoves[0]);
         }
 
         // --- 3. EN FINALE : ÊTRE AGRESSIF ---
@@ -85,7 +103,7 @@ class Level_16 {
         return bestMove ? this._finalize(bestMove) : this._finalize(allMoves[0]);
     }
 
-    _evaluateMove(game, move, color, oppColor, centerControlBefore) {
+    _evaluateMove(game, move, color, oppColor, centerControlBefore, doubledPawnsBefore, majorPieceFilesBefore) {
         let score = 0;
         const simulated = this._simulateMove(game, move);
         const exposure = this._evaluateMoveExposure(game, move, oppColor, simulated);
@@ -106,8 +124,8 @@ class Level_16 {
         }
         
         // 2. PROMOTION
-        if (move.piece?.type === 'pawn' && (move.toRow === 0 || move.toRow === 7)) {
-            score += 50; // Énorme bonus pour promotion
+        if (this._isPromotionMove(move)) {
+            score += 10000;
         }
         
         // 3. ÉCHEC
@@ -131,6 +149,8 @@ class Level_16 {
         // 5. SÉCURITÉ APRÈS SIMULATION
         score -= exposure * 5;
         score += (this._getCenterControlScore(simulated, color) - centerControlBefore) * 2;
+        score -= (this._getDoubledPawnCount(simulated, color) - doubledPawnsBefore) * 5;
+        score += (this._getMajorPieceFileScore(simulated, color) - majorPieceFilesBefore) * 2;
 
         if (move.details?.type === 'castling') {
             score += 5;
@@ -145,6 +165,11 @@ class Level_16 {
         return score;
     }
 
+    _isPromotionMove(move) {
+        return move.piece?.type === 'pawn'
+            && (move.details?.isPromotion || move.toRow === 0 || move.toRow === 7);
+    }
+
     _getCenterControlScore(game, color) {
         const fen = game.moveValidator.generateCurrentFEN(color);
         const engine = new ChessEngine(fen);
@@ -155,6 +180,43 @@ class Level_16 {
             const piece = this._getPiece(game.board, row, col);
             if (piece?.color === color) score += 1;
             if (engine.isSquareAttacked(row, col, colorKey)) score += 1;
+        }
+        return score;
+    }
+
+    _getDoubledPawnCount(game, color) {
+        const pawnsByFile = Array(8).fill(0);
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPiece(game.board, row, col);
+                if (piece?.type === 'pawn' && piece.color === color) {
+                    pawnsByFile[col]++;
+                }
+            }
+        }
+        return pawnsByFile.reduce((total, count) => total + Math.max(0, count - 1), 0);
+    }
+
+    _getMajorPieceFileScore(game, color) {
+        const ownPawnsByFile = Array(8).fill(0);
+        const opponentPawnsByFile = Array(8).fill(0);
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPiece(game.board, row, col);
+                if (piece?.type !== 'pawn') continue;
+                const pawnsByFile = piece.color === color ? ownPawnsByFile : opponentPawnsByFile;
+                pawnsByFile[col]++;
+            }
+        }
+
+        let score = 0;
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPiece(game.board, row, col);
+                if (!piece || piece.color !== color || !['rook', 'queen'].includes(piece.type)) continue;
+                if (ownPawnsByFile[col] > 0) continue;
+                score += opponentPawnsByFile[col] === 0 ? 2 : 1;
+            }
         }
         return score;
     }

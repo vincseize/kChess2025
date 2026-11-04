@@ -186,11 +186,20 @@ Calculer les critères tactiques du niveau 5
         |
 Ajouter un bonus pour le roque légal
         |
+Si une promotion est légale, privilégier
+la promotion en dame avec le meilleur score tactique
+        |
 Après simulation de chaque coup, ajouter la variation
 de l'occupation et du contrôle des cases d4, e4, d5, e5
         |
 Ajouter aussi le bonus positionnel d'approche
 du centre selon le type de pièce
+        |
+Pénaliser toute augmentation du nombre de pions
+en surplus sur une même colonne
+        |
+Favoriser les tours et dames sur colonnes
+ouvertes ou semi-ouvertes après le coup
         |
 Trier les coups par score
         |
@@ -200,6 +209,9 @@ Choisir au hasard parmi les candidats
 ```
 
 Le niveau 6 privilégie désormais à la fois l'occupation et le contrôle effectif des quatre cases centrales. Il n'effectue pas de recherche plus profonde que le niveau 5 et évalue lui aussi les pièces exposées après simulation, avec les prises et reprises légales jusqu'à huit échanges.
+Il pénalise aussi les pions doublés en comparant leur nombre avant et après le coup simulé ; les doublons déjà présents ne pénalisent pas davantage un coup qui ne les aggrave pas.
+Il valorise également les tours et dames placées sur une colonne sans pion allié : bonus supérieur si la colonne ne contient aucun pion adverse.
+Si une promotion est légale, il privilégie la promotion en dame dont le score tactique est le meilleur.
 
 ## Niveau 16 — mat immédiat, score, puis règles de finale
 
@@ -212,17 +224,32 @@ Existe-t-il un mat en un coup ?
       /             \
     oui              non
      |                |
-jouer le mat    Évaluer chaque coup :
+jouer le mat    Évaluer tous les coups légaux :
                  + captures
                  + promotion
                  + échec
                  + centre et développement
                  + variation du contrôle/occupation
                    des quatre cases centrales
+                 - augmentation des pions en surplus
+                   sur une même colonne
+                 + tours et dames sur colonnes
+                   ouvertes ou semi-ouvertes
                  + bonus pour le roque légal (petit ou grand)
                  - perte estimée après simulation
                    et prises/reprises adverses
                  + sauver une pièce attaquée
+                        |
+              Une promotion est-elle légale ?
+                    /             \
+                  oui              non
+                   |                |
+       choisir la promotion en dame choisir le meilleur
+       au meilleur score tactique   coup évalué
+```
+
+```text
+Si aucune promotion n'est disponible :
                         |
                Position de finale ?
                         |
@@ -248,6 +275,10 @@ jouer le mat    Évaluer chaque coup :
 La finale est définie ici comme une position avec au plus quatre pièces autres que les pions et les rois, tous camps confondus. En finale, la priorité aux coups de pion ou de roi peut remplacer le meilleur score calculé auparavant, mais choisit maintenant les coups les moins exposés de ces catégories.
 
 Après chaque coup candidat, Level 16 évalue aussi si l'adversaire peut capturer la pièce déplacée dans la position simulée, en tenant compte des reprises possibles. Le validateur de la simulation est construit pour le plateau copié.
+Il pénalise une augmentation du nombre de pions en surplus sur une colonne par rapport à la position de départ.
+Si une promotion légale existe, après la recherche du mat en un coup, Level 16 privilégie la promotion en dame ayant le meilleur score tactique.
+Après avoir vérifié le mat en un coup, Level 16 privilégie une promotion légale en dame et choisit celle qui présente le meilleur score tactique.
+Il valorise les tours et dames sur une colonne ouverte (sans pions des deux camps) ou semi-ouverte (sans pion allié), avec une préférence pour les colonnes ouvertes.
 Les niveaux 4, 5, 6 et 16 ajoutent un bonus de score au petit roque ; les niveaux 5, 6 et 16 ajoutent aussi ce bonus au grand roque, quand le validateur le propose comme coup légal. Le roque n'est pas forcé face à une meilleure tactique.
 
 ## Observations transversales

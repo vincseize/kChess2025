@@ -3,7 +3,7 @@
  * Base Level_5 avec une préférence positionnelle pour les cases centrales.
  */
 class Level_6 {
-    static VERSION = '1.3.0';
+    static VERSION = '1.5.0';
 
     constructor() {
         this.name = "Bot Level 6 (Centre)";
@@ -27,6 +27,8 @@ class Level_6 {
 
             const oppKing = this._findKing(game, oppColor);
             const centerControlBefore = this._getCenterControlScore(game, myColor);
+            const doubledPawnsBefore = this._getDoubledPawnCount(game, myColor);
+            const majorPieceFilesBefore = this._getMajorPieceFileScore(game, myColor);
 
             allMoves.forEach(m => {
                 let score = 0;
@@ -37,6 +39,8 @@ class Level_6 {
                 }
                 score -= this._evaluateMoveExposure(game, m, oppColor, afterMove) * 12;
                 score += (this._getCenterControlScore(afterMove, myColor) - centerControlBefore) * 12;
+                score -= (this._getDoubledPawnCount(afterMove, myColor) - doubledPawnsBefore) * 25;
+                score += (this._getMajorPieceFileScore(afterMove, myColor) - majorPieceFilesBefore) * 12;
 
                 if (oppKing) {
                     const distAfter = Math.abs(m.toRow - oppKing.r) + Math.abs(m.toCol - oppKing.c);
@@ -49,7 +53,9 @@ class Level_6 {
                 if (m.piece.type === 'pawn') {
                     const rank = isWhite ? (7 - m.toRow) : m.toRow;
                     score += rank * rank * 10;
-                    if (m.toRow === 0 || m.toRow === 7) score += 10000;
+                    if (m.details?.isPromotion || (m.toRow === 0 || m.toRow === 7)) {
+                        score += 10000;
+                    }
                 }
 
                 if (m.isCheck) score += 300;
@@ -68,6 +74,12 @@ class Level_6 {
 
                 m._finalScore = score;
             });
+
+            const promotionMoves = allMoves.filter(move => this._isPromotionMove(move));
+            if (promotionMoves.length > 0) {
+                promotionMoves.sort((a, b) => b._finalScore - a._finalScore);
+                return this._finalize(promotionMoves[0]);
+            }
 
             return this._finalize(this._getBestMove(allMoves));
         } catch (err) {
@@ -96,6 +108,48 @@ class Level_6 {
             const piece = this._getPieceCompat(game, row, col);
             if (piece?.color === color) score += 1;
             if (engine.isSquareAttacked(row, col, colorKey)) score += 1;
+        }
+        return score;
+    }
+
+    _getDoubledPawnCount(game, color) {
+        const pawnsByFile = Array(8).fill(0);
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPieceCompat(game, row, col);
+                if (piece?.type === 'pawn' && piece.color === color) {
+                    pawnsByFile[col]++;
+                }
+            }
+        }
+        return pawnsByFile.reduce((total, count) => total + Math.max(0, count - 1), 0);
+    }
+
+    _isPromotionMove(move) {
+        return move.piece?.type === 'pawn'
+            && (move.details?.isPromotion || move.toRow === 0 || move.toRow === 7);
+    }
+
+    _getMajorPieceFileScore(game, color) {
+        const ownPawnsByFile = Array(8).fill(0);
+        const opponentPawnsByFile = Array(8).fill(0);
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPieceCompat(game, row, col);
+                if (piece?.type !== 'pawn') continue;
+                const pawnsByFile = piece.color === color ? ownPawnsByFile : opponentPawnsByFile;
+                pawnsByFile[col]++;
+            }
+        }
+
+        let score = 0;
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPieceCompat(game, row, col);
+                if (!piece || piece.color !== color || !['rook', 'queen'].includes(piece.type)) continue;
+                if (ownPawnsByFile[col] > 0) continue;
+                score += opponentPawnsByFile[col] === 0 ? 2 : 1;
+            }
         }
         return score;
     }
@@ -295,7 +349,8 @@ class Level_6 {
                                 isCapture: (!!target && !target.color.toLowerCase().startsWith(myKey))
                                     || move.type === 'en-passant',
                                 isCheck: move.isCheck || false,
-                                details: move
+                                details: move,
+                                promotion: move.isPromotion ? 'queen' : undefined
                             });
                         });
                     }
@@ -324,7 +379,8 @@ class Level_6 {
             fromCol: move.fromCol,
             toRow: move.toRow,
             toCol: move.toCol,
-            promotion: (move.piece?.type === 'pawn' && (move.toRow === 0 || move.toRow === 7)) ? 'queen' : undefined
+            promotion: move.promotion
+                || (move.piece?.type === 'pawn' && (move.toRow === 0 || move.toRow === 7) ? 'queen' : undefined)
         };
     }
 }
