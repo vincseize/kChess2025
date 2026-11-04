@@ -144,7 +144,7 @@ class Level_3 {
             const grid = game.board.grid || game.board;
             const sq = grid[r][c];
             if (!sq) return null;
-            return sq.piece || (sq.type ? sq : null);
+            return sq?.type ? sq : null;
         } catch(e) { return null; }
     }
 

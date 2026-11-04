@@ -1,4 +1,4 @@
-// check/checkChess.js - Moteur de vérification d'échec unifié
+// check/checkChess.js - Parse les positions FEN et détecte les cases attaquées
 class ChessEngine {
     
     static consoleLog = true;
@@ -107,135 +107,12 @@ class ChessEngine {
         return this.isSquareAttacked(kingPos.row, kingPos.col, side === 'w' ? 'b' : 'w');
     }
 
-    // --- LOGIQUE DE FIN DE PARTIE SANS RÉCURSION ---
-
-    checkGameStatus(color = null) {
-        const side = color || this.turn;
-        const hasMoves = this.hasAnyLegalMoves(side);
-        const inCheck = this.isKingInCheck(side);
-
-        if (!hasMoves) {
-            return inCheck ? 'checkmate' : 'stalemate';
-        }
-        return 'in_progress';
-    }
-
-    isCheckmate(color) {
-        const side = color === 'white' || color === 'w' ? 'w' : 'b';
-        return this.isKingInCheck(side) && !this.hasAnyLegalMoves(side);
-    }
-
-    isStalemate(color) {
-        const side = color === 'white' || color === 'w' ? 'w' : 'b';
-        return !this.isKingInCheck(side) && !this.hasAnyLegalMoves(side);
-    }
-
-    hasAnyLegalMoves(side) {
-        for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 8; c++) {
-                const piece = this.board[r][c];
-                if (piece && this.isPieceColor(piece, side)) {
-                    const moves = this.getPossibleMovesForPiece(piece, r, c);
-                    for (const m of moves) {
-                        if (this.isMoveLegal(side, r, c, m.row, m.col)) return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    isMoveLegal(side, fR, fC, tR, tC) {
-        const originalTarget = this.board[tR][tC];
-        const originalSource = this.board[fR][fC];
-
-        // Simulation
-        this.board[tR][tC] = originalSource;
-        this.board[fR][fC] = null;
-
-        const stillInCheck = this.isKingInCheck(side);
-
-        // Backtrack
-        this.board[fR][fC] = originalSource;
-        this.board[tR][tC] = originalTarget;
-
-        return !stillInCheck;
-    }
-
     isPieceColor(piece, side) {
         const isWhite = piece === piece.toUpperCase();
         return (side === 'w' && isWhite) || (side === 'b' && !isWhite);
     }
 
     isValidSquare(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
-
-    getPossibleMovesForPiece(piece, row, col) {
-        const moves = [];
-        const type = piece.toLowerCase();
-        // Utilisation des fonctions déjà définies dans votre code
-        if (type === 'p') this.getPawnMoves(moves, piece, row, col);
-        else if (type === 'n') this.getKnightMoves(moves, row, col);
-        else if (type === 'b') this.getBishopMoves(moves, row, col);
-        else if (type === 'r') this.getRookMoves(moves, row, col);
-        else if (type === 'q') this.getQueenMoves(moves, row, col);
-        else if (type === 'k') this.getKingMoves(moves, row, col);
-        return moves;
-    }
-
-    // (Gardez vos méthodes getPawnMoves, getKnightMoves, etc. telles quelles)
-    getPawnMoves(moves, piece, row, col) {
-        const dir = (piece === 'P') ? -1 : 1;
-        const start = (piece === 'P') ? 6 : 1;
-        if (this.isValidSquare(row + dir, col) && !this.getPiece(row + dir, col)) {
-            moves.push({ row: row + dir, col: col });
-            if (row === start && !this.getPiece(row + 2 * dir, col) && !this.getPiece(row + dir, col)) 
-                moves.push({ row: row + 2 * dir, col: col });
-        }
-        [[dir, -1], [dir, 1]].forEach(([dr, dc]) => {
-            const nr = row + dr, nc = col + dc;
-            if (this.isValidSquare(nr, nc)) {
-                const target = this.getPiece(nr, nc);
-                if (target && !this.isPieceColor(target, piece === 'P' ? 'w' : 'b')) moves.push({ row: nr, col: nc });
-            }
-        });
-    }
-
-    getKnightMoves(moves, row, col) {
-        [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr, dc]) => {
-            const nr = row + dr, nc = col + dc;
-            if (this.isValidSquare(nr, nc)) {
-                const target = this.getPiece(nr, nc);
-                if (!target || !this.isPieceColor(target, this.isPieceColor(this.getPiece(row, col), 'w') ? 'w' : 'b')) moves.push({ row: nr, col: nc });
-            }
-        });
-    }
-    getSlidingMoves(moves, row, col, directions) {
-        const side = this.isPieceColor(this.getPiece(row, col), 'w') ? 'w' : 'b';
-        directions.forEach(([dr, dc]) => {
-            let nr = row + dr, nc = col + dc;
-            while (this.isValidSquare(nr, nc)) {
-                const target = this.getPiece(nr, nc);
-                if (!target) moves.push({ row: nr, col: nc });
-                else {
-                    if (!this.isPieceColor(target, side)) moves.push({ row: nr, col: nc });
-                    break;
-                }
-                nr += dr; nc += dc;
-            }
-        });
-    }
-    getBishopMoves(moves, row, col) { this.getSlidingMoves(moves, row, col, [[-1,-1],[-1,1],[1,-1],[1,1]]); }
-    getRookMoves(moves, row, col) { this.getSlidingMoves(moves, row, col, [[-1,0],[1,0],[0,-1],[0,1]]); }
-    getQueenMoves(moves, row, col) { this.getSlidingMoves(moves, row, col, [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]); }
-    getKingMoves(moves, row, col) {
-        [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dr, dc]) => {
-            const nr = row + dr, nc = col + dc;
-            if (this.isValidSquare(nr, nc)) {
-                const target = this.getPiece(nr, nc);
-                if (!target || !this.isPieceColor(target, this.isPieceColor(this.getPiece(row, col), 'w') ? 'w' : 'b')) moves.push({ row: nr, col: nc });
-            }
-        });
-    }
 }
 
 ChessEngine.init();

@@ -27,28 +27,6 @@ class MoveExecutor {
         this.game = game;
     }
 
-    /**
-     * CRÉATION VISUELLE DE LA PIÈCE (Correction de l'erreur)
-     */
-    createPieceElement(piece) {
-        const img = document.createElement('img');
-        const colorChar = piece.color[0].toLowerCase();
-        const typeChar = this.getPieceLetter(piece.type);
-        
-        // On utilise le même chemin d'image que le reste du jeu
-        img.src = `img/chesspieces/wikipedia/${colorChar}${typeChar}.png`;
-        img.className = 'chess-piece chess-piece-img'; // Ajoutez vos classes CSS ici
-        img.dataset.type = piece.type;
-        img.dataset.color = piece.color;
-        
-        return img;
-    }
-
-    getPieceLetter(type) {
-        const letters = { 'pawn': 'P', 'knight': 'N', 'bishop': 'B', 'rook': 'R', 'queen': 'Q', 'king': 'K' };
-        return letters[type.toLowerCase()] || 'P';
-    }
-
     prepareMoveExecution(toRow, toCol) {
         if (!this.game.selectedPiece) return null;
         const selectedPiece = { ...this.game.selectedPiece };
@@ -57,8 +35,7 @@ class MoveExecutor {
         const move = this.game.possibleMoves ? 
             this.game.possibleMoves.find(m => m.row === toRow && m.col === toCol) : null;
         if (!fromSquare || !toSquare) return null;
-        const pieceElement = fromSquare.element.querySelector('.chess-piece');
-        return { selectedPiece, fromSquare, toSquare, move, pieceElement };
+        return { selectedPiece, fromSquare, toSquare, move };
     }
 
     executeNormalMove(fromSquare, toSquare, selectedPiece, move, toRow, toCol) {
@@ -66,22 +43,22 @@ class MoveExecutor {
             return this.executeChess960Castle(selectedPiece, move);
         }
 
-        const pieceElement = fromSquare.element.querySelector('.chess-piece');
-        if (!pieceElement) return;
-        const isCapture = toSquare.piece !== null || move?.type === 'en-passant';
+        const piece = this.game.board.getPiece(selectedPiece.row, selectedPiece.col);
+        if (!piece) return;
+        const isCapture = this.game.board.getPiece(toRow, toCol) !== null || move?.type === 'en-passant';
 
         if (this.constructor.consoleLog) console.group(`🎯 Action : ${selectedPiece.piece?.type} -> [${toRow},${toCol}]`);
 
         if (move?.type === 'castling' || move?.type === 'castle') this.executeCastlingRookMove(move);
         if (move?.type === 'en-passant' && move.capturedPawn) this.clearSquare(move.capturedPawn.row, move.capturedPawn.col);
 
-        this.transferPieceElement(pieceElement, fromSquare, toSquare, selectedPiece.piece);
-        this.updateMoveFlags(selectedPiece.piece, selectedPiece.row, selectedPiece.col, toRow, toCol);
+        this.transferPiece(fromSquare, toSquare, piece);
+        this.updateMoveFlags(piece, selectedPiece.row, selectedPiece.col, toRow, toCol);
 
-        const isPromotion = move?.isPromotion || this.checkManualPromotion(selectedPiece.piece, toRow);
+        const isPromotion = move?.isPromotion || this.checkManualPromotion(piece, toRow);
         if (isPromotion) {
             if (this.game.moveHandler) this.game.moveHandler.isPromoting = true;
-            this.handlePromotion(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement, isCapture);
+            this.handlePromotion(toRow, toCol, selectedPiece, move, fromSquare, toSquare, isCapture);
         } else {
             this.finalizeMove(toRow, toCol, move, selectedPiece, isCapture);
         }
@@ -96,8 +73,8 @@ class MoveExecutor {
         const rookFrom = board.getSquare(move.rookFrom.row, move.rookFrom.col);
         const kingTo = board.getSquare(move.kingTo.row, move.kingTo.col);
         const rookTo = board.getSquare(move.rookTo.row, move.rookTo.col);
-        const king = kingFrom?.piece;
-        const rook = rookFrom?.piece;
+        const king = board.getPiece(row, selectedPiece.col);
+        const rook = board.getPiece(move.rookFrom.row, move.rookFrom.col);
 
         if (!king || !rook || rook.type !== 'rook' || rook.color !== color || !kingTo || !rookTo) {
             console.error('Roque Chess960 impossible : pièces ou cases manquantes.');
@@ -106,8 +83,7 @@ class MoveExecutor {
 
         const affectedSquares = new Set([kingFrom, rookFrom, kingTo, rookTo]);
         affectedSquares.forEach(square => {
-            square.piece = null;
-            square.element.innerHTML = '';
+            board.setPiece(square.row, square.col, null);
         });
 
         king.row = move.kingTo.row;
@@ -116,8 +92,8 @@ class MoveExecutor {
         rook.row = move.rookTo.row;
         rook.col = move.rookTo.col;
         rook.hasMoved = true;
-        board.placePiece(king, kingTo);
-        board.placePiece(rook, rookTo);
+        board.setPiece(kingTo.row, kingTo.col, king);
+        board.setPiece(rookTo.row, rookTo.col, rook);
 
         const state = this.game.gameState;
         state.hasKingMoved[color] = true;
@@ -135,7 +111,7 @@ class MoveExecutor {
         return true;
     }
 
-    handlePromotion(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement, isCapture) {
+    handlePromotion(toRow, toCol, selectedPiece, move, fromSquare, toSquare, isCapture) {
         const pm = this.game.promotionManager;
         if (!pm) {
             this.finalizePromotion(toRow, toCol, 'queen', move, selectedPiece, isCapture);
@@ -146,7 +122,7 @@ class MoveExecutor {
                 this.finalizePromotion(toRow, toCol, promotedType, move, selectedPiece, isCapture);
             } else {
                 if (this.game.moveHandler) this.game.moveHandler.isPromoting = false;
-                this.undoMoveVisual(fromSquare, toSquare, pieceElement, selectedPiece);
+                this.undoMove(fromSquare, toSquare, selectedPiece);
             }
         });
     }
@@ -156,14 +132,9 @@ class MoveExecutor {
         const color = selectedPiece.piece.color;
 
         if (square) {
-            square.piece.type = pieceType.toLowerCase();
-            square.element.innerHTML = ''; 
-            // APPEL DE LA MÉTHODE AJOUTÉE CI-DESSUS
-            const newPieceEl = this.createPieceElement({
-                type: pieceType.toLowerCase(),
-                color: color
-            });
-            square.element.appendChild(newPieceEl);
+            const piece = this.game.board.getPiece(row, col);
+            piece.type = pieceType.toLowerCase();
+            this.game.board.renderPiece(square, piece);
         }
 
         if (this.game.gameState?.recordMove) {
@@ -194,19 +165,15 @@ class MoveExecutor {
         if (this.game.checkBotTurn) this.game.checkBotTurn();
     }
 
-    transferPieceElement(pieceElement, fromSquare, toSquare, piece) {
-        toSquare.element.innerHTML = ''; 
-        toSquare.element.appendChild(pieceElement);
-        toSquare.piece = piece;
-        fromSquare.piece = null;
-        fromSquare.element.innerHTML = ''; 
+    transferPiece(fromSquare, toSquare, piece) {
+        this.game.board.setPiece(fromSquare.row, fromSquare.col, null);
+        this.game.board.setPiece(toSquare.row, toSquare.col, piece);
     }
 
     clearSquare(row, col) {
         const square = this.game.board.getSquare(row, col);
         if (square) {
-            square.piece = null;
-            square.element.innerHTML = '';
+            this.game.board.setPiece(row, col, null);
         }
     }
 
@@ -214,16 +181,14 @@ class MoveExecutor {
         const fromSq = this.game.board.getSquare(move.rookFrom.row, move.rookFrom.col);
         const toSq = this.game.board.getSquare(move.rookTo.row, move.rookTo.col);
         if (fromSq && toSq) {
-            const rookEl = fromSq.element.querySelector('.chess-piece');
-            if (rookEl) this.transferPieceElement(rookEl, fromSq, toSq, fromSq.piece);
+            const rook = this.game.board.getPiece(fromSq.row, fromSq.col);
+            if (rook) this.transferPiece(fromSq, toSq, rook);
         }
     }
 
-    undoMoveVisual(fromSquare, toSquare, pieceElement, selectedPiece) {
-        toSquare.element.innerHTML = '';
-        toSquare.piece = null;
-        fromSquare.element.appendChild(pieceElement);
-        fromSquare.piece = selectedPiece.piece;
+    undoMove(fromSquare, toSquare, selectedPiece) {
+        this.game.board.setPiece(toSquare.row, toSquare.col, null);
+        this.game.board.setPiece(fromSquare.row, fromSquare.col, selectedPiece.piece);
         if (this.game.clearSelection) this.game.clearSelection();
     }
 

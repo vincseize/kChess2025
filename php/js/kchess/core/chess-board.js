@@ -1,5 +1,5 @@
 /**
- * ChessBoard - Gestion de l'affichage physique et de la grille du jeu
+ * ChessBoard - Affichage HTML de la position de jeu
  */
 class ChessBoard {
     
@@ -58,10 +58,12 @@ class ChessBoard {
 
     // --- Méthodes d'instance ---
 
-    constructor(gameState, pieceManager) {
+    constructor(gameState, pieceManager, position = new BoardPosition()) {
         this.gameState = gameState;
         this.pieceManager = pieceManager;
+        this.position = position;
         this.squares = [];
+        this.squareByPosition = Array.from({ length: 8 }, () => Array(8).fill(null));
         
         // Rafraîchir la config à l'instanciation
         this.constructor.loadConfig();
@@ -83,6 +85,7 @@ class ChessBoard {
         boardElement.setAttribute('data-flipped', flipped);
         boardElement.innerHTML = '';
         this.squares = [];
+        this.squareByPosition = Array.from({ length: 8 }, () => Array(8).fill(null));
 
         ChessBoard.log(`Construction : Mode ${flipped ? 'Retourné (Noir)' : 'Normal (Blanc)'}`);
 
@@ -92,7 +95,9 @@ class ChessBoard {
                 const squareData = this.createSquare(displayRow, displayCol, actualRow, actualCol);
                 
                 this.squares.push(squareData);
+                this.squareByPosition[actualRow][actualCol] = squareData;
                 boardElement.appendChild(squareData.element);
+                this.renderPiece(squareData, this.getPiece(actualRow, actualCol));
             }
         }
 
@@ -110,7 +115,7 @@ class ChessBoard {
     }
 
     /**
-     * Crée une case individuelle (DOM + Données)
+     * Crée un élément d'affichage pour une case.
      */
     createSquare(displayRow, displayCol, actualRow, actualCol) {
         const isWhite = (actualRow + actualCol) % 2 === 0;
@@ -129,17 +134,11 @@ class ChessBoard {
 
         this.addCoordinatesLabels(squareElement, actualRow, actualCol);
 
-        const squareData = {
+        return {
             element: squareElement,
             row: actualRow,
-            col: actualCol,
-            piece: null
+            col: actualCol
         };
-
-        // Référence circulaire utile pour les événements au clic
-        squareElement.__squareData = squareData;
-        
-        return squareData;
     }
 
     /**
@@ -166,12 +165,13 @@ class ChessBoard {
     }
 
     /**
-     * Place visuellement une pièce sur une case
+     * Rend sur une case la pièce conservée dans BoardPosition.
      */
-/**
-     * Place visuellement une pièce sur une case (Support Texte ou Image)
-     */
-    placePiece(piece, squareData) {
+    renderPiece(squareData, piece) {
+        if (!squareData) return;
+        squareData.element.replaceChildren();
+        if (!piece) return;
+
         const pieceElement = document.createElement('div');
         pieceElement.className = `chess-piece ${piece.color}`;
         
@@ -196,7 +196,20 @@ class ChessBoard {
         });
 
         squareData.element.appendChild(pieceElement);
-        squareData.piece = piece;
+    }
+
+    setPiece(row, col, piece) {
+        this.position.setPiece(row, col, piece);
+        this.renderPiece(this.getSquare(row, col), piece);
+    }
+
+    getPiece(row, col) {
+        return this.position.getPiece(row, col);
+    }
+
+    placePiece(piece, squareData) {
+        if (!squareData) return;
+        this.setPiece(squareData.row, squareData.col, piece);
     }
 
     // Utilitaire pour transformer 'pawn' en 'P', 'knight' en 'N', etc.
@@ -209,17 +222,16 @@ class ChessBoard {
      * Récupère les données d'une case par ses coordonnées réelles
      */
     getSquare(row, col) {
-        return this.squares.find(s => s.row === row && s.col === col) || null;
+        if (!this.position.isValidSquare(row, col)) return null;
+        return this.squareByPosition[row][col];
     }
 
     /**
      * Vide le plateau
      */
     clearBoard() {
-        this.squares.forEach(sq => {
-            sq.element.innerHTML = '';
-            sq.piece = null;
-        });
+        this.position.clear();
+        this.squares.forEach(square => this.renderPiece(square, null));
         ChessBoard.log('Plateau vidé', null, 'info');
     }
 
@@ -229,8 +241,9 @@ class ChessBoard {
         if (!this.constructor.consoleLog) return;
 
         const stats = this.squares.reduce((acc, sq) => {
-            if (sq.piece) {
-                const color = sq.piece.color;
+            const piece = this.getPiece(sq.row, sq.col);
+            if (piece) {
+                const color = piece.color;
                 acc[color] = (acc[color] || 0) + 1;
                 acc.total++;
             }
@@ -252,7 +265,7 @@ class ChessBoard {
         for (let r = 0; r < 8; r++) {
             let rowStr = `${8-r} | `;
             for (let c = 0; c < 8; c++) {
-                const p = this.getSquare(r, c)?.piece;
+                const p = this.getPiece(r, c);
                 rowStr += p ? ` ${p.type[0]} ` : " . ";
             }
             grid += rowStr + "\n";

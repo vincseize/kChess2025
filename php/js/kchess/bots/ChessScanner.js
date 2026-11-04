@@ -20,7 +20,7 @@ class ChessScanner {
                 }
                 
                 // 2. Détection des protections (Alliées et Ennemies)
-                const piece = game.board.getSquare(r, c)?.piece;
+                const piece = game.board.getPiece(r, c);
                 if (piece) {
                     if (this.isSquareAttacked(game, r, c, piece.color)) {
                         if (piece.color === playerColor) analysis.myProtectedPieces.push({ r, c });
@@ -37,11 +37,10 @@ class ChessScanner {
      * On simule la case vide pour voir les rayons X (Dame, Tour, Fou)
      */
     static isSquareAttacked(game, r, c, attackerColor) {
-        const square = game.board.getSquare(r, c);
-        const originalPiece = square.piece;
+        const originalPiece = game.board.getPiece(r, c);
         
         // Simulation : on vide la case pour voir si elle est "dans la ligne de mire"
-        square.piece = null;
+        game.board.position.setPiece(r, c, null);
         const attacked = game.moveValidator.isSquareAttacked?.(r, c, attackerColor);
         
         // Sécurité pour les pions (certains moteurs ignorent les pions en isSquareAttacked)
@@ -49,11 +48,11 @@ class ChessScanner {
         const dir = (attackerColor === 'white') ? 1 : -1;
         const pawns = [{r: r + dir, c: c - 1}, {r: r + dir, c: c + 1}];
         for (let p of pawns) {
-            const pc = game.board.getSquare(p.r, p.c)?.piece;
+            const pc = game.board.getPiece(p.r, p.c);
             if (pc && pc.type === 'pawn' && pc.color === attackerColor) pawnAttack = true;
         }
 
-        square.piece = originalPiece; // On remet la pièce
+        game.board.position.setPiece(r, c, originalPiece);
         return attacked || pawnAttack;
     }
 }

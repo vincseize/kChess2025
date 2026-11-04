@@ -151,7 +151,7 @@ class Level_6 {
             if (board.getPiece) return board.getPiece(r, c);
             const grid = board.grid || board;
             const square = grid[r] ? grid[r][c] : null;
-            return square?.piece || (square?.type ? square : null);
+            return square?.type ? square : null;
         } catch (error) {
             return null;
         }

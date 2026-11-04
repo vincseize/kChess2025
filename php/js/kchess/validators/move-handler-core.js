@@ -59,7 +59,7 @@ class ChessGameMoveHandler {
     }
 
     handleSelectionPhase(row, col, square) {
-        const piece = square.piece;
+        const piece = this.game.board.getPiece(row, col);
         const currentPlayer = this.game.gameState.currentPlayer;
         
         if (piece && piece.color === currentPlayer) {
@@ -81,7 +81,8 @@ class ChessGameMoveHandler {
             return;
         }
 
-        if (square.piece && square.piece.color === this.game.gameState.currentPlayer) {
+        const piece = this.game.board.getPiece(row, col);
+        if (piece && piece.color === this.game.gameState.currentPlayer) {
             const castleMove = this.game.possibleMoves?.find(move =>
                 move.type === 'castling' && move.row === row && move.col === col
             );

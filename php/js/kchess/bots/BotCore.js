@@ -11,8 +11,8 @@ class BotCore {
     // Lecture d'une pièce sur le plateau
     getPiece(board, r, c) {
         try {
-            const sq = board.getSquare ? board.getSquare(r, c) : (board.grid ? board.grid[r][c] : board[r][c]);
-            if (sq && sq.piece) return sq.piece;
+            if (typeof board.getPiece === 'function') return board.getPiece(r, c);
+            const sq = board.grid ? board.grid[r][c] : board[r][c];
             return (sq && sq.type) ? sq : null;
         } catch (e) { 
             return null; 

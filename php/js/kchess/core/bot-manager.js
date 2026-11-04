@@ -62,21 +62,15 @@ window.BotStressTest = class BotStressTest {
         const fromSq = board.getSquare(nMove.fR, nMove.fC);
         const toSq = board.getSquare(nMove.tR, nMove.tC);
 
-        if (!fromSq || !fromSq.piece) return false;
+        const piece = board.getPiece(nMove.fR, nMove.fC);
+        if (!fromSq || !toSq || !piece) return false;
 
-        const piece = fromSq.piece;
-
-        // 2. Mise à jour visuelle et mémoire (Méthodes de ton ChessBoard)
-        fromSq.element.innerHTML = ''; // Vide le HTML de départ
-        fromSq.piece = null;           // Vide la mémoire de départ
-
-        toSq.element.innerHTML = '';   // Nettoie l'arrivée (capture)
-        board.placePiece(piece, toSq); // Utilise TA méthode pour dessiner la pièce
+        board.setPiece(nMove.fR, nMove.fC, null);
+        board.setPiece(nMove.tR, nMove.tC, piece);
 
         // 3. Gestion Promotion (Simple)
         if (piece.type === 'pawn' && (nMove.tR === 0 || nMove.tR === 7)) {
-            toSq.element.innerHTML = '';
-            board.placePiece({ type: 'queen', color: piece.color }, toSq);
+            board.setPiece(nMove.tR, nMove.tC, { type: 'queen', color: piece.color });
         }
 
         // 4. Switch Player (Moteur)

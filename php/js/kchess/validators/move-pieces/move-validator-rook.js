@@ -32,7 +32,7 @@ class RookMoveValidator {
         if (this.board && !this.board.getPiece) {
             this.board.getPiece = (r, c) => {
                 const square = this.board.getSquare ? this.board.getSquare(r, c) : null;
-                return square ? square.piece : null;
+                return square?.type ? square : null;
             };
         }
     }

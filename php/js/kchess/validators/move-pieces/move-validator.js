@@ -29,7 +29,7 @@ class MoveValidator {
             this.board.getPiece = (r, c) => {
                 if (typeof this.board.getSquare === 'function') {
                     const square = this.board.getSquare(r, c);
-                    return square ? square.piece : null;
+                    return square?.type ? square : null;
                 }
                 return (this.board.grid && this.board.grid[r]) ? this.board.grid[r][c] : null;
             };
@@ -77,6 +77,36 @@ class MoveValidator {
         }
         
         return validator.getPossibleMoves(piece, fromRow, fromCol);
+    }
+
+    getGameStatus(color = this.gameState.currentPlayer) {
+        const isCheck = this.isKingInCheck(color);
+        const hasLegalMoves = this.hasAnyLegalMoves(color);
+
+        if (!hasLegalMoves) {
+            return {
+                status: isCheck ? 'checkmate' : 'stalemate',
+                reason: isCheck ? 'Échec et mat !' : 'Pat !'
+            };
+        }
+
+        if (isCheck) {
+            return { status: 'check', reason: 'Le roi est en échec !' };
+        }
+
+        return { status: 'in_progress', reason: '' };
+    }
+
+    hasAnyLegalMoves(color) {
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this.board.getPiece(row, col);
+                if (piece?.color === color && this.getPossibleMoves(piece, row, col).length > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

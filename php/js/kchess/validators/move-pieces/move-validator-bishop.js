@@ -33,7 +33,7 @@ class BishopMoveValidator {
             this.board.getPiece = (r, c) => {
                 if (typeof this.board.getSquare === 'function') {
                     const square = this.board.getSquare(r, c);
-                    return square ? square.piece : null;
+                    return square?.type ? square : null;
                 }
                 return null;
             };

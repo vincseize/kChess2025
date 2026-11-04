@@ -149,10 +149,12 @@ class PromotionManager {
      * Met à jour la pièce logiquement et visuellement (si nécessaire)
      */
     promotePawn(square, newType) {
-        if (!square || !square.piece) return;
+        if (!square) return;
+        const piece = this.game.board.getPiece(square.row, square.col);
+        if (!piece) return;
         
-        const color = square.piece.color;
-        square.piece.type = newType;
+        const color = piece.color;
+        piece.type = newType;
         
         // --- OPTIMISATION ARENA ---
         // Si le plateau HTML n'existe pas (Stress Test pur), on ne manipule pas le DOM
@@ -164,20 +166,7 @@ class PromotionManager {
             return;
         }
 
-        // Mise à jour visuelle (pour Humain vs Bot)
-        square.element.innerHTML = ''; 
-        const executor = this.game.moveExecutor;
-
-        if (executor && typeof executor.createPieceElement === 'function') {
-            const newPieceEl = executor.createPieceElement({ type: newType, color: color });
-            square.element.appendChild(newPieceEl);
-        } else {
-            // Fallback utilisant le chemin propre
-            const img = document.createElement('img');
-            img.src = `${this.getBasePath()}${color[0].toLowerCase()}${this.getPieceLetter(newType)}.png`;
-            img.className = 'chess-piece-img';
-            square.element.appendChild(img);
-        }
+        this.game.board.renderPiece(square, piece);
     }
 
     getPieceLetter(type) {

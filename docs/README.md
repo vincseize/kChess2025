@@ -43,3 +43,21 @@ Bot durations are defined by the game level in `php/js/kchess/ui/chess-game-ui-t
 - `php/config/game-config.json` — settings, theme, locales, and bot metadata.
 - `php/js/kchess/` — game engine, move validation, bots, and interface.
 - `php/css/kchess/` — board, clock, responsive, and modal styles.
+
+## How a move is played
+
+The regular game uses one move path for both human clicks and bot moves:
+
+1. The board interface forwards the selected squares to `ChessGameCore.handleSquareClick`.
+2. `ChessGameMoveHandler` checks the move against the legal moves from `MoveValidator`.
+3. `MoveExecutor` applies the move, updates the game state, and completes the turn.
+
+Use this path when adding a new way to play a move. Do not update the board or switch turns directly. The bot stress-test harness has its own isolated simulation code and is not the regular game path.
+
+`MoveValidator` is also the single source for the side-to-move legal moves and the check, checkmate, and stalemate decision. `ChessEngine` only parses FEN positions and detects attacked squares/checks; it does not generate legal moves. `GameStatusManager` uses the validator's result for end-of-game and UI behavior.
+
+## Board position and display
+
+`BoardPosition` is the source of truth for the 8 × 8 grid and the pieces on it. It can be read or changed without a board element in the page, which keeps rules, FEN generation, and simulations independent from HTML.
+
+`ChessBoard` owns only the board's square elements and rendering. `ChessGame` creates one `BoardPosition` and passes it to `ChessBoard`; normal game moves use the board's `getPiece`/`setPiece` interface so the position and display stay synchronized. Use `renderPiece` only to refresh a square's appearance, not to change the position.

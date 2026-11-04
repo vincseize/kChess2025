@@ -31,7 +31,8 @@ class ChessGame {
             // 1. Initialisation des composants (SÉCURISÉE)
             this.pieceManager = new PieceManager();
             this.gameState = new GameState();
-            this.board = new ChessBoard(this.gameState, this.pieceManager);
+            this.position = new BoardPosition();
+            this.board = new ChessBoard(this.gameState, this.pieceManager, this.position);
             
             // On s'assure que MoveValidator est bien chargé
             if (typeof MoveValidator === 'undefined') throw new Error("MoveValidator manquant");
@@ -161,8 +162,7 @@ setBotLevel(level, color = 'black') {
         
         Object.keys(pos).forEach(key => {
             const [r, c] = key.split('-').map(Number);
-            const sq = this.board.getSquare(r, c);
-            if (sq) this.board.placePiece(pos[key], sq);
+            this.board.setPiece(r, c, pos[key]);
         });
     }
 

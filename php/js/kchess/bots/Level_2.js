@@ -100,7 +100,7 @@ class Level_2 {
             if (board.getPiece) return board.getPiece(r, c);
             const grid = board.grid || board;
             const sq = grid[r][c];
-            return sq?.piece || (sq?.type ? sq : null);
+            return sq?.type ? sq : null;
         } catch(e) { return null; }
     }
 
