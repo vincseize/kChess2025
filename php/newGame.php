@@ -108,7 +108,6 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
                 foreach ($botFiles as $file):
                     $levelNum = str_replace(['Level_', '.js'], '', basename($file));
                     $botKey = "bot_" . $levelNum;
-
                     $botData = $translations['bots'][$botKey] ?? null;
                     if (is_array($botData)) {
                         $botTitle = $botData['title'] ?? "Level $levelNum";
@@ -133,6 +132,38 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
                                     echo htmlspecialchars($botData['description'] ?? ($translations['computer_player'] ?? 'Ordinateur') . " " . $levelNum);
                                 ?>
                             </div>
+                        </div>
+                        <div class="bot-training-progress"
+                             data-training-level="<?php echo htmlspecialchars($levelNum); ?>"
+                             role="group"
+                             aria-label="<?php echo htmlspecialchars($translations['training_progress'] ?? 'Victoires d’entraînement'); ?>">
+                            <span class="training-mark" data-training-type="white"
+                                  data-label="<?php echo htmlspecialchars($translations['training_white_win'] ?? 'Victoire avec les Blancs'); ?>"
+                                  data-done-label="<?php echo htmlspecialchars($translations['training_done'] ?? 'terminé'); ?>"
+                                  data-pending-label="<?php echo htmlspecialchars($translations['training_pending'] ?? 'à faire'); ?>"
+                                  role="img"
+                                  aria-label="<?php echo htmlspecialchars($translations['training_white_win'] ?? 'Victoire avec les Blancs'); ?>">
+                                <span class="training-symbol" aria-hidden="true">♔</span>
+                                <i class="bi bi-check-lg training-check" aria-hidden="true"></i>
+                            </span>
+                            <span class="training-mark" data-training-type="black"
+                                  data-label="<?php echo htmlspecialchars($translations['training_black_win'] ?? 'Victoire avec les Noirs'); ?>"
+                                  data-done-label="<?php echo htmlspecialchars($translations['training_done'] ?? 'terminé'); ?>"
+                                  data-pending-label="<?php echo htmlspecialchars($translations['training_pending'] ?? 'à faire'); ?>"
+                                  role="img"
+                                  aria-label="<?php echo htmlspecialchars($translations['training_black_win'] ?? 'Victoire avec les Noirs'); ?>">
+                                <span class="training-symbol" aria-hidden="true">♚</span>
+                                <i class="bi bi-check-lg training-check" aria-hidden="true"></i>
+                            </span>
+                            <span class="training-mark" data-training-type="random"
+                                  data-label="<?php echo htmlspecialchars($translations['training_random_win'] ?? 'Victoire en choisissant Aléatoire'); ?>"
+                                  data-done-label="<?php echo htmlspecialchars($translations['training_done'] ?? 'terminé'); ?>"
+                                  data-pending-label="<?php echo htmlspecialchars($translations['training_pending'] ?? 'à faire'); ?>"
+                                  role="img"
+                                  aria-label="<?php echo htmlspecialchars($translations['training_random_win'] ?? 'Victoire en choisissant Aléatoire'); ?>">
+                                <i class="bi bi-shuffle training-symbol" aria-hidden="true"></i>
+                                <i class="bi bi-check-lg training-check" aria-hidden="true"></i>
+                            </span>
                         </div>
                         <i class="bi bi-check-lg check-icon" aria-hidden="true"></i>
                     </button>
@@ -166,13 +197,20 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
 </div>
 
 <script src="js/kchess/ui/new-game-handler.js?v=<?php echo htmlspecialchars((string)$assetVersion); ?>"></script>
+<script src="js/kchess/ui/bot-training-progress.js?v=<?php echo htmlspecialchars((string)$assetVersion); ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const params = new URLSearchParams(window.location.search);
     if (params.has('new')) {
-        const savedBotLevel = localStorage.getItem('kchess.selectedBotLevel');
-        localStorage.clear();
-        if (savedBotLevel) localStorage.setItem('kchess.selectedBotLevel', savedBotLevel);
+        try {
+            const savedBotLevel = localStorage.getItem('kchess.selectedBotLevel');
+            const savedTrainingProgress = localStorage.getItem(BotTrainingProgress.storageKey);
+            localStorage.clear();
+            if (savedBotLevel) localStorage.setItem('kchess.selectedBotLevel', savedBotLevel);
+            if (savedTrainingProgress) localStorage.setItem(BotTrainingProgress.storageKey, savedTrainingProgress);
+        } catch (error) {
+            console.warn('Impossible de réinitialiser les préférences locales.', error);
+        }
         sessionStorage.clear();
         const startBtn = document.getElementById('startGameBtn');
         if (startBtn) startBtn.disabled = true;
@@ -180,5 +218,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof NewGameHandler !== 'undefined') {
         NewGameHandler.init('<?php echo $targetPage; ?>');
     }
+    BotTrainingProgress.render();
 });
 </script>

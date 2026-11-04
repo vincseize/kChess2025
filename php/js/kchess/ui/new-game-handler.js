@@ -93,6 +93,7 @@ const NewGameHandler = {
             level: overrides.level || this.selectedLevel,
             profondeur: overrides.profondeur || this.selectedProfondeur,
             color: finalColor,
+            ...((overrides.mode || this.selectedMode) === 'bot' ? { trainingColor: this.selectedColor } : {}),
             ...(overrides.variant ? { variant: overrides.variant } : {})
         });
 

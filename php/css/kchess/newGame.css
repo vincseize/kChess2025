@@ -322,6 +322,62 @@
     line-height: 1.35;
 }
 
+.bot-training-progress {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 3px;
+    margin-left: 8px;
+    padding: 3px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.bot-training-progress.is-complete {
+    border-color: #facc15;
+    box-shadow: 0 0 0 1px #facc15;
+}
+
+.training-mark {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--site-border);
+    border-radius: 5px;
+    color: var(--site-text-muted);
+    font-size: 0.88rem;
+    line-height: 1;
+    opacity: 0.62;
+}
+
+.training-mark.is-complete {
+    border-color: var(--success-color);
+    color: var(--success-color);
+    background: color-mix(in srgb, var(--success-color) 12%, var(--site-surface));
+    opacity: 1;
+}
+
+.training-symbol {
+    font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
+}
+
+.training-check {
+    display: none;
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    border-radius: 50%;
+    background: var(--site-surface-alt);
+    font-size: 0.58rem;
+}
+
+.training-mark.is-complete .training-check {
+    display: block;
+}
+
 .check-icon {
     flex: 0 0 22px;
     margin-left: 10px;
@@ -587,6 +643,18 @@
     .mode-difficulty {
         margin-left: 28px;
         font-size: 0.72rem;
+    }
+
+    .bot-training-progress {
+        gap: 2px;
+        margin-left: 4px;
+        padding: 2px;
+    }
+
+    .training-mark {
+        width: 19px;
+        height: 19px;
+        font-size: 0.78rem;
     }
 
     .color-selection {

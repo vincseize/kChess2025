@@ -44,6 +44,7 @@
 <script src="js/kchess/core/game-status-fix.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/core/chess-game-core.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/core/chess-game.js?version=<?= $version; ?>"></script>
+<script src="js/kchess/ui/bot-training-progress.js?version=<?= $version; ?>"></script>
 <script src="js/kchess/ui/chess-events.js?version=<?= $version; ?>"></script>
 
 <script src="js/kchess/bots/BotCore.js?version=<?= $version; ?>"></script>

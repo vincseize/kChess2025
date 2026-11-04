@@ -156,6 +156,25 @@ async function handleBotTurn() {
 
 document.addEventListener('DOMContentLoaded', () => {
     ChessEventsManager.init();
+
+    const modalPrototype = window.ChessModalManager?.prototype;
+    if (modalPrototype && !modalPrototype.botTrainingProgressHooked) {
+        const originalShowGameOver = modalPrototype.showGameOver;
+        const originalShowTimeLoss = modalPrototype.showTimeLoss;
+        if (typeof originalShowGameOver === 'function') {
+            modalPrototype.showGameOver = function(result, reason) {
+                window.BotTrainingProgress?.recordGameResult(result);
+                return originalShowGameOver.call(this, result, reason);
+            };
+        }
+        if (typeof originalShowTimeLoss === 'function') {
+            modalPrototype.showTimeLoss = function(loserColor) {
+                window.BotTrainingProgress?.recordTimeLoss(loserColor);
+                return originalShowTimeLoss.call(this, loserColor);
+            };
+        }
+        modalPrototype.botTrainingProgressHooked = true;
+    }
     
     if (typeof ChessGame !== 'undefined' && !window.chessGame) {
         window.chessGame = new ChessGame();
@@ -226,6 +245,7 @@ window.showReplayColorPicker = function() {
 
         const params = new URLSearchParams(window.location.search);
         params.set('color', colorButton.dataset.replayColor);
+        if (params.get('mode') === 'bot') params.set('trainingColor', colorButton.dataset.replayColor);
         window.location.assign(`${window.location.pathname}?${params.toString()}`);
     });
 
