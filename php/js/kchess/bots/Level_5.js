@@ -1,15 +1,23 @@
 /**
  * Level_5 - Grand Maître UI
- * Version 2.4.0 - Migration vers GameFonctions
+ * Version 2.5.0 - Ajout threat detection (approximation depth-2)
+ *
+ * v2.5.0 :
+ *   - Ajout _opponentBestReplyPenalty (détecte les captures adverses gagnantes)
+ *   - Ajout sécurité du roi (pénalité ×2 par attaquant)
+ *   - Ajout détection mat adverse en 1
+ *   - Ajout mat en 1 prioritaire
+ *   - Conserve les heuristiques originales (captures ×20, centre ×12)
  */
 class Level_5 {
-    static VERSION = '2.4.0';
+    static VERSION = '2.5.0';
 
     constructor() {
         this.name = "Bot Level 5 (Pro)";
         this.level = 5;
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
         this.gameFonctions = GameFonctions.attach(this);
+        this.maxOppCaptures = 8;
     }
 
     async getMove() {
@@ -25,6 +33,18 @@ class Level_5 {
             const allMoves = this._getAllLegalMoves(game, myColor);
             if (allMoves.length === 0) return null;
 
+            // Mat en 1 prioritaire
+            for (const m of allMoves) {
+                const after = this._simulateMove(game, m);
+                if (!after) continue;
+                const oppMoves = this._getAllLegalMoves(after, oppColor);
+                if (oppMoves.length !== 0) continue;
+                const king = this._findKing(after, oppColor);
+                if (king && this._isSquareAttacked(after, king.r, king.c, myColor)) {
+                    return this._finalize(m);
+                }
+            }
+
             const oppKing = this._findKing(game, oppColor);
             const centerControlBefore = this._getCenterControlScore(game, myColor);
 
@@ -32,6 +52,7 @@ class Level_5 {
                 let score = 0;
                 const afterMove = this._simulateMove(game, m);
 
+                // Heuristiques L5 originales
                 if (m.isCapture) {
                     score += (this.pieceValues[m.targetPiece.type] * 20);
                 }
@@ -62,6 +83,30 @@ class Level_5 {
                     if (dist <= 1) score -= 200;
                 }
 
+                // ★ NOUVEAU : threat detection
+                if (afterMove) {
+                    score -= this._opponentBestReplyPenalty(afterMove, oppColor, myColor);
+
+                    const myKingPos = this._findKing(afterMove, myColor);
+                    if (myKingPos) {
+                        const attackers = this._countAttackersOnSquare(afterMove, myKingPos.r, myKingPos.c, oppColor);
+                        if (attackers >= 2) score -= 500 * attackers;
+                    }
+
+                    if (this._isKingUnderThreatAfterMove(afterMove, myColor)) {
+                        if (this._opponentCanMateInOne(afterMove, oppColor, myColor)) {
+                            score -= 100000;
+                        }
+                    }
+
+                    // Anti-pat en fin de partie
+                    if (this._countPieces(afterMove) <= 12) {
+                        if (this.gameFonctions.isStalemateAfterMove(game, m, oppColor, afterMove)) {
+                            score -= 50000;
+                        }
+                    }
+                }
+
                 m._finalScore = score;
             });
 
@@ -73,27 +118,53 @@ class Level_5 {
         }
     }
 
+    _opponentBestReplyPenalty(simulatedGame, oppColor, myColor) {
+        const replies = this._getAllLegalMoves(simulatedGame, oppColor);
+        if (replies.length === 0) return 0;
+
+        let worstNet = 0;
+        let examined = 0;
+
+        for (const reply of replies) {
+            if (!reply.isCapture && !reply.isCheck) continue;
+            if (++examined > this.maxOppCaptures) break;
+
+            let net = 0;
+            if (reply.isCapture && reply.targetPiece) {
+                const attackVal = this.pieceValues[reply.piece.type] || 0;
+                const targetVal = this.pieceValues[reply.targetPiece.type] || 0;
+                const defended = this._isSquareAttacked(simulatedGame, reply.toRow, reply.toCol, myColor);
+                const gain = defended ? (targetVal - attackVal) : targetVal;
+                if (gain > 0) net += gain;
+            }
+            if (reply.isCheck) net += 100;
+            if (this._isPromotionMove(reply)) net += 5000;
+
+            if (net > worstNet) worstNet = net;
+            if (worstNet > 1000) break;
+        }
+        return worstNet * 2;
+    }
+
+    _isKingUnderThreatAfterMove(afterMove, myColor) {
+        if (!afterMove) return false;
+        return this.gameFonctions.isKingUnderThreat(afterMove, myColor);
+    }
+
+    _opponentCanMateInOne(afterMove, oppColor, myColor) {
+        return this.gameFonctions.opponentCanMateInOne(afterMove, oppColor, myColor);
+    }
+
+    _countAttackersOnSquare(game, row, col, byColor) {
+        return this.gameFonctions.countAttackersOnSquare(game, row, col, byColor);
+    }
+
     _getBestMove(moves) {
         moves.sort((a, b) => b._finalScore - a._finalScore);
         const bestScore = moves[0]._finalScore;
         const threshold = bestScore > 0 ? bestScore * 0.75 : bestScore * 1.25;
         const candidates = moves.filter(m => m._finalScore >= threshold);
         return candidates[Math.floor(Math.random() * candidates.length)];
-    }
-
-    // ★ Surcharge locale : version ChessEngine plus précise que l'adapter
-    _getCenterControlScore(game, color) {
-        const fen = game.moveValidator.generateCurrentFEN(color);
-        const engine = new ChessEngine(fen);
-        const colorKey = color === 'white' ? 'w' : 'b';
-        let score = 0;
-
-        for (const [row, col] of [[3, 3], [3, 4], [4, 3], [4, 4]]) {
-            const piece = this._getPieceCompat(game, row, col);
-            if (piece?.color === color) score += 1;
-            if (engine.isSquareAttacked(row, col, colorKey)) score += 1;
-        }
-        return score;
     }
 }
 window.Level_5 = Level_5;
