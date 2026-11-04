@@ -1,0 +1,28 @@
+{
+    "totalMoves": 711,
+    "gamesPlayed": 10,
+    "errors": 0,
+    "checkmates": 9,
+    "stalemates": 0,
+    "draws": 1,
+    "fenList": [
+        "2k5/8/N7/pB1b4/P3n3/K1r5/8/3n4 w - - 6 42",
+        "2rk1Bn1/5n1p/3K3P/p4p2/2b2P2/2p1p3/2P1P3/b4BNR w - - 6 29",
+        "8/5q2/8/8/8/8/1Q6/k1K5 b - - 10 61",
+        "8/8/8/3K2q1/8/8/k7/8 w - - 24 101",
+        "rnbqkbnr/3p3p/3Pp3/p4p1Q/P1p2P2/4P3/2P3P1/RNB1KBNR b KQkq - 0 11",
+        "rnbqkbnr/pp1pp2p/8/2p1PppQ/2P5/8/PP1P1PPP/RNB1KBNR b KQkq - 1 4",
+        "rn6/8/4b3/2p2P2/p3Q3/2Nk4/PP4P1/R1B1K1N1 b Q - 2 32",
+        "Qn1B2nr/6p1/3bk3/p4p1p/P2p3P/8/1P5K/RN3q2 w - - 1 30",
+        "2Q5/Q5k1/4R3/8/7p/8/1P2K1P1/R5N1 b - - 4 37",
+        "rnb2k2/pp6/8/P3Pp2/5p1q/3p4/1P1P4/RNBQKBN1 w Q - 1 16"
+    ],
+    "startTime": 6278,
+    "totalDuration": "63.9",
+    "config": {
+        "white": "L4",
+        "black": "L5",
+        "isRandom": true,
+        "maxCoups": 200
+    }
+}

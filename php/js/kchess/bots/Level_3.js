@@ -1,14 +1,17 @@
 /**
  * Level_3 - Tactique & Finalisation
- * Version 2.3.0 - Migration vers GameFonctions + tuning
+ * Version 2.4.0 - Ajout "menace adverse" (approximation depth-2 par captures)
  *
- * v2.3.0 :
- *   - Bruit aléatoire réduit de 15 à 5 (jeu plus solide)
- *   - 10 coups pré-classés au lieu de 8 (recherche plus large)
- *   - Conserve ses méthodes locales d'échange (en-passant fiable)
+ * v2.4.0 :
+ *   - Ajout _opponentBestReplyPenalty : détecte les captures adverses gagnantes
+ *     après chaque coup candidat, sans faire un vrai minimax complet.
+ *   - Supprime l'appel au vrai minimax 2-ply (depth-2 → depth-1 avec threat detection).
+ *   - Bruit aléatoire augmenté à 8 (au lieu de 5) pour compenser la perte de profondeur.
+ *
+ * Objectif : performances proches de depth-2 (50-55%) mais 5x plus rapide.
  */
 class Level_3 {
-    static VERSION = '2.3.0';
+    static VERSION = '2.4.0';
 
     constructor() {
         this.name = "Bot Level 3 (Tactique+)";
@@ -16,6 +19,9 @@ class Level_3 {
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
         this.currentGame = null;
         this.gameFonctions = GameFonctions.attach(this);
+
+        // Limite de captures adverses examinées
+        this.maxOppCaptures = 8;
     }
 
     async getMove() {
@@ -41,51 +47,50 @@ class Level_3 {
             const candidateMoves = openingMoves.length > 0 ? openingMoves : allMoves;
             const oppKing = this._findKing(game, oppColor);
 
-            candidateMoves.forEach(move => {
-                move._quickScore = this._scoreMoveQuickly(game, move, myColor, oppKing);
-            });
-            candidateMoves.sort((a, b) => b._quickScore - a._quickScore);
-
-            const searchMoves = candidateMoves.slice(0, 10);
-            let bestMove = null;
-            let bestScore = -Infinity;
-
-            for (const move of searchMoves) {
-                const afterMove = this._simulateMove(game, move);
-                const responses = this._getAllLegalMoves(afterMove, oppColor);
-
-                if (responses.length === 0) {
-                    const isCheckmate = afterMove.moveValidator.isKingInCheck(oppColor);
-                    const score = isCheckmate ? 100000 : 0;
-                    if (score > bestScore) {
-                        bestMove = move;
-                        bestScore = score;
-                    }
-                    continue;
-                }
-
-                let worstResponseScore = Infinity;
-                for (const response of responses) {
-                    const afterResponse = this._simulateMove(afterMove, response);
-                    let responseScore = this._evaluatePosition(afterResponse, myColor);
-                    if (response.isCapture || response.details?.isPromotion) {
-                        const immediateGain = this._getImmediateExchangeGainLocal(afterMove, response);
-                        const exchangeScore = this._evaluateExchangeLocal(afterMove, response, oppColor);
-                        responseScore += immediateGain - exchangeScore;
-                    }
-                    worstResponseScore = Math.min(worstResponseScore, responseScore);
-
-                    if (worstResponseScore + move._quickScore * 0.1 <= bestScore) break;
-                }
-
-                const score = worstResponseScore + move._quickScore * 0.1;
-                if (score > bestScore) {
-                    bestMove = move;
-                    bestScore = score;
+            // Mat en 1 : priorité absolue
+            for (const m of allMoves) {
+                const after = this._simulateMove(game, m);
+                if (!after) continue;
+                const oppMoves = this._getAllLegalMoves(after, oppColor);
+                if (oppMoves.length !== 0) continue;
+                const king = this._findKing(after, oppColor);
+                if (king && this._isSquareAttacked(after, king.r, king.c, myColor)) {
+                    return this._finalize(m);
                 }
             }
 
-            return this._finalize(bestMove || searchMoves[0]);
+            // Scoring depth-1 + threat detection
+            candidateMoves.forEach(move => {
+                let score = this._scoreMoveQuickly(game, move, myColor, oppKing);
+
+                const afterMove = this._simulateMove(game, move);
+                if (afterMove) {
+                    // Pénalité de menace adverse (approximation depth-2)
+                    score -= this._opponentBestReplyPenalty(afterMove, oppColor, myColor);
+
+                    // Pénalité sécurité du roi
+                    const myKingPos = this._findKing(afterMove, myColor);
+                    if (myKingPos) {
+                        const attackers = this._countAttackersOnSquare(
+                            afterMove, myKingPos.r, myKingPos.c, oppColor
+                        );
+                        if (attackers >= 2) score -= 500 * attackers;
+                    }
+
+                    // Pénalité mat adverse en 1
+                    if (this._isKingUnderThreatAfterMove(afterMove, myColor)) {
+                        if (this._opponentCanMateInOne(afterMove, oppColor, myColor)) {
+                            score -= 100000;
+                        }
+                    }
+                }
+
+                move._quickScore = score;
+            });
+
+            candidateMoves.sort((a, b) => b._quickScore - a._quickScore);
+
+            return this._finalize(candidateMoves[0]);
 
         } catch (err) {
             console.error('Level 3 decision error:', err);
@@ -93,9 +98,59 @@ class Level_3 {
         }
     }
 
+    /**
+     * Détecte la meilleure capture adverse après un coup candidat.
+     * Approximation rapide de depth-2 : ne simule que les captures.
+     */
+    _opponentBestReplyPenalty(simulatedGame, oppColor, myColor) {
+        const replies = this._getAllLegalMoves(simulatedGame, oppColor);
+        if (replies.length === 0) return 0;
+
+        let worstNet = 0;
+        let examined = 0;
+
+        for (const reply of replies) {
+            if (!reply.isCapture && !reply.isCheck) continue;
+            if (++examined > this.maxOppCaptures) break;
+
+            let net = 0;
+
+            if (reply.isCapture && reply.targetPiece) {
+                const attackVal = this.pieceValues[reply.piece.type] || 0;
+                const targetVal = this.pieceValues[reply.targetPiece.type] || 0;
+                const defended = this._isSquareAttacked(
+                    simulatedGame, reply.toRow, reply.toCol, myColor
+                );
+                const gain = defended ? (targetVal - attackVal) : targetVal;
+                if (gain > 0) net += gain;
+            }
+
+            if (reply.isCheck) net += 100;
+            if (this._isPromotionMove(reply)) net += 5000;
+
+            if (net > worstNet) worstNet = net;
+            if (worstNet > 1000) break;
+        }
+
+        return worstNet * 2;   // × 2 pour rendre la pénalité dissuasive
+    }
+
+    _isKingUnderThreatAfterMove(afterMove, myColor) {
+        if (!afterMove) return false;
+        return this.gameFonctions.isKingUnderThreat(afterMove, myColor);
+    }
+
+    _opponentCanMateInOne(afterMove, oppColor, myColor) {
+        return this.gameFonctions.opponentCanMateInOne(afterMove, oppColor, myColor);
+    }
+
+    _countAttackersOnSquare(game, row, col, byColor) {
+        return this.gameFonctions.countAttackersOnSquare(game, row, col, byColor);
+    }
+
     _scoreMoveQuickly(game, move, color, opponentKing) {
-        // ★ Bruit réduit : 5 au lieu de 15
-        let score = Math.random() * 5;
+        // Bruit augmenté à 8 (compense la perte de profondeur)
+        let score = Math.random() * 8;
         if (move.isCapture && move.targetPiece) {
             score += this._evaluateExchangeLocal(game, move, color) * 10;
         }
@@ -144,48 +199,6 @@ class Level_3 {
         return capturedValue + promotionGain;
     }
 
-    _evaluatePosition(game, perspective) {
-        const opponent = perspective === 'white' ? 'black' : 'white';
-        const status = game.moveValidator.getGameStatus(perspective);
-        if (status.status === 'checkmate') return -100000;
-        if (status.status === 'stalemate') return 0;
-
-        const attackEngine = new ChessEngine(game.moveValidator.generateCurrentFEN(perspective));
-        let score = 0;
-
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                const piece = this._getPieceCompat(game, row, col);
-                if (!piece) continue;
-
-                const sign = piece.color === perspective ? 1 : -1;
-                score += sign * this.pieceValues[piece.type];
-                if (attackEngine.isSquareAttacked(row, col, piece.color === 'white' ? 'b' : 'w')
-                    && !attackEngine.isSquareAttacked(row, col, piece.color === 'white' ? 'w' : 'b')) {
-                    score -= sign * this.pieceValues[piece.type] * 0.35;
-                }
-
-                const centerDistance = Math.min(
-                    Math.abs(row - 3) + Math.abs(col - 3),
-                    Math.abs(row - 3) + Math.abs(col - 4),
-                    Math.abs(row - 4) + Math.abs(col - 3),
-                    Math.abs(row - 4) + Math.abs(col - 4)
-                );
-                const centerWeight = { pawn: 3, knight: 8, bishop: 5, rook: 2, queen: 2, king: 0 }[piece.type] || 0;
-                score += sign * Math.max(0, 4 - centerDistance) * centerWeight;
-
-                if (piece.type === 'pawn') {
-                    const progress = piece.color === 'white' ? 6 - row : row - 1;
-                    score += sign * Math.max(0, progress) * 2;
-                }
-            }
-        }
-
-        if (game.moveValidator.isKingInCheck(perspective)) score -= 80;
-        if (game.moveValidator.isKingInCheck(opponent)) score += 80;
-        return score;
-    }
-
     _pieceAttacksSquare(game, move, targetRow, targetCol) {
         const rowDelta = targetRow - move.toRow;
         const colDelta = targetCol - move.toCol;
@@ -221,6 +234,11 @@ class Level_3 {
             col += colStep;
         }
         return true;
+    }
+
+    _sameColor(a, b) {
+        if (typeof a !== 'string' || typeof b !== 'string') return false;
+        return a.charAt(0).toLowerCase() === b.charAt(0).toLowerCase();
     }
 }
 window.Level_3 = Level_3;

@@ -2,6 +2,11 @@
 /**
  * Bot_vs_Bot.php
  * Emplacement : php/js/kchess/bots/unitTests/Bot_vs_Bot.php
+ *
+ * v1.1.0 :
+ *   - Retrait de Evaluator.js / SearchEngine.js (Level_16 v1.1.0 est autonome)
+ *   - Ajout d'un bouton SWAP pour inverser Blancs/Noirs
+ *   - Valeurs par défaut : L5 (Blancs) vs L4 (Noirs)
  */
 require_once __DIR__ . '/../../../../config-loader.php'; 
 $version = getVersion();
@@ -73,7 +78,7 @@ if (empty($availableBots)) {
                         <label>Blancs</label>
                         <select id="selectBotWhite">
                             <?php foreach ($availableBots as $bot): ?>
-                                <option value="L<?php echo $bot['level']; ?>" <?php echo ($bot['level'] == 3) ? 'selected' : ''; ?>>
+                                <option value="L<?php echo $bot['level']; ?>" <?php echo ($bot['level'] == 5) ? 'selected' : ''; ?>>
                                     <?php echo $bot['name']; ?>
                                 </option>
                             <?php endforeach; ?>
@@ -83,12 +88,18 @@ if (empty($availableBots)) {
                         <label>Noirs</label>
                         <select id="selectBotBlack">
                             <?php foreach ($availableBots as $bot): ?>
-                                <option value="L<?php echo $bot['level']; ?>" <?php echo ($bot['level'] == 2) ? 'selected' : ''; ?>>
+                                <option value="L<?php echo $bot['level']; ?>" <?php echo ($bot['level'] == 4) ? 'selected' : ''; ?>>
                                     <?php echo $bot['name']; ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <button id="swapColorsBtn" class="btn-secondary" style="flex: 1; padding: 8px; font-size: 12px;">
+                        ⇄ SWAP
+                    </button>
                 </div>
 
                 <div class="random-opt">
@@ -108,11 +119,11 @@ if (empty($availableBots)) {
 
                 <div class="config-group">
                     <label>Nombre de parties</label>
-                    <input type="text" id="inputMaxGames" list="listGames" value="200" inputmode="numeric" 
+                    <input type="text" id="inputMaxGames" list="listGames" value="100" inputmode="numeric" 
                            onfocus="this.oldValue = this.value; this.value = '';" 
                            onblur="if(this.value == '') { this.value = this.oldValue; }">
                     <datalist id="listGames">
-                        <option value="200"><option value="500"><option value="1000">
+                        <option value="100"><option value="200"><option value="500"><option value="1000">
                         <option value="2000"><option value="5000"><option value="10000">
                     </datalist>
                 </div>
@@ -123,7 +134,7 @@ if (empty($availableBots)) {
                            onfocus="this.oldValue = this.value; this.value = '';" 
                            onblur="if(this.value == '') { this.value = this.oldValue; }">
                     <datalist id="listMoves">
-                        <option value="200"><option value="300"><option value="400">
+                        <option value="100"><option value="200"><option value="300"><option value="400">
                     </datalist>
                 </div>
 
@@ -206,8 +217,6 @@ if (empty($availableBots)) {
     <script src="../game_ouverture.js?v=<?php echo $version; ?>"></script>
     <script src="../BoardAnalyzer.js?v=<?php echo $version; ?>"></script>
     <script src="../BotCore.js?v=<?php echo $version; ?>"></script>
-    <script src="../Evaluator.js?v=<?php echo $version; ?>"></script>
-    <script src="../SearchEngine.js?v=<?php echo $version; ?>"></script>
 
     <?php foreach ($availableBots as $bot): ?>
         <script src="../<?php echo $bot['file']; ?>?v=<?php echo $version; ?>"></script>
@@ -215,6 +224,17 @@ if (empty($availableBots)) {
 
     <script src="js/ArenaAnalyst.js?v=<?php echo $version; ?>"></script>
     <script src="js/stress-test-bot.js?v=<?php echo $version; ?>"></script>
+
+    <script>
+        // ★ Bouton SWAP : inverse Blancs/Noirs
+        document.getElementById('swapColorsBtn')?.addEventListener('click', () => {
+            const w = document.getElementById('selectBotWhite');
+            const b = document.getElementById('selectBotBlack');
+            const tmp = w.value;
+            w.value = b.value;
+            b.value = tmp;
+        });
+    </script>
 
 </body>
 </html>

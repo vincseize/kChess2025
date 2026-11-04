@@ -1,21 +1,28 @@
 /**
  * Level_4 - Stratège UI
- * Version 3.0.0 - Ajout recherche depth-2 (comme L3 mais plus large)
+ * Version 3.1.0 - Ajout "menace adverse" (approximation depth-2 par captures)
  *
- * v3.0.0 :
- *   - Ajout recherche depth-2 (12 coups au lieu de 10 pour L3)
- *   - Bruit aléatoire à 3 (entre L2:0 et L3:5)
- *   - Conserve l'agressivité sur les captures (×25) et la prudence sur l'exposition (×12)
- *   - Utilise GameFonctions pour toutes les opérations
+ * v3.1.0 :
+ *   - Supprime le vrai minimax 2-ply (depth-2 → depth-1 avec threat detection).
+ *   - Ajout _opponentBestReplyPenalty : détecte les captures adverses gagnantes.
+ *   - Pénalité sécurité du roi (comme L16 v1.2.0).
+ *   - Pénalité mat adverse en 1.
+ *   - Conserve l'agressivité captures ×25 et la prudence exposition ×12.
+ *   - Bruit augmenté à 5 (au lieu de 3) pour compenser la perte de profondeur.
+ *
+ * Objectif : performances proches de depth-2 (50-55%) mais 5x plus rapide.
  */
 class Level_4 {
-    static VERSION = '3.0.0';
+    static VERSION = '3.1.0';
 
     constructor() {
         this.name = "Bot Level 4 (Minimax)";
         this.level = 4;
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
         this.gameFonctions = GameFonctions.attach(this);
+
+        // Limite de captures adverses examinées
+        this.maxOppCaptures = 8;
     }
 
     async getMove() {
@@ -41,59 +48,54 @@ class Level_4 {
             const candidateMoves = openingMoves.length > 0 ? openingMoves : allMoves;
             const oppKing = this._findKing(game, oppColor);
 
-            // Score rapide pour pré-sélectionner
-            candidateMoves.forEach(move => {
-                move._quickScore = this._scoreMoveQuickly(game, move, myColor, oppKing);
-            });
-            candidateMoves.sort((a, b) => b._quickScore - a._quickScore);
-
-            // Recherche depth-2 sur les 12 meilleurs coups (vs 10 pour L3)
-            const searchMoves = candidateMoves.slice(0, 12);
-            let bestMove = null;
-            let bestScore = -Infinity;
-
-            for (const move of searchMoves) {
-                const afterMove = this._simulateMove(game, move);
-                const responses = this._getAllLegalMoves(afterMove, oppColor);
-
-                // Mat en 1
-                if (responses.length === 0) {
-                    const isCheckmate = afterMove.moveValidator.isKingInCheck(oppColor);
-                    const score = isCheckmate ? 100000 : 0;
-                    if (score > bestScore) {
-                        bestMove = move;
-                        bestScore = score;
-                    }
-                    continue;
-                }
-
-                // Évaluer la pire réponse adverse
-                let worstResponseScore = Infinity;
-                for (const response of responses) {
-                    const afterResponse = this._simulateMove(afterMove, response);
-                    let responseScore = this._evaluatePosition(afterResponse, myColor);
-                    
-                    // Si l'adversaire capture, évaluer l'échange
-                    if (response.isCapture || response.details?.isPromotion) {
-                        const immediateGain = this._getImmediateExchangeGainLocal(afterMove, response);
-                        const exchangeScore = this._evaluateExchange(afterMove, response, oppColor);
-                        responseScore += immediateGain - exchangeScore;
-                    }
-                    
-                    worstResponseScore = Math.min(worstResponseScore, responseScore);
-                    
-                    // Pruning : si déjà pire que le meilleur score connu, on arrête
-                    if (worstResponseScore + move._quickScore * 0.1 <= bestScore) break;
-                }
-
-                const score = worstResponseScore + move._quickScore * 0.1;
-                if (score > bestScore) {
-                    bestMove = move;
-                    bestScore = score;
+            // Mat en 1 : priorité absolue
+            for (const m of allMoves) {
+                const after = this._simulateMove(game, m);
+                if (!after) continue;
+                const oppMoves = this._getAllLegalMoves(after, oppColor);
+                if (oppMoves.length !== 0) continue;
+                const king = this._findKing(after, oppColor);
+                if (king && this._isSquareAttacked(after, king.r, king.c, myColor)) {
+                    return this._finalize(m);
                 }
             }
 
-            return this._finalize(bestMove || searchMoves[0]);
+            // Scoring depth-1 + threat detection
+            candidateMoves.forEach(m => {
+                let score = this._scoreMoveQuickly(game, m, myColor, oppKing);
+
+                const afterMove = this._simulateMove(game, m);
+                if (afterMove) {
+                    // Pénalité exposition (déjà présente dans L4 original)
+                    const exposure = this._evaluateMoveExposure(game, m, oppColor, afterMove);
+                    score -= exposure * 12;
+
+                    // Pénalité menace adverse (approximation depth-2)
+                    score -= this._opponentBestReplyPenalty(afterMove, oppColor, myColor);
+
+                    // Pénalité sécurité du roi
+                    const myKingPos = this._findKing(afterMove, myColor);
+                    if (myKingPos) {
+                        const attackers = this._countAttackersOnSquare(
+                            afterMove, myKingPos.r, myKingPos.c, oppColor
+                        );
+                        if (attackers >= 2) score -= 500 * attackers;
+                    }
+
+                    // Pénalité mat adverse en 1
+                    if (this._isKingUnderThreatAfterMove(afterMove, myColor)) {
+                        if (this._opponentCanMateInOne(afterMove, oppColor, myColor)) {
+                            score -= 100000;
+                        }
+                    }
+                }
+
+                m._quickScore = score;
+            });
+
+            candidateMoves.sort((a, b) => b._quickScore - a._quickScore);
+
+            return this._finalize(candidateMoves[0]);
 
         } catch (err) {
             console.error('Level 4 decision error:', err);
@@ -101,84 +103,149 @@ class Level_4 {
         }
     }
 
-    _scoreMoveQuickly(game, move, color, opponentKing) {
-        // Bruit réduit à 3 pour un jeu plus déterministe que L3 (5) mais moins que L2 (0)
-        let score = Math.random() * 3;
-        
-        if (move.isCapture && move.targetPiece) {
-            score += this._evaluateExchange(game, move, color) * 25;  // Aggressif sur les captures
+    /**
+     * Détecte la meilleure capture adverse après un coup candidat.
+     * Approximation rapide de depth-2 : ne simule que les captures.
+     */
+    _opponentBestReplyPenalty(simulatedGame, oppColor, myColor) {
+        const replies = this._getAllLegalMoves(simulatedGame, oppColor);
+        if (replies.length === 0) return 0;
+
+        let worstNet = 0;
+        let examined = 0;
+
+        for (const reply of replies) {
+            if (!reply.isCapture && !reply.isCheck) continue;
+            if (++examined > this.maxOppCaptures) break;
+
+            let net = 0;
+
+            if (reply.isCapture && reply.targetPiece) {
+                const attackVal = this.pieceValues[reply.piece.type] || 0;
+                const targetVal = this.pieceValues[reply.targetPiece.type] || 0;
+                const defended = this._isSquareAttacked(
+                    simulatedGame, reply.toRow, reply.toCol, myColor
+                );
+                const gain = defended ? (targetVal - attackVal) : targetVal;
+                if (gain > 0) net += gain;
+            }
+
+            if (reply.isCheck) net += 100;
+            if (this._isPromotionMove(reply)) net += 5000;
+
+            if (net > worstNet) worstNet = net;
+            if (worstNet > 1000) break;
         }
-        
+
+        return worstNet * 2;   // × 2 pour rendre la pénalité dissuasive
+    }
+
+    _isKingUnderThreatAfterMove(afterMove, myColor) {
+        if (!afterMove) return false;
+        return this.gameFonctions.isKingUnderThreat(afterMove, myColor);
+    }
+
+    _opponentCanMateInOne(afterMove, oppColor, myColor) {
+        return this.gameFonctions.opponentCanMateInOne(afterMove, oppColor, myColor);
+    }
+
+    _countAttackersOnSquare(game, row, col, byColor) {
+        return this.gameFonctions.countAttackersOnSquare(game, row, col, byColor);
+    }
+
+    _scoreMoveQuickly(game, move, color, opponentKing) {
+        // Bruit augmenté à 5 (compense la perte de profondeur)
+        let score = Math.random() * 5;
+
+        if (move.isCapture && move.targetPiece) {
+            score += this._evaluateExchange(game, move, color) * 25;
+        }
+
         if (move.piece.type === 'pawn') {
             const progress = color === 'white' ? 7 - move.toRow : move.toRow;
             score += progress * progress * 8;
             if (move.toRow === 0 || move.toRow === 7) score += 1500;
         }
-        
-        // Bonus centre
+
         if (move.toRow >= 2 && move.toRow <= 5 && move.toCol >= 2 && move.toCol <= 5) {
             score += 30;
         }
-        
-        // Bonus si la pièce attaque le roi adverse
+
         if (opponentKing && this._pieceAttacksSquare(game, move, opponentKing.r, opponentKing.c)) {
             score += 50;
         }
-        
-        // Bonus développement en ouverture
+
         if (game.gameState.moveHistory.length < 20
             && ['knight', 'bishop'].includes(move.piece.type)
             && (move.fromRow === (color === 'white' ? 7 : 0))) {
             score += 15;
         }
-        
+
+        if (move.details?.type === 'castling') {
+            score += 100;
+        }
+
         return score;
     }
 
-    _evaluatePosition(game, perspective) {
-        const opponent = perspective === 'white' ? 'black' : 'white';
-        const status = game.moveValidator.getGameStatus(perspective);
-        if (status.status === 'checkmate') return -100000;
-        if (status.status === 'stalemate') return 0;
+    _evaluateExchange(game, move, color) {
+        const immediateGain = this._getImmediateExchangeGain(game, move);
+        if (immediateGain === 0) return 0;
 
-        const attackEngine = new ChessEngine(game.moveValidator.generateCurrentFEN(perspective));
-        let score = 0;
+        const details = move.details || {};
+        const toRow = details.kingTo?.row ?? move.toRow;
+        const toCol = details.kingTo?.col ?? move.toCol;
+        const afterMove = this._simulateMove(game, move);
+        const opponent = color === 'white' ? 'black' : 'white';
+        return immediateGain - this._bestExchange(afterMove, toRow, toCol, opponent, 0);
+    }
 
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                const piece = this._getPieceCompat(game, row, col);
-                if (!piece) continue;
+    _evaluateMoveExposure(game, move, opponent, afterMove = null) {
+        const sim = afterMove || this._simulateMove(game, move);
+        if (!sim) return 0;
+        const toRow = move.details?.kingTo?.row ?? move.toRow;
+        const toCol = move.details?.kingTo?.col ?? move.toCol;
+        return this._bestExchange(sim, toRow, toCol, opponent, 0);
+    }
 
-                const sign = piece.color === perspective ? 1 : -1;
-                score += sign * this.pieceValues[piece.type];
-                
-                // Pénalité si pièce non défendue
-                if (attackEngine.isSquareAttacked(row, col, piece.color === 'white' ? 'b' : 'w')
-                    && !attackEngine.isSquareAttacked(row, col, piece.color === 'white' ? 'w' : 'b')) {
-                    score -= sign * this.pieceValues[piece.type] * 0.35;
-                }
+    _getImmediateExchangeGain(game, move) {
+        const details = move.details || {};
+        const toRow = details.kingTo?.row ?? move.toRow;
+        const toCol = details.kingTo?.col ?? move.toCol;
+        const capturedPiece = (details.type === 'en-passant' || details.isEnPassant || move.isEnPassant)
+            ? { type: 'pawn' }
+            : this._getPieceCompat(game, toRow, toCol);
+        const capturedValue = capturedPiece ? this.pieceValues[capturedPiece.type] || 0 : 0;
+        const promotionGain = details.isPromotion || (move.piece.type === 'pawn' && (toRow === 0 || toRow === 7))
+            ? this.pieceValues.queen - this.pieceValues.pawn
+            : 0;
+        return capturedValue + promotionGain;
+    }
 
-                // Bonus centre
-                const centerDistance = Math.min(
-                    Math.abs(row - 3) + Math.abs(col - 3),
-                    Math.abs(row - 3) + Math.abs(col - 4),
-                    Math.abs(row - 4) + Math.abs(col - 3),
-                    Math.abs(row - 4) + Math.abs(col - 4)
-                );
-                const centerWeight = { pawn: 3, knight: 8, bishop: 5, rook: 2, queen: 2, king: 0 }[piece.type] || 0;
-                score += sign * Math.max(0, 4 - centerDistance) * centerWeight;
+    _bestExchange(game, targetRow, targetCol, capturingColor, depth = 0) {
+        if (depth >= (this.gameFonctions.maxExchangeDepth || 8)) return 0;
 
-                // Bonus progression des pions
-                if (piece.type === 'pawn') {
-                    const progress = piece.color === 'white' ? 6 - row : row - 1;
-                    score += sign * Math.max(0, progress) * 2;
-                }
-            }
+        const target = this._getPieceCompat(game, targetRow, targetCol);
+        if (!target || this._sameColor(target.color, capturingColor)) return 0;
+
+        const capturedValue = this.pieceValues[target.type] || 0;
+        let bestScore = 0;
+        for (const move of this._getAllLegalMoves(game, capturingColor)) {
+            if (move.toRow !== targetRow || move.toCol !== targetCol || !move.isCapture) continue;
+
+            const promotionGain = move.piece.type === 'pawn' && (targetRow === 0 || targetRow === 7)
+                ? (this.pieceValues.queen || 0) - (this.pieceValues.pawn || 0)
+                : 0;
+            const afterCapture = this._simulateMove(game, move);
+            const score = capturedValue + promotionGain
+                - this._bestExchange(afterCapture, targetRow, targetCol, this._oppositeColor(capturingColor), depth + 1);
+            bestScore = Math.max(bestScore, score);
         }
+        return bestScore;
+    }
 
-        if (game.moveValidator.isKingInCheck(perspective)) score -= 80;
-        if (game.moveValidator.isKingInCheck(opponent)) score += 80;
-        return score;
+    _isPromotionMove(move) {
+        return this.gameFonctions.isPromotionMove(move);
     }
 
     _pieceAttacksSquare(game, move, targetRow, targetCol) {
@@ -212,84 +279,13 @@ class Level_4 {
         return false;
     }
 
-    _evaluateExchange(game, move, color) {
-        const immediateGain = this._getImmediateExchangeGain(game, move);
-        if (immediateGain === 0) return 0;
-
-        const details = move.details || {};
-        const toRow = details.kingTo?.row ?? move.toRow;
-        const toCol = details.kingTo?.col ?? move.toCol;
-        const afterMove = this._simulateMove(game, move);
-        const opponent = color === 'white' ? 'black' : 'white';
-        return immediateGain - this._bestExchange(afterMove, toRow, toCol, opponent, 0);
-    }
-
-    _getImmediateExchangeGain(game, move) {
-        const details = move.details || {};
-        const toRow = details.kingTo?.row ?? move.toRow;
-        const toCol = details.kingTo?.col ?? move.toCol;
-        const capturedPiece = (details.type === 'en-passant' || details.isEnPassant || move.isEnPassant)
-            ? { type: 'pawn' }
-            : this._getPieceCompat(game, toRow, toCol);
-        const capturedValue = capturedPiece ? this.pieceValues[capturedPiece.type] || 0 : 0;
-        const promotionGain = details.isPromotion || (move.piece.type === 'pawn' && (toRow === 0 || toRow === 7))
-            ? this.pieceValues.queen - this.pieceValues.pawn
-            : 0;
-        return capturedValue + promotionGain;
-    }
-
-    _getImmediateExchangeGainLocal(game, move) {
-        return this._getImmediateExchangeGain(game, move);
-    }
-
-    _bestExchange(game, targetRow, targetCol, capturingColor, depth = 0) {
-        if (depth >= (this.gameFonctions.maxExchangeDepth || 8)) return 0;
-
-        const target = this._getPieceCompat(game, targetRow, targetCol);
-        if (!target || this._sameColor(target.color, capturingColor)) return 0;
-
-        const capturedValue = this.pieceValues[target.type] || 0;
-        let bestScore = 0;
-        for (const move of this._getAllLegalMoves(game, capturingColor)) {
-            if (move.toRow !== targetRow || move.toCol !== targetCol || !move.isCapture) continue;
-
-            const promotionGain = move.piece.type === 'pawn' && (targetRow === 0 || targetRow === 7)
-                ? (this.pieceValues.queen || 0) - (this.pieceValues.pawn || 0)
-                : 0;
-            const afterCapture = this._simulateMove(game, move);
-            const score = capturedValue + promotionGain
-                - this._bestExchange(afterCapture, targetRow, targetCol, this._oppositeColor(capturingColor), depth + 1);
-            bestScore = Math.max(bestScore, score);
-        }
-        return bestScore;
-    }
-
-    _getAllLegalMoves(game, color) {
-        return this.gameFonctions.getAllLegalMoves(game, color);
-    }
-
-    _findKing(game, color) {
-        return this.gameFonctions._findKing(game, color);
-    }
-
-    _simulateMove(game, move) {
-        return this.gameFonctions._simulateMove(game, move);
-    }
-
-    _getPieceCompat(game, row, col) {
-        return this.gameFonctions._getPieceCompat(game, row, col);
-    }
-
     _sameColor(a, b) {
-        return this.gameFonctions._sameColor(a, b);
+        if (typeof a !== 'string' || typeof b !== 'string') return false;
+        return a.charAt(0).toLowerCase() === b.charAt(0).toLowerCase();
     }
 
     _oppositeColor(color) {
-        return this.gameFonctions._oppositeColor(color);
-    }
-
-    _finalize(move) {
-        return this.gameFonctions._finalize(move);
+        return this._sameColor(color, 'white') ? 'black' : 'white';
     }
 }
 
