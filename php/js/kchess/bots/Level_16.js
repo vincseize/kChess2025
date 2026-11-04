@@ -1,9 +1,9 @@
 /**
  * Level_16 - Bot Killer (Simplifié mais efficace)
- * Version 3.0 - Fini de patteur !
+ * Version 3.2 - Priorité au petit roque
  */
 class Level_16 {
-    static VERSION = '3.0.0';
+    static VERSION = '3.2.0';
 
     constructor() {
         this.name = "Bot Level 16 (Killer)";
@@ -51,17 +51,22 @@ class Level_16 {
             // Chercher des coups qui avancent les pions
             const pawnMoves = allMoves.filter(m => m.piece?.type === 'pawn');
             if (pawnMoves.length > 0) {
+                const safestPawnMoves = this._preferSafestMoves(pawnMoves, game, oppColor);
                 // Priorité aux pions proches de la promotion
-                pawnMoves.sort((a, b) => {
+                safestPawnMoves.sort((a, b) => {
                     const aProgress = color === 'white' ? 7 - a.toRow : a.toRow;
                     const bProgress = color === 'white' ? 7 - b.toRow : b.toRow;
                     return bProgress - aProgress; // Descendant
                 });
-                return this._finalize(pawnMoves[0]);
+                return this._finalize(safestPawnMoves[0]);
             }
             
             // En finale, activer le roi
-            const kingMoves = allMoves.filter(m => m.piece?.type === 'king');
+            const kingMoves = this._preferSafestMoves(
+                allMoves.filter(m => m.piece?.type === 'king'),
+                game,
+                oppColor
+            );
             if (kingMoves.length > 0) {
                 const oppKing = this._findKing(game, oppColor);
                 if (oppKing) {
@@ -81,6 +86,9 @@ class Level_16 {
 
     _evaluateMove(game, move, color, oppColor) {
         let score = 0;
+        const simulated = this._simulateMove(game, move);
+        const exposure = this._evaluateMoveExposure(game, move, oppColor, simulated);
+        move._exposure = exposure;
         
         // 1. CAPTURES
         if (move.isCapture) {
@@ -93,10 +101,7 @@ class Level_16 {
                 score += 5;
             }
             
-            // Capture sûre (pas attaquée en retour)
-            if (!this._isSquareAttacked(game, move.toRow, move.toCol, oppColor)) {
-                score += 3;
-            }
+            if (exposure === 0) score += 3;
         }
         
         // 2. PROMOTION
@@ -105,7 +110,6 @@ class Level_16 {
         }
         
         // 3. ÉCHEC
-        const simulated = this._simulateMove(game, move);
         if (simulated && this._isKingInCheck(simulated, oppColor)) {
             score += 15; // Bonus pour échec
         }
@@ -123,11 +127,11 @@ class Level_16 {
             }
         }
         
-        // 5. SÉCURITÉ
-        // Éviter de mettre une pièce en danger
-        if (this._isSquareAttacked(game, move.toRow, move.toCol, oppColor)) {
-            const pieceValue = this.pieceValues[move.piece.type] || 0;
-            score -= pieceValue * 0.5;
+        // 5. SÉCURITÉ APRÈS SIMULATION
+        score -= exposure * 5;
+
+        if (move.details?.type === 'castling' && move.details.side === 'kingside') {
+            score += 5;
         }
         
         // Sauver une pièce attaquée
@@ -137,6 +141,44 @@ class Level_16 {
         }
         
         return score;
+    }
+
+    _preferSafestMoves(moves, game, opponent) {
+        moves.forEach(move => {
+            if (move._exposure === undefined) {
+                move._exposure = this._evaluateMoveExposure(game, move, opponent);
+            }
+        });
+        const minimumExposure = Math.min(...moves.map(move => move._exposure ?? 0));
+        return moves.filter(move => (move._exposure ?? 0) === minimumExposure);
+    }
+
+    _evaluateMoveExposure(game, move, opponent, simulated = this._simulateMove(game, move)) {
+        const toRow = move.details?.kingTo?.row ?? move.toRow;
+        const toCol = move.details?.kingTo?.col ?? move.toCol;
+        return this._bestExchange(simulated, toRow, toCol, opponent, 0);
+    }
+
+    _bestExchange(game, targetRow, targetCol, capturingColor, depth) {
+        if (depth >= 8) return 0;
+        const target = this._getPiece(game.board, targetRow, targetCol);
+        if (!target || target.color.toLowerCase().startsWith(capturingColor[0])) return 0;
+
+        const capturedValue = this.pieceValues[target.type] || 0;
+        let bestScore = 0;
+        for (const move of this._getAllLegalMoves(game, capturingColor)) {
+            if (move.toRow !== targetRow || move.toCol !== targetCol || !move.isCapture) continue;
+
+            const promotionGain = move.piece.type === 'pawn' && (targetRow === 0 || targetRow === 7)
+                ? (this.pieceValues.queen || 0) - (this.pieceValues.pawn || 0)
+                : 0;
+            const afterCapture = this._simulateMove(game, move);
+            const nextColor = capturingColor === 'white' ? 'black' : 'white';
+            const score = capturedValue + promotionGain
+                - this._bestExchange(afterCapture, targetRow, targetCol, nextColor, depth + 1);
+            bestScore = Math.max(bestScore, score);
+        }
+        return bestScore;
     }
 
     _findMateInOne(game, color, moves) {
@@ -177,41 +219,117 @@ class Level_16 {
     // --- MÉTHODES UTILITAIRES (simplifiées) ---
 
     _simulateMove(game, move) {
-        try {
-            // Copie rapide
-            const simulated = {
-                board: { grid: [] },
-                gameState: { currentPlayer: game.gameState.currentPlayer },
-                moveValidator: game.moveValidator
-            };
-            
-            // Copier le board
-            for (let r = 0; r < 8; r++) {
-                simulated.board.grid[r] = [];
-                for (let c = 0; c < 8; c++) {
-                    const piece = this._getPiece(game.board, r, c);
-                    simulated.board.grid[r][c] = piece ? { piece: {...piece} } : null;
-                }
+        if (typeof BoardPosition === 'undefined' || typeof MoveValidator === 'undefined') {
+            throw new Error('BoardPosition et MoveValidator sont requis pour la recherche Level 16.');
+        }
+
+        const board = new BoardPosition();
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPiece(game.board, row, col);
+                if (piece) board.setPiece(row, col, { ...piece });
             }
-            
-            // Appliquer le coup
-            const fromPiece = this._getPiece(simulated.board, move.fromRow, move.fromCol);
-            if (!fromPiece) return null;
-            
-            simulated.board.grid[move.fromRow][move.fromCol] = null;
-            simulated.board.grid[move.toRow][move.toCol] = { piece: {...fromPiece} };
-            
-            // Promotion
-            if (move.promotion && simulated.board.grid[move.toRow][move.toCol]?.piece) {
-                simulated.board.grid[move.toRow][move.toCol].piece.type = move.promotion;
+        }
+
+        const previousState = game.gameState;
+        const state = {
+            currentPlayer: previousState.currentPlayer,
+            moveHistory: (previousState.moveHistory || []).slice(-1).map(entry => ({
+                ...entry,
+                from: entry.from ? { ...entry.from } : entry.from,
+                to: entry.to ? { ...entry.to } : entry.to
+            })),
+            hasKingMoved: { ...(previousState.hasKingMoved || { white: false, black: false }) },
+            hasRookMoved: {
+                white: { ...(previousState.hasRookMoved?.white || { kingside: false, queenside: false }) },
+                black: { ...(previousState.hasRookMoved?.black || { kingside: false, queenside: false }) }
+            },
+            castlingRights: {
+                white: { ...(previousState.castlingRights?.white || {}) },
+                black: { ...(previousState.castlingRights?.black || {}) }
+            },
+            kingStartCols: { ...(previousState.kingStartCols || { white: 4, black: 4 }) },
+            rookStartCols: {
+                white: { ...(previousState.rookStartCols?.white || { kingside: 7, queenside: 0 }) },
+                black: { ...(previousState.rookStartCols?.black || { kingside: 7, queenside: 0 }) }
+            },
+            castlingRightsString: previousState.castlingRightsString || 'KQkq',
+            chess960: previousState.chess960 === true
+        };
+        const simulated = { board, gameState: state };
+        simulated.moveValidator = new MoveValidator(board, state);
+
+        const movingPiece = board.getPiece(move.fromRow, move.fromCol);
+        if (!movingPiece) throw new Error('Pièce absente de la position simulée Level 16.');
+
+        const details = move.details || {};
+        const toRow = details.kingTo?.row ?? move.toRow;
+        const toCol = details.kingTo?.col ?? move.toCol;
+        const capturedPiece = board.getPiece(toRow, toCol);
+        const isCapture = !!capturedPiece || details.type === 'en-passant';
+
+        if (details.type === 'castling') {
+            const rook = board.getPiece(details.rookFrom.row, details.rookFrom.col);
+            board.setPiece(move.fromRow, move.fromCol, null);
+            board.setPiece(details.rookFrom.row, details.rookFrom.col, null);
+            movingPiece.row = toRow;
+            movingPiece.col = toCol;
+            rook.row = details.rookTo.row;
+            rook.col = details.rookTo.col;
+            board.setPiece(toRow, toCol, movingPiece);
+            board.setPiece(rook.row, rook.col, rook);
+        } else {
+            board.setPiece(move.fromRow, move.fromCol, null);
+            if (details.type === 'en-passant' && details.capturedPawn) {
+                board.setPiece(details.capturedPawn.row, details.capturedPawn.col, null);
             }
-            
-            simulated.gameState.currentPlayer = game.gameState.currentPlayer === 'white' ? 'black' : 'white';
-            
-            return simulated;
-        } catch (e) {
-            console.error("Erreur simulation:", e);
-            return null;
+            movingPiece.row = toRow;
+            movingPiece.col = toCol;
+            if (details.isPromotion || move.promotion || (movingPiece.type === 'pawn' && (toRow === 0 || toRow === 7))) {
+                movingPiece.type = move.promotion || 'queen';
+            }
+            board.setPiece(toRow, toCol, movingPiece);
+        }
+
+        this._updateCastlingState(state, movingPiece, move, capturedPiece);
+        state.moveHistory.push({
+            player: state.currentPlayer,
+            color: state.currentPlayer,
+            from: { row: move.fromRow, col: move.fromCol },
+            to: { row: toRow, col: toCol },
+            piece: movingPiece.type,
+            type: details.type,
+            isDoublePush: details.isDoublePush === true,
+            isCapture
+        });
+        state.currentPlayer = state.currentPlayer === 'white' ? 'black' : 'white';
+        return simulated;
+    }
+
+    _updateCastlingState(state, movingPiece, move, capturedPiece) {
+        const color = movingPiece.color;
+        const startRow = color === 'white' ? 7 : 0;
+
+        if (movingPiece.type === 'king') {
+            state.hasKingMoved[color] = true;
+            if (state.castlingRights[color]) {
+                state.castlingRights[color].kingside = false;
+                state.castlingRights[color].queenside = false;
+            }
+        }
+        if (movingPiece.type === 'rook' && move.fromRow === startRow) {
+            const side = move.fromCol === 0 ? 'queenside' : move.fromCol === 7 ? 'kingside' : null;
+            if (side && state.hasRookMoved[color]) state.hasRookMoved[color][side] = true;
+        }
+        if (capturedPiece?.type === 'rook') {
+            const capturedColor = capturedPiece.color;
+            const capturedRow = capturedColor === 'white' ? 7 : 0;
+            const toRow = move.details?.kingTo?.row ?? move.toRow;
+            const toCol = move.details?.kingTo?.col ?? move.toCol;
+            const side = toRow === capturedRow
+                ? (toCol === 0 ? 'queenside' : toCol === 7 ? 'kingside' : null)
+                : null;
+            if (side && state.hasRookMoved[capturedColor]) state.hasRookMoved[capturedColor][side] = true;
         }
     }
 
@@ -274,9 +392,15 @@ class Level_16 {
                         pieceMoves.forEach(m => {
                             let target = this._getPiece(game.board, m.row, m.col);
                             moves.push({
-                                fromRow: r, fromCol: c, toRow: m.row, toCol: m.col,
-                                piece: piece, targetPiece: target,
-                                isCapture: !!target && target.color.charAt(0).toLowerCase() !== myColorKey
+                                fromRow: r, fromCol: c,
+                                toRow: m.kingTo?.row ?? m.row,
+                                toCol: m.kingTo?.col ?? m.col,
+                                piece: piece,
+                                targetPiece: target || (m.type === 'en-passant' ? { type: 'pawn' } : null),
+                                isCapture: (!!target && target.color.charAt(0).toLowerCase() !== myColorKey)
+                                    || m.type === 'en-passant',
+                                details: m,
+                                promotion: m.isPromotion ? 'queen' : undefined
                             });
                         });
                     }
@@ -295,9 +419,11 @@ class Level_16 {
     }
 
     _finalize(move) {
+        if (!move) return null;
         if (move.piece?.type === 'pawn' && (move.toRow === 0 || move.toRow === 7)) {
-            move.promotion = 'queen'; // Toujours promouvoir en dame
+            move.promotion = 'queen';
         }
+        delete move._exposure;
         return move;
     }
 }
