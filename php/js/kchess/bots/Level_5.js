@@ -1,14 +1,15 @@
 /**
  * Level_5 - Grand Maître UI
- * Version 2.0.4 - Base 1.9.6 + Étranglement & Flexibilité
+ * Version 2.3.0 - Contrôle des cases centrales
  */
 class Level_5 {
-    static VERSION = '2.0.4';
+    static VERSION = '2.3.0';
 
     constructor() {
         this.name = "Bot Level 5 (Pro)";
         this.level = 5;
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
+        this.gameFonctions = GameFonctions.attach(this);
     }
 
     async getMove() {
@@ -25,17 +26,18 @@ class Level_5 {
             if (allMoves.length === 0) return null;
 
             const oppKing = this._findKing(game, oppColor);
+            const centerControlBefore = this._getCenterControlScore(game, myColor);
 
             allMoves.forEach(m => {
                 let score = 0;
+                const afterMove = this._simulateMove(game, m);
 
                 // 1. CAPTURES & SÉCURITÉ RENFORCÉE
                 if (m.isCapture) {
                     score += (this.pieceValues[m.targetPiece.type] * 20);
                 }
-                if (this._isSquareAttacked(game, m.toRow, m.toCol, oppColor)) {
-                    score -= (this.pieceValues[m.piece.type] * 12); 
-                }
+                score -= this._evaluateMoveExposure(game, m, oppColor, afterMove) * 12;
+                score += (this._getCenterControlScore(afterMove, myColor) - centerControlBefore) * 12;
 
                 // 2. ÉTRANGLEMENT DU ROI
                 if (oppKing) {
@@ -57,6 +59,10 @@ class Level_5 {
                 // 4. MISE EN ÉCHEC
                 if (m.isCheck) score += 300;
 
+                if (m.details?.type === 'castling') {
+                    score += 100;
+                }
+
                 // 5. ANTI-PAT RADICAL
                 if (oppKing && !m.isCheck) {
                     const dist = Math.abs(m.toRow - oppKing.r) + Math.abs(m.toCol - oppKing.c);
@@ -68,7 +74,10 @@ class Level_5 {
 
             return this._finalize(this._getBestMove(allMoves));
 
-        } catch (err) { return null; }
+        } catch (err) {
+            console.error('L5 Error:', err);
+            return null;
+        }
     }
 
     _getBestMove(moves) {
@@ -107,6 +116,159 @@ class Level_5 {
         return false;
     }
 
+    _getCenterControlScore(game, color) {
+        const fen = game.moveValidator.generateCurrentFEN(color);
+        const engine = new ChessEngine(fen);
+        const colorKey = color === 'white' ? 'w' : 'b';
+        let score = 0;
+
+        for (const [row, col] of [[3, 3], [3, 4], [4, 3], [4, 4]]) {
+            const piece = this._getPieceCompat(game, row, col);
+            if (piece?.color === color) score += 1;
+            if (engine.isSquareAttacked(row, col, colorKey)) score += 1;
+        }
+        return score;
+    }
+
+    _evaluateMoveExposure(game, move, opponent, afterMove = this._simulateMove(game, move)) {
+        const toRow = move.details?.kingTo?.row ?? move.toRow;
+        const toCol = move.details?.kingTo?.col ?? move.toCol;
+        return this._bestExchange(afterMove, toRow, toCol, opponent, 0);
+    }
+
+    _bestExchange(game, targetRow, targetCol, capturingColor, depth) {
+        if (depth >= 8) return 0;
+        const target = this._getPieceCompat(game, targetRow, targetCol);
+        if (!target || target.color !== (capturingColor === 'white' ? 'black' : 'white')) return 0;
+
+        const capturedValue = this.pieceValues[target.type] || 0;
+        let bestScore = 0;
+        for (const move of this._getAllLegalMoves(game, capturingColor)) {
+            if (move.toRow !== targetRow || move.toCol !== targetCol || !move.isCapture) continue;
+
+            const promotionGain = move.piece.type === 'pawn' && (targetRow === 0 || targetRow === 7)
+                ? this.pieceValues.queen - this.pieceValues.pawn
+                : 0;
+            const afterCapture = this._simulateMove(game, move);
+            const nextColor = capturingColor === 'white' ? 'black' : 'white';
+            const score = capturedValue + promotionGain
+                - this._bestExchange(afterCapture, targetRow, targetCol, nextColor, depth + 1);
+            bestScore = Math.max(bestScore, score);
+        }
+        return bestScore;
+    }
+
+    _simulateMove(game, move) {
+        const board = new BoardPosition();
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPieceCompat(game, row, col);
+                if (piece) board.setPiece(row, col, { ...piece });
+            }
+        }
+
+        const previousState = game.gameState;
+        const state = {
+            currentPlayer: previousState.currentPlayer,
+            moveHistory: (previousState.moveHistory || []).slice(-1).map(entry => ({
+                ...entry,
+                from: entry.from ? { ...entry.from } : entry.from,
+                to: entry.to ? { ...entry.to } : entry.to
+            })),
+            hasKingMoved: { ...(previousState.hasKingMoved || { white: false, black: false }) },
+            hasRookMoved: {
+                white: { ...(previousState.hasRookMoved?.white || { kingside: false, queenside: false }) },
+                black: { ...(previousState.hasRookMoved?.black || { kingside: false, queenside: false }) }
+            },
+            castlingRights: {
+                white: { ...(previousState.castlingRights?.white || {}) },
+                black: { ...(previousState.castlingRights?.black || {}) }
+            },
+            kingStartCols: { ...(previousState.kingStartCols || { white: 4, black: 4 }) },
+            rookStartCols: {
+                white: { ...(previousState.rookStartCols?.white || { kingside: 7, queenside: 0 }) },
+                black: { ...(previousState.rookStartCols?.black || { kingside: 7, queenside: 0 }) }
+            },
+            castlingRightsString: previousState.castlingRightsString || 'KQkq',
+            chess960: previousState.chess960 === true
+        };
+        const simulatedGame = { board, gameState: state };
+        simulatedGame.moveValidator = new MoveValidator(board, state);
+
+        const movingPiece = board.getPiece(move.fromRow, move.fromCol);
+        if (!movingPiece) throw new Error('Pièce absente de la position simulée Level 5.');
+
+        const details = move.details || {};
+        const toRow = details.kingTo?.row ?? move.toRow;
+        const toCol = details.kingTo?.col ?? move.toCol;
+        const capturedPiece = board.getPiece(toRow, toCol);
+        const isCapture = !!capturedPiece || details.type === 'en-passant';
+
+        if (details.type === 'castling') {
+            const rook = board.getPiece(details.rookFrom.row, details.rookFrom.col);
+            board.setPiece(move.fromRow, move.fromCol, null);
+            board.setPiece(details.rookFrom.row, details.rookFrom.col, null);
+            movingPiece.row = toRow;
+            movingPiece.col = toCol;
+            rook.row = details.rookTo.row;
+            rook.col = details.rookTo.col;
+            board.setPiece(toRow, toCol, movingPiece);
+            board.setPiece(rook.row, rook.col, rook);
+        } else {
+            board.setPiece(move.fromRow, move.fromCol, null);
+            if (details.type === 'en-passant' && details.capturedPawn) {
+                board.setPiece(details.capturedPawn.row, details.capturedPawn.col, null);
+            }
+            movingPiece.row = toRow;
+            movingPiece.col = toCol;
+            if (details.isPromotion || (movingPiece.type === 'pawn' && (toRow === 0 || toRow === 7))) {
+                movingPiece.type = 'queen';
+            }
+            board.setPiece(toRow, toCol, movingPiece);
+        }
+
+        this._updateCastlingState(state, movingPiece, move, capturedPiece);
+        state.moveHistory.push({
+            player: state.currentPlayer,
+            color: state.currentPlayer,
+            from: { row: move.fromRow, col: move.fromCol },
+            to: { row: toRow, col: toCol },
+            piece: movingPiece.type,
+            type: details.type,
+            isDoublePush: details.isDoublePush === true,
+            isCapture
+        });
+        state.currentPlayer = state.currentPlayer === 'white' ? 'black' : 'white';
+        return simulatedGame;
+    }
+
+    _updateCastlingState(state, movingPiece, move, capturedPiece) {
+        const color = movingPiece.color;
+        const startRow = color === 'white' ? 7 : 0;
+
+        if (movingPiece.type === 'king') {
+            state.hasKingMoved[color] = true;
+            if (state.castlingRights[color]) {
+                state.castlingRights[color].kingside = false;
+                state.castlingRights[color].queenside = false;
+            }
+        }
+        if (movingPiece.type === 'rook' && move.fromRow === startRow) {
+            const side = move.fromCol === 0 ? 'queenside' : move.fromCol === 7 ? 'kingside' : null;
+            if (side && state.hasRookMoved[color]) state.hasRookMoved[color][side] = true;
+        }
+        if (capturedPiece?.type === 'rook') {
+            const capturedColor = capturedPiece.color;
+            const capturedRow = capturedColor === 'white' ? 7 : 0;
+            const toRow = move.details?.kingTo?.row ?? move.toRow;
+            const toCol = move.details?.kingTo?.col ?? move.toCol;
+            const side = toRow === capturedRow
+                ? (toCol === 0 ? 'queenside' : toCol === 7 ? 'kingside' : null)
+                : null;
+            if (side && state.hasRookMoved[capturedColor]) state.hasRookMoved[capturedColor][side] = true;
+        }
+    }
+
     _getAllLegalMoves(game, color) {
         const moves = [];
         const myKey = color.toLowerCase().charAt(0);
@@ -119,10 +281,15 @@ class Level_5 {
                         pMoves.forEach(m => {
                             const target = this._getPieceCompat(game, m.row, m.col);
                             moves.push({
-                                fromRow: r, fromCol: c, toRow: m.row, toCol: m.col,
-                                piece: piece, targetPiece: target,
-                                isCapture: !!target && !target.color.toLowerCase().startsWith(myKey),
-                                isCheck: m.isCheck || false
+                                fromRow: r, fromCol: c,
+                                toRow: m.kingTo?.row ?? m.row,
+                                toCol: m.kingTo?.col ?? m.col,
+                                piece: piece,
+                                targetPiece: target || (m.type === 'en-passant' ? { type: 'pawn' } : null),
+                                isCapture: (!!target && !target.color.toLowerCase().startsWith(myKey))
+                                    || m.type === 'en-passant',
+                                isCheck: m.isCheck || false,
+                                details: m
                             });
                         });
                     }
@@ -138,7 +305,7 @@ class Level_5 {
             if (board.getPiece) return board.getPiece(r, c);
             const grid = board.grid || board;
             const sq = grid[r] ? grid[r][c] : null;
-            return sq?.piece || (sq?.type ? sq : null);
+            return sq?.type ? sq : null;
         } catch(e) { return null; }
     }
 

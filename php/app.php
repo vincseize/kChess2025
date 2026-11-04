@@ -78,6 +78,8 @@ if (isset($_GET['new'])) {
                 $requestedLevel = intval($_GET['level'] ?? 1);
                 $botPath = "js/kchess/bots/Level_" . $requestedLevel . ".js";
                 
+                echo '<script src="js/kchess/bots/game_fonctions.js?v=' . time() . '"></script>';
+                echo '<script src="js/kchess/bots/game_ouverture.js?v=' . time() . '"></script>';
                 echo '<script src="js/kchess/bots/BotBase.js?v=' . time() . '"></script>';
                 if (file_exists(__DIR__ . "/" . $botPath)) {
                     echo '<script src="' . $botPath . '?v=' . time() . '"></script>';

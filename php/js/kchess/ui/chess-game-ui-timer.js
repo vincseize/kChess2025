@@ -1,6 +1,11 @@
 /**
  * ui/chess-game-ui-timer.js
  * Gère le décompte et l'application des incréments de temps.
+ *
+ * v1.1.0 :
+ *   - Flag `enabled` pour désactiver le timer (mode arène / stress test)
+ *   - Méthodes `disable()` / `enable()`
+ *   - `switchTurn()` et `startTimer()` court-circuités si désactivé
  */
 class ChessTimerManager {
     constructor(ui) {
@@ -11,6 +16,7 @@ class ChessTimerManager {
         this.initialTime = 600;
         this.timerInterval = null;
         this.isTimerRunning = false;
+        this.enabled = true;  // ← NOUVEAU : flag global d'activation
 
         const params = new URLSearchParams(window.location.search);
         if (params.get('mode') === 'bot') {
@@ -51,12 +57,34 @@ class ChessTimerManager {
     }
 
     /**
+     * Active le timer (mode humain / bot normal).
+     */
+    enable() {
+        this.enabled = true;
+    }
+
+    /**
+     * Désactive complètement le timer (mode arène / stress test).
+     * Aucun setInterval ne sera lancé, aucune modale "temps écoulé" ne s'affichera.
+     */
+    disable() {
+        this.enabled = false;
+        this.stopTimer();
+    }
+
+    /**
      * Appelé par GameState.switchPlayer()
      */
     switchTurn(newColor) {
+        // ← NOUVEAU : court-circuit si le timer est désactivé
+        if (!this.enabled) {
+            this.updateTimerDisplay();
+            return;
+        }
+
         // Le joueur qui vient de FINIR son coup (couleur opposée à newColor) reçoit l'incrément
         const previousPlayer = (newColor === 'white') ? 'black' : 'white';
-        
+
         if (this.increment > 0) {
             if (previousPlayer === 'white') {
                 this.whiteTime += this.increment;
@@ -65,7 +93,7 @@ class ChessTimerManager {
             }
             console.log(`➕ Incrément +${this.increment}s appliqué aux ${previousPlayer}`);
         }
-        
+
         // On arrête le décompte en cours, on met à jour, et on relance pour le nouveau joueur
         this.stopTimer();
         this.updateTimerDisplay();
@@ -76,19 +104,20 @@ class ChessTimerManager {
     }
 
     startTimer() {
+        if (!this.enabled) return;                    // ← NOUVEAU
         if (!this.ui.game.gameState.gameActive) return;
         if (this.isTimerRunning) return;
 
         this.isTimerRunning = true;
         this.timerInterval = setInterval(() => {
             const currentPlayer = this.ui.game.gameState.currentPlayer;
-            
+
             if (currentPlayer === 'white') {
                 if (this.whiteTime > 0) this.whiteTime--;
             } else {
                 if (this.blackTime > 0) this.blackTime--;
             }
-            
+
             this.updateTimerDisplay();
 
             if (this.whiteTime <= 0 || this.blackTime <= 0) {
@@ -117,14 +146,14 @@ class ChessTimerManager {
         const whiteColor = colors.clock_white || '#FFFFFF';
         const blackColor = colors.clock_black || colors.primary || '#0891B2';
         const expiredColor = colors.clock_expired || '#ff0000';
-        
+
         if (whiteEl) {
             whiteEl.textContent = this.formatTime(this.whiteTime);
             whiteEl.style.fontWeight = (currentPlayer === 'white') ? 'bold' : 'normal';
             if (this.whiteTime <= 0) whiteEl.style.setProperty('color', expiredColor, 'important');
             else whiteEl.style.setProperty('color', whiteColor, 'important');
         }
-        
+
         if (blackEl) {
             blackEl.textContent = this.formatTime(this.blackTime);
             blackEl.style.fontWeight = (currentPlayer === 'black') ? 'bold' : 'normal';

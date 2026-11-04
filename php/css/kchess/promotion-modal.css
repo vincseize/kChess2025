@@ -1,240 +1,211 @@
-/* promotion-modal.css - Version SANS bouton annuler */
-.promotion-modal {
+.promotion-modal,
+.game-result-modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    inset: 0;
     z-index: 10000;
-    padding: 20px;
-    backdrop-filter: blur(5px);
-}
-
-.promotion-overlay {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-    max-width: 500px;
-    width: 100%;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.promotion-content h4 {
-    margin-bottom: 0.5rem;
-    color: white;
-    text-align: center;
-    font-size: 1.5rem;
-    font-weight: 600;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.promotion-content p {
-    margin-bottom: 2rem;
-    color: rgba(255, 255, 255, 0.9);
-    text-align: center;
-    font-size: 1rem;
-}
-
-/* Grille 2x2 pour les pièces */
-.promotion-options {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    margin-bottom: 2rem;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(3, 17, 20, 0.78);
+    backdrop-filter: blur(6px);
+    animation: promotion-fade-in 160ms ease-out;
 }
 
-.promotion-option {
+.promotion-overlay,
+.game-result-overlay {
+    width: min(100%, 440px);
+    padding: clamp(1.25rem, 5vw, 2rem);
+    border: 1px solid var(--site-border, #28656a);
+    border-radius: 1rem;
+    background: var(--site-surface, #12383c);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+    color: var(--site-text, #e6fffa);
+    animation: promotion-rise-in 180ms ease-out;
+}
+
+.promotion-content,
+.game-result-content {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.promotion-header,
+.game-result-header {
+    display: grid;
+    justify-items: center;
+    gap: 0.35rem;
+    text-align: center;
+}
+
+.promotion-icon,
+.game-result-icon {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-bottom: 0.25rem;
+    place-items: center;
+    border: 1px solid var(--site-border, #28656a);
+    border-radius: 50%;
+    background: var(--site-surface-alt, #17464a);
+    color: var(--success-color, #10b981);
+    font-size: 1.15rem;
+}
+
+.game-result-icon {
+    border-color: color-mix(in srgb, var(--site-border, #28656a), var(--result-accent, #10b981) 35%);
+    color: var(--result-accent, var(--success-color, #10b981));
+}
+
+.promotion-header h2,
+.game-result-header h2 {
+    margin: 0;
+    color: var(--site-text, #e6fffa);
+    font-size: clamp(1.15rem, 4vw, 1.4rem);
+    font-weight: 700;
+}
+
+.promotion-header p,
+.game-result-header p {
+    margin: 0;
+    color: var(--site-text-muted, #9bc6c1);
+    font-size: 0.92rem;
+}
+
+.game-result-header p {
+    line-height: 1.5;
+}
+
+.game-result-header strong {
+    color: var(--danger-color, #fb7185);
+}
+
+.game-result-actions {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 1.5rem 1rem;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+}
+
+.game-result-action {
+    min-height: 2.75rem;
+    flex: 1 1 9rem;
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--site-border, #28656a);
+    border-radius: 0.75rem;
+    background: var(--site-surface-alt, #17464a);
+    color: var(--site-text, #e6fffa);
+    font: inherit;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
     -webkit-tap-highlight-color: transparent;
 }
 
-/* Style par défaut (NON sélectionné) - PLUS FONCÉ */
+.game-result-action-primary {
+    border-color: var(--success-color, #10b981);
+    background: var(--success-color, #10b981);
+    color: #062b27;
+}
+
+.game-result-action:hover {
+    transform: translateY(-2px);
+    border-color: var(--chess-selected, #5eead4);
+}
+
+.game-result-action:focus-visible {
+    outline: 3px solid var(--chess-selected, #5eead4);
+    outline-offset: 2px;
+}
+
+.game-result-action:active {
+    transform: translateY(0);
+}
+
+.promotion-options {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+
 .promotion-option {
-    border-color: rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.1);
+    display: grid;
+    min-width: 0;
+    min-height: 6.25rem;
+    align-content: center;
+    justify-items: center;
+    gap: 0.35rem;
+    padding: 0.7rem 0.3rem;
+    border: 1px solid var(--site-border, #28656a);
+    border-radius: 0.75rem;
+    background: var(--site-surface-alt, #17464a);
+    color: var(--site-text, #e6fffa);
+    font: inherit;
+    cursor: pointer;
+    transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .promotion-option:hover {
-    border-color: rgba(255, 255, 255, 0.8);
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    border-color: var(--success-color, #10b981);
+    background: color-mix(in srgb, var(--site-surface-alt, #17464a), var(--success-color, #10b981) 14%);
+}
+
+.promotion-option:focus-visible {
+    outline: 3px solid var(--chess-selected, #5eead4);
+    outline-offset: 2px;
 }
 
 .promotion-option:active {
-    transform: translateY(-2px);
+    transform: translateY(0);
 }
 
-/* Style pour l'option SÉLECTIONNÉE - PLUS CLAIR */
-.promotion-option.selected {
-    border-color: #4a90e2 !important;
-    background: rgba(255, 255, 255, 0.3) !important;
-    transform: scale(1.05);
-    box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
-}
-
-.promotion-option .chess-piece {
-    font-size: 3rem;
-    margin-bottom: 0.75rem;
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-    transition: transform 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.promotion-option .chess-piece-img {
-    width: 50px;
-    height: 50px;
+.promotion-piece-img {
+    width: clamp(2.5rem, 12vw, 3.5rem);
+    height: clamp(2.5rem, 12vw, 3.5rem);
     object-fit: contain;
 }
 
-.promotion-option:hover .chess-piece {
-    transform: scale(1.1);
-}
-
-.promotion-option.selected .chess-piece {
-    transform: scale(1.15);
-}
-
 .promotion-option span {
+    overflow: hidden;
+    max-width: 100%;
+    color: var(--site-text, #e6fffa);
+    font-size: clamp(0.7rem, 3vw, 0.82rem);
     font-weight: 600;
-    color: white;
-    font-size: 1rem;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-/* Actions de promotion - UN SEUL BOUTON */
-.promotion-actions {
-    display: flex;
-    justify-content: center;
-    margin-top: 1rem;
+@keyframes promotion-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-#promotionConfirm {
-    min-width: 200px;
-    padding: 0.75rem 2rem;
-    border: 2px solid rgba(40, 167, 69, 0.6);
-    border-radius: 10px;
-    background: rgba(40, 167, 69, 0.2);
-    color: white;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
+@keyframes promotion-rise-in {
+    from { opacity: 0; transform: translateY(0.5rem) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-#promotionConfirm:hover {
-    background: rgba(40, 167, 69, 0.4);
-    border-color: rgba(40, 167, 69, 0.9);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
-}
-
-/* Animations */
-@keyframes modalAppear {
-    from {
-        opacity: 0;
-        transform: scale(0.8) translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-.promotion-overlay {
-    animation: modalAppear 0.3s ease-out;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .promotion-modal {
-        padding: 15px;
-    }
-    
-    .promotion-overlay {
-        padding: 1.5rem;
-        max-width: 400px;
-    }
-    
-    .promotion-content h4 {
-        font-size: 1.3rem;
-    }
-    
-    .promotion-content p {
-        font-size: 0.9rem;
-        margin-bottom: 1.5rem;
-    }
-    
+@media (max-width: 360px) {
     .promotion-options {
-        gap: 0.75rem;
-        margin-bottom: 1.5rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    
+
     .promotion-option {
-        padding: 1.25rem 0.75rem;
-    }
-    
-    .promotion-option .chess-piece {
-        font-size: 2.5rem;
-    }
-    
-    .promotion-option .chess-piece-img {
-        width: 40px;
-        height: 40px;
-    }
-    
-    #promotionConfirm {
-        min-width: 180px;
-        padding: 0.75rem 1.5rem;
+        min-height: 5.5rem;
     }
 }
 
-@media (max-width: 480px) {
-    .promotion-overlay {
-        padding: 1.25rem;
-        max-width: 350px;
+@media (prefers-reduced-motion: reduce) {
+    .promotion-modal,
+    .promotion-overlay,
+    .game-result-modal,
+    .game-result-overlay {
+        animation: none;
     }
-    
-    .promotion-option {
-        padding: 1rem 0.5rem;
-        flex-direction: row;
-        justify-content: flex-start;
-        gap: 1rem;
-    }
-    
-    .promotion-option .chess-piece {
-        font-size: 2rem;
-        margin-bottom: 0;
-        flex-shrink: 0;
-    }
-    
-    .promotion-option .chess-piece-img {
-        width: 35px;
-        height: 35px;
-    }
-    
-    .promotion-option span {
-        font-size: 0.9rem;
-    }
-    
-    #promotionConfirm {
-        min-width: 160px;
-        padding: 0.6rem 1.2rem;
-        font-size: 0.9rem;
+
+    .promotion-option,
+    .game-result-action {
+        transition: none;
     }
 }

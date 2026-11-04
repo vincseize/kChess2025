@@ -37,15 +37,16 @@ class MoveStateManager {
     handlePieceSelection(row, col, square) {
         const currentPlayer = this.game.gameState.currentPlayer;
         
-        if (square.piece && square.piece.color === currentPlayer) {
+        const piece = this.game.board.getPiece(row, col);
+        if (piece && piece.color === currentPlayer) {
             // On nettoie les suggestions précédentes avant d'en afficher de nouvelles
             this.clearSelection(); 
             
-            this.game.selectedPiece = { row, col, piece: square.piece };
+            this.game.selectedPiece = { row, col, piece };
             
             // Calcul des mouvements légaux via le validateur
             try {
-                this.game.possibleMoves = this.game.moveValidator.getPossibleMoves(square.piece, row, col);
+                this.game.possibleMoves = this.game.moveValidator.getPossibleMoves(piece, row, col);
             } catch (error) {
                 console.error("❌ Erreur lors du calcul des mouvements:", error);
                 this.game.possibleMoves = [];
@@ -59,7 +60,7 @@ class MoveStateManager {
             this.highlightPossibleMoves();
             
             if (this.constructor.consoleLog) {
-                console.log(`✅ Sélection : ${square.piece.type} (${this.game.possibleMoves.length} coups possibles)`);
+                console.log(`✅ Sélection : ${piece.type} (${this.game.possibleMoves.length} coups possibles)`);
             }
         }
     }
@@ -145,7 +146,7 @@ class MoveStateManager {
      * Analyse si on change de pièce sélectionnée ou si on annule tout
      */
     handleInvalidMove(toRow, toCol, toSquare) {
-        const isOwnPiece = toSquare.piece?.color === this.game.gameState.currentPlayer;
+        const isOwnPiece = this.game.board.getPiece(toRow, toCol)?.color === this.game.gameState.currentPlayer;
         
         if (isOwnPiece) {
             // Change la sélection vers la nouvelle pièce alliée

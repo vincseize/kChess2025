@@ -5,6 +5,7 @@
 class BotBase {
     constructor() {
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
+        this.gameFonctions = GameFonctions.attach(this);
     }
 
     getGame() {
@@ -43,7 +44,7 @@ class BotBase {
             if (board.getPiece) return board.getPiece(r, c);
             const grid = board.grid || board;
             const sq = grid[r] ? grid[r][c] : null;
-            return sq?.piece || (sq?.type ? sq : null);
+            return sq?.type ? sq : null;
         } catch(e) { return null; }
     }
 

@@ -91,16 +91,12 @@ class FENGenerator {
             let emptyCount = 0;
             
             for (let col = 0; col < 8; col++) {
-                // Compatibilité : on cherche dans getSquare ou directement dans une grid
-                let square = null;
-                if (typeof board.getSquare === 'function') {
-                    square = board.getSquare(row, col);
-                } else if (board.grid) {
-                    square = board.grid[row][col];
-                }
-
-                // Récupération de la pièce
-                const piece = square?.piece || (square?.type ? square : null);
+                const square = typeof board.getSquare === 'function'
+                    ? board.getSquare(row, col)
+                    : board.grid?.[row]?.[col];
+                const piece = typeof board.getPiece === 'function'
+                    ? board.getPiece(row, col)
+                    : square?.type ? square : null;
 
                 if (!piece) {
                     emptyCount++;
@@ -170,8 +166,9 @@ class FENGenerator {
 
         // 3. Vérification physique (la pièce est-elle là ?)
         const getP = (r, c) => {
-            const s = typeof board.getSquare === 'function' ? board.getSquare(r, c) : board.grid?.[r][c];
-            return s?.piece || (s?.type ? s : null);
+            if (typeof board.getPiece === 'function') return board.getPiece(r, c);
+            const s = typeof board.getSquare === 'function' ? board.getSquare(r, c) : board.grid?.[r]?.[c];
+            return s?.type ? s : null;
         };
 
         const king = getP(row, kingCol);

@@ -9,6 +9,7 @@ class Level_2 {
         this.name = "Bot Level 2 (CCMO)";
         this.level = 2;
         this.pieceValues = { 'pawn': 1, 'knight': 3, 'bishop': 3, 'rook': 5, 'queen': 9, 'king': 100 };
+        this.gameFonctions = GameFonctions.attach(this);
     }
 
     async getMove() {
@@ -100,7 +101,7 @@ class Level_2 {
             if (board.getPiece) return board.getPiece(r, c);
             const grid = board.grid || board;
             const sq = grid[r][c];
-            return sq?.piece || (sq?.type ? sq : null);
+            return sq?.type ? sq : null;
         } catch(e) { return null; }
     }
 

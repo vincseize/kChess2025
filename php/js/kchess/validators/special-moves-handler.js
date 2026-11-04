@@ -123,8 +123,7 @@ class SpecialMovesHandler {
         const capturedSq = board.getSquare(capturedPawnRow, toCol);
         
         if (capturedSq) {
-            capturedSq.piece = null;
-            capturedSq.element.innerHTML = '';
+            board.setPiece(capturedPawnRow, toCol, null);
             this.constructor.log(`Pion adverse retiré en ${capturedPawnRow},${toCol}`, 'info');
         }
 
@@ -142,7 +141,7 @@ class SpecialMovesHandler {
         const board = this.game.board || this.game.core?.board;
         const from = board.getSquare(fRow, fCol);
         const to = board.getSquare(tRow, tCol);
-        const piece = from.piece;
+        const piece = board.getPiece(fRow, fCol);
 
         if (piece) {
             // Mise à jour de l'objet pièce
@@ -150,15 +149,8 @@ class SpecialMovesHandler {
             piece.col = tCol;
             piece.hasMoved = true;
 
-            // Transfert logique
-            to.piece = piece;
-            from.piece = null;
-
-            // Transfert visuel (DOM)
-            if (board.placePiece) {
-                board.placePiece(piece, to);
-                from.element.innerHTML = ''; 
-            }
+            board.setPiece(fRow, fCol, null);
+            board.setPiece(tRow, tCol, piece);
         }
     }
 

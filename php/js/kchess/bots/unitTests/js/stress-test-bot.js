@@ -1,6 +1,10 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.6.9 - Finalisation Format Temps & Architecture BotBase
+ * Version : 7.7.0 - Désactivation du timer pour l'arène
+ *
+ * Changelog v7.7.0 :
+ *   - Désactivation du ChessTimerManager dans chaque partie simulée
+ *     pour éviter les faux "PERDU AU TEMPS" en arène.
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -16,13 +20,13 @@ class BotStressTest {
     }
 
     resetStats() {
-        this.stats = { 
-            totalMoves: 0, 
-            gamesPlayed: 0, 
-            errors: 0, 
-            checkmates: 0, 
-            stalemates: 0, 
-            draws: 0, 
+        this.stats = {
+            totalMoves: 0,
+            gamesPlayed: 0,
+            errors: 0,
+            checkmates: 0,
+            stalemates: 0,
+            draws: 0,
             fenList: [],
             startTime: null,
             totalDuration: 0,
@@ -63,15 +67,15 @@ class BotStressTest {
                         clearJsonBtn.innerText = "DONE !";
                         setTimeout(() => clearJsonBtn.innerText = originalText, 1500);
                     }
-                } catch (e) { 
-                    console.error("Clear error:", e); 
+                } catch (e) {
+                    console.error("Clear error:", e);
                 }
             };
         }
-        
+
         const copyLogBtn = document.getElementById('copyLogBtn');
         if (copyLogBtn) copyLogBtn.onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
-        
+
         const copyFenBtn = document.getElementById('copyFenBtn');
         if (copyFenBtn) {
             copyFenBtn.onclick = (e) => {
@@ -131,7 +135,7 @@ class BotStressTest {
     }
 
     statusUpdate(msg, type = 'blanc', resultLabel = "", winner = null, fenToCopy = null) {
-        if (!this.logEl || !msg.trim()) return; 
+        if (!this.logEl || !msg.trim()) return;
 
         if (this.logEl.children.length >= 100) {
             this.logEl.removeChild(this.logEl.firstChild);
@@ -141,7 +145,7 @@ class BotStressTest {
         const colors = { rouge: "#f85149", orange: "#d29922", blanc: "#ffffff", gris: "#8b949e", system: "#3fb950" };
         const time = `<span style="color:#8b949e">[${new Date().toLocaleTimeString()}]</span> `;
         let formattedMsg = msg;
-        
+
         if (resultLabel) {
             const labelColor = colors[type] || "#ffffff";
             formattedMsg = msg.replace(resultLabel, `<span style="color:${labelColor}; font-weight:bold;">${resultLabel}</span>`);
@@ -156,7 +160,7 @@ class BotStressTest {
         if (fenToCopy) {
             formattedMsg += ` <span style="color:#444d56; font-size:10px; font-family:monospace; margin-left:5px;">FEN: ${fenToCopy}</span>`;
         }
-        
+
         div.style.color = colors[type] || "#ffffff";
         div.style.fontSize = "11px";
         div.style.padding = "2px 0";
@@ -222,16 +226,20 @@ class BotStressTest {
         try {
             if (game.moveHandler) { game.moveHandler.isPromoting = false; game.moveHandler.selectedPiece = null; }
             if (game.clearSelection) game.clearSelection();
-            if (game.promotionManager) {
-                game.promotionManager.showPromotionModal = (row, col, pieceColor, callback) => {
-                    game.promotionManager.handleChoice('queen', row, col, callback);
+            if (engine.moveHandler) {
+                engine.moveHandler.isPromoting = false;
+                engine.moveHandler.selectedPiece = null;
+            }
+            if (engine.promotionManager) {
+                engine.promotionManager.showPromotionModal = (row, col, pieceColor, callback) => {
+                    engine.promotionManager.handleChoice('queen', row, col, callback);
                 };
             }
-            if (game.moveExecutor && !game.moveExecutor._isPatched) {
-                game.moveExecutor.handlePromotion = function(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement, isCapture) {
+            if (engine.moveExecutor && !engine.moveExecutor._isPatched) {
+                engine.moveExecutor.handlePromotion = function(toRow, toCol, selectedPiece, move, fromSquare, toSquare, isCapture) {
                     this.finalizePromotion(toRow, toCol, 'queen', move, selectedPiece, isCapture);
                 };
-                game.moveExecutor._isPatched = true;
+                engine.moveExecutor._isPatched = true;
             }
             engine.handleSquareClick(move.fromRow, move.fromCol, true);
             engine.handleSquareClick(move.toRow, move.toCol, true);
@@ -244,127 +252,151 @@ class BotStressTest {
         } catch (e) { return false; }
     }
 
+    /**
+     * Désactive le timer pour une partie simulée (arène = pas de contrainte de temps).
+     * Couvre les deux emplacements possibles selon la version de ChessGameUI.
+     */
+    _disableTimerForGame(game) {
+        const engine = game.core || game;
+        const timerMgr = engine.ui?.timerManager || game.ui?.timerManager;
+        if (!timerMgr) return;
+
+        if (typeof timerMgr.disable === 'function') {
+            timerMgr.disable();
+        } else {
+            // Fallback si la méthode disable() n'existe pas encore
+            timerMgr.enabled = false;
+            if (typeof timerMgr.stopTimer === 'function') timerMgr.stopTimer();
+        }
+    }
+
     async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
         const _log = console.log; const _warn = console.warn;
-        console.log = console.warn = () => {}; 
-
+        console.log = console.warn = () => {};
         const gameStartTime = performance.now();
-        const game = new ChessGame();
-        game.gameState.gameActive = true;
+        let game;
         let coupsCount = 0;
-
-        const whiteBotName = `Level_${pWhite.replace('L','')}`;
-        const blackBotName = `Level_${pBlack.replace('L','')}`;
-        
-        const whiteAI = window[whiteBotName] ? new window[whiteBotName]() : null;
-        const blackAI = window[blackBotName] ? new window[blackBotName]() : null;
-        
-        if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
-
         try {
+            game = new ChessGame();
+            game.gameState.gameActive = true;
+            const engine = game.core || game;
+            if (engine.botManager) engine.botManager.isActive = false;
+
+            // ★ NOUVEAU : désactivation du timer pour la partie simulée
+            this._disableTimerForGame(game);
+
+            const whiteBotName = `Level_${pWhite.replace('L','')}`;
+            const blackBotName = `Level_${pBlack.replace('L','')}`;
+            const whiteAI = window[whiteBotName] ? new window[whiteBotName]() : null;
+            const blackAI = window[blackBotName] ? new window[blackBotName]() : null;
+            if (!whiteAI || !blackAI) {
+                throw new Error(`Bot manquant : ${whiteBotName} ou ${blackBotName}`);
+            }
+
+            if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
+
             while (coupsCount < maxCoups && game.gameState.gameActive && this.isRunning) {
                 const color = game.gameState.currentPlayer;
                 const currentAI = (color === 'white' || color === 'w') ? whiteAI : blackAI;
-                let move = null;
-                
-                if (currentAI && typeof currentAI.getMove === 'function') {
-                    window.chessGame = game;
-                    move = await currentAI.getMove();
-                } 
-                
-                if (!move || move.error || move.fromRow === undefined) {
-                    const moves = this.getAvailableMoves(game, color);
-                    if (moves.length === 0) break;
-                    move = moves[Math.floor(Math.random() * moves.length)];
+                window.chessGame = game;
+                const move = await currentAI.getMove();
+                const availableMoves = this.getAvailableMoves(game, color);
+
+                if (!move || move.error || !Number.isInteger(move.fromRow) || !Number.isInteger(move.fromCol)
+                    || !Number.isInteger(move.toRow) || !Number.isInteger(move.toCol)) {
+                    if (availableMoves.length === 0) break;
+                    throw new Error(`${currentAI.name || currentAI.constructor.name} n'a pas proposé de coup`);
                 }
-                
-                if (await this.executeMove(game, move, color)) {
-                    coupsCount++;
-                    this.stats.totalMoves++;
-                } else {
-                    break;
+
+                const piece = game.board.getPiece(move.fromRow, move.fromCol);
+                const legalMove = piece?.color === color
+                    && game.moveValidator.getPossibleMoves(piece, move.fromRow, move.fromCol)
+                        .some(candidate => candidate.row === move.toRow && candidate.col === move.toCol);
+                if (!legalMove) {
+                    throw new Error(`${currentAI.name || currentAI.constructor.name} a proposé un coup illégal`);
                 }
+
+                if (!await this.executeMove(game, move, color)) {
+                    throw new Error(`Échec d'exécution du coup de ${currentAI.name || currentAI.constructor.name}`);
+                }
+
+                coupsCount++;
+                this.stats.totalMoves++;
             }
 
             const gameEndTime = performance.now();
-            const gameDuration = ((gameEndTime - gameStartTime) / 1000).toFixed(2);
-
             const gs = game.gameState;
-            if (gs.checkGameOver) gs.checkGameOver();
-
             let winner = 'draw', resTag = "FIN nulle", type = "blanc", isStalemate = false;
-            const whiteMoves = this.getAvailableMoves(game, 'white');
-            const blackMoves = this.getAvailableMoves(game, 'black');
-            const whiteInCheck = game.moveValidator.isKingInCheck('white');
-            const blackInCheck = game.moveValidator.isKingInCheck('black');
+            const sideToMove = gs.currentPlayer;
+            const legalMoves = this.getAvailableMoves(game, sideToMove);
+            const inCheck = game.moveValidator.isKingInCheck(sideToMove);
 
-            if (whiteInCheck && whiteMoves.length === 0) { 
-                winner = 'black'; 
-                resTag = "FIN mat"; 
-                type = "rouge"; 
-            } else if (blackInCheck && blackMoves.length === 0) { 
-                winner = 'white'; 
-                resTag = "FIN mat"; 
-                type = "rouge"; 
-                this.stats.checkmates++; 
-            } else if ((!whiteInCheck && whiteMoves.length === 0) || (!blackInCheck && blackMoves.length === 0)) { 
-                resTag = "FIN pat"; 
-                type = "orange"; 
-                this.stats.stalemates++; 
+            if (legalMoves.length === 0 && inCheck) {
+                winner = sideToMove === 'white' ? 'black' : 'white';
+                resTag = "FIN mat";
+                type = "rouge";
+                this.stats.checkmates++;
+            } else if (legalMoves.length === 0) {
+                resTag = "FIN pat";
+                type = "orange";
+                this.stats.stalemates++;
                 isStalemate = true;
-            } else if (coupsCount >= maxCoups) { 
-                resTag = "FIN limite"; 
-                type = "gris"; 
+            } else if (coupsCount >= maxCoups) {
+                resTag = "FIN limite";
+                type = "gris";
                 this.stats.draws++;
-            } else { 
-                this.stats.draws++; 
+            } else if (!gs.gameActive) {
+                this.stats.draws++;
+            } else {
+                throw new Error('Partie interrompue sans résultat déterminé');
             }
 
             const finalFen = FENGenerator.generateFEN ? FENGenerator.generateFEN(gs, game.board) : FENGenerator.generate(game.board, gs);
-            
-            window.dispatchEvent(new CustomEvent('arena-game-finished', { 
-                detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount, isStalemate } 
+
+            window.dispatchEvent(new CustomEvent('arena-game-finished', {
+                detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount, isStalemate }
             }));
 
             this.stats.fenList.push(finalFen);
             this.stats.gamesPlayed++;
-            
+
             if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
             if (document.getElementById('progress-bar')) document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
-            
+
             if (isStalemate && document.getElementById('dash-stalemates')) {
                 document.getElementById('dash-stalemates').innerText = this.stats.stalemates;
             }
 
-            console.log = _log; console.warn = _warn;
-            
             const showDraws = document.getElementById('checkShowDraws')?.checked;
             const showStalemates = document.getElementById('checkShowStalemates')?.checked;
-            
+
             let shouldLog = false;
             if (winner !== 'draw') {
-                shouldLog = true; 
+                shouldLog = true;
             } else if (isStalemate) {
-                shouldLog = showStalemates; 
+                shouldLog = showStalemates;
             } else {
-                shouldLog = showDraws; 
+                shouldLog = showDraws;
             }
 
             if (shouldLog) {
+                const gameDuration = ((gameEndTime - gameStartTime) / 1000).toFixed(2);
                 let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c - ${gameDuration}s) ${resTag}`;
                 this.statusUpdate(logMsg, type, resTag, winner !== 'draw' ? winner : null, finalFen);
             }
 
         } catch (e) {
-            console.log = _log; console.warn = _warn;
             this.stats.errors++;
             const errEl = document.getElementById('errors');
             if (errEl) errEl.innerText = this.stats.errors;
             this.statusUpdate(`FIN CRASH P#${id} : ${e.message}`, "rouge", "FIN CRASH");
             console.error("Erreur dans simulateGame:", e);
+        } finally {
+            console.log = _log;
+            console.warn = _warn;
         }
     }
-    
+
     async runBatch() {
         if (this.isRunning) return;
         this.resetStats();
@@ -382,19 +414,19 @@ class BotStressTest {
             document.head.insertAdjacentHTML('beforeend', `<style id="stress-test-style">.promotion-modal, .promotion-overlay, .chess-notification { display: none !important; }</style>`);
         }
 
-        this.isRunning = true; 
+        this.isRunning = true;
         if (this.btn) {
             this.btn.innerText = "CANCEL";
             this.btn.style.background = "#f85149";
         }
 
-        if (this.logEl) this.logEl.innerHTML = ''; 
+        if (this.logEl) this.logEl.innerHTML = '';
         this.stats.startTime = performance.now();
-        
+
         this.statusUpdate("DEMARRAGE DU TEST...", "system");
 
         for (let i = 1; i <= total; i++) {
-            if (!this.isRunning) break; 
+            if (!this.isRunning) break;
             let pW = selW, pB = selB;
             if (isRandom && Math.random() > 0.5) { pW = selB; pB = selW; }
             await this.simulateGame(i, moves, total, pW, pB);
@@ -407,8 +439,8 @@ class BotStressTest {
         const formattedTime = this.formatDuration(durationInSeconds);
 
         this.statusUpdate(`SESSION TERMINEE : ${formattedTime}`, "system");
-        
-        this.isRunning = false; 
+
+        this.isRunning = false;
         if (this.btn) {
             this.btn.innerText = "START ARENA";
             this.btn.style.background = "";

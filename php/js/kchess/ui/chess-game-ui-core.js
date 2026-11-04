@@ -160,7 +160,7 @@ setupBoardEventListeners() {
                 const c = parseInt(square.dataset.displayCol);
                 
                 // 3. APPEL DE LA LOGIQUE DE JEU
-                this.game.moveHandler?.handleSquareClick?.(r, c);
+                this.game.handleSquareClick?.(r, c);
             }
         };
 
@@ -221,13 +221,11 @@ setupBoardEventListeners() {
         const el = document.getElementById('currentPlayer');
         if (!el) return;
 
-        let fen = "";
-        if (typeof this.game.getFEN === 'function') fen = this.game.getFEN();
-        else if (window.FENGenerator) fen = window.FENGenerator.generate(this.game.board, this.game.gameState);
-        
-        if (!fen) return;
-
-        const statusInfo = ChessStatusController.checkGameStatus(fen);
+        const statusInfo = this.game.gameStatusManager?.updateGameStatus?.();
+        if (!statusInfo) {
+            console.error('GameStatusManager n’a pas fourni le statut de la partie.');
+            return;
+        }
         const isChess960 = this.game.gameState.chess960 === true;
         const t = this.getTranslations();
         let statusText = "";
@@ -243,6 +241,11 @@ setupBoardEventListeners() {
         else if (statusInfo.status === 'stalemate') {
             statusText = `🤝 ${t.stalemate || 'Match nul (Pat)'}`;
             el.style.color = '#6c757d'; 
+            isGameOver = true;
+        }
+        else if (statusInfo.status === 'draw') {
+            statusText = `🤝 ${t.draw || 'Match nul'}`;
+            el.style.color = '#6c757d';
             isGameOver = true;
         }
         else if (statusInfo.status === 'check') {
@@ -265,7 +268,8 @@ setupBoardEventListeners() {
         const waitingForClockStart = !this.game.gameState.clockGameStarted
             && new URLSearchParams(window.location.search).get('mode') === 'human';
         el.hidden = waitingForClockStart || isChess960 && statusInfo.status !== 'check'
-            && statusInfo.status !== 'checkmate' && statusInfo.status !== 'stalemate';
+            && statusInfo.status !== 'checkmate' && statusInfo.status !== 'stalemate'
+            && statusInfo.status !== 'draw';
         el.textContent = statusText;
         if (isGameOver) this.timerManager?.stopTimer?.();
     }

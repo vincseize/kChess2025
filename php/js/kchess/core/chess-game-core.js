@@ -66,69 +66,10 @@ class ChessGameCore {
 
     updateUI() {
         if (this.ui?.updateUI) this.ui.updateUI();
-        if (this.gameStatusManager?.updateGameStatus) {
-            setTimeout(() => this.gameStatusManager.updateGameStatus(), 50);
-        }
 
         if (this.constructor.consoleLog) {
             console.log(`🧩 [FEN] ${this.getFEN()}`);
         }
-    }
-
-    executeMove(fromRow, fromCol, toRow, toCol, promotionPiece = null) {
-        if (!this.moveExecutor) return false;
-
-        const piece = this.board.getPiece(fromRow, fromCol);
-        if (!piece) return false;
-
-        // 1. Détecter si c'est un mouvement de promotion
-        const isPromotionMove = (piece.type === 'pawn' && (toRow === 0 || toRow === 7));
-
-        // 2. Déplacer physiquement la pièce
-        const success = this.moveExecutor.executeNormalMove(
-            this.board.getSquare(fromRow, fromCol),
-            this.board.getSquare(toRow, toCol),
-            piece,
-            { row: toRow, col: toCol, isPromotion: isPromotionMove },
-            toRow, 
-            toCol
-        );
-
-        if (success) {
-            if (this.moveHandler?.stateManager) {
-                this.moveHandler.stateManager.highlightLastMove(fromRow, fromCol, toRow, toCol);
-            }
-
-            // 3. Cas du BOT : Si une pièce de promotion est déjà spécifiée (ex: 'queen')
-            // On transforme l'objet pièce AVANT d'enregistrer le coup
-            if (isPromotionMove && promotionPiece) {
-                piece.type = promotionPiece;
-            }
-
-            // 4. Enregistrer le coup dans l'historique
-            this.gameState.recordMove(fromRow, fromCol, toRow, toCol, piece, promotionPiece);
-
-            // 5. GESTION DU CHANGEMENT DE TOUR
-            if (isPromotionMove && !promotionPiece) {
-                // HUMAIN : On ne change pas le tour. On attend le clic sur la modal.
-                if (this.constructor.consoleLog) console.log("⏳ Promotion humaine : Blocage du tour et ouverture modal.");
-                
-                // On met à jour l'UI pour voir le pion arriver sur la case
-                if (this.ui?.updateUI) this.ui.updateUI();
-                
-                // On ouvre la modal
-                if (this.promotionManager) {
-                    this.promotionManager.showPromotionModal(toRow, toCol, piece.color);
-                }
-            } else {
-                // NORMAL ou BOT : Le tour change normalement
-                this.gameState.switchPlayer();
-                this.updateUI(); 
-            }
-
-            return true;
-        }
-        return false;
     }
 
     checkBotTurn() {
@@ -163,19 +104,7 @@ class ChessGameCore {
         if (!this.gameState || !this.board) return;
         this.gameState.boardFlipped = !this.gameState.boardFlipped;
         
-        const pieces = [];
-        for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 8; c++) {
-                const p = this.board.getPiece(r, c);
-                if (p) pieces.push({ r, c, piece: p });
-            }
-        }
-
         this.board.createBoard();
-        pieces.forEach(item => {
-            const sq = this.board.getSquare(item.r, item.c);
-            if (sq) this.board.placePiece(item.piece, sq);
-        });
 
         this.clearSelection();
         this.updateUI();

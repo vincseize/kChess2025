@@ -2,7 +2,7 @@
   "name": "CharlyChess",
   "short_name": "CharlyChess",
   "description": "Jeu d'échecs en ligne",
-  "version": "0.96",
+  "version": "1.2",
   "start_url": "index.php",
   "display": "standalone",
   "background_color": "#667eea",

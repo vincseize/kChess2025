@@ -52,44 +52,71 @@ class PromotionManager {
 
         // --- GESTION HUMAINE (Interface Modal) ---
         const oldModal = document.querySelector('.promotion-modal');
-        if (oldModal) oldModal.remove();
+        if (oldModal) {
+            oldModal.cleanupPromotion?.();
+            oldModal.remove();
+        }
 
         const basePath = this.getBasePath();
         const modal = document.createElement('div');
         modal.className = 'promotion-modal';
+        modal.dataset.color = color === 'white' ? 'white' : 'black';
+        modal.setAttribute('role', 'presentation');
+        const getTranslation = (key, fallback) => window.getTranslation?.(key, fallback) || fallback;
         modal.innerHTML = `
-            <div class="promotion-overlay">
+            <section class="promotion-overlay" role="dialog" aria-modal="true" aria-labelledby="pawn-promotion-title" aria-describedby="pawn-promotion-description">
                 <div class="promotion-content">
-                    <div class="promotion-header"><h4><i class="bi bi-stars"></i> Promotion</h4></div>
-                    <div class="promotion-options">
+                    <header class="promotion-header">
+                        <span class="promotion-icon" aria-hidden="true"><i class="bi bi-stars"></i></span>
+                        <h2 id="pawn-promotion-title">${getTranslation('pawn_promotion_title', 'Promotion du pion')}</h2>
+                        <p id="pawn-promotion-description">${getTranslation('choose_promotion_piece', 'Choisissez une pièce')}</p>
+                    </header>
+                    <div class="promotion-options" role="group" aria-label="${getTranslation('choose_promotion_piece', 'Choisissez une pièce')}">
                         ${['queen', 'rook', 'bishop', 'knight'].map(p => `
-                            <div class="promotion-option" data-piece="${p}">
-                                <img src="${basePath}${color[0].toLowerCase()}${this.getPieceLetter(p)}.png" alt="${p}">
-                                <span>${this.getPieceNameFr(p)}</span>
-                            </div>
+                            <button class="promotion-option" type="button" data-piece="${p}">
+                                <img class="promotion-piece-img" src="${basePath}${color[0].toLowerCase()}${this.getPieceLetter(p)}.png" alt="" aria-hidden="true">
+                                <span>${getTranslation(`promotion_piece_${p}`, this.getPieceNameFr(p))}</span>
+                            </button>
                         `).join('')}
                     </div>
                 </div>
-            </div>
+            </section>
         `;
 
-        document.body.appendChild(modal);
-
-        modal.querySelectorAll('.promotion-option').forEach(opt => {
-            opt.onclick = () => {
-                modal.remove();
-                this.handleChoice(opt.dataset.piece, row, col, callback);
-            };
-        });
-
-        const handleEsc = (e) => { 
+        const handleEsc = (e) => {
             if (e.key === 'Escape') {
-                document.removeEventListener('keydown', handleEsc);
-                modal.remove();
-                this.handleChoice(null, row, col, callback);
+                closeModal(null);
+                return;
+            }
+            if (e.key === 'Tab') {
+                const options = [...modal.querySelectorAll('.promotion-option')];
+                const first = options[0];
+                const last = options[options.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
             }
         };
+        const closeModal = (pieceType = null) => {
+            modal.cleanupPromotion();
+            modal.remove();
+            this.handleChoice(pieceType, row, col, callback);
+        };
+        modal.cleanupPromotion = () => document.removeEventListener('keydown', handleEsc);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal(null);
+        });
+        modal.querySelectorAll('.promotion-option').forEach(option => {
+            option.addEventListener('click', () => closeModal(option.dataset.piece));
+        });
+
         document.addEventListener('keydown', handleEsc);
+        document.body.appendChild(modal);
+        modal.querySelector('.promotion-option')?.focus();
     }
 
     /**
@@ -122,10 +149,12 @@ class PromotionManager {
      * Met à jour la pièce logiquement et visuellement (si nécessaire)
      */
     promotePawn(square, newType) {
-        if (!square || !square.piece) return;
+        if (!square) return;
+        const piece = this.game.board.getPiece(square.row, square.col);
+        if (!piece) return;
         
-        const color = square.piece.color;
-        square.piece.type = newType;
+        const color = piece.color;
+        piece.type = newType;
         
         // --- OPTIMISATION ARENA ---
         // Si le plateau HTML n'existe pas (Stress Test pur), on ne manipule pas le DOM
@@ -137,20 +166,7 @@ class PromotionManager {
             return;
         }
 
-        // Mise à jour visuelle (pour Humain vs Bot)
-        square.element.innerHTML = ''; 
-        const executor = this.game.moveExecutor;
-
-        if (executor && typeof executor.createPieceElement === 'function') {
-            const newPieceEl = executor.createPieceElement({ type: newType, color: color });
-            square.element.appendChild(newPieceEl);
-        } else {
-            // Fallback utilisant le chemin propre
-            const img = document.createElement('img');
-            img.src = `${this.getBasePath()}${color[0].toLowerCase()}${this.getPieceLetter(newType)}.png`;
-            img.className = 'chess-piece-img';
-            square.element.appendChild(img);
-        }
+        this.game.board.renderPiece(square, piece);
     }
 
     getPieceLetter(type) {
