@@ -1,9 +1,13 @@
 /**
  * Level_4 - Stratège UI
- * Version 2.3.0 - Migration vers GameFonctions
+ * Version 2.4.0 - Migration vers GameFonctions + tuning
+ *
+ * v2.4.0 :
+ *   - Capture × 25 au lieu de × 20 (plus agressif)
+ *   - Exposition × 12 au lieu de × 10 (plus prudent)
  */
 class Level_4 {
-    static VERSION = '2.3.0';
+    static VERSION = '2.4.0';
 
     constructor() {
         this.name = "Bot Level 4 (Minimax)";
@@ -40,11 +44,13 @@ class Level_4 {
                 let score = 0;
 
                 if (m.isCapture) {
-                    score += this._evaluateExchange(game, m, myColor) * 20;
+                    // ★ Capture × 25 au lieu de 20
+                    score += this._evaluateExchange(game, m, myColor) * 25;
                 }
 
                 if (!m.isCapture) {
-                    score -= this._evaluateMoveExposure(game, m, oppColor) * 10;
+                    // ★ Exposition × 12 au lieu de 10
+                    score -= this._evaluateMoveExposure(game, m, oppColor) * 12;
                 }
 
                 if (oppKing) {

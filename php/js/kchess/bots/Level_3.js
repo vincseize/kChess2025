@@ -1,13 +1,14 @@
 /**
  * Level_3 - Tactique & Finalisation
- * Version 2.2.0 - Migration vers GameFonctions
+ * Version 2.3.0 - Migration vers GameFonctions + tuning
  *
- * v2.2.0 : utilise _getAllLegalMoves, _findKing, _simulateMove, _bestExchange
- *          via GameFonctions. Conserve sa logique spécifique (minimax 2-ply,
- *          _scoreMoveQuickly, _evaluatePosition, _pieceAttacksSquare).
+ * v2.3.0 :
+ *   - Bruit aléatoire réduit de 15 à 5 (jeu plus solide)
+ *   - 10 coups pré-classés au lieu de 8 (recherche plus large)
+ *   - Conserve ses méthodes locales d'échange (en-passant fiable)
  */
 class Level_3 {
-    static VERSION = '2.2.0';
+    static VERSION = '2.3.0';
 
     constructor() {
         this.name = "Bot Level 3 (Tactique+)";
@@ -45,7 +46,7 @@ class Level_3 {
             });
             candidateMoves.sort((a, b) => b._quickScore - a._quickScore);
 
-            const searchMoves = candidateMoves.slice(0, 8);
+            const searchMoves = candidateMoves.slice(0, 10);
             let bestMove = null;
             let bestScore = -Infinity;
 
@@ -93,7 +94,8 @@ class Level_3 {
     }
 
     _scoreMoveQuickly(game, move, color, opponentKing) {
-        let score = Math.random() * 15;
+        // ★ Bruit réduit : 5 au lieu de 15
+        let score = Math.random() * 5;
         if (move.isCapture && move.targetPiece) {
             score += this._evaluateExchangeLocal(game, move, color) * 10;
         }
@@ -132,7 +134,7 @@ class Level_3 {
         const details = move.details || {};
         const toRow = details.kingTo?.row ?? move.toRow;
         const toCol = details.kingTo?.col ?? move.toCol;
-        const capturedPiece = details.type === 'en-passant'
+        const capturedPiece = (details.type === 'en-passant' || details.isEnPassant || move.isEnPassant)
             ? { type: 'pawn' }
             : this._getPieceCompat(game, toRow, toCol);
         const capturedValue = capturedPiece ? this.pieceValues[capturedPiece.type] || 0 : 0;

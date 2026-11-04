@@ -1,15 +1,16 @@
 /**
  * php/js/kchess/bots/game_fonctions.js
- * Utilitaires communs candidats à la mutualisation entre les bots.
  *
- * v1.2.0 :
- *   - Ajout countAttackersOnSquare
- *   - Ajout isKingUnderThreat
- *   - Ajout opponentCanMateInOne
- *   - Ajout des adapters correspondants dans attach()
+ * v1.2.1 :
+ *   - CORRIGÉ attach() : attache tous les adapters SAUF si le bot a une
+ *     méthode locale du même nom (méthode sur prototype de classe).
+ *     Avant : `typeof bot[name] === 'function'` empêchait l'attachement
+ *     quand le bot avait SUPPRIMÉ ses méthodes locales lors de la migration.
+ *   - Ajout d'un console.warn si un adapter critique n'est pas attaché
+ *     (détection immédiate d'un oubli).
  */
 class GameFonctions {
-    static VERSION = '1.2.0';
+    static VERSION = '1.2.1';
 
     constructor(options = {}) {
         this.pieceValues = {
@@ -68,13 +69,13 @@ class GameFonctions {
                 shared.evaluateMoveExposure(game, move, color, simulated),
             _countPieces: game => shared.countPieces(game),
 
-            // ★ Détection pat / échec (v1.1.0)
+            // Détection pat / échec (v1.1.0)
             isStalemate: (game, color) => shared.isStalemate(game, color),
             isKingInCheck: (game, color) => shared.isKingInCheck(game, color),
             isStalemateAfterMove: (game, move, oppColor, sim) =>
                 shared.isStalemateAfterMove(game, move, oppColor, sim),
 
-            // ★ NOUVEAU v1.2.0 : sécurité du roi / mat adverse
+            // Sécurité du roi / mat adverse (v1.2.0)
             countAttackersOnSquare: (game, row, col, byColor) =>
                 shared.countAttackersOnSquare(game, row, col, byColor),
             isKingUnderThreat: (game, color) => shared.isKingUnderThreat(game, color),
@@ -86,11 +87,58 @@ class GameFonctions {
             _finalize: move => shared.finalize(move)
         };
 
+        // ═══════════════════════════════════════════════════════════════
+        // ★ v1.2.1 : attachement UNIVERSEL sauf si le bot a une méthode
+        //   LOCALE définie sur son prototype (à préserver).
+        //
+        //   Règles :
+        //   - Méthode sur prototype de classe (ex : Level_5._getCenterControlScore)
+        //     → CONSERVÉE (le bot a explicitement décidé de surcharger).
+        //   - Méthode sur prototype de sous-classe (héritage)
+        //     → CONSERVÉE aussi.
+        //   - Méthode absente (undefined / null)
+        //     → ADAPTER ATTACHÉ (fournit la version standard).
+        //   - Méthode déjà attachée par un précédent `attach()` (sur instance)
+        //     → ATTACHÉE À NOUVEAU (écrase l'instance, garde la version partagée).
+        //
+        //   Avant : `typeof bot[name] === 'function'` retournait true pour
+        //   les méthodes du prototype ET les adapters déjà attachés, empêchant
+        //   tout attachement quand le bot avait supprimé ses méthodes locales
+        //   (cas Level_3 v2.3.0 qui a crashé 100 parties).
+        // ═══════════════════════════════════════════════════════════════
+        const botClassName = bot.constructor?.name || 'bot';
         for (const [name, adapter] of Object.entries(adapters)) {
-            if (typeof bot[name] === 'function' || name === '_getFavorableTradeBonus') {
-                bot[name] = adapter;
+            // Y a-t-il une méthode définie sur le PROTOTYPE de la classe ?
+            const proto = Object.getPrototypeOf(bot);
+            const hasPrototypeMethod = proto && typeof proto[name] === 'function';
+
+            // Si la méthode existe sur le prototype, c'est une surcharge locale
+            // volontaire (ex : L5/L6/L7/L8._getCenterControlScore). On préserve.
+            if (hasPrototypeMethod) continue;
+
+            // Sinon, on attache l'adapter (méthode absente OU déjà attachée
+            // par un précédent attach() sur l'instance — dans les deux cas
+            // on écrase avec l'adapter partagé).
+            bot[name] = adapter;
+        }
+
+        // ★ v1.2.1 : vérification post-attachement des méthodes critiques
+        const critical = [
+            '_getAllLegalMoves',
+            '_simulateMove',
+            '_findKing',
+            '_getPieceCompat',
+            '_finalize'
+        ];
+        for (const name of critical) {
+            if (typeof bot[name] !== 'function') {
+                console.error(
+                    `❌ GameFonctions.attach : ${name} non défini sur ${botClassName}. ` +
+                    `Le bot va probablement crasher. Vérifiez la déclaration de classe.`
+                );
             }
         }
+
         bot.gameFonctions = shared;
         return shared;
     }
@@ -313,10 +361,6 @@ class GameFonctions {
             && (move.details?.isPromotion || move.toRow === 0 || move.toRow === 7);
     }
 
-    // =====================================================================
-    // Détection pat / échec (v1.1.0)
-    // =====================================================================
-
     isKingInCheck(game, color) {
         const king = this.findKing(game, color);
         if (!king) return false;
@@ -338,13 +382,6 @@ class GameFonctions {
         return this.isStalemate(afterMove, opponentColor);
     }
 
-    // =====================================================================
-    // ★ NOUVEAU v1.2.0 : sécurité du roi / mat adverse
-    // =====================================================================
-
-    /**
-     * Compte le nombre de pièces de `byColor` qui attaquent la case (row, col).
-     */
     countAttackersOnSquare(game, row, col, byColor) {
         if (!game?.moveValidator || !byColor) return 0;
 
@@ -361,12 +398,6 @@ class GameFonctions {
         return count;
     }
 
-    /**
-     * Indique si le roi de `color` est en danger :
-     *  - au moins 2 attaquants sur sa case, OU
-     *  - sur un bord (0 ou 7 sur ligne/colonne).
-     * Utilisé pour déclencher la détection de mat adverse seulement si utile.
-     */
     isKingUnderThreat(game, color) {
         const king = this.findKing(game, color);
         if (!king) return false;
@@ -378,15 +409,6 @@ class GameFonctions {
         return king.row === 0 || king.row === 7 || king.col === 0 || king.col === 7;
     }
 
-    /**
-     * Vérifie si l'adversaire (oppColor) peut mater en 1 coup à partir de la
-     * position donnée (typiquement après simulation d'un de nos coups).
-     *
-     * @param {Object} game  Position à évaluer (typiquement afterMove)
-     * @param {String} oppColor  Couleur qui pourrait mater
-     * @param {String} myColor   Notre couleur (défense)
-     * @param {Object} simulated Inutilisé ici (compat signature)
-     */
     opponentCanMateInOne(game, oppColor, myColor, simulated = null) {
         if (!game?.moveValidator) return false;
         const position = simulated || game;
@@ -406,10 +428,6 @@ class GameFonctions {
         }
         return false;
     }
-
-    // =====================================================================
-    // SUITE INCHANGÉE (simulation, échanges, finalize, etc.)
-    // =====================================================================
 
     simulateMove(game, move) {
         if (typeof BoardPosition === 'undefined' || typeof MoveValidator === 'undefined') {

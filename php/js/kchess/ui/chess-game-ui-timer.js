@@ -1,13 +1,6 @@
 /**
  * ui/chess-game-ui-timer.js
- * Gère le décompte et l'application des incréments de temps.
- *
- * v1.2.0 :
- *   - Flag STATIQUE `ChessTimerManager.globallyDisabled` (arène / stress test)
- *   - Le constructeur lit ce flag → toute nouvelle instance naît désactivée
- *   - `disable()` met aussi le flag statique à true
- *   - `enable()` remet le flag statique à false
- *   - `startTimer()` et `switchTurn()` font un double check (instance + statique)
+ * v1.2.1 : garde-fou supplémentaire dans setInterval
  */
 class ChessTimerManager {
     static globallyDisabled = false;
@@ -20,7 +13,6 @@ class ChessTimerManager {
         this.initialTime = 600;
         this.timerInterval = null;
         this.isTimerRunning = false;
-        // ★ Tient compte du flag global dès la naissance
         this.enabled = !ChessTimerManager.globallyDisabled;
 
         const params = new URLSearchParams(window.location.search);
@@ -56,29 +48,18 @@ class ChessTimerManager {
         this.updateTimerDisplay();
     }
 
-    /**
-     * Active le timer (mode humain / bot normal).
-     */
     enable() {
         this.enabled = true;
         ChessTimerManager.globallyDisabled = false;
     }
 
-    /**
-     * Désactive complètement le timer (mode arène / stress test).
-     * Le flag STATIQUE bloque aussi les futures instances.
-     */
     disable() {
         this.enabled = false;
         this.stopTimer();
         ChessTimerManager.globallyDisabled = true;
     }
 
-    /**
-     * Appelé par GameState.switchPlayer() à chaque changement de tour.
-     */
     switchTurn(newColor) {
-        // ★ Double protection : instance + flag statique
         if (!this.enabled || ChessTimerManager.globallyDisabled) {
             this.updateTimerDisplay();
             return;
@@ -104,7 +85,6 @@ class ChessTimerManager {
     }
 
     startTimer() {
-        // ★ Double protection
         if (!this.enabled) return;
         if (ChessTimerManager.globallyDisabled) return;
         if (!this.ui.game.gameState.gameActive) return;
@@ -112,6 +92,12 @@ class ChessTimerManager {
 
         this.isTimerRunning = true;
         this.timerInterval = setInterval(() => {
+            // ★ v1.2.1 : garde-fou supplémentaire dans la boucle
+            if (ChessTimerManager.globallyDisabled) {
+                this.stopTimer();
+                return;
+            }
+
             const currentPlayer = this.ui.game.gameState.currentPlayer;
 
             if (currentPlayer === 'white') {
@@ -127,6 +113,7 @@ class ChessTimerManager {
                 const loser = this.whiteTime <= 0 ? 'white' : 'black';
                 this.ui.game.gameState.gameActive = false;
                 this.updateTimerDisplay();
+                // ★ Appel masqué par ChessModalManager.showTimeLoss qui vérifie globallyDisabled
                 this.ui.modalManager?.showTimeLoss?.(loser);
             }
         }, 1000);

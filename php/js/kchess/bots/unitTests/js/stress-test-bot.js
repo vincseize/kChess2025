@@ -1,12 +1,11 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.7.1 - Désactivation renforcée du timer en arène
+ * Version : 7.7.2 - Neutralisation complète du timer et de showTimeLoss
  *
- * Changelog v7.7.1 :
- *   - Flag statique ChessTimerManager.globallyDisabled désactivé
- *     AVANT toute création de ChessGame (dans runBatch)
- *   - _disableTimerForGame renforcé : flag statique + instance locale
- *   - Plus de fuite possible même si le timer est recréé
+ * Changelog v7.7.2 :
+ *   - Neutralise showTimeLoss au niveau du prototype ChessModalManager
+ *   - Neutralise showTimeLoss sur les instances ui.modalManager
+ *   - Renforce _disableTimerForGame
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -252,17 +251,47 @@ class BotStressTest {
     }
 
     /**
-     * Désactive le timer pour une partie simulée.
-     * v7.7.1 : flag statique + instance locale, double protection.
+     * ★ v7.7.2 : neutralise complètement le timer ET showTimeLoss.
      */
-    _disableTimerForGame(game) {
-        // 1) Flag statique (bloque aussi les futures instances)
+    _neutralizeTimerGlobally() {
+        // 1) Flag statique
         if (typeof ChessTimerManager !== 'undefined') {
             ChessTimerManager.globallyDisabled = true;
         }
 
-        // 2) Instance locale
+        // 2) Neutraliser showTimeLoss sur le prototype (couvre toutes les instances futures)
+        if (typeof ChessModalManager !== 'undefined' && ChessModalManager.prototype) {
+            ChessModalManager.prototype.showTimeLoss = function() {};
+        }
+
+        // 3) Neutraliser showTimeLoss sur l'instance globale
+        const game = window.chessGame?.core || window.chessGame;
+        if (game?.ui?.modalManager) {
+            game.ui.modalManager.showTimeLoss = () => {};
+        }
+    }
+
+    _disableTimerForGame(game) {
+        // 1) Flag statique
+        if (typeof ChessTimerManager !== 'undefined') {
+            ChessTimerManager.globallyDisabled = true;
+        }
+
+        // 2) Neutraliser showTimeLoss sur le prototype
+        if (typeof ChessModalManager !== 'undefined' && ChessModalManager.prototype) {
+            ChessModalManager.prototype.showTimeLoss = function() {};
+        }
+
+        // 3) Neutraliser showTimeLoss sur les instances du jeu simulé
         const engine = game.core || game;
+        if (engine.ui?.modalManager) {
+            engine.ui.modalManager.showTimeLoss = () => {};
+        }
+        if (game.ui?.modalManager) {
+            game.ui.modalManager.showTimeLoss = () => {};
+        }
+
+        // 4) Désactiver le timer lui-même
         const timerMgr = engine.ui?.timerManager || game.ui?.timerManager;
         if (!timerMgr) return;
 
@@ -286,7 +315,7 @@ class BotStressTest {
             const engine = game.core || game;
             if (engine.botManager) engine.botManager.isActive = false;
 
-            // ★ Désactivation du timer (renforcée)
+            // ★ Neutralisation complète timer + showTimeLoss
             this._disableTimerForGame(game);
 
             const whiteBotName = `Level_${pWhite.replace('L','')}`;
@@ -406,10 +435,8 @@ class BotStressTest {
         this.resetStats();
         if (window.arenaAnalyst) window.arenaAnalyst.reset();
 
-        // ★ Désactive le timer AVANT toute création de ChessGame
-        if (typeof ChessTimerManager !== 'undefined') {
-            ChessTimerManager.globallyDisabled = true;
-        }
+        // ★ Neutralisation globale AVANT toute création de ChessGame
+        this._neutralizeTimerGlobally();
 
         const total = parseInt(document.getElementById('inputMaxGames')?.value || 50);
         const moves = parseInt(document.getElementById('inputMaxMoves')?.value || 100);
