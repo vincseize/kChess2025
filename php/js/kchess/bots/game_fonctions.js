@@ -1,16 +1,18 @@
 /**
  * php/js/kchess/bots/game_fonctions.js
  *
- * v1.2.1 :
- *   - CORRIGÉ attach() : attache tous les adapters SAUF si le bot a une
- *     méthode locale du même nom (méthode sur prototype de classe).
- *     Avant : `typeof bot[name] === 'function'` empêchait l'attachement
- *     quand le bot avait SUPPRIMÉ ses méthodes locales lors de la migration.
- *   - Ajout d'un console.warn si un adapter critique n'est pas attaché
- *     (détection immédiate d'un oubli).
+ * v1.3.0 :
+ *   - Ajout opponentBestReplyPenalty (threat detection publique)
+ *   - Ajout getCenterValue (utilitaire commun L5-L8)
+ *   - Ajout countAttackersOnSquare (déjà présent, mais maintenant exposé via adapter)
+ *   - Ajout isKingUnderThreatAfterMove (raccourci)
+ *   - Ajout opponentCanMateInOne (raccourci)
+ *   - Nouveaux adapters : _opponentBestReplyPenalty, _isKingUnderThreatAfterMove,
+ *     _opponentCanMateInOne, _countAttackersOnSquare, _getCenterValue
+ *   - Nouveau paramètre constructeur : maxOppCaptures (défaut 8)
  */
 class GameFonctions {
-    static VERSION = '1.2.1';
+    static VERSION = '1.3.0';
 
     constructor(options = {}) {
         this.pieceValues = {
@@ -23,12 +25,18 @@ class GameFonctions {
             ...options.pieceValues
         };
         this.maxExchangeDepth = options.maxExchangeDepth ?? 8;
+        this.maxOppCaptures = options.maxOppCaptures ?? 8;
+        this.centerValues = options.centerValues ?? null;
     }
 
     static attach(bot) {
         if (!bot) throw new Error('Un bot est requis.');
 
-        const shared = new GameFonctions({ pieceValues: bot.pieceValues });
+        const shared = new GameFonctions({
+            pieceValues: bot.pieceValues,
+            maxOppCaptures: bot.maxOppCaptures ?? 8,
+            centerValues: bot.centerValues ?? null
+        });
         const asGame = game => game?.board ? game : { board: game };
         const adapters = {
             getMoves: (game, color) => shared.getAllLegalMoves(game, color),
@@ -43,6 +51,8 @@ class GameFonctions {
             },
             _getCenterControlScore: (game, color) =>
                 shared.getCenterControlScore(game, color),
+            _getCenterValue: (pieceType, row, col) =>
+                shared.getCenterValue(pieceType, row, col),
             _isPromotionMove: move => shared.isPromotionMove(move),
             _getDoubledPawnCount: (game, color) => shared.getDoubledPawnCount(game, color),
             _getPawnIslandCount: (game, color) => shared.getPawnIslandCount(game, color),
@@ -69,66 +79,49 @@ class GameFonctions {
                 shared.evaluateMoveExposure(game, move, color, simulated),
             _countPieces: game => shared.countPieces(game),
 
-            // Détection pat / échec (v1.1.0)
+            // Détection pat / échec
             isStalemate: (game, color) => shared.isStalemate(game, color),
             isKingInCheck: (game, color) => shared.isKingInCheck(game, color),
             isStalemateAfterMove: (game, move, oppColor, sim) =>
                 shared.isStalemateAfterMove(game, move, oppColor, sim),
 
-            // Sécurité du roi / mat adverse (v1.2.0)
+            // Sécurité du roi / mat adverse
             countAttackersOnSquare: (game, row, col, byColor) =>
                 shared.countAttackersOnSquare(game, row, col, byColor),
             isKingUnderThreat: (game, color) => shared.isKingUnderThreat(game, color),
             opponentCanMateInOne: (game, oppColor, myColor, sim) =>
                 shared.opponentCanMateInOne(game, oppColor, myColor, sim),
 
+            // ★ NOUVEAU v1.3.0 : threat detection + wrappers
+            _opponentBestReplyPenalty: (simulatedGame, oppColor, myColor) =>
+                shared.opponentBestReplyPenalty(simulatedGame, oppColor, myColor),
+            _countAttackersOnSquare: (game, row, col, byColor) =>
+                shared.countAttackersOnSquare(game, row, col, byColor),
+            _isKingUnderThreatAfterMove: (afterMove, myColor) =>
+                afterMove ? shared.isKingUnderThreat(afterMove, myColor) : false,
+            _opponentCanMateInOne: (afterMove, oppColor, myColor) =>
+                shared.opponentCanMateInOne(afterMove, oppColor, myColor),
+
             _getBestMove: moves => shared.chooseBestMove(moves, bot.level === 4 ? 0.9 : 0.75),
             finalize: move => shared.finalize(move),
             _finalize: move => shared.finalize(move)
         };
 
-        // ═══════════════════════════════════════════════════════════════
-        // ★ v1.2.1 : attachement UNIVERSEL sauf si le bot a une méthode
-        //   LOCALE définie sur son prototype (à préserver).
-        //
-        //   Règles :
-        //   - Méthode sur prototype de classe (ex : Level_5._getCenterControlScore)
-        //     → CONSERVÉE (le bot a explicitement décidé de surcharger).
-        //   - Méthode sur prototype de sous-classe (héritage)
-        //     → CONSERVÉE aussi.
-        //   - Méthode absente (undefined / null)
-        //     → ADAPTER ATTACHÉ (fournit la version standard).
-        //   - Méthode déjà attachée par un précédent `attach()` (sur instance)
-        //     → ATTACHÉE À NOUVEAU (écrase l'instance, garde la version partagée).
-        //
-        //   Avant : `typeof bot[name] === 'function'` retournait true pour
-        //   les méthodes du prototype ET les adapters déjà attachés, empêchant
-        //   tout attachement quand le bot avait supprimé ses méthodes locales
-        //   (cas Level_3 v2.3.0 qui a crashé 100 parties).
-        // ═══════════════════════════════════════════════════════════════
         const botClassName = bot.constructor?.name || 'bot';
         for (const [name, adapter] of Object.entries(adapters)) {
-            // Y a-t-il une méthode définie sur le PROTOTYPE de la classe ?
             const proto = Object.getPrototypeOf(bot);
             const hasPrototypeMethod = proto && typeof proto[name] === 'function';
-
-            // Si la méthode existe sur le prototype, c'est une surcharge locale
-            // volontaire (ex : L5/L6/L7/L8._getCenterControlScore). On préserve.
             if (hasPrototypeMethod) continue;
-
-            // Sinon, on attache l'adapter (méthode absente OU déjà attachée
-            // par un précédent attach() sur l'instance — dans les deux cas
-            // on écrase avec l'adapter partagé).
             bot[name] = adapter;
         }
 
-        // ★ v1.2.1 : vérification post-attachement des méthodes critiques
         const critical = [
             '_getAllLegalMoves',
             '_simulateMove',
             '_findKing',
             '_getPieceCompat',
-            '_finalize'
+            '_finalize',
+            '_opponentBestReplyPenalty'
         ];
         for (const name of critical) {
             if (typeof bot[name] !== 'function') {
@@ -142,6 +135,70 @@ class GameFonctions {
         bot.gameFonctions = shared;
         return shared;
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // THREAT DETECTION (v1.3.0)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Pénalité basée sur la meilleure réponse adverse après un coup candidat.
+     * Approximation rapide de depth-2 : ne simule que les captures et échecs.
+     */
+    opponentBestReplyPenalty(simulatedGame, oppColor, myColor, maxReplies = null) {
+        const limit = maxReplies ?? this.maxOppCaptures;
+        const replies = this.getAllLegalMoves(simulatedGame, oppColor);
+        if (replies.length === 0) return 0;
+
+        let worstNet = 0;
+        let examined = 0;
+
+        for (const reply of replies) {
+            if (!reply.isCapture && !reply.isCheck) continue;
+            if (++examined > limit) break;
+
+            let net = 0;
+
+            if (reply.isCapture && reply.targetPiece) {
+                const attackVal = this.pieceValues[reply.piece.type] || 0;
+                const targetVal = this.pieceValues[reply.targetPiece.type] || 0;
+                const defended = this.isSquareAttacked(simulatedGame, reply.toRow, reply.toCol, myColor);
+                const gain = defended ? (targetVal - attackVal) : targetVal;
+                if (gain > 0) net += gain;
+            }
+
+            if (reply.isCheck) net += 100;
+            if (this.isPromotionMove(reply)) net += 5000;
+
+            if (net > worstNet) worstNet = net;
+            if (worstNet > 1000) break;
+        }
+
+        return worstNet * 2;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CENTER VALUE (v1.3.0)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Évalue la proximité au centre d'une pièce selon son type.
+     * Utilise this.centerValues (optionnel, configurable par niveau).
+     */
+    getCenterValue(pieceType, row, col) {
+        if (!this.centerValues) return 0;
+
+        const distance = Math.min(
+            ...[3, 4].flatMap(centerRow => [3, 4].map(centerCol =>
+                Math.abs(row - centerRow) + Math.abs(col - centerCol)
+            ))
+        );
+        const proximity = [1, 0.65, 0.3, 0.1][distance] || 0;
+        return (this.centerValues[pieceType] || 0) * proximity;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SUITE INCHANGÉE
+    // ═══════════════════════════════════════════════════════════════
 
     getPiece(game, row, col) {
         if (!game?.board || !Number.isInteger(row) || !Number.isInteger(col)

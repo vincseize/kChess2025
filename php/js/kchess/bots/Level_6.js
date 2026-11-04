@@ -1,13 +1,9 @@
 /**
  * Level_6 - Petit Maître (Contrôle du centre)
- * Version 1.7.0 - Ajout threat detection (approximation depth-2)
- *
- * v1.7.0 :
- *   - Ajout threat detection (comme L5 v2.5.0)
- *   - Conserve les heuristiques spécifiques (centre pondéré, anti-pions doublés)
+ * Version 1.8.0 - Migration complète vers GameFonctions v1.3.0
  */
 class Level_6 {
-    static VERSION = '1.7.0';
+    static VERSION = '1.8.0';
 
     constructor() {
         this.name = "Bot Level 6 (Centre)";
@@ -15,7 +11,6 @@ class Level_6 {
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
         this.centerValues = { 'pawn': 150, 'knight': 135, 'bishop': 100, 'rook': 55, 'queen': 45, 'king': 0 };
         this.gameFonctions = GameFonctions.attach(this);
-        this.maxOppCaptures = 8;
     }
 
     async getMove() {
@@ -31,7 +26,6 @@ class Level_6 {
             const allMoves = this._getAllLegalMoves(game, myColor);
             if (allMoves.length === 0) return null;
 
-            // Mat en 1 prioritaire
             for (const m of allMoves) {
                 const after = this._simulateMove(game, m);
                 if (!after) continue;
@@ -52,10 +46,7 @@ class Level_6 {
                 let score = 0;
                 const afterMove = this._simulateMove(game, m);
 
-                // Heuristiques L6 originales
-                if (m.isCapture) {
-                    score += this.pieceValues[m.targetPiece.type] * 20;
-                }
+                if (m.isCapture) score += this.pieceValues[m.targetPiece.type] * 20;
                 score -= this._evaluateMoveExposure(game, m, oppColor, afterMove) * 12;
                 score += (this._getCenterControlScore(afterMove, myColor) - centerControlBefore) * 12;
                 score -= (this._getDoubledPawnCount(afterMove, myColor) - doubledPawnsBefore) * 25;
@@ -71,9 +62,7 @@ class Level_6 {
                 if (m.piece.type === 'pawn') {
                     const rank = isWhite ? (7 - m.toRow) : m.toRow;
                     score += rank * rank * 10;
-                    if (m.details?.isPromotion || (m.toRow === 0 || m.toRow === 7)) {
-                        score += 10000;
-                    }
+                    if (m.details?.isPromotion || (m.toRow === 0 || m.toRow === 7)) score += 10000;
                 }
 
                 if (m.isCheck) score += 300;
@@ -86,11 +75,8 @@ class Level_6 {
                 score += this._getCenterValue(m.piece.type, m.toRow, m.toCol)
                     - this._getCenterValue(m.piece.type, m.fromRow, m.fromCol);
 
-                if (m.details?.type === 'castling') {
-                    score += 100;
-                }
+                if (m.details?.type === 'castling') score += 100;
 
-                // ★ NOUVEAU : threat detection
                 if (afterMove) {
                     score -= this._opponentBestReplyPenalty(afterMove, oppColor, myColor);
 
@@ -127,65 +113,6 @@ class Level_6 {
             console.error('L6 Error:', err);
             return null;
         }
-    }
-
-    _getCenterValue(pieceType, row, col) {
-        const distance = Math.min(
-            ...[3, 4].flatMap(centerRow => [3, 4].map(centerCol =>
-                Math.abs(row - centerRow) + Math.abs(col - centerCol)
-            ))
-        );
-        const proximity = [1, 0.65, 0.3, 0.1][distance] || 0;
-        return (this.centerValues[pieceType] || 0) * proximity;
-    }
-
-    _opponentBestReplyPenalty(simulatedGame, oppColor, myColor) {
-        const replies = this._getAllLegalMoves(simulatedGame, oppColor);
-        if (replies.length === 0) return 0;
-
-        let worstNet = 0;
-        let examined = 0;
-
-        for (const reply of replies) {
-            if (!reply.isCapture && !reply.isCheck) continue;
-            if (++examined > this.maxOppCaptures) break;
-
-            let net = 0;
-            if (reply.isCapture && reply.targetPiece) {
-                const attackVal = this.pieceValues[reply.piece.type] || 0;
-                const targetVal = this.pieceValues[reply.targetPiece.type] || 0;
-                const defended = this._isSquareAttacked(simulatedGame, reply.toRow, reply.toCol, myColor);
-                const gain = defended ? (targetVal - attackVal) : targetVal;
-                if (gain > 0) net += gain;
-            }
-            if (reply.isCheck) net += 100;
-            if (this._isPromotionMove(reply)) net += 5000;
-
-            if (net > worstNet) worstNet = net;
-            if (worstNet > 1000) break;
-        }
-        return worstNet * 2;
-    }
-
-    _isKingUnderThreatAfterMove(afterMove, myColor) {
-        if (!afterMove) return false;
-        return this.gameFonctions.isKingUnderThreat(afterMove, myColor);
-    }
-
-    _opponentCanMateInOne(afterMove, oppColor, myColor) {
-        return this.gameFonctions.opponentCanMateInOne(afterMove, oppColor, myColor);
-    }
-
-    _countAttackersOnSquare(game, row, col, byColor) {
-        return this.gameFonctions.countAttackersOnSquare(game, row, col, byColor);
-    }
-
-    _getBestMove(moves) {
-        moves.sort((a, b) => b._finalScore - a._finalScore);
-        const bestScore = moves[0]._finalScore;
-        const threshold = bestScore > 0 ? bestScore * 0.75 : bestScore * 1.25;
-        const candidates = moves.filter(m => m._finalScore >= threshold);
-        return candidates[Math.floor(Math.random() * candidates.length)];
     }
 }
 window.Level_6 = Level_6;

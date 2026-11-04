@@ -1,23 +1,17 @@
 /**
  * Level_5 - Grand Maître UI
- * Version 2.5.0 - Ajout threat detection (approximation depth-2)
- *
- * v2.5.0 :
- *   - Ajout _opponentBestReplyPenalty (détecte les captures adverses gagnantes)
- *   - Ajout sécurité du roi (pénalité ×2 par attaquant)
- *   - Ajout détection mat adverse en 1
- *   - Ajout mat en 1 prioritaire
- *   - Conserve les heuristiques originales (captures ×20, centre ×12)
+ * Version 2.6.0 - Migration complète vers GameFonctions v1.3.0
+ * Toutes les méthodes communes sont dans GameFonctions.
+ * Ce fichier ne contient QUE le pipeline de décision et les poids spécifiques.
  */
 class Level_5 {
-    static VERSION = '2.5.0';
+    static VERSION = '2.6.0';
 
     constructor() {
         this.name = "Bot Level 5 (Pro)";
         this.level = 5;
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
         this.gameFonctions = GameFonctions.attach(this);
-        this.maxOppCaptures = 8;
     }
 
     async getMove() {
@@ -52,10 +46,7 @@ class Level_5 {
                 let score = 0;
                 const afterMove = this._simulateMove(game, m);
 
-                // Heuristiques L5 originales
-                if (m.isCapture) {
-                    score += (this.pieceValues[m.targetPiece.type] * 20);
-                }
+                if (m.isCapture) score += (this.pieceValues[m.targetPiece.type] * 20);
                 score -= this._evaluateMoveExposure(game, m, oppColor, afterMove) * 12;
                 score += (this._getCenterControlScore(afterMove, myColor) - centerControlBefore) * 12;
 
@@ -73,17 +64,13 @@ class Level_5 {
                 }
 
                 if (m.isCheck) score += 300;
-
-                if (m.details?.type === 'castling') {
-                    score += 100;
-                }
+                if (m.details?.type === 'castling') score += 100;
 
                 if (oppKing && !m.isCheck) {
                     const dist = Math.abs(m.toRow - oppKing.r) + Math.abs(m.toCol - oppKing.c);
                     if (dist <= 1) score -= 200;
                 }
 
-                // ★ NOUVEAU : threat detection
                 if (afterMove) {
                     score -= this._opponentBestReplyPenalty(afterMove, oppColor, myColor);
 
@@ -99,7 +86,6 @@ class Level_5 {
                         }
                     }
 
-                    // Anti-pat en fin de partie
                     if (this._countPieces(afterMove) <= 12) {
                         if (this.gameFonctions.isStalemateAfterMove(game, m, oppColor, afterMove)) {
                             score -= 50000;
@@ -111,60 +97,10 @@ class Level_5 {
             });
 
             return this._finalize(this._getBestMove(allMoves));
-
         } catch (err) {
             console.error('L5 Error:', err);
             return null;
         }
-    }
-
-    _opponentBestReplyPenalty(simulatedGame, oppColor, myColor) {
-        const replies = this._getAllLegalMoves(simulatedGame, oppColor);
-        if (replies.length === 0) return 0;
-
-        let worstNet = 0;
-        let examined = 0;
-
-        for (const reply of replies) {
-            if (!reply.isCapture && !reply.isCheck) continue;
-            if (++examined > this.maxOppCaptures) break;
-
-            let net = 0;
-            if (reply.isCapture && reply.targetPiece) {
-                const attackVal = this.pieceValues[reply.piece.type] || 0;
-                const targetVal = this.pieceValues[reply.targetPiece.type] || 0;
-                const defended = this._isSquareAttacked(simulatedGame, reply.toRow, reply.toCol, myColor);
-                const gain = defended ? (targetVal - attackVal) : targetVal;
-                if (gain > 0) net += gain;
-            }
-            if (reply.isCheck) net += 100;
-            if (this._isPromotionMove(reply)) net += 5000;
-
-            if (net > worstNet) worstNet = net;
-            if (worstNet > 1000) break;
-        }
-        return worstNet * 2;
-    }
-
-    _isKingUnderThreatAfterMove(afterMove, myColor) {
-        if (!afterMove) return false;
-        return this.gameFonctions.isKingUnderThreat(afterMove, myColor);
-    }
-
-    _opponentCanMateInOne(afterMove, oppColor, myColor) {
-        return this.gameFonctions.opponentCanMateInOne(afterMove, oppColor, myColor);
-    }
-
-    _countAttackersOnSquare(game, row, col, byColor) {
-        return this.gameFonctions.countAttackersOnSquare(game, row, col, byColor);
-    }
-
-    _getBestMove(moves) {
-        moves.sort((a, b) => b._finalScore - a._finalScore);
-        const bestScore = moves[0]._finalScore;
-        const threshold = bestScore > 0 ? bestScore * 0.75 : bestScore * 1.25;
-        const candidates = moves.filter(m => m._finalScore >= threshold);
-        return candidates[Math.floor(Math.random() * candidates.length)];
     }
 }
 window.Level_5 = Level_5;

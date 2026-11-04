@@ -3,10 +3,11 @@
  * Bot_vs_Bot.php
  * Emplacement : php/js/kchess/bots/unitTests/Bot_vs_Bot.php
  *
- * v1.1.0 :
- *   - Retrait de Evaluator.js / SearchEngine.js (Level_16 v1.1.0 est autonome)
- *   - Ajout d'un bouton SWAP pour inverser Blancs/Noirs
- *   - Valeurs par défaut : L5 (Blancs) vs L4 (Noirs)
+ * v1.2.0 :
+ *   - Retrait de Evaluator.js / SearchEngine.js (Level_16 v1.4.0 est autonome)
+ *   - Barre de progression lissée (moyenne mobile sur 10 points) — évite l'accélération visuelle en fin de batch
+ *   - Bouton SWAP pour inverser Blancs/Noirs
+ *   - Valeurs par défaut : L5 (Blancs) vs L4 (Noirs), 100 parties
  */
 require_once __DIR__ . '/../../../../config-loader.php'; 
 $version = getVersion();
