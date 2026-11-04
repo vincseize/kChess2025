@@ -9,6 +9,7 @@ class Level_8 {
         this.level = 8;
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
         this.centerValues = { 'pawn': 150, 'knight': 135, 'bishop': 100, 'rook': 55, 'queen': 45, 'king': 0 };
+        this.gameFonctions = GameFonctions.attach(this);
     }
 
     async getMove() {
@@ -32,24 +33,19 @@ class Level_8 {
             const doubledRooksBefore = this._getDoubledRookFileCount(game, myColor);
             const pawnIslandsBefore = this._getPawnIslandCount(game, myColor);
             const advancedMajorRanksBefore = this._getAdvancedMajorPieceRankCount(game, myColor);
-            const materialAdvantage = this._getMaterialBalance(game, myColor);
-
             allMoves.forEach(m => {
                 let score = 0;
                 const afterMove = this._simulateMove(game, m);
+                const exposure = this._evaluateMoveExposure(game, m, oppColor, afterMove);
 
                 if (m.isCapture) {
                     const capturedValue = this.pieceValues[m.targetPiece.type] || 0;
-                    const attackerValue = this.pieceValues[m.piece.type] || 0;
                     score += capturedValue * 20;
-                    if (materialAdvantage >= this.pieceValues.knight
-                        && m.piece.type !== 'pawn'
-                        && m.targetPiece.type !== 'pawn'
-                        && capturedValue >= attackerValue) {
-                        score += 100;
-                    }
+                    score += this._getFavorableTradeBonus(
+                        game, m, myColor, this.pieceValues.knight, 100
+                    );
                 }
-                score -= this._evaluateMoveExposure(game, m, oppColor, afterMove) * 12;
+                score -= exposure * 12;
                 score += (this._getCenterControlScore(afterMove, myColor) - centerControlBefore) * 12;
                 score -= (this._getDoubledPawnCount(afterMove, myColor) - doubledPawnsBefore) * 25;
                 score -= (this._getPawnIslandCount(afterMove, myColor) - pawnIslandsBefore) * 25;
@@ -57,7 +53,10 @@ class Level_8 {
                 score += (this._getConnectedPawnPairCount(afterMove, myColor) - connectedPawnsBefore) * 25;
                 score += (this._getDoubledRookFileCount(afterMove, myColor) - doubledRooksBefore) * 30;
                 score += (this._getAdvancedMajorPieceRankCount(afterMove, myColor) - advancedMajorRanksBefore) * 20;
-                score += this._getSafeKnightForkBonus(afterMove, m, myColor);
+                score += this.gameFonctions.getSafeKnightForkBonus(game, m, myColor, {
+                    simulated: afterMove,
+                    exposure
+                });
 
                 if (oppKing) {
                     const distAfter = Math.abs(m.toRow - oppKing.r) + Math.abs(m.toCol - oppKing.c);
@@ -220,22 +219,6 @@ class Level_8 {
             }
         }
         return balance;
-    }
-
-    _getSafeKnightForkBonus(game, move, color) {
-        if (move.piece?.type !== 'knight' || move._exposure > 0) return 0;
-
-        const knight = this._getPieceCompat(game, move.toRow, move.toCol);
-        if (knight?.type !== 'knight' || knight.color !== color) return 0;
-
-        const opponent = color === 'white' ? 'black' : 'white';
-        const attackedPieces = (game.moveValidator.getPossibleMoves(knight, move.toRow, move.toCol) || [])
-            .map(square => this._getPieceCompat(game, square.row, square.col))
-            .filter(piece => piece && piece.color === opponent && piece.type !== 'pawn');
-
-        if (attackedPieces.length < 2) return 0;
-        const mostValuableTarget = Math.max(...attackedPieces.map(piece => this.pieceValues[piece.type] || 0));
-        return Math.min(300, 150 + (attackedPieces.length - 2) * 50 + mostValuableTarget * 0.1);
     }
 
     _isPromotionMove(move) {

@@ -9,6 +9,7 @@ class Level_4 {
         this.name = "Bot Level 4 (Minimax)";
         this.level = 4;
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
+        this.gameFonctions = GameFonctions.attach(this);
     }
 
     async getMove() {

@@ -4,6 +4,10 @@ Ce document décrit **le comportement actuellement implémenté** par chaque bot
 
 Les schémas sont volontairement simplifiés : tous les niveaux s'appuient sur les coups légaux fournis par le moteur, puis appliquent leurs propres critères de sélection. Les numéros de niveau et les noms affichés ne garantissent pas, à eux seuls, une force de jeu croissante.
 
+## Fonctions communes
+
+Les niveaux 1 à 8 et 16 branchent les utilitaires de [`game_fonctions.js`](../php/js/kchess/bots/game_fonctions.js) lorsqu'ils sont disponibles : coups légaux, lecture des pièces, cases attaquées, simulation, échanges, matériel, structure de pions, contrôle du centre et finalisation. Les niveaux 7, 8 et 16 partagent aussi la détection des fourchettes sûres et du bonus d'échange favorable. Les pondérations et critères propres à chaque niveau restent dans leurs fichiers.
+
 ## Niveau 1 — choix aléatoire
 
 Fichier : [`Level_1.js`](../php/js/kchess/bots/Level_1.js)

@@ -10,6 +10,7 @@ class Level_3 {
         this.level = 3;
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
         this.currentGame = null; 
+        this.gameFonctions = GameFonctions.attach(this);
     }
 
     async getMove() {

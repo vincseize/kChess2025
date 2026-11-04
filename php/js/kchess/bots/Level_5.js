@@ -9,6 +9,7 @@ class Level_5 {
         this.name = "Bot Level 5 (Pro)";
         this.level = 5;
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
+        this.gameFonctions = GameFonctions.attach(this);
     }
 
     async getMove() {

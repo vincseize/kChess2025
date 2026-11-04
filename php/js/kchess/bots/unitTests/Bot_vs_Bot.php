@@ -202,6 +202,7 @@ if (empty($availableBots)) {
     echo str_replace('src="js/', 'src="../../../../js/', $engineScripts);
     ?>
 
+    <script src="../game_fonctions.js?v=<?php echo $version; ?>"></script>
     <script src="../BoardAnalyzer.js?v=<?php echo $version; ?>"></script>
     <script src="../BotCore.js?v=<?php echo $version; ?>"></script>
 

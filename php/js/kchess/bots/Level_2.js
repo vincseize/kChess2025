@@ -9,6 +9,7 @@ class Level_2 {
         this.name = "Bot Level 2 (CCMO)";
         this.level = 2;
         this.pieceValues = { 'pawn': 1, 'knight': 3, 'bishop': 3, 'rook': 5, 'queen': 9, 'king': 100 };
+        this.gameFonctions = GameFonctions.attach(this);
     }
 
     async getMove() {

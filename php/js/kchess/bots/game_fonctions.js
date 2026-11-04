@@ -22,6 +22,67 @@ class GameFonctions {
     }
 
     /**
+     * Branche les utilitaires communs sur les méthodes déjà présentes d'un
+     * bot, sans remplacer ses règles de score ni ses choix stratégiques.
+     */
+    static attach(bot) {
+        if (!bot) throw new Error('Un bot est requis.');
+
+        const shared = new GameFonctions({ pieceValues: bot.pieceValues });
+        const asGame = game => game?.board ? game : { board: game };
+        const adapters = {
+            getMoves: (game, color) => shared.getAllLegalMoves(game, color),
+            _getAllLegalMoves: (game, color) => shared.getAllLegalMoves(game, color),
+            _getPiece: (game, row, col) => shared.getPiece(asGame(game), row, col),
+            _getPieceCompat: (game, row, col) => shared.getPiece(game, row, col),
+            _isSquareAttacked: (game, row, col, color) =>
+                shared.isSquareAttacked(game, row, col, color),
+            _findKing: (game, color) => {
+                const king = shared.findKing(game, color);
+                return king ? { ...king, r: king.row, c: king.col } : null;
+            },
+            _getCenterControlScore: (game, color) =>
+                shared.getCenterControlScore(game, color),
+            _isPromotionMove: move => shared.isPromotionMove(move),
+            _getDoubledPawnCount: (game, color) => shared.getDoubledPawnCount(game, color),
+            _getPawnIslandCount: (game, color) => shared.getPawnIslandCount(game, color),
+            _getIsolatedPawnCount: (game, color) => shared.getIsolatedPawnCount(game, color),
+            _getConnectedPawnPairCount: (game, color) =>
+                shared.getConnectedPawnPairCount(game, color),
+            _getDoubledRookFileCount: (game, color) =>
+                shared.getDoubledRookFileCount(game, color),
+            _getMajorPieceFileScore: (game, color) =>
+                shared.getMajorPieceFileScore(game, color),
+            _getAdvancedMajorPieceRankCount: (game, color) =>
+                shared.getAdvancedMajorPieceRankCount(game, color),
+            _getMaterialBalance: (game, color) => shared.getMaterialBalance(game, color),
+            _getFavorableTradeBonus: (game, move, color, threshold, bonus) =>
+                shared.getFavorableTradeBonus(game, move, color, threshold, bonus),
+            _getImmediateExchangeGain: (game, move) =>
+                shared.getImmediateExchangeGain(game, move),
+            _bestExchange: (game, row, col, color, depth = 0) =>
+                shared.bestExchange(game, row, col, color, depth),
+            _evaluateExchange: (game, move, color) =>
+                shared.evaluateExchange(game, move, color),
+            _simulateMove: (game, move) => shared.simulateMove(game, move),
+            _evaluateMoveExposure: (game, move, color, simulated = null) =>
+                shared.evaluateMoveExposure(game, move, color, simulated),
+            _countPieces: game => shared.countPieces(game),
+            _getBestMove: moves => shared.chooseBestMove(moves, bot.level === 4 ? 0.9 : 0.75),
+            finalize: move => shared.finalize(move),
+            _finalize: move => shared.finalize(move)
+        };
+
+        for (const [name, adapter] of Object.entries(adapters)) {
+            if (typeof bot[name] === 'function' || name === '_getFavorableTradeBonus') {
+                bot[name] = adapter;
+            }
+        }
+        bot.gameFonctions = shared;
+        return shared;
+    }
+
+    /**
      * Lit une pièce sur le plateau avec compatibilité entre les différentes
      * représentations BoardPosition, ChessBoard et grilles simples.
      */
@@ -465,19 +526,19 @@ class GameFonctions {
      * Trouve les pièces adverses attaquées par un cavalier après le coup
      * candidat. Les pions peuvent être inclus ou exclus selon la stratégie.
      */
-    getKnightForkTargets(game, move, color, includePawns = false) {
+    getKnightForkTargets(game, move, color, includePawns = false, simulated = null) {
         if (move?.piece?.type !== 'knight') return [];
 
-        const simulated = this.simulateMove(game, move);
-        const knight = this.getPiece(simulated, move.toRow, move.toCol);
+        const afterMove = simulated || this.simulateMove(game, move);
+        const knight = this.getPiece(afterMove, move.toRow, move.toCol);
         if (knight?.type !== 'knight' || !this._sameColor(knight.color, color)) return [];
 
         const opponentColor = this._oppositeColor(color);
-        return (simulated.moveValidator.getPossibleMoves(knight, move.toRow, move.toCol) || [])
+        return (afterMove.moveValidator.getPossibleMoves(knight, move.toRow, move.toCol) || [])
             .map(square => ({
                 row: square.row,
                 col: square.col,
-                piece: this.getPiece(simulated, square.row, square.col)
+                piece: this.getPiece(afterMove, square.row, square.col)
             }))
             .filter(target => target.piece
                 && this._sameColor(target.piece.color, opponentColor)
@@ -492,12 +553,18 @@ class GameFonctions {
     getSafeKnightForkBonus(game, move, color, options = {}) {
         if (move?.piece?.type !== 'knight') return 0;
 
-        const simulated = this.simulateMove(game, move);
+        const simulated = options.simulated || this.simulateMove(game, move);
         const exposure = options.exposure
             ?? this.evaluateMoveExposure(game, move, this._oppositeColor(color), simulated);
         if (exposure > 0) return 0;
 
-        const targets = this.getKnightForkTargets(game, move, color, options.includePawns === true);
+        const targets = this.getKnightForkTargets(
+            game,
+            move,
+            color,
+            options.includePawns === true,
+            simulated
+        );
         if (targets.length < (options.minimumTargets ?? 2)) return 0;
 
         const mostValuableTarget = Math.max(...targets.map(target =>

@@ -10,6 +10,7 @@ class Level_6 {
         this.level = 6;
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
         this.centerValues = { 'pawn': 150, 'knight': 135, 'bishop': 100, 'rook': 55, 'queen': 45, 'king': 0 };
+        this.gameFonctions = GameFonctions.attach(this);
     }
 
     async getMove() {

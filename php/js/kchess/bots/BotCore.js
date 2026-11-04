@@ -3,6 +3,10 @@
  * Classe parente partagée (Base pour tous les bots)
  */
 class BotCore {
+    constructor() {
+        this.gameFonctions = GameFonctions.attach(this);
+    }
+
     // Récupère l'instance de jeu
     getGame() {
         return window.chessGame?.core || window.chessGame;
