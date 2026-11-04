@@ -1,6 +1,10 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.6.9 - Finalisation Format Temps & Architecture BotBase
+ * Version : 7.7.0 - Désactivation du timer pour l'arène
+ *
+ * Changelog v7.7.0 :
+ *   - Désactivation du ChessTimerManager dans chaque partie simulée
+ *     pour éviter les faux "PERDU AU TEMPS" en arène.
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -16,13 +20,13 @@ class BotStressTest {
     }
 
     resetStats() {
-        this.stats = { 
-            totalMoves: 0, 
-            gamesPlayed: 0, 
-            errors: 0, 
-            checkmates: 0, 
-            stalemates: 0, 
-            draws: 0, 
+        this.stats = {
+            totalMoves: 0,
+            gamesPlayed: 0,
+            errors: 0,
+            checkmates: 0,
+            stalemates: 0,
+            draws: 0,
             fenList: [],
             startTime: null,
             totalDuration: 0,
@@ -63,15 +67,15 @@ class BotStressTest {
                         clearJsonBtn.innerText = "DONE !";
                         setTimeout(() => clearJsonBtn.innerText = originalText, 1500);
                     }
-                } catch (e) { 
-                    console.error("Clear error:", e); 
+                } catch (e) {
+                    console.error("Clear error:", e);
                 }
             };
         }
-        
+
         const copyLogBtn = document.getElementById('copyLogBtn');
         if (copyLogBtn) copyLogBtn.onclick = (e) => this.copyToClipboard(this.logEl.innerText, e.target);
-        
+
         const copyFenBtn = document.getElementById('copyFenBtn');
         if (copyFenBtn) {
             copyFenBtn.onclick = (e) => {
@@ -131,7 +135,7 @@ class BotStressTest {
     }
 
     statusUpdate(msg, type = 'blanc', resultLabel = "", winner = null, fenToCopy = null) {
-        if (!this.logEl || !msg.trim()) return; 
+        if (!this.logEl || !msg.trim()) return;
 
         if (this.logEl.children.length >= 100) {
             this.logEl.removeChild(this.logEl.firstChild);
@@ -141,7 +145,7 @@ class BotStressTest {
         const colors = { rouge: "#f85149", orange: "#d29922", blanc: "#ffffff", gris: "#8b949e", system: "#3fb950" };
         const time = `<span style="color:#8b949e">[${new Date().toLocaleTimeString()}]</span> `;
         let formattedMsg = msg;
-        
+
         if (resultLabel) {
             const labelColor = colors[type] || "#ffffff";
             formattedMsg = msg.replace(resultLabel, `<span style="color:${labelColor}; font-weight:bold;">${resultLabel}</span>`);
@@ -156,7 +160,7 @@ class BotStressTest {
         if (fenToCopy) {
             formattedMsg += ` <span style="color:#444d56; font-size:10px; font-family:monospace; margin-left:5px;">FEN: ${fenToCopy}</span>`;
         }
-        
+
         div.style.color = colors[type] || "#ffffff";
         div.style.fontSize = "11px";
         div.style.padding = "2px 0";
@@ -248,9 +252,27 @@ class BotStressTest {
         } catch (e) { return false; }
     }
 
+    /**
+     * Désactive le timer pour une partie simulée (arène = pas de contrainte de temps).
+     * Couvre les deux emplacements possibles selon la version de ChessGameUI.
+     */
+    _disableTimerForGame(game) {
+        const engine = game.core || game;
+        const timerMgr = engine.ui?.timerManager || game.ui?.timerManager;
+        if (!timerMgr) return;
+
+        if (typeof timerMgr.disable === 'function') {
+            timerMgr.disable();
+        } else {
+            // Fallback si la méthode disable() n'existe pas encore
+            timerMgr.enabled = false;
+            if (typeof timerMgr.stopTimer === 'function') timerMgr.stopTimer();
+        }
+    }
+
     async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
         const _log = console.log; const _warn = console.warn;
-        console.log = console.warn = () => {}; 
+        console.log = console.warn = () => {};
         const gameStartTime = performance.now();
         let game;
         let coupsCount = 0;
@@ -259,6 +281,9 @@ class BotStressTest {
             game.gameState.gameActive = true;
             const engine = game.core || game;
             if (engine.botManager) engine.botManager.isActive = false;
+
+            // ★ NOUVEAU : désactivation du timer pour la partie simulée
+            this._disableTimerForGame(game);
 
             const whiteBotName = `Level_${pWhite.replace('L','')}`;
             const blackBotName = `Level_${pBlack.replace('L','')}`;
@@ -316,42 +341,42 @@ class BotStressTest {
                 type = "orange";
                 this.stats.stalemates++;
                 isStalemate = true;
-            } else if (coupsCount >= maxCoups) { 
-                resTag = "FIN limite"; 
-                type = "gris"; 
+            } else if (coupsCount >= maxCoups) {
+                resTag = "FIN limite";
+                type = "gris";
                 this.stats.draws++;
             } else if (!gs.gameActive) {
-                this.stats.draws++; 
+                this.stats.draws++;
             } else {
                 throw new Error('Partie interrompue sans résultat déterminé');
             }
 
             const finalFen = FENGenerator.generateFEN ? FENGenerator.generateFEN(gs, game.board) : FENGenerator.generate(game.board, gs);
-            
-            window.dispatchEvent(new CustomEvent('arena-game-finished', { 
-                detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount, isStalemate } 
+
+            window.dispatchEvent(new CustomEvent('arena-game-finished', {
+                detail: { winner, status: resTag, pWhite, pBlack, moves: coupsCount, isStalemate }
             }));
 
             this.stats.fenList.push(finalFen);
             this.stats.gamesPlayed++;
-            
+
             if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
             if (document.getElementById('progress-bar')) document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
-            
+
             if (isStalemate && document.getElementById('dash-stalemates')) {
                 document.getElementById('dash-stalemates').innerText = this.stats.stalemates;
             }
 
             const showDraws = document.getElementById('checkShowDraws')?.checked;
             const showStalemates = document.getElementById('checkShowStalemates')?.checked;
-            
+
             let shouldLog = false;
             if (winner !== 'draw') {
-                shouldLog = true; 
+                shouldLog = true;
             } else if (isStalemate) {
-                shouldLog = showStalemates; 
+                shouldLog = showStalemates;
             } else {
-                shouldLog = showDraws; 
+                shouldLog = showDraws;
             }
 
             if (shouldLog) {
@@ -371,7 +396,7 @@ class BotStressTest {
             console.warn = _warn;
         }
     }
-    
+
     async runBatch() {
         if (this.isRunning) return;
         this.resetStats();
@@ -389,19 +414,19 @@ class BotStressTest {
             document.head.insertAdjacentHTML('beforeend', `<style id="stress-test-style">.promotion-modal, .promotion-overlay, .chess-notification { display: none !important; }</style>`);
         }
 
-        this.isRunning = true; 
+        this.isRunning = true;
         if (this.btn) {
             this.btn.innerText = "CANCEL";
             this.btn.style.background = "#f85149";
         }
 
-        if (this.logEl) this.logEl.innerHTML = ''; 
+        if (this.logEl) this.logEl.innerHTML = '';
         this.stats.startTime = performance.now();
-        
+
         this.statusUpdate("DEMARRAGE DU TEST...", "system");
 
         for (let i = 1; i <= total; i++) {
-            if (!this.isRunning) break; 
+            if (!this.isRunning) break;
             let pW = selW, pB = selB;
             if (isRandom && Math.random() > 0.5) { pW = selB; pB = selW; }
             await this.simulateGame(i, moves, total, pW, pB);
@@ -414,8 +439,8 @@ class BotStressTest {
         const formattedTime = this.formatDuration(durationInSeconds);
 
         this.statusUpdate(`SESSION TERMINEE : ${formattedTime}`, "system");
-        
-        this.isRunning = false; 
+
+        this.isRunning = false;
         if (this.btn) {
             this.btn.innerText = "START ARENA";
             this.btn.style.background = "";
