@@ -73,7 +73,15 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
                         <select id="languageSelect" name="lang" class="form-select form-select-sm lang-select" onchange="this.form.submit()">
                             <?php foreach ($config['lang'] as $langCode => $langData): ?>
                                 <option value="<?php echo htmlspecialchars($langCode); ?>" <?php echo $currentLang === $langCode ? 'selected' : ''; ?>>
-                                    <?php echo $langCode === 'fr' ? '🇫🇷 Français' : '🇬🇧 English'; ?>
+                                    <?php
+                                    $languageNames = [
+                                        'fr' => '🇫🇷 Français',
+                                        'en' => '🇬🇧 English',
+                                        'es' => '🇪🇸 Español',
+                                        'de' => '🇩🇪 Deutsch',
+                                    ];
+                                    echo htmlspecialchars($languageNames[$langCode] ?? strtoupper($langCode));
+                                    ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
