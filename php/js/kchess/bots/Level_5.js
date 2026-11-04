@@ -1,9 +1,9 @@
 /**
  * Level_5 - Grand Maître UI
- * Version 2.2.0 - Priorité au petit roque
+ * Version 2.3.0 - Contrôle des cases centrales
  */
 class Level_5 {
-    static VERSION = '2.2.0';
+    static VERSION = '2.3.0';
 
     constructor() {
         this.name = "Bot Level 5 (Pro)";
@@ -25,15 +25,18 @@ class Level_5 {
             if (allMoves.length === 0) return null;
 
             const oppKing = this._findKing(game, oppColor);
+            const centerControlBefore = this._getCenterControlScore(game, myColor);
 
             allMoves.forEach(m => {
                 let score = 0;
+                const afterMove = this._simulateMove(game, m);
 
                 // 1. CAPTURES & SÉCURITÉ RENFORCÉE
                 if (m.isCapture) {
                     score += (this.pieceValues[m.targetPiece.type] * 20);
                 }
-                score -= this._evaluateMoveExposure(game, m, oppColor) * 12;
+                score -= this._evaluateMoveExposure(game, m, oppColor, afterMove) * 12;
+                score += (this._getCenterControlScore(afterMove, myColor) - centerControlBefore) * 12;
 
                 // 2. ÉTRANGLEMENT DU ROI
                 if (oppKing) {
@@ -55,7 +58,7 @@ class Level_5 {
                 // 4. MISE EN ÉCHEC
                 if (m.isCheck) score += 300;
 
-                if (m.details?.type === 'castling' && m.details.side === 'kingside') {
+                if (m.details?.type === 'castling') {
                     score += 100;
                 }
 
@@ -112,8 +115,21 @@ class Level_5 {
         return false;
     }
 
-    _evaluateMoveExposure(game, move, opponent) {
-        const afterMove = this._simulateMove(game, move);
+    _getCenterControlScore(game, color) {
+        const fen = game.moveValidator.generateCurrentFEN(color);
+        const engine = new ChessEngine(fen);
+        const colorKey = color === 'white' ? 'w' : 'b';
+        let score = 0;
+
+        for (const [row, col] of [[3, 3], [3, 4], [4, 3], [4, 4]]) {
+            const piece = this._getPieceCompat(game, row, col);
+            if (piece?.color === color) score += 1;
+            if (engine.isSquareAttacked(row, col, colorKey)) score += 1;
+        }
+        return score;
+    }
+
+    _evaluateMoveExposure(game, move, opponent, afterMove = this._simulateMove(game, move)) {
         const toRow = move.details?.kingTo?.row ?? move.toRow;
         const toCol = move.details?.kingTo?.col ?? move.toCol;
         return this._bestExchange(afterMove, toRow, toCol, opponent, 0);

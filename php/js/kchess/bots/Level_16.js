@@ -1,9 +1,9 @@
 /**
  * Level_16 - Bot Killer (Simplifié mais efficace)
- * Version 3.2 - Priorité au petit roque
+ * Version 3.3 - Contrôle des cases centrales
  */
 class Level_16 {
-    static VERSION = '3.2.0';
+    static VERSION = '3.3.0';
 
     constructor() {
         this.name = "Bot Level 16 (Killer)";
@@ -30,9 +30,10 @@ class Level_16 {
         // --- 2. ÉVALUATION SIMPLE ---
         let bestMove = null;
         let bestScore = -Infinity;
+        const centerControlBefore = this._getCenterControlScore(game, color);
         
         for (const move of allMoves) {
-            const score = this._evaluateMove(game, move, color, oppColor);
+            const score = this._evaluateMove(game, move, color, oppColor, centerControlBefore);
             
             if (score > bestScore) {
                 bestScore = score;
@@ -84,7 +85,7 @@ class Level_16 {
         return bestMove ? this._finalize(bestMove) : this._finalize(allMoves[0]);
     }
 
-    _evaluateMove(game, move, color, oppColor) {
+    _evaluateMove(game, move, color, oppColor, centerControlBefore) {
         let score = 0;
         const simulated = this._simulateMove(game, move);
         const exposure = this._evaluateMoveExposure(game, move, oppColor, simulated);
@@ -129,8 +130,9 @@ class Level_16 {
         
         // 5. SÉCURITÉ APRÈS SIMULATION
         score -= exposure * 5;
+        score += (this._getCenterControlScore(simulated, color) - centerControlBefore) * 2;
 
-        if (move.details?.type === 'castling' && move.details.side === 'kingside') {
+        if (move.details?.type === 'castling') {
             score += 5;
         }
         
@@ -140,6 +142,20 @@ class Level_16 {
             score += pieceValue; // Bonus pour sauver la pièce
         }
         
+        return score;
+    }
+
+    _getCenterControlScore(game, color) {
+        const fen = game.moveValidator.generateCurrentFEN(color);
+        const engine = new ChessEngine(fen);
+        const colorKey = color === 'white' ? 'w' : 'b';
+        let score = 0;
+
+        for (const [row, col] of [[3, 3], [3, 4], [4, 3], [4, 4]]) {
+            const piece = this._getPiece(game.board, row, col);
+            if (piece?.color === color) score += 1;
+            if (engine.isSquareAttacked(row, col, colorKey)) score += 1;
+        }
         return score;
     }
 

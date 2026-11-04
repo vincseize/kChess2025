@@ -3,7 +3,7 @@
  * Base Level_5 avec une préférence positionnelle pour les cases centrales.
  */
 class Level_6 {
-    static VERSION = '1.2.0';
+    static VERSION = '1.3.0';
 
     constructor() {
         this.name = "Bot Level 6 (Centre)";
@@ -26,14 +26,17 @@ class Level_6 {
             if (allMoves.length === 0) return null;
 
             const oppKing = this._findKing(game, oppColor);
+            const centerControlBefore = this._getCenterControlScore(game, myColor);
 
             allMoves.forEach(m => {
                 let score = 0;
+                const afterMove = this._simulateMove(game, m);
 
                 if (m.isCapture) {
                     score += this.pieceValues[m.targetPiece.type] * 20;
                 }
-                score -= this._evaluateMoveExposure(game, m, oppColor) * 12;
+                score -= this._evaluateMoveExposure(game, m, oppColor, afterMove) * 12;
+                score += (this._getCenterControlScore(afterMove, myColor) - centerControlBefore) * 12;
 
                 if (oppKing) {
                     const distAfter = Math.abs(m.toRow - oppKing.r) + Math.abs(m.toCol - oppKing.c);
@@ -59,7 +62,7 @@ class Level_6 {
                 score += this._getCenterValue(m.piece.type, m.toRow, m.toCol)
                     - this._getCenterValue(m.piece.type, m.fromRow, m.fromCol);
 
-                if (m.details?.type === 'castling' && m.details.side === 'kingside') {
+                if (m.details?.type === 'castling') {
                     score += 100;
                 }
 
@@ -81,6 +84,20 @@ class Level_6 {
         );
         const proximity = [1, 0.65, 0.3, 0.1][distance] || 0;
         return (this.centerValues[pieceType] || 0) * proximity;
+    }
+
+    _getCenterControlScore(game, color) {
+        const fen = game.moveValidator.generateCurrentFEN(color);
+        const engine = new ChessEngine(fen);
+        const colorKey = color === 'white' ? 'w' : 'b';
+        let score = 0;
+
+        for (const [row, col] of [[3, 3], [3, 4], [4, 3], [4, 4]]) {
+            const piece = this._getPieceCompat(game, row, col);
+            if (piece?.color === color) score += 1;
+            if (engine.isSquareAttacked(row, col, colorKey)) score += 1;
+        }
+        return score;
     }
 
     _getBestMove(moves) {
@@ -118,8 +135,7 @@ class Level_6 {
         return false;
     }
 
-    _evaluateMoveExposure(game, move, opponent) {
-        const afterMove = this._simulateMove(game, move);
+    _evaluateMoveExposure(game, move, opponent, afterMove = this._simulateMove(game, move)) {
         const toRow = move.details?.kingTo?.row ?? move.toRow;
         const toCol = move.details?.kingTo?.col ?? move.toCol;
         return this._bestExchange(afterMove, toRow, toCol, opponent, 0);

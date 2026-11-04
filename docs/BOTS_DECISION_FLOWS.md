@@ -130,7 +130,7 @@ Pour chaque coup, calculer un score :
   + progression du pion
   + forte priorité à la promotion
   + bonus si le validateur indique un échec
-  + bonus pour le petit roque légal
+  + bonus pour le roque légal (petit ou grand)
         |
 Trier les coups par score
         |
@@ -159,7 +159,9 @@ Pour chaque coup, calculer un score :
   + roi adverse poussé vers le bord
   + progression du pion et promotion
   + bonus si le coup donne échec
-  + bonus pour le petit roque légal
+  + bonus pour le roque légal (petit ou grand)
+  + variation du contrôle et de l'occupation
+    des quatre cases centrales après simulation
   - pénalité de proximité du roi adverse
     pour certains coups sans échec
         |
@@ -173,6 +175,7 @@ Choisir au hasard parmi les candidats
 
 Le bonus qui dépend seulement de la position actuelle du roi adverse est identique pour tous les coups d'une même position : à lui seul, il ne change donc pas leur ordre relatif.
 La sécurité est évaluée sur une position copiée après chaque coup candidat ; le validateur y recherche les prises légales adverses, puis les reprises possibles, jusqu'à huit échanges.
+Le contrôle du centre compte les quatre cases d4, e4, d5 et e5 attaquées et occupées par le bot, puis valorise leur progression par rapport à la position initiale.
 
 ## Niveau 6 — niveau 5 avec préférence centrale
 
@@ -181,15 +184,13 @@ Fichier : [`Level_6.js`](../php/js/kchess/bots/Level_6.js)
 ```text
 Calculer les critères tactiques du niveau 5
         |
-Ajouter un bonus pour le petit roque légal
+Ajouter un bonus pour le roque légal
         |
-Pour chaque coup, ajouter :
-valeur centrale de la case d'arrivée
-    moins
-valeur centrale de la case de départ
+Après simulation de chaque coup, ajouter la variation
+de l'occupation et du contrôle des cases d4, e4, d5, e5
         |
-La valeur dépend du type de pièce
-et de la distance aux quatre cases centrales
+Ajouter aussi le bonus positionnel d'approche
+du centre selon le type de pièce
         |
 Trier les coups par score
         |
@@ -198,7 +199,7 @@ Garder les coups dans le seuil de 75 %
 Choisir au hasard parmi les candidats
 ```
 
-Le bonus mesure l'occupation ou le rapprochement du centre. Le niveau 6 n'effectue pas de recherche plus profonde que le niveau 5. Il évalue lui aussi les pièces exposées après simulation, avec les prises et reprises légales jusqu'à huit échanges.
+Le niveau 6 privilégie désormais à la fois l'occupation et le contrôle effectif des quatre cases centrales. Il n'effectue pas de recherche plus profonde que le niveau 5 et évalue lui aussi les pièces exposées après simulation, avec les prises et reprises légales jusqu'à huit échanges.
 
 ## Niveau 16 — mat immédiat, score, puis règles de finale
 
@@ -216,7 +217,9 @@ jouer le mat    Évaluer chaque coup :
                  + promotion
                  + échec
                  + centre et développement
-                 + bonus pour le petit roque légal
+                 + variation du contrôle/occupation
+                   des quatre cases centrales
+                 + bonus pour le roque légal (petit ou grand)
                  - perte estimée après simulation
                    et prises/reprises adverses
                  + sauver une pièce attaquée
@@ -245,7 +248,7 @@ jouer le mat    Évaluer chaque coup :
 La finale est définie ici comme une position avec au plus quatre pièces autres que les pions et les rois, tous camps confondus. En finale, la priorité aux coups de pion ou de roi peut remplacer le meilleur score calculé auparavant, mais choisit maintenant les coups les moins exposés de ces catégories.
 
 Après chaque coup candidat, Level 16 évalue aussi si l'adversaire peut capturer la pièce déplacée dans la position simulée, en tenant compte des reprises possibles. Le validateur de la simulation est construit pour le plateau copié.
-Les niveaux 4, 5, 6 et 16 ajoutent un bonus de score au petit roque quand le validateur le propose comme coup légal ; ils ne forcent pas le roque face à une meilleure tactique.
+Les niveaux 4, 5, 6 et 16 ajoutent un bonus de score au petit roque ; les niveaux 5, 6 et 16 ajoutent aussi ce bonus au grand roque, quand le validateur le propose comme coup légal. Le roque n'est pas forcé face à une meilleure tactique.
 
 ## Observations transversales
 
