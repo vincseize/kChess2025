@@ -222,16 +222,20 @@ class BotStressTest {
         try {
             if (game.moveHandler) { game.moveHandler.isPromoting = false; game.moveHandler.selectedPiece = null; }
             if (game.clearSelection) game.clearSelection();
-            if (game.promotionManager) {
-                game.promotionManager.showPromotionModal = (row, col, pieceColor, callback) => {
-                    game.promotionManager.handleChoice('queen', row, col, callback);
+            if (engine.moveHandler) {
+                engine.moveHandler.isPromoting = false;
+                engine.moveHandler.selectedPiece = null;
+            }
+            if (engine.promotionManager) {
+                engine.promotionManager.showPromotionModal = (row, col, pieceColor, callback) => {
+                    engine.promotionManager.handleChoice('queen', row, col, callback);
                 };
             }
-            if (game.moveExecutor && !game.moveExecutor._isPatched) {
-                game.moveExecutor.handlePromotion = function(toRow, toCol, selectedPiece, move, fromSquare, toSquare, pieceElement, isCapture) {
+            if (engine.moveExecutor && !engine.moveExecutor._isPatched) {
+                engine.moveExecutor.handlePromotion = function(toRow, toCol, selectedPiece, move, fromSquare, toSquare, isCapture) {
                     this.finalizePromotion(toRow, toCol, 'queen', move, selectedPiece, isCapture);
                 };
-                game.moveExecutor._isPatched = true;
+                engine.moveExecutor._isPatched = true;
             }
             engine.handleSquareClick(move.fromRow, move.fromCol, true);
             engine.handleSquareClick(move.toRow, move.toCol, true);
@@ -247,77 +251,79 @@ class BotStressTest {
     async simulateGame(id, maxCoups, totalGames, pWhite, pBlack) {
         const _log = console.log; const _warn = console.warn;
         console.log = console.warn = () => {}; 
-
         const gameStartTime = performance.now();
-        const game = new ChessGame();
-        game.gameState.gameActive = true;
+        let game;
         let coupsCount = 0;
-
-        const whiteBotName = `Level_${pWhite.replace('L','')}`;
-        const blackBotName = `Level_${pBlack.replace('L','')}`;
-        
-        const whiteAI = window[whiteBotName] ? new window[whiteBotName]() : null;
-        const blackAI = window[blackBotName] ? new window[blackBotName]() : null;
-        
-        if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
-
         try {
+            game = new ChessGame();
+            game.gameState.gameActive = true;
+            const engine = game.core || game;
+            if (engine.botManager) engine.botManager.isActive = false;
+
+            const whiteBotName = `Level_${pWhite.replace('L','')}`;
+            const blackBotName = `Level_${pBlack.replace('L','')}`;
+            const whiteAI = window[whiteBotName] ? new window[whiteBotName]() : null;
+            const blackAI = window[blackBotName] ? new window[blackBotName]() : null;
+            if (!whiteAI || !blackAI) {
+                throw new Error(`Bot manquant : ${whiteBotName} ou ${blackBotName}`);
+            }
+
+            if (this.badge) this.badge.innerText = `RUNNING ${id}/${totalGames}`;
+
             while (coupsCount < maxCoups && game.gameState.gameActive && this.isRunning) {
                 const color = game.gameState.currentPlayer;
                 const currentAI = (color === 'white' || color === 'w') ? whiteAI : blackAI;
-                let move = null;
-                
-                if (currentAI && typeof currentAI.getMove === 'function') {
-                    window.chessGame = game;
-                    move = await currentAI.getMove();
-                } 
-                
-                if (!move || move.error || move.fromRow === undefined) {
-                    const moves = this.getAvailableMoves(game, color);
-                    if (moves.length === 0) break;
-                    move = moves[Math.floor(Math.random() * moves.length)];
+                window.chessGame = game;
+                const move = await currentAI.getMove();
+                const availableMoves = this.getAvailableMoves(game, color);
+
+                if (!move || move.error || !Number.isInteger(move.fromRow) || !Number.isInteger(move.fromCol)
+                    || !Number.isInteger(move.toRow) || !Number.isInteger(move.toCol)) {
+                    if (availableMoves.length === 0) break;
+                    throw new Error(`${currentAI.name || currentAI.constructor.name} n'a pas proposé de coup`);
                 }
-                
-                if (await this.executeMove(game, move, color)) {
-                    coupsCount++;
-                    this.stats.totalMoves++;
-                } else {
-                    break;
+
+                const piece = game.board.getPiece(move.fromRow, move.fromCol);
+                const legalMove = piece?.color === color
+                    && game.moveValidator.getPossibleMoves(piece, move.fromRow, move.fromCol)
+                        .some(candidate => candidate.row === move.toRow && candidate.col === move.toCol);
+                if (!legalMove) {
+                    throw new Error(`${currentAI.name || currentAI.constructor.name} a proposé un coup illégal`);
                 }
+
+                if (!await this.executeMove(game, move, color)) {
+                    throw new Error(`Échec d'exécution du coup de ${currentAI.name || currentAI.constructor.name}`);
+                }
+
+                coupsCount++;
+                this.stats.totalMoves++;
             }
 
             const gameEndTime = performance.now();
-            const gameDuration = ((gameEndTime - gameStartTime) / 1000).toFixed(2);
-
             const gs = game.gameState;
-            if (gs.checkGameOver) gs.checkGameOver();
-
             let winner = 'draw', resTag = "FIN nulle", type = "blanc", isStalemate = false;
-            const whiteMoves = this.getAvailableMoves(game, 'white');
-            const blackMoves = this.getAvailableMoves(game, 'black');
-            const whiteInCheck = game.moveValidator.isKingInCheck('white');
-            const blackInCheck = game.moveValidator.isKingInCheck('black');
+            const sideToMove = gs.currentPlayer;
+            const legalMoves = this.getAvailableMoves(game, sideToMove);
+            const inCheck = game.moveValidator.isKingInCheck(sideToMove);
 
-            if (whiteInCheck && whiteMoves.length === 0) { 
-                winner = 'black'; 
-                resTag = "FIN mat"; 
-                type = "rouge"; 
-            } else if (blackInCheck && blackMoves.length === 0) { 
-                winner = 'white'; 
-                resTag = "FIN mat"; 
-                type = "rouge"; 
-                this.stats.checkmates++; 
-            } else if ((!whiteInCheck && whiteMoves.length === 0) || (!blackInCheck && blackMoves.length === 0)) { 
-                resTag = "FIN pat"; 
-                type = "orange"; 
-                this.stats.stalemates++; 
+            if (legalMoves.length === 0 && inCheck) {
+                winner = sideToMove === 'white' ? 'black' : 'white';
+                resTag = "FIN mat";
+                type = "rouge";
+                this.stats.checkmates++;
+            } else if (legalMoves.length === 0) {
+                resTag = "FIN pat";
+                type = "orange";
+                this.stats.stalemates++;
                 isStalemate = true;
             } else if (coupsCount >= maxCoups) { 
                 resTag = "FIN limite"; 
                 type = "gris"; 
                 this.stats.draws++;
-            } else { 
+            } else if (!gs.gameActive) {
                 this.stats.draws++; 
+            } else {
+                throw new Error('Partie interrompue sans résultat déterminé');
             }
 
             const finalFen = FENGenerator.generateFEN ? FENGenerator.generateFEN(gs, game.board) : FENGenerator.generate(game.board, gs);
@@ -336,8 +342,6 @@ class BotStressTest {
                 document.getElementById('dash-stalemates').innerText = this.stats.stalemates;
             }
 
-            console.log = _log; console.warn = _warn;
-            
             const showDraws = document.getElementById('checkShowDraws')?.checked;
             const showStalemates = document.getElementById('checkShowStalemates')?.checked;
             
@@ -351,17 +355,20 @@ class BotStressTest {
             }
 
             if (shouldLog) {
+                const gameDuration = ((gameEndTime - gameStartTime) / 1000).toFixed(2);
                 let logMsg = `P#${id} [W:${pWhite} vs B:${pBlack}] (${coupsCount}/${maxCoups}c - ${gameDuration}s) ${resTag}`;
                 this.statusUpdate(logMsg, type, resTag, winner !== 'draw' ? winner : null, finalFen);
             }
 
         } catch (e) {
-            console.log = _log; console.warn = _warn;
             this.stats.errors++;
             const errEl = document.getElementById('errors');
             if (errEl) errEl.innerText = this.stats.errors;
             this.statusUpdate(`FIN CRASH P#${id} : ${e.message}`, "rouge", "FIN CRASH");
             console.error("Erreur dans simulateGame:", e);
+        } finally {
+            console.log = _log;
+            console.warn = _warn;
         }
     }
     

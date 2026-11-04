@@ -91,9 +91,9 @@ class ChessGame {
         }
 
         this.gameState.reset(); // Assurez-vous que GameState a une méthode reset
-        this.core.newGame();
         this.loadInitialPosition();
         this.applyUrlParamsConfiguration();
+        this.core.newGame();
         
         this.checkInitialBotMove();
     }

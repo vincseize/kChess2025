@@ -31,6 +31,7 @@ class ChessModalManager {
     constructor(ui) {
         this.ui = ui;
         this.currentResultModal = null;
+        this.resultModalKeydown = null;
         
         if (ChessModalManager.consoleLog) {
             console.log('🎭 ModalManager initialisé avec UI:', ui ? 'oui' : 'non');
@@ -119,48 +120,7 @@ class ChessModalManager {
     }
 
     showTimeLoss(loserColor) {
-        if (this.currentResultModal) this.removeResultModal();
-
-        const t = (key, fallback) => (window.translations && window.translations[key]) || fallback;
-        const modal = document.createElement('div');
-        modal.id = 'timeLossModal';
-        modal.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55);';
-
-        const panel = document.createElement('div');
-        panel.setAttribute('role', 'dialog');
-        panel.setAttribute('aria-modal', 'true');
-        panel.style.cssText = 'width:min(100%,340px);padding:24px;border-radius:14px;background:#fff;text-align:center;box-shadow:0 12px 36px rgba(0,0,0,.3);';
-
-        const title = document.createElement('h2');
-        title.textContent = t('time_lost', 'Perdu au temps');
-        title.style.cssText = 'margin:0 0 10px;color:#dc3545;font-size:1.35rem;';
-
-        const message = document.createElement('p');
-        const loserName = loserColor === 'white' ? t('white_player', 'Blancs') : t('black_player', 'Noirs');
-        message.textContent = `${loserName} — ${t('time_lost_message', 'Votre temps est écoulé.')}`;
-        message.style.cssText = 'margin:0 0 18px;color:#444;';
-
-        const replayButton = document.createElement('button');
-        replayButton.type = 'button';
-        replayButton.className = 'btn btn-success me-2';
-        replayButton.textContent = t('play_again', 'Rejouer');
-        replayButton.addEventListener('click', () => {
-            modal.remove();
-            window.showReplayColorPicker?.();
-        });
-
-        const closeButton = document.createElement('button');
-        closeButton.type = 'button';
-        closeButton.className = 'btn btn-outline-secondary';
-        closeButton.textContent = t('close', 'Fermer');
-        closeButton.addEventListener('click', () => modal.remove());
-
-        panel.append(title, message, replayButton, closeButton);
-        modal.appendChild(panel);
-        modal.addEventListener('click', (event) => {
-            if (event.target === modal) modal.remove();
-        });
-        document.body.appendChild(modal);
+        return this.showGameResult('timeLoss', null, loserColor);
     }
 
     // ✅ MODALE DE CONFIRMATION (AJOUTÉE)
@@ -288,79 +248,32 @@ class ChessModalManager {
     // ✅ Créer la modal de résultat
     createResultModal(gameStatus, winner, details) {
         const modal = document.createElement('div');
-        modal.id = 'chessGameResultModal';
+        modal.id = gameStatus === 'timeLoss' ? 'timeLossModal' : 'chessGameResultModal';
+        modal.className = 'game-result-modal';
         
         const { title, message, icon, color } = this.getResultDetails(gameStatus, winner, details);
-        
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            animation: fadeIn 0.3s ease;
-        `;
-        
+        const t = (key, fallback) => (window.translations && window.translations[key]) || fallback;
+        const headingId = 'game-result-title';
+        const messageId = 'game-result-message';
         modal.innerHTML = `
-            <div class="modal-content" style="
-                background: white;
-                padding: 40px;
-                border-radius: 20px;
-                box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-                text-align: center;
-                max-width: 500px;
-                width: 90%;
-                border: 5px solid ${color};
-                animation: slideIn 0.5s ease;
-            ">
-                <div style="font-size: 70px; margin-bottom: 20px; line-height: 1;">
-                    ${icon}
+            <section class="game-result-overlay" role="dialog" aria-modal="true"
+                aria-labelledby="${headingId}" aria-describedby="${messageId}" tabindex="-1">
+                <div class="game-result-content">
+                    <header class="game-result-header">
+                        <span class="promotion-icon game-result-icon" style="--result-accent:${color}" aria-hidden="true">${icon}</span>
+                        <h2 id="${headingId}">${title}</h2>
+                        <p id="${messageId}">${message}</p>
+                    </header>
+                    <div class="game-result-actions">
+                        <button id="newGameBtn" class="game-result-action game-result-action-primary" type="button">
+                            ${t('play_again', 'Rejouer')}
+                        </button>
+                        <button id="closeModalBtn" class="game-result-action" type="button">
+                            ${t('close', 'Fermer')}
+                        </button>
+                    </div>
                 </div>
-                <h2 style="margin: 0 0 15px 0; color: #333; font-size: 32px; font-weight: bold;">
-                    ${title}
-                </h2>
-                <div style="margin: 0 0 30px 0; color: #666; line-height: 1.6; font-size: 18px;">
-                    ${message}
-                </div>
-                ${details ? `<div style="margin: 0 0 20px 0; color: #888; font-size: 14px; font-style: italic;">
-                    ${details}
-                </div>` : ''}
-                <div style="display: flex; gap: 15px; justify-content: center;">
-                    <button id="newGameBtn" class="modal-btn primary-btn" style="
-                        padding: 15px 30px;
-                        background: #28a745;
-                        color: white;
-                        border: none;
-                        border-radius: 10px;
-                        cursor: pointer;
-                        font-size: 18px;
-                        font-weight: bold;
-                        transition: all 0.3s;
-                        flex: 1;
-                        min-width: 150px;
-                    ">${(window.translations && window.translations.play_again) || 'Rejouer'}</button>
-                    <button id="closeModalBtn" class="modal-btn secondary-btn" style="
-                        padding: 15px 30px;
-                        background: #6c757d;
-                        color: white;
-                        border: none;
-                        border-radius: 10px;
-                        cursor: pointer;
-                        font-size: 18px;
-                        transition: all 0.3s;
-                        flex: 1;
-                        min-width: 150px;
-                    ">Continuer à Regarder</button>
-                </div>
-                <div style="margin-top: 25px; font-size: 13px; color: #aaa;">
-                    Appuyez sur Échap ou cliquez en dehors pour fermer
-                </div>
-            </div>
+            </section>
         `;
         
         this.addModalStyles();
@@ -404,10 +317,26 @@ getResultDetails(gameStatus, winner, details) {
             
         case 'draw':
             title = `🤝 ${t('draw', 'MATCH NUL').toUpperCase()}`;
-            message = t('draw_desc', 'La partie se termine par un match nul.');
-            icon = '🤝🎯⚖️';
+            const drawMessages = {
+                repetition: t('draw_repetition_desc', 'Nulle par triple répétition.'),
+                fiftyMoves: t('draw_fifty_moves_desc', 'Nulle selon la règle des 50 coups.'),
+                'Règle des 50 coups': t('draw_fifty_moves_desc', 'Nulle selon la règle des 50 coups.'),
+                insufficient: t('draw_insufficient_material_desc', 'Nulle par matériel insuffisant.'),
+                'Matériel insuffisant': t('draw_insufficient_material_desc', 'Nulle par matériel insuffisant.')
+            };
+            message = drawMessages[details] || t('draw_desc', 'La partie se termine par un match nul.');
+            icon = '🤝';
             color = '#17a2b8';
             break;
+
+        case 'timeLoss': {
+            const loserName = details === 'white' ? t('white_player', 'Blancs') : t('black_player', 'Noirs');
+            title = t('time_lost', 'Perdu au temps').toUpperCase();
+            message = `${loserName} — ${t('time_lost_message', 'Votre temps est écoulé.')}`;
+            icon = '⏱';
+            color = '#fb7185';
+            break;
+        }
             
         default:
             title = `🏁 ${t('game_over', 'PARTIE TERMINÉE').toUpperCase()}`;
@@ -421,8 +350,11 @@ getResultDetails(gameStatus, winner, details) {
 
     // ✅ Configurer les événements
     setupResultModalEvents() {
+        const modal = this.currentResultModal;
+        if (!modal) return;
+
         // Nouvelle partie
-        document.getElementById('newGameBtn')?.addEventListener('click', () => {
+        modal.querySelector('#newGameBtn')?.addEventListener('click', () => {
             if (ChessModalManager.consoleLog) {
                 console.log('🎮 Nouvelle partie demandée depuis modal résultat');
             }
@@ -431,42 +363,44 @@ getResultDetails(gameStatus, winner, details) {
         });
         
         // Fermer
-        document.getElementById('closeModalBtn')?.addEventListener('click', () => {
+        modal.querySelector('#closeModalBtn')?.addEventListener('click', () => {
             this.removeResultModal();
         });
-        
-        // Échap
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.currentResultModal) {
+
+        this.resultModalKeydown = (e) => {
+            if (e.key === 'Escape' && this.currentResultModal === modal) {
                 this.removeResultModal();
-            }
-        });
-        
-        // Clic sur fond
-        if (this.currentResultModal) {
-            this.currentResultModal.addEventListener('click', (e) => {
-                if (e.target === this.currentResultModal) {
-                    this.removeResultModal();
+            } else if (e.key === 'Tab' && this.currentResultModal === modal) {
+                const buttons = [...modal.querySelectorAll('button')];
+                const first = buttons[0];
+                const last = buttons[buttons.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
                 }
-            });
-        }
+            }
+        };
+        document.addEventListener('keydown', this.resultModalKeydown);
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) this.removeResultModal();
+        });
+        modal.querySelector('#newGameBtn')?.focus();
     }
 
     // ✅ Supprimer la modal
     removeResultModal() {
         if (!this.currentResultModal) return;
-        
-        const modal = this.currentResultModal;
-        modal.style.animation = 'fadeOut 0.3s ease';
-        
-        setTimeout(() => {
-            modal.remove();
-            this.currentResultModal = null;
-            
-            if (ChessModalManager.consoleLog) {
-                console.log('🎭 Modal résultat supprimée');
-            }
-        }, 300);
+        this.currentResultModal.remove();
+        this.currentResultModal = null;
+        if (this.resultModalKeydown) {
+            document.removeEventListener('keydown', this.resultModalKeydown);
+            this.resultModalKeydown = null;
+        }
+        if (ChessModalManager.consoleLog) console.log('🎭 Modal résultat supprimée');
     }
 
     // ✅ Lancer nouvelle partie

@@ -35,6 +35,10 @@ class GameStatusManager {
         this.chessGame = chessGame;
         this.lastCheckAlert = null;
         this.lastStatus = null;
+        this.positionHistory = [];
+        this.currentPositionFen = null;
+        this.currentPositionSignature = null;
+        this.lastRecordedMoveCount = 0;
     }
 
     /**
@@ -54,20 +58,21 @@ class GameStatusManager {
 
         const currentPlayer = this.chessGame.gameState.currentPlayer;
         const status = this.chessGame.moveValidator.getGameStatus(currentPlayer);
+        this.recordCurrentPosition();
         this.lastStatus = status;
 
         if (status.status === 'checkmate') {
             this.handleCheckmate(currentPlayer);
         } else if (status.status === 'stalemate') {
             this.handleStalemate(currentPlayer);
-        } else if (status.status === 'check') {
-            this.handleCheck(currentPlayer);
-        } else if (status.status === 'in_progress') {
+        } else {
             const drawReason = this.getDrawReason();
             if (drawReason) {
                 status.status = 'draw';
                 status.reason = drawReason;
                 this.handleDraw(drawReason);
+            } else if (status.status === 'check') {
+                this.handleCheck(currentPlayer);
             }
         }
 
@@ -80,10 +85,31 @@ class GameStatusManager {
             throw new Error('FENGenerator et ChessNulleEngine sont requis pour vérifier les nulles.');
         }
         const fen = FENGenerator.generate(this.chessGame.board, this.chessGame.gameState);
-        const drawEngine = new ChessNulleEngine(fen);
-        if (drawEngine.isInsufficientMaterial()) return 'Matériel insuffisant';
-        if (this.chessGame.gameState.halfMoveClock >= 100) return "Règle des 50 coups";
-        return null;
+        const drawEngine = new ChessNulleEngine(fen, this.positionHistory);
+        const drawResult = drawEngine.isDraw(this.chessGame.gameState.halfMoveClock);
+        return drawResult.isDraw ? drawResult.reason : null;
+    }
+
+    recordCurrentPosition() {
+        if (typeof FENGenerator === 'undefined') {
+            throw new Error('FENGenerator est requis pour suivre les positions répétées.');
+        }
+
+        const moveCount = this.chessGame.gameState.moveHistory.length;
+        if (moveCount < this.lastRecordedMoveCount) {
+            this.positionHistory = [];
+            this.currentPositionFen = null;
+            this.currentPositionSignature = null;
+        }
+        this.lastRecordedMoveCount = moveCount;
+
+        const fen = FENGenerator.generate(this.chessGame.board, this.chessGame.gameState);
+        const signature = fen.split(' ').slice(0, 4).join(' ');
+        if (signature === this.currentPositionSignature) return;
+
+        if (this.currentPositionFen) this.positionHistory.push(this.currentPositionFen);
+        this.currentPositionFen = fen;
+        this.currentPositionSignature = signature;
     }
 
     // --- GESTION DES RÉSULTATS ---
@@ -103,7 +129,13 @@ class GameStatusManager {
     }
 
     handleDraw(reason) {
-        this.showNotification(`Match nul : ${reason}`, 'info');
+        const t = (key, fallback) => window.getTranslation?.(key, fallback) || fallback;
+        const messages = {
+            repetition: t('draw_repetition_desc', 'Nulle par triple répétition.'),
+            fiftyMoves: t('draw_fifty_moves_desc', 'Nulle selon la règle des 50 coups.'),
+            insufficient: t('draw_insufficient_material_desc', 'Nulle par matériel insuffisant.')
+        };
+        this.showNotification(messages[reason] || `${t('draw', 'Match nul')} : ${reason}`, 'info');
         this.endGame('draw', reason);
     }
 

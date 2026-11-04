@@ -2,6 +2,11 @@
 
 This directory contains supporting chess reference material. The web application documentation is maintained here alongside those resources; the repository setup overview is in the root [README](../README.md).
 
+## Audits
+
+- [Audit des bots d'échecs](AUDIT_BOTS.md) — résultats des confrontations entre niveaux, protocole, limites et recommandations.
+- [Schémas de décision des bots](BOTS_DECISION_FLOWS.md) — fonctionnement actuel des niveaux 1, 2, 3, 4, 5, 6 et 16, sans changement de stratégie.
+
 ## Launching the application
 
 1. Put the repository under XAMPP's `htdocs` directory.
