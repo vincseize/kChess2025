@@ -94,9 +94,21 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
                 $botDir = __DIR__ . '/js/kchess/bots/';
                 $botFiles = glob($botDir . 'Level_*.js');
                 sort($botFiles, SORT_NATURAL);
+                $botSearchDepths = [
+                    1 => 0,
+                    2 => 0,
+                    3 => 0,
+                    4 => 0,
+                    5 => 0,
+                    6 => 0,
+                    7 => 0,
+                    8 => 0,
+                    16 => 1,
+                ];
 
                 foreach ($botFiles as $file):
                     $levelNum = str_replace(['Level_', '.js'], '', basename($file));
+                    $searchDepth = $botSearchDepths[(int)$levelNum] ?? null;
                     $botKey = "bot_" . $levelNum;
                     $botData = $translations['bots'][$botKey] ?? null;
                     if (is_array($botData)) {
@@ -110,8 +122,17 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
                     <button type="button" class="game-mode-btn <?php echo htmlspecialchars($btnClass); ?>"
                             data-mode="bot"
                             data-level="<?php echo htmlspecialchars($levelNum); ?>"
-                            data-profondeur="<?php echo ($levelNum >= 3) ? '1' : '0'; ?>"
+                            <?php if ($searchDepth !== null): ?>
+                            data-profondeur="<?php echo htmlspecialchars((string)$searchDepth); ?>"
+                            <?php endif; ?>
                             aria-pressed="false">
+                        <?php if ($searchDepth !== null): ?>
+                        <span class="bot-search-depth"
+                              title="<?php echo htmlspecialchars('Profondeur de recherche indiquée : ' . $searchDepth); ?>"
+                              aria-label="<?php echo htmlspecialchars('Profondeur de recherche indiquée : ' . $searchDepth); ?>">
+                            <?php echo htmlspecialchars((string)$searchDepth); ?>
+                        </span>
+                        <?php endif; ?>
                         <div class="mode-description">
                             <div>
                                 <i class="bi bi-robot mode-icon" aria-hidden="true"></i>

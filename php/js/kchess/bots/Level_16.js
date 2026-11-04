@@ -1,9 +1,9 @@
 /**
  * Level_16 - Bot Killer (Simplifié mais efficace)
- * Version 3.5 - Promotion prioritaire
+ * Version 4.0 - Pions isolés et pièces majeures avancées
  */
 class Level_16 {
-    static VERSION = '3.5.0';
+    static VERSION = '4.0.0';
 
     constructor() {
         this.name = "Bot Level 16 (Killer)";
@@ -33,7 +33,12 @@ class Level_16 {
         let bestScore = -Infinity;
         const centerControlBefore = this._getCenterControlScore(game, color);
         const doubledPawnsBefore = this._getDoubledPawnCount(game, color);
+        const pawnIslandsBefore = this._getPawnIslandCount(game, color);
         const majorPieceFilesBefore = this._getMajorPieceFileScore(game, color);
+        const connectedPawnsBefore = this._getConnectedPawnPairCount(game, color);
+        const doubledRooksBefore = this._getDoubledRookFileCount(game, color);
+        const advancedMajorRanksBefore = this._getAdvancedMajorPieceRankCount(game, color);
+        const materialAdvantage = this._getMaterialBalance(game, color);
         
         for (const move of allMoves) {
             const score = this._evaluateMove(
@@ -43,7 +48,12 @@ class Level_16 {
                 oppColor,
                 centerControlBefore,
                 doubledPawnsBefore,
-                majorPieceFilesBefore
+                pawnIslandsBefore,
+                majorPieceFilesBefore,
+                connectedPawnsBefore,
+                doubledRooksBefore,
+                advancedMajorRanksBefore,
+                materialAdvantage
             );
             move._score = score;
             
@@ -71,11 +81,20 @@ class Level_16 {
             const pawnMoves = allMoves.filter(m => m.piece?.type === 'pawn');
             if (pawnMoves.length > 0) {
                 const safestPawnMoves = this._preferSafestMoves(pawnMoves, game, oppColor);
-                // Priorité aux pions proches de la promotion
+                for (const move of safestPawnMoves) {
+                    if (move._linkedPawnDelta === undefined) {
+                        const simulated = this._simulateMove(game, move);
+                        move._linkedPawnDelta = this._getConnectedPawnPairCount(simulated, color)
+                            - connectedPawnsBefore;
+                    }
+                }
                 safestPawnMoves.sort((a, b) => {
+                    const linkedPawnsDifference = (b._linkedPawnDelta || 0) - (a._linkedPawnDelta || 0);
+                    if (linkedPawnsDifference !== 0) return linkedPawnsDifference;
+
                     const aProgress = color === 'white' ? 7 - a.toRow : a.toRow;
                     const bProgress = color === 'white' ? 7 - b.toRow : b.toRow;
-                    return bProgress - aProgress; // Descendant
+                    return bProgress - aProgress;
                 });
                 return this._finalize(safestPawnMoves[0]);
             }
@@ -103,7 +122,7 @@ class Level_16 {
         return bestMove ? this._finalize(bestMove) : this._finalize(allMoves[0]);
     }
 
-    _evaluateMove(game, move, color, oppColor, centerControlBefore, doubledPawnsBefore, majorPieceFilesBefore) {
+    _evaluateMove(game, move, color, oppColor, centerControlBefore, doubledPawnsBefore, pawnIslandsBefore, majorPieceFilesBefore, connectedPawnsBefore, doubledRooksBefore, advancedMajorRanksBefore, materialAdvantage) {
         let score = 0;
         const simulated = this._simulateMove(game, move);
         const exposure = this._evaluateMoveExposure(game, move, oppColor, simulated);
@@ -114,6 +133,13 @@ class Level_16 {
             const captureValue = this.pieceValues[move.targetPiece.type] || 0;
             const attackerValue = this.pieceValues[move.piece.type] || 0;
             score += captureValue * 10; // Bonus majeur pour les captures
+
+            if (materialAdvantage >= this.pieceValues.knight
+                && move.piece.type !== 'pawn'
+                && move.targetPiece.type !== 'pawn'
+                && captureValue >= attackerValue) {
+                score += 20;
+            }
             
             // Capture rentable (prendre une pièce de plus grande valeur)
             if (captureValue > attackerValue * 0.7) {
@@ -150,7 +176,13 @@ class Level_16 {
         score -= exposure * 5;
         score += (this._getCenterControlScore(simulated, color) - centerControlBefore) * 2;
         score -= (this._getDoubledPawnCount(simulated, color) - doubledPawnsBefore) * 5;
+        score -= (this._getPawnIslandCount(simulated, color) - pawnIslandsBefore) * 5;
         score += (this._getMajorPieceFileScore(simulated, color) - majorPieceFilesBefore) * 2;
+        move._linkedPawnDelta = this._getConnectedPawnPairCount(simulated, color) - connectedPawnsBefore;
+        score += move._linkedPawnDelta * 3;
+        score += (this._getDoubledRookFileCount(simulated, color) - doubledRooksBefore) * 8;
+        score += (this._getAdvancedMajorPieceRankCount(simulated, color) - advancedMajorRanksBefore) * 5;
+        score += this._getSafeKnightForkBonus(simulated, move, color, exposure);
 
         if (move.details?.type === 'castling') {
             score += 5;
@@ -195,6 +227,102 @@ class Level_16 {
             }
         }
         return pawnsByFile.reduce((total, count) => total + Math.max(0, count - 1), 0);
+    }
+
+    _getPawnIslandCount(game, color) {
+        const pawnsByFile = Array(8).fill(0);
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPiece(game.board, row, col);
+                if (piece?.type === 'pawn' && piece.color === color) {
+                    pawnsByFile[col]++;
+                }
+            }
+        }
+
+        return pawnsByFile.reduce((islands, count, col) =>
+            count > 0 && (col === 0 || pawnsByFile[col - 1] === 0) ? islands + 1 : islands, 0);
+    }
+
+    _getConnectedPawnPairCount(game, color) {
+        const supportingRowOffset = color === 'white' ? 1 : -1;
+        let pairCount = 0;
+
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const pawn = this._getPiece(game.board, row, col);
+                if (pawn?.type !== 'pawn' || pawn.color !== color) continue;
+
+                const supportingRow = row + supportingRowOffset;
+                if (supportingRow < 0 || supportingRow > 7) continue;
+                for (const supportingCol of [col - 1, col + 1]) {
+                    if (supportingCol < 0 || supportingCol > 7) continue;
+                    const supportingPawn = this._getPiece(game.board, supportingRow, supportingCol);
+                    if (supportingPawn?.type === 'pawn' && supportingPawn.color === color) {
+                        pairCount++;
+                    }
+                }
+            }
+        }
+        return pairCount;
+    }
+
+    _getDoubledRookFileCount(game, color) {
+        const rooksByFile = Array(8).fill(0);
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPiece(game.board, row, col);
+                if (piece?.type === 'rook' && piece.color === color) {
+                    rooksByFile[col]++;
+                }
+            }
+        }
+        return rooksByFile.filter(count => count > 1).length;
+    }
+
+    _getAdvancedMajorPieceRankCount(game, color) {
+        const advancedRanks = new Set();
+        const opponentTerritoryStart = color === 'white' ? 0 : 4;
+        const opponentTerritoryEnd = color === 'white' ? 3 : 7;
+
+        for (let row = opponentTerritoryStart; row <= opponentTerritoryEnd; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPiece(game.board, row, col);
+                if (piece?.color === color && ['rook', 'queen'].includes(piece.type)) {
+                    advancedRanks.add(row);
+                }
+            }
+        }
+        return advancedRanks.size;
+    }
+
+    _getMaterialBalance(game, color) {
+        let balance = 0;
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this._getPiece(game.board, row, col);
+                if (!piece || piece.type === 'king') continue;
+                const value = this.pieceValues[piece.type] || 0;
+                balance += piece.color === color ? value : -value;
+            }
+        }
+        return balance;
+    }
+
+    _getSafeKnightForkBonus(game, move, color, exposure) {
+        if (move.piece?.type !== 'knight' || exposure > 0) return 0;
+
+        const knight = this._getPiece(game.board, move.toRow, move.toCol);
+        if (knight?.type !== 'knight' || knight.color !== color) return 0;
+
+        const opponent = color === 'white' ? 'black' : 'white';
+        const attackedPieces = (game.moveValidator.getPossibleMoves(knight, move.toRow, move.toCol) || [])
+            .map(square => this._getPiece(game.board, square.row, square.col))
+            .filter(piece => piece && piece.color === opponent && piece.type !== 'pawn');
+
+        if (attackedPieces.length < 2) return 0;
+        const mostValuableTarget = Math.max(...attackedPieces.map(piece => this.pieceValues[piece.type] || 0));
+        return Math.min(25, 12 + (attackedPieces.length - 2) * 4 + Math.min(mostValuableTarget, 9));
     }
 
     _getMajorPieceFileScore(game, color) {

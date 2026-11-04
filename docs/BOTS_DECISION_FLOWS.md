@@ -213,6 +213,20 @@ Il pénalise aussi les pions doublés en comparant leur nombre avant et après l
 Il valorise également les tours et dames placées sur une colonne sans pion allié : bonus supérieur si la colonne ne contient aucun pion adverse.
 Si une promotion est légale, il privilégie la promotion en dame dont le score tactique est le meilleur.
 
+## Niveau 7 — niveau 6 avec priorité aux pions liés et aux tours doublées
+
+Fichier : [`Level_7.js`](../php/js/kchess/bots/Level_7.js)
+
+Le niveau 7 reprend les règles du niveau 6. Il favorise aussi, après simulation, les coups qui créent ou conservent des paires de pions liées (un pion défend l'autre en diagonale), ainsi que les positions où deux tours alliées occupent la même colonne.
+Quand il possède au moins l'équivalent matériel d'un cavalier d'avance, il favorise aussi les captures de pièces (hors pions) d'une valeur au moins égale à celle de la pièce attaquante.
+Il ajoute une forte préférence pour un coup de cavalier qui, après simulation, attaque au moins deux pièces adverses autres que des pions, si le cavalier ne peut pas être capturé au prochain échange.
+
+## Niveau 8 — niveau 7 avec priorité aux fourchettes de cavalier
+
+Fichier : [`Level_8.js`](../php/js/kchess/bots/Level_8.js)
+
+Le niveau 8 reprend les règles du niveau 7 et pénalise la création d'îlots de pions supplémentaires : un îlot est un groupe de pions sur des colonnes adjacentes. Il favorise aussi le placement de tours ou de dames dans le camp adverse sur plusieurs rangées différentes.
+
 ## Niveau 16 — mat immédiat, score, puis règles de finale
 
 Fichier : [`Level_16.js`](../php/js/kchess/bots/Level_16.js)
@@ -235,6 +249,15 @@ jouer le mat    Évaluer tous les coups légaux :
                    sur une même colonne
                  + tours et dames sur colonnes
                    ouvertes ou semi-ouvertes
+                 + créer ou conserver des paires
+                   de pions liés (défense en diagonale)
+                 + placer deux tours alliées
+                   sur la même colonne
+                 + fourchette de cavalier sûre
+                   sur au moins deux pièces adverses
+                 - création d'îlots de pions supplémentaires
+                 + tour ou dame avancée sur une rangée
+                   différente dans le camp adverse
                  + bonus pour le roque légal (petit ou grand)
                  - perte estimée après simulation
                    et prises/reprises adverses
@@ -276,16 +299,29 @@ La finale est définie ici comme une position avec au plus quatre pièces autres
 
 Après chaque coup candidat, Level 16 évalue aussi si l'adversaire peut capturer la pièce déplacée dans la position simulée, en tenant compte des reprises possibles. Le validateur de la simulation est construit pour le plateau copié.
 Il pénalise une augmentation du nombre de pions en surplus sur une colonne par rapport à la position de départ.
+Il favorise aussi les coups qui créent ou conservent des paires de pions liés (un pion défend l'autre en diagonale) ; en finale, ce critère départage les coups de pion les moins exposés avant leur progression.
+Il préfère également les positions où deux tours alliées occupent la même colonne.
+Quand il possède au moins l'équivalent matériel d'un cavalier d'avance, il favorise les prises de pièces (hors pions) d'une valeur au moins égale à celle de la pièce attaquante.
+Il privilégie aussi un coup de cavalier qui attaque au moins deux pièces adverses autres que des pions, à condition que l'évaluation des échanges n'indique pas que le cavalier peut être capturé.
+Il pénalise chaque îlot de pions supplémentaire, où un îlot désigne un groupe de pions sur des colonnes adjacentes, et valorise les tours/dames présentes sur des rangées distinctes dans le camp adverse.
 Si une promotion légale existe, après la recherche du mat en un coup, Level 16 privilégie la promotion en dame ayant le meilleur score tactique.
 Après avoir vérifié le mat en un coup, Level 16 privilégie une promotion légale en dame et choisit celle qui présente le meilleur score tactique.
 Il valorise les tours et dames sur une colonne ouverte (sans pions des deux camps) ou semi-ouverte (sans pion allié), avec une préférence pour les colonnes ouvertes.
 Les niveaux 4, 5, 6 et 16 ajoutent un bonus de score au petit roque ; les niveaux 5, 6 et 16 ajoutent aussi ce bonus au grand roque, quand le validateur le propose comme coup légal. Le roque n'est pas forcé face à une meilleure tactique.
 
+### Profondeur indiquée dans le choix du bot
+
+L'interface affiche `0` pour les niveaux 1 à 8 et `1` pour le niveau 16 ; la même valeur est transmise dans le paramètre `profondeur`. Ce paramètre n'est actuellement pas lu par le démarrage de la partie : les algorithmes gardent leur profondeur fixe. Le badge représente donc la valeur configurée, et non le nombre de demi-coups de toutes les simulations tactiques :
+
+- Les niveaux 1, 2 et 4 à 8 ne font pas de recherche générale sur les réponses adverses. Les niveaux 4 à 8 simulent toutefois localement les prises et reprises sur la case visée, jusqu'à huit échanges.
+- Le niveau 3 conserve son examen des réponses légales après chaque coup candidat parmi les huit meilleurs, malgré la valeur affichée `0`.
+- Le niveau 16 vérifie le mat en un coup ; il simule également les séquences locales de prises et reprises jusqu'à huit échanges.
+
 ## Observations transversales
 
-- Les niveaux 2 à 6 répètent plusieurs opérations : énumération des coups légaux, détection des cases attaquées et calcul de scores. Les critères et leurs pondérations ne sont toutefois pas identiques.
-- Les niveaux 2 à 6 choisissent parfois au hasard parmi plusieurs coups. Une partie isolée ne suffit donc pas à caractériser leur niveau.
-- Les niveaux 3 à 6 évaluent principalement la position présente ; seul le niveau 16 tente une vérification d'un mat immédiat.
+- Les niveaux 2 à 8 répètent plusieurs opérations : énumération des coups légaux, détection des cases attaquées et calcul de scores. Les critères et leurs pondérations ne sont toutefois pas identiques.
+- Les niveaux 2 à 8 choisissent parfois au hasard parmi plusieurs coups. Une partie isolée ne suffit donc pas à caractériser leur niveau.
+- Les niveaux 3 à 8 évaluent principalement la position présente ; seul le niveau 16 tente une vérification d'un mat immédiat.
 - Ces schémas documentent le code tel qu'il existe aujourd'hui. Ils ne constituent pas une proposition de nouvelle stratégie.
 
 ## Sources
