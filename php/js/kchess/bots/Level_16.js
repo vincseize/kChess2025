@@ -1,25 +1,24 @@
 /**
- * Level_16 - Level 8 + ouverture + depth-1 corrigé
- * Version 1.1.0
+ * Level_16 - Level 8 + ouverture + depth-1 + mat en 1 + anti-pat + anti-mat + sécurité roi
+ * Version 1.3.0
  *
- * Changelog v1.1.0 :
- *   - OUVERTURE restaurée (fonctionne, n'affecte pas les perfs).
- *   - DEPTH-1 corrigé :
- *     * pas de multiplicateur ×1.5 ni ×2 sur la pénalité
- *     * pas de double comptage (exposure déjà pénalisée)
- *     * pénalité = gain net réel, comparable aux autres scores
+ * Changelog v1.3.0 :
+ *   - Ajout détection de mat adverse en 1 (évite mat du berger, etc.)
+ *   - Ajout pénalité si le roi propre est sous pression après le coup
+ *   - Les détections lourdes (mat adverse, pat) sont optimisées :
+ *     ne se déclenchent que si le roi est menacé ou en fin de partie
  */
 class Level_16 {
-    static VERSION = '1.1.0';
+    static VERSION = '1.3.0';
 
     constructor() {
-        this.name = "Bot Level 16 (L8 + ouverture + depth1)";
+        this.name = "Bot Level 16 (L8 + ouverture + depth1 + mat/anti-pat/anti-mat)";
         this.level = 16;
         this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
         this.centerValues = { 'pawn': 150, 'knight': 135, 'bishop': 100, 'rook': 55, 'queen': 45, 'king': 0 };
         this.gameFonctions = GameFonctions.attach(this);
 
-        this.maxOppReplies = 8;   // réduit : on ne scanne que le dangereux
+        this.maxOppReplies = 8;
     }
 
     async getMove() {
@@ -33,7 +32,7 @@ class Level_16 {
             const oppColor = isWhite ? 'black' : 'white';
 
             // ============================================================
-            // ★ OUVERTURE (restaurée)
+            // ★ OUVERTURE
             // ============================================================
             const openingMove = this._tryOpeningMove(game, myColor);
             if (openingMove) return this._finalize(openingMove);
@@ -44,6 +43,23 @@ class Level_16 {
             const allMoves = this._getAllLegalMoves(game, myColor);
             if (allMoves.length === 0) return null;
 
+            // ============================================================
+            // ★ MAT EN 1 — priorité absolue
+            // ============================================================
+            for (const m of allMoves) {
+                const after = this._simulateMove(game, m);
+                if (!after) continue;
+                const oppMoves = this._getAllLegalMoves(after, oppColor);
+                if (oppMoves.length !== 0) continue;
+                const king = this._findKing(after, oppColor);
+                if (king && this._isSquareAttacked(after, king.r, king.c, myColor)) {
+                    return this._finalize(m);
+                }
+            }
+
+            // ============================================================
+            // ÉVALUATION NORMALE
+            // ============================================================
             const oppKing = this._findKing(game, oppColor);
             const centerControlBefore = this._getCenterControlScore(game, myColor);
             const doubledPawnsBefore = this._getDoubledPawnCount(game, myColor);
@@ -52,6 +68,7 @@ class Level_16 {
             const doubledRooksBefore = this._getDoubledRookFileCount(game, myColor);
             const pawnIslandsBefore = this._getPawnIslandCount(game, myColor);
             const advancedMajorRanksBefore = this._getAdvancedMajorPieceRankCount(game, myColor);
+            const myKingBefore = this._findKing(game, myColor);
 
             allMoves.forEach(m => {
                 let score = 0;
@@ -109,9 +126,46 @@ class Level_16 {
                 }
 
                 // ============================================================
-                // ★ DEPTH-1 CORRIGÉ — pénalité réaliste
+                // ★ DEPTH-1 : pénalité réponse adverse
                 // ============================================================
-                score -= this._opponentBestReplyPenalty(afterMove, oppColor, myColor, exposure);
+                score -= this._opponentBestReplyPenalty(afterMove, oppColor, myColor);
+
+                // ============================================================
+                // ★ ANTI-PAT : pénalité massive en fin de partie ou roi acculé
+                // ============================================================
+                if (this._shouldCheckStalemate(afterMove, oppColor)) {
+                    if (this.gameFonctions.isStalemateAfterMove(game, m, oppColor, afterMove)) {
+                        score -= 50000;
+                    }
+                }
+
+                // ============================================================
+                // ★ SÉCURITÉ DU ROI : pénalité si le roi est sous pression
+                // ============================================================
+                if (myKingBefore) {
+                    const myKingAfter = this._findKing(afterMove, myColor);
+                    if (myKingAfter) {
+                        const attackers = this._countAttackersOnSquare(
+                            afterMove, myKingAfter.r, myKingAfter.c, oppColor
+                        );
+                        if (attackers >= 2) score -= 500 * attackers;
+
+                        if (this._isSquareAttacked(
+                            afterMove, myKingAfter.r, myKingAfter.c, oppColor
+                        )) {
+                            score -= 1000;
+                        }
+                    }
+                }
+
+                // ============================================================
+                // ★ ANTI-MAT ADVERSE : si ce coup laisse mater l'adversaire en 1
+                // ============================================================
+                if (this._isKingUnderThreatAfterMove(afterMove, myColor)) {
+                    if (this.gameFonctions.opponentCanMateInOne(afterMove, oppColor, myColor)) {
+                        score -= 100000;   // pire que le pat : on va perdre immédiatement
+                    }
+                }
 
                 m._finalScore = score;
             });
@@ -127,6 +181,33 @@ class Level_16 {
             console.error('L16 Error:', err);
             return null;
         }
+    }
+
+    /**
+     * Heuristique : ne vérifier le pat que si l'adversaire a peu de matériel
+     * ou si son roi est acculé au bord.
+     */
+    _shouldCheckStalemate(afterMove, oppColor) {
+        if (!afterMove) return false;
+        const pieceCount = this._countPieces(afterMove);
+        if (pieceCount <= 12) return true;
+
+        const oppKing = this._findKing(afterMove, oppColor);
+        if (!oppKing) return false;
+        return oppKing.r === 0 || oppKing.r === 7 || oppKing.c === 0 || oppKing.c === 7;
+    }
+
+    /**
+     * Heuristique : ne vérifier le mat adverse que si mon roi est menacé
+     * (≥ 2 attaquants ou sur un bord).
+     */
+    _isKingUnderThreatAfterMove(afterMove, myColor) {
+        if (!afterMove) return false;
+        return this.gameFonctions.isKingUnderThreat(afterMove, myColor);
+    }
+
+    _countAttackersOnSquare(game, row, col, byColor) {
+        return this.gameFonctions.countAttackersOnSquare(game, row, col, byColor);
     }
 
     // =====================================================================
@@ -189,21 +270,10 @@ class Level_16 {
     }
 
     // =====================================================================
-    // ★ DEPTH-1 CORRIGÉ
+    // DEPTH-1 : pénalité réponse adverse
     // =====================================================================
 
-    /**
-     * Pénalité basée sur la meilleure réponse adverse APRÈS le coup.
-     *
-     * v1.1.0 — corrections :
-     *   - Pas de multiplicateur ×1.5 ni ×2 (pénalité = gain net réel).
-     *   - Utilise `exposure` déjà calculée (pas de double comptage).
-     *   - Ignore les captures symétriques (ex: 100 vs 100 = 0 net).
-     *   - Filtre plus agressif : ne garde que captures gagnantes et échecs.
-     */
-    _opponentBestReplyPenalty(simulatedGame, oppColor, myColor, exposure) {
-        // Si la pièce déplacée n'est pas exposée, on regarde quand même les
-        // captures sur les AUTRES pièces (une capture non couverte par exposure).
+    _opponentBestReplyPenalty(simulatedGame, oppColor, myColor) {
         const replies = this._getAllLegalMoves(simulatedGame, oppColor);
         if (replies.length === 0) return 0;
 
@@ -222,27 +292,16 @@ class Level_16 {
                 const defended = this._isSquareAttacked(
                     simulatedGame, reply.toRow, reply.toCol, myColor
                 );
-
-                // Gain net réel : si défendu, on perd notre attaquant après reprise
-                // → gain = targetVal - attackVal (peut être négatif)
-                // si non défendu : gain = targetVal
                 const gain = defended ? (targetVal - attackVal) : targetVal;
-
-                // ⚠️ Ne pénaliser que si le gain est POSITIF (adversaire gagne du matériel net)
                 if (gain > 0) net += gain;
             }
 
-            if (reply.isCheck) net += 100;   // échec = petit bonus adverse, pas 150
+            if (reply.isCheck) net += 100;
             if (this._isPromotionMove(reply)) net += 5000;
 
             if (net > worstNet) worstNet = net;
-            if (worstNet > 1000) break;   // early exit
+            if (worstNet > 1000) break;
         }
-
-        // ⚠️ PAS de multiplicateur : worstNet est déjà une valeur de matériel.
-        // Si exposure est déjà pénalisée séparément, on évite de re-pénaliser.
-        // Mais exposure ne concerne QUE la case d'arrivée ; ici on couvre TOUTES
-        // les captures adverses, donc on garde worstNet tel quel.
         return worstNet;
     }
 
@@ -410,7 +469,7 @@ class Level_16 {
             for (let c = 0; c < 8; c++) {
                 const piece = this._getPieceCompat(game, r, c);
                 if (piece && piece.type === 'king' && piece.color.toLowerCase().startsWith(key)) {
-                    return { r, c };
+                    return { r, c, row: r, col: c };
                 }
             }
         }
@@ -612,6 +671,16 @@ class Level_16 {
         } catch (error) {
             return null;
         }
+    }
+
+    _countPieces(game) {
+        let count = 0;
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                if (this._getPieceCompat(game, r, c)) count++;
+            }
+        }
+        return count;
     }
 
     _finalize(move) {

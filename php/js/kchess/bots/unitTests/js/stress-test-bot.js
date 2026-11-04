@@ -1,10 +1,12 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.7.0 - Désactivation du timer pour l'arène
+ * Version : 7.7.1 - Désactivation renforcée du timer en arène
  *
- * Changelog v7.7.0 :
- *   - Désactivation du ChessTimerManager dans chaque partie simulée
- *     pour éviter les faux "PERDU AU TEMPS" en arène.
+ * Changelog v7.7.1 :
+ *   - Flag statique ChessTimerManager.globallyDisabled désactivé
+ *     AVANT toute création de ChessGame (dans runBatch)
+ *   - _disableTimerForGame renforcé : flag statique + instance locale
+ *   - Plus de fuite possible même si le timer est recréé
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -106,9 +108,6 @@ class BotStressTest {
         }
     }
 
-    /**
-     * Formate les secondes en H m s
-     */
     formatDuration(seconds) {
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
@@ -253,10 +252,16 @@ class BotStressTest {
     }
 
     /**
-     * Désactive le timer pour une partie simulée (arène = pas de contrainte de temps).
-     * Couvre les deux emplacements possibles selon la version de ChessGameUI.
+     * Désactive le timer pour une partie simulée.
+     * v7.7.1 : flag statique + instance locale, double protection.
      */
     _disableTimerForGame(game) {
+        // 1) Flag statique (bloque aussi les futures instances)
+        if (typeof ChessTimerManager !== 'undefined') {
+            ChessTimerManager.globallyDisabled = true;
+        }
+
+        // 2) Instance locale
         const engine = game.core || game;
         const timerMgr = engine.ui?.timerManager || game.ui?.timerManager;
         if (!timerMgr) return;
@@ -264,7 +269,6 @@ class BotStressTest {
         if (typeof timerMgr.disable === 'function') {
             timerMgr.disable();
         } else {
-            // Fallback si la méthode disable() n'existe pas encore
             timerMgr.enabled = false;
             if (typeof timerMgr.stopTimer === 'function') timerMgr.stopTimer();
         }
@@ -282,7 +286,7 @@ class BotStressTest {
             const engine = game.core || game;
             if (engine.botManager) engine.botManager.isActive = false;
 
-            // ★ NOUVEAU : désactivation du timer pour la partie simulée
+            // ★ Désactivation du timer (renforcée)
             this._disableTimerForGame(game);
 
             const whiteBotName = `Level_${pWhite.replace('L','')}`;
@@ -402,6 +406,11 @@ class BotStressTest {
         this.resetStats();
         if (window.arenaAnalyst) window.arenaAnalyst.reset();
 
+        // ★ Désactive le timer AVANT toute création de ChessGame
+        if (typeof ChessTimerManager !== 'undefined') {
+            ChessTimerManager.globallyDisabled = true;
+        }
+
         const total = parseInt(document.getElementById('inputMaxGames')?.value || 50);
         const moves = parseInt(document.getElementById('inputMaxMoves')?.value || 100);
         const selW = document.getElementById('selectBotWhite')?.value || "L1";
@@ -433,7 +442,6 @@ class BotStressTest {
             await new Promise(r => setTimeout(r, 1));
         }
 
-        // --- CALCUL ET AFFICHAGE DU TEMPS FORMATE ---
         const durationInSeconds = (performance.now() - this.stats.startTime) / 1000;
         this.stats.totalDuration = durationInSeconds.toFixed(1);
         const formattedTime = this.formatDuration(durationInSeconds);

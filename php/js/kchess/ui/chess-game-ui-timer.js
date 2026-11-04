@@ -2,21 +2,26 @@
  * ui/chess-game-ui-timer.js
  * Gère le décompte et l'application des incréments de temps.
  *
- * v1.1.0 :
- *   - Flag `enabled` pour désactiver le timer (mode arène / stress test)
- *   - Méthodes `disable()` / `enable()`
- *   - `switchTurn()` et `startTimer()` court-circuités si désactivé
+ * v1.2.0 :
+ *   - Flag STATIQUE `ChessTimerManager.globallyDisabled` (arène / stress test)
+ *   - Le constructeur lit ce flag → toute nouvelle instance naît désactivée
+ *   - `disable()` met aussi le flag statique à true
+ *   - `enable()` remet le flag statique à false
+ *   - `startTimer()` et `switchTurn()` font un double check (instance + statique)
  */
 class ChessTimerManager {
+    static globallyDisabled = false;
+
     constructor(ui) {
         this.ui = ui;
-        this.whiteTime = 600; // 10 minutes par défaut
+        this.whiteTime = 600;
         this.blackTime = 600;
-        this.increment = 0;   // Secondes à ajouter par coup
+        this.increment = 0;
         this.initialTime = 600;
         this.timerInterval = null;
         this.isTimerRunning = false;
-        this.enabled = true;  // ← NOUVEAU : flag global d'activation
+        // ★ Tient compte du flag global dès la naissance
+        this.enabled = !ChessTimerManager.globallyDisabled;
 
         const params = new URLSearchParams(window.location.search);
         if (params.get('mode') === 'bot') {
@@ -33,13 +38,9 @@ class ChessTimerManager {
         }
     }
 
-    /**
-     * Reçoit la configuration (temps + incrément) du bot sélectionné
-     */
     setTimerConfig(config) {
         if (!config) return;
 
-        // Configuration du temps de base
         if (config.clock) {
             const baseSeconds = this.parseTimeString(config.clock);
             this.initialTime = baseSeconds;
@@ -47,7 +48,6 @@ class ChessTimerManager {
             this.blackTime = baseSeconds;
         }
 
-        // Configuration de l'incrément
         if (config.increment !== undefined) {
             this.increment = parseInt(config.increment) || 0;
         }
@@ -61,28 +61,29 @@ class ChessTimerManager {
      */
     enable() {
         this.enabled = true;
+        ChessTimerManager.globallyDisabled = false;
     }
 
     /**
      * Désactive complètement le timer (mode arène / stress test).
-     * Aucun setInterval ne sera lancé, aucune modale "temps écoulé" ne s'affichera.
+     * Le flag STATIQUE bloque aussi les futures instances.
      */
     disable() {
         this.enabled = false;
         this.stopTimer();
+        ChessTimerManager.globallyDisabled = true;
     }
 
     /**
-     * Appelé par GameState.switchPlayer()
+     * Appelé par GameState.switchPlayer() à chaque changement de tour.
      */
     switchTurn(newColor) {
-        // ← NOUVEAU : court-circuit si le timer est désactivé
-        if (!this.enabled) {
+        // ★ Double protection : instance + flag statique
+        if (!this.enabled || ChessTimerManager.globallyDisabled) {
             this.updateTimerDisplay();
             return;
         }
 
-        // Le joueur qui vient de FINIR son coup (couleur opposée à newColor) reçoit l'incrément
         const previousPlayer = (newColor === 'white') ? 'black' : 'white';
 
         if (this.increment > 0) {
@@ -94,7 +95,6 @@ class ChessTimerManager {
             console.log(`➕ Incrément +${this.increment}s appliqué aux ${previousPlayer}`);
         }
 
-        // On arrête le décompte en cours, on met à jour, et on relance pour le nouveau joueur
         this.stopTimer();
         this.updateTimerDisplay();
 
@@ -104,7 +104,9 @@ class ChessTimerManager {
     }
 
     startTimer() {
-        if (!this.enabled) return;                    // ← NOUVEAU
+        // ★ Double protection
+        if (!this.enabled) return;
+        if (ChessTimerManager.globallyDisabled) return;
         if (!this.ui.game.gameState.gameActive) return;
         if (this.isTimerRunning) return;
 
@@ -165,9 +167,7 @@ class ChessTimerManager {
     parseTimeString(timeStr) {
         if (!timeStr) return 600;
         const parts = timeStr.split(':').map(Number);
-        // Format HH:MM:SS
         if (parts.length === 3) return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
-        // Format MM:SS
         if (parts.length === 2) return (parts[0] * 60) + parts[1];
         return parseInt(timeStr) || 600;
     }
