@@ -1,10 +1,17 @@
 /**
  * js/stress-test-bot.js
- * Version : 7.7.0 - Désactivation du timer pour l'arène
+ * Version : 7.8.0 - Barre de progression lissée
  *
- * Changelog v7.7.0 :
- *   - Désactivation du ChessTimerManager dans chaque partie simulée
- *     pour éviter les faux "PERDU AU TEMPS" en arène.
+ * Changelog v7.8.0 :
+ *   - Barre de progression lissée (moyenne mobile sur 10 points)
+ *     → évite l'accélération visuelle en fin de batch (les dernières parties
+ *       finissent plus vite : pats/limites sont plus rapides que mats)
+ *   - Forçage à 100% à la fin du batch
+ *
+ * Changelog v7.7.2 :
+ *   - Neutralise showTimeLoss au niveau du prototype ChessModalManager
+ *   - Neutralise showTimeLoss sur les instances ui.modalManager
+ *   - Renforce _disableTimerForGame
  */
 
 if (window.stressTester) window.stressTester = null;
@@ -12,6 +19,7 @@ if (window.stressTester) window.stressTester = null;
 class BotStressTest {
     constructor() {
         this.isRunning = false;
+        this._progressHistory = [];          // ★ v7.8.0
         this.resetStats();
         this.logEl = document.getElementById('log-content');
         this.btn = document.getElementById('startBtn');
@@ -32,6 +40,8 @@ class BotStressTest {
             totalDuration: 0,
             config: { white: "", black: "", isRandom: false, maxCoups: 0 }
         };
+        this._progressHistory = [];          // ★ v7.8.0
+
         const elements = ['errors', 'count', 'dash-stalemates'];
         elements.forEach(id => {
             const el = document.getElementById(id);
@@ -106,9 +116,6 @@ class BotStressTest {
         }
     }
 
-    /**
-     * Formate les secondes en H m s
-     */
     formatDuration(seconds) {
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
@@ -252,19 +259,39 @@ class BotStressTest {
         } catch (e) { return false; }
     }
 
-    /**
-     * Désactive le timer pour une partie simulée (arène = pas de contrainte de temps).
-     * Couvre les deux emplacements possibles selon la version de ChessGameUI.
-     */
+    _neutralizeTimerGlobally() {
+        if (typeof ChessTimerManager !== 'undefined') {
+            ChessTimerManager.globallyDisabled = true;
+        }
+        if (typeof ChessModalManager !== 'undefined' && ChessModalManager.prototype) {
+            ChessModalManager.prototype.showTimeLoss = function() {};
+        }
+        const game = window.chessGame?.core || window.chessGame;
+        if (game?.ui?.modalManager) {
+            game.ui.modalManager.showTimeLoss = () => {};
+        }
+    }
+
     _disableTimerForGame(game) {
+        if (typeof ChessTimerManager !== 'undefined') {
+            ChessTimerManager.globallyDisabled = true;
+        }
+        if (typeof ChessModalManager !== 'undefined' && ChessModalManager.prototype) {
+            ChessModalManager.prototype.showTimeLoss = function() {};
+        }
         const engine = game.core || game;
+        if (engine.ui?.modalManager) {
+            engine.ui.modalManager.showTimeLoss = () => {};
+        }
+        if (game.ui?.modalManager) {
+            game.ui.modalManager.showTimeLoss = () => {};
+        }
         const timerMgr = engine.ui?.timerManager || game.ui?.timerManager;
         if (!timerMgr) return;
 
         if (typeof timerMgr.disable === 'function') {
             timerMgr.disable();
         } else {
-            // Fallback si la méthode disable() n'existe pas encore
             timerMgr.enabled = false;
             if (typeof timerMgr.stopTimer === 'function') timerMgr.stopTimer();
         }
@@ -282,7 +309,6 @@ class BotStressTest {
             const engine = game.core || game;
             if (engine.botManager) engine.botManager.isActive = false;
 
-            // ★ NOUVEAU : désactivation du timer pour la partie simulée
             this._disableTimerForGame(game);
 
             const whiteBotName = `Level_${pWhite.replace('L','')}`;
@@ -361,7 +387,15 @@ class BotStressTest {
             this.stats.gamesPlayed++;
 
             if (document.getElementById('count')) document.getElementById('count').innerText = this.stats.gamesPlayed;
-            if (document.getElementById('progress-bar')) document.getElementById('progress-bar').style.width = `${(this.stats.gamesPlayed / totalGames) * 100}%`;
+
+            // ★ v7.8.0 : barre de progression lissée (moyenne mobile sur 10 points)
+            if (document.getElementById('progress-bar')) {
+                const rawProgress = this.stats.gamesPlayed / totalGames;
+                this._progressHistory.push(rawProgress);
+                if (this._progressHistory.length > 10) this._progressHistory.shift();
+                const smoothed = this._progressHistory.reduce((a, b) => a + b, 0) / this._progressHistory.length;
+                document.getElementById('progress-bar').style.width = `${smoothed * 100}%`;
+            }
 
             if (isStalemate && document.getElementById('dash-stalemates')) {
                 document.getElementById('dash-stalemates').innerText = this.stats.stalemates;
@@ -402,6 +436,8 @@ class BotStressTest {
         this.resetStats();
         if (window.arenaAnalyst) window.arenaAnalyst.reset();
 
+        this._neutralizeTimerGlobally();
+
         const total = parseInt(document.getElementById('inputMaxGames')?.value || 50);
         const moves = parseInt(document.getElementById('inputMaxMoves')?.value || 100);
         const selW = document.getElementById('selectBotWhite')?.value || "L1";
@@ -433,7 +469,11 @@ class BotStressTest {
             await new Promise(r => setTimeout(r, 1));
         }
 
-        // --- CALCUL ET AFFICHAGE DU TEMPS FORMATE ---
+        // ★ v7.8.0 : forcer 100% à la fin
+        if (document.getElementById('progress-bar')) {
+            document.getElementById('progress-bar').style.width = '100%';
+        }
+
         const durationInSeconds = (performance.now() - this.stats.startTime) / 1000;
         this.stats.totalDuration = durationInSeconds.toFixed(1);
         const formattedTime = this.formatDuration(durationInSeconds);

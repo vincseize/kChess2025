@@ -1,22 +1,19 @@
 /**
  * ui/chess-game-ui-timer.js
- * Gère le décompte et l'application des incréments de temps.
- *
- * v1.1.0 :
- *   - Flag `enabled` pour désactiver le timer (mode arène / stress test)
- *   - Méthodes `disable()` / `enable()`
- *   - `switchTurn()` et `startTimer()` court-circuités si désactivé
+ * v1.2.1 : garde-fou supplémentaire dans setInterval
  */
 class ChessTimerManager {
+    static globallyDisabled = false;
+
     constructor(ui) {
         this.ui = ui;
-        this.whiteTime = 600; // 10 minutes par défaut
+        this.whiteTime = 600;
         this.blackTime = 600;
-        this.increment = 0;   // Secondes à ajouter par coup
+        this.increment = 0;
         this.initialTime = 600;
         this.timerInterval = null;
         this.isTimerRunning = false;
-        this.enabled = true;  // ← NOUVEAU : flag global d'activation
+        this.enabled = !ChessTimerManager.globallyDisabled;
 
         const params = new URLSearchParams(window.location.search);
         if (params.get('mode') === 'bot') {
@@ -33,13 +30,9 @@ class ChessTimerManager {
         }
     }
 
-    /**
-     * Reçoit la configuration (temps + incrément) du bot sélectionné
-     */
     setTimerConfig(config) {
         if (!config) return;
 
-        // Configuration du temps de base
         if (config.clock) {
             const baseSeconds = this.parseTimeString(config.clock);
             this.initialTime = baseSeconds;
@@ -47,7 +40,6 @@ class ChessTimerManager {
             this.blackTime = baseSeconds;
         }
 
-        // Configuration de l'incrément
         if (config.increment !== undefined) {
             this.increment = parseInt(config.increment) || 0;
         }
@@ -56,33 +48,23 @@ class ChessTimerManager {
         this.updateTimerDisplay();
     }
 
-    /**
-     * Active le timer (mode humain / bot normal).
-     */
     enable() {
         this.enabled = true;
+        ChessTimerManager.globallyDisabled = false;
     }
 
-    /**
-     * Désactive complètement le timer (mode arène / stress test).
-     * Aucun setInterval ne sera lancé, aucune modale "temps écoulé" ne s'affichera.
-     */
     disable() {
         this.enabled = false;
         this.stopTimer();
+        ChessTimerManager.globallyDisabled = true;
     }
 
-    /**
-     * Appelé par GameState.switchPlayer()
-     */
     switchTurn(newColor) {
-        // ← NOUVEAU : court-circuit si le timer est désactivé
-        if (!this.enabled) {
+        if (!this.enabled || ChessTimerManager.globallyDisabled) {
             this.updateTimerDisplay();
             return;
         }
 
-        // Le joueur qui vient de FINIR son coup (couleur opposée à newColor) reçoit l'incrément
         const previousPlayer = (newColor === 'white') ? 'black' : 'white';
 
         if (this.increment > 0) {
@@ -94,7 +76,6 @@ class ChessTimerManager {
             console.log(`➕ Incrément +${this.increment}s appliqué aux ${previousPlayer}`);
         }
 
-        // On arrête le décompte en cours, on met à jour, et on relance pour le nouveau joueur
         this.stopTimer();
         this.updateTimerDisplay();
 
@@ -104,12 +85,19 @@ class ChessTimerManager {
     }
 
     startTimer() {
-        if (!this.enabled) return;                    // ← NOUVEAU
+        if (!this.enabled) return;
+        if (ChessTimerManager.globallyDisabled) return;
         if (!this.ui.game.gameState.gameActive) return;
         if (this.isTimerRunning) return;
 
         this.isTimerRunning = true;
         this.timerInterval = setInterval(() => {
+            // ★ v1.2.1 : garde-fou supplémentaire dans la boucle
+            if (ChessTimerManager.globallyDisabled) {
+                this.stopTimer();
+                return;
+            }
+
             const currentPlayer = this.ui.game.gameState.currentPlayer;
 
             if (currentPlayer === 'white') {
@@ -125,6 +113,7 @@ class ChessTimerManager {
                 const loser = this.whiteTime <= 0 ? 'white' : 'black';
                 this.ui.game.gameState.gameActive = false;
                 this.updateTimerDisplay();
+                // ★ Appel masqué par ChessModalManager.showTimeLoss qui vérifie globallyDisabled
                 this.ui.modalManager?.showTimeLoss?.(loser);
             }
         }, 1000);
@@ -165,9 +154,7 @@ class ChessTimerManager {
     parseTimeString(timeStr) {
         if (!timeStr) return 600;
         const parts = timeStr.split(':').map(Number);
-        // Format HH:MM:SS
         if (parts.length === 3) return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
-        // Format MM:SS
         if (parts.length === 2) return (parts[0] * 60) + parts[1];
         return parseInt(timeStr) || 600;
     }

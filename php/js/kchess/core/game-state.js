@@ -1,5 +1,9 @@
 /**
  * Gère l'état logique de la partie d'échecs.
+ *
+ * v1.1.0 :
+ *   - switchPlayer ne notifie le timer que si `enabled !== false`
+ *     (protection en arène / stress test)
  */
 class GameState {
     static consoleLog = true;
@@ -33,17 +37,17 @@ class GameState {
 
     /**
      * Change le joueur actif et déclenche l'incrément de temps
+     * (uniquement si le timer est actif).
      */
     switchPlayer() {
         // 1. Inversion de la couleur
         this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
         this.constructor.log('🔄', `Tour : ${this.currentPlayer.toUpperCase()}`);
 
-        // 2. Notification au Timer pour l'incrément et le changement de décompte
+        // 2. Notification au Timer — v1.1.0 : skip si timer désactivé
         try {
             const timer = window.chessGame?.core?.ui?.timerManager;
-            if (timer) {
-                // On notifie le timer du nouveau joueur actif
+            if (timer && timer.enabled !== false) {
                 timer.switchTurn(this.currentPlayer);
             }
         } catch (e) {
@@ -62,7 +66,7 @@ class GameState {
         if (!pieceInfo) return null;
 
         const moveNumber = this.fullMoveNumber;
-        
+
         const move = {
             number: moveNumber,
             player: this.currentPlayer,

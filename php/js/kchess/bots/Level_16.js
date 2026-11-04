@@ -1,96 +1,210 @@
 /**
- * Level_16 - Bot Killer
- * Version 5.1.0 - ECMO depth-1 optimisé + ouverture + mat en 1
+ * Level_16 - Level 8 + ouverture + depth-1 + mat en 1 + anti-pat + anti-mat + sécurité roi
+ * Version 1.4.0 - Migration complète vers GameFonctions v1.3.0
  *
- * Pipeline :
- *   0. Ouverture (game_ouverture.js) si phase d'ouverture
- *   1. Mat en 1
- *   2. ECMO depth=1 : score statique + pénalité réponse adverse légère (SEE simplifié)
- *   3. Mat en 2 (désactivé par défaut pour la perf — activable via enableMateInTwo)
- *   4. Sélection finale (promotions > finale > meilleur score)
- *
- * Optimisations perf (v5.1.0) :
- *   - Réponses adverses limitées à 10, skip non-captures/non-échecs
- *   - SEE simplifié (pas de _bestExchange récursif)
- *   - _getCenterControlScore sans ChessEngine
- *   - _isSquareAttacked en fallback manuel
- *   - Mat en 2 désactivé par défaut
+ * Changelog v1.4.0 :
+ *   - Toutes les méthodes communes sont maintenant dans GameFonctions v1.3.0
+ *   - Le fichier ne contient plus que :
+ *     * le pipeline de décision (getMove)
+ *     * les helpers d'ouverture (spécifiques au bot)
+ *     * l'heuristique _shouldCheckStalemate
+ *   - Compatible avec GameFonctions.attach() v1.3.0 :
+ *     _opponentBestReplyPenalty, _getCenterValue, _getBestMove,
+ *     _isKingUnderThreatAfterMove, _opponentCanMateInOne,
+ *     _countAttackersOnSquare, etc. sont injectés par attach().
  */
-class Level_16 extends BotBase {
-    static VERSION = '5.1.0';
+class Level_16 {
+    static VERSION = '1.4.0';
 
     constructor() {
-        super();
-        this.name = "Bot Level 16 (Killer)";
+        this.name = "Bot Level 16 (L8 + ouverture + depth1 + mat/anti-pat/anti-mat)";
         this.level = 16;
-        this.pieceValues = {
-            pawn: 1,
-            knight: 3.2,
-            bishop: 3.3,
-            rook: 5,
-            queen: 9,
-            king: 100
-        };
+        this.pieceValues = { 'pawn': 100, 'knight': 320, 'bishop': 330, 'rook': 500, 'queen': 900, 'king': 20000 };
+        this.centerValues = { 'pawn': 150, 'knight': 135, 'bishop': 100, 'rook': 55, 'queen': 45, 'king': 0 };
         this.gameFonctions = GameFonctions.attach(this);
 
-        // ---- PERF ----
-        this.maxOppRepliesExamined = 10;        // limite de réponses adverses examinées
-        this.mateInTwoMaxCandidates = 12;
-        this.enableMateInTwo = false;           // désactivé par défaut (coûteux)
-        this.useChessEngineForAttack = false;   // fallback manuel plus rapide que parse FEN
+        // Limite de réponses adverses examinées (passé à GameFonctions via attach)
+        this.maxOppCaptures = 8;
     }
-
-    // =====================================================================
-    // PIPELINE PRINCIPAL
-    // =====================================================================
 
     async getMove() {
-        const game = window.chessGame?.core || window.chessGame;
-        if (!game) return { error: 'engine_not_found' };
+        try {
+            const game = window.chessGame?.core || window.chessGame;
+            if (!game) return null;
 
-        const color = game.gameState.currentPlayer;
-        const oppColor = this._opposite(color);
+            const color = game.gameState.currentPlayer;
+            const isWhite = color.toLowerCase().startsWith('w');
+            const myColor = isWhite ? 'white' : 'black';
+            const oppColor = isWhite ? 'black' : 'white';
 
-        // ---- 0. OUVERTURE ----
-        const openingMove = this._tryOpeningMove(game, color);
-        if (openingMove) return this._finalize(openingMove);
+            // ============================================================
+            // ★ OUVERTURE
+            // ============================================================
+            const openingMove = this._tryOpeningMove(game, myColor);
+            if (openingMove) return this._finalize(openingMove);
 
-        // ---- 1. COUPS LÉGAUX ----
-        const allMoves = this._getAllLegalMoves(game, color);
-        if (allMoves.length === 0) return null;
+            // ============================================================
+            // LOGIQUE LEVEL_8
+            // ============================================================
+            const allMoves = this._getAllLegalMoves(game, myColor);
+            if (allMoves.length === 0) return null;
 
-        // ---- 2. MAT EN 1 ----
-        const mateMove = this._findMateInOne(game, color, allMoves);
-        if (mateMove) return this._finalize(mateMove);
+            // ============================================================
+            // ★ MAT EN 1 — priorité absolue
+            // ============================================================
+            for (const m of allMoves) {
+                const after = this._simulateMove(game, m);
+                if (!after) continue;
+                const oppMoves = this._getAllLegalMoves(after, oppColor);
+                if (oppMoves.length !== 0) continue;
+                const king = this._findKing(after, oppColor);
+                if (king && this._isSquareAttacked(after, king.r, king.c, myColor)) {
+                    return this._finalize(m);
+                }
+            }
 
-        // ---- 3. ECMO DEPTH-1 ----
-        const scoredMoves = this._scoreDepthOne(game, allMoves, color, oppColor);
+            // ============================================================
+            // ÉVALUATION NORMALE
+            // ============================================================
+            const oppKing = this._findKing(game, oppColor);
+            const centerControlBefore = this._getCenterControlScore(game, myColor);
+            const doubledPawnsBefore = this._getDoubledPawnCount(game, myColor);
+            const majorPieceFilesBefore = this._getMajorPieceFileScore(game, myColor);
+            const connectedPawnsBefore = this._getConnectedPawnPairCount(game, myColor);
+            const doubledRooksBefore = this._getDoubledRookFileCount(game, myColor);
+            const pawnIslandsBefore = this._getPawnIslandCount(game, myColor);
+            const advancedMajorRanksBefore = this._getAdvancedMajorPieceRankCount(game, myColor);
+            const myKingBefore = this._findKing(game, myColor);
 
-        // ---- 4. MAT EN 2 (optionnel) ----
-        if (this.enableMateInTwo) {
-            const mateInTwo = this._findMateInTwo(game, color, oppColor, scoredMoves);
-            if (mateInTwo) return this._finalize(mateInTwo);
+            allMoves.forEach(m => {
+                let score = 0;
+                const afterMove = this._simulateMove(game, m);
+                const exposure = this._evaluateMoveExposure(game, m, oppColor, afterMove);
+
+                if (m.isCapture) {
+                    const capturedValue = this.pieceValues[m.targetPiece.type] || 0;
+                    score += capturedValue * 20;
+                    score += this._getFavorableTradeBonus(
+                        game, m, myColor, this.pieceValues.knight, 100
+                    );
+                }
+                score -= exposure * 12;
+                score += (this._getCenterControlScore(afterMove, myColor) - centerControlBefore) * 12;
+                score -= (this._getDoubledPawnCount(afterMove, myColor) - doubledPawnsBefore) * 25;
+                score -= (this._getPawnIslandCount(afterMove, myColor) - pawnIslandsBefore) * 25;
+                score += (this._getMajorPieceFileScore(afterMove, myColor) - majorPieceFilesBefore) * 12;
+                score += (this._getConnectedPawnPairCount(afterMove, myColor) - connectedPawnsBefore) * 25;
+                score += (this._getDoubledRookFileCount(afterMove, myColor) - doubledRooksBefore) * 30;
+                score += (this._getAdvancedMajorPieceRankCount(afterMove, myColor) - advancedMajorRanksBefore) * 20;
+                score += this.gameFonctions.getSafeKnightForkBonus(game, m, myColor, {
+                    simulated: afterMove,
+                    exposure
+                });
+
+                if (oppKing) {
+                    const distAfter = Math.abs(m.toRow - oppKing.r) + Math.abs(m.toCol - oppKing.c);
+                    score += (10 - distAfter) * 20;
+
+                    const edgeDist = Math.max(Math.abs(oppKing.r - 3.5), Math.abs(oppKing.c - 3.5));
+                    score += edgeDist * 25;
+                }
+
+                if (m.piece.type === 'pawn') {
+                    const rank = isWhite ? (7 - m.toRow) : m.toRow;
+                    score += rank * rank * 10;
+                    if (m.details?.isPromotion || (m.toRow === 0 || m.toRow === 7)) {
+                        score += 10000;
+                    }
+                }
+
+                if (m.isCheck) score += 300;
+
+                if (oppKing && !m.isCheck) {
+                    const dist = Math.abs(m.toRow - oppKing.r) + Math.abs(m.toCol - oppKing.c);
+                    if (dist <= 1) score -= 200;
+                }
+
+                score += this._getCenterValue(m.piece.type, m.toRow, m.toCol)
+                    - this._getCenterValue(m.piece.type, m.fromRow, m.fromCol);
+
+                if (m.details?.type === 'castling') {
+                    score += 100;
+                }
+
+                // ============================================================
+                // ★ DEPTH-1 : pénalité réponse adverse
+                // ============================================================
+                score -= this._opponentBestReplyPenalty(afterMove, oppColor, myColor);
+
+                // ============================================================
+                // ★ ANTI-PAT : pénalité massive en fin de partie ou roi acculé
+                // ============================================================
+                if (this._shouldCheckStalemate(afterMove, oppColor)) {
+                    if (this.gameFonctions.isStalemateAfterMove(game, m, oppColor, afterMove)) {
+                        score -= 50000;
+                    }
+                }
+
+                // ============================================================
+                // ★ SÉCURITÉ DU ROI : pénalité si le roi est sous pression
+                // ============================================================
+                if (myKingBefore) {
+                    const myKingAfter = this._findKing(afterMove, myColor);
+                    if (myKingAfter) {
+                        const attackers = this._countAttackersOnSquare(
+                            afterMove, myKingAfter.r, myKingAfter.c, oppColor
+                        );
+                        if (attackers >= 2) score -= 500 * attackers;
+
+                        if (this._isSquareAttacked(
+                            afterMove, myKingAfter.r, myKingAfter.c, oppColor
+                        )) {
+                            score -= 1000;
+                        }
+                    }
+                }
+
+                // ============================================================
+                // ★ ANTI-MAT ADVERSE : si ce coup laisse mater l'adversaire en 1
+                // ============================================================
+                if (this._isKingUnderThreatAfterMove(afterMove, myColor)) {
+                    if (this._opponentCanMateInOne(afterMove, oppColor, myColor)) {
+                        score -= 100000;
+                    }
+                }
+
+                m._finalScore = score;
+            });
+
+            const promotionMoves = allMoves.filter(move => this._isPromotionMove(move));
+            if (promotionMoves.length > 0) {
+                promotionMoves.sort((a, b) => b._finalScore - a._finalScore);
+                return this._finalize(promotionMoves[0]);
+            }
+
+            return this._finalize(this._getBestMove(allMoves));
+        } catch (err) {
+            console.error('L16 Error:', err);
+            return null;
         }
+    }
 
-        // ---- 5. PROMOTIONS ----
-        const promotions = scoredMoves.filter(m => this._isPromotionMove(m));
-        if (promotions.length > 0) {
-            promotions.sort((a, b) => b._score - a._score);
-            return this._finalize(promotions[0]);
-        }
+    /**
+     * Heuristique : ne vérifier le pat que si l'adversaire a peu de matériel
+     * ou si son roi est acculé au bord.
+     */
+    _shouldCheckStalemate(afterMove, oppColor) {
+        if (!afterMove) return false;
+        const pieceCount = this._countPieces(afterMove);
+        if (pieceCount <= 12) return true;
 
-        // ---- 6. FINALE ----
-        if (this._isEndgame(game)) {
-            const endgamePick = this._pickEndgameMove(game, scoredMoves, color, oppColor);
-            if (endgamePick) return this._finalize(endgamePick);
-        }
-
-        // ---- 7. SÉLECTION FINALE ----
-        return this._finalize(this._pickBest(scoredMoves));
+        const oppKing = this._findKing(afterMove, oppColor);
+        if (!oppKing) return false;
+        return oppKing.r === 0 || oppKing.r === 7 || oppKing.c === 0 || oppKing.c === 7;
     }
 
     // =====================================================================
-    // 0. OUVERTURE
+    // OUVERTURE (spécifique au bot)
     // =====================================================================
 
     _tryOpeningMove(game, color) {
@@ -118,11 +232,10 @@ class Level_16 extends BotBase {
         const to = this._algebraicToCoords(nextBookMove.arrivee);
         if (!from || !to) return null;
 
-        const legal = this._getAllLegalMoves(game, color).find(m =>
+        return this._getAllLegalMoves(game, color).find(m =>
             m.fromRow === from.row && m.fromCol === from.col &&
             m.toRow === to.row && m.toCol === to.col
-        );
-        return legal || null;
+        ) || null;
     }
 
     _moveMatchesHistory(played, expectedBookEntry) {
@@ -144,424 +257,9 @@ class Level_16 extends BotBase {
         return { row, col };
     }
 
-    // =====================================================================
-    // 2. MAT EN 1
-    // =====================================================================
-
-    _findMateInOne(game, color, moves) {
-        const oppColor = this._opposite(color);
-        for (const move of moves) {
-            const simulated = this._simulateMove(game, move);
-            if (!simulated) continue;
-            const oppMoves = this._getAllLegalMoves(simulated, oppColor);
-            const inCheck = this._isKingInCheck(simulated, oppColor);
-            if (inCheck && oppMoves.length === 0) return move;
-        }
-        return null;
-    }
-
-    // =====================================================================
-    // 3. ECMO DEPTH-1
-    // =====================================================================
-
-    _scoreDepthOne(game, allMoves, color, oppColor) {
-        const baseline = this._captureBaseline(game, color);
-
-        for (const move of allMoves) {
-            const simulated = this._simulateMove(game, move);
-            if (!simulated) { move._score = -Infinity; continue; }
-
-            const exposure = this._evaluateMoveExposure(game, move, oppColor, simulated);
-            move._exposure = exposure;
-
-            let score = this._evaluateStatic(simulated, move, color, oppColor, baseline, exposure);
-            score -= this._opponentBestReplyPenalty(simulated, oppColor, color);
-
-            move._score = score;
-        }
-        return allMoves;
-    }
-
-    _captureBaseline(game, color) {
-        return {
-            center: this._getCenterControlScore(game, color),
-            doubledPawns: this._getDoubledPawnCount(game, color),
-            islands: this._getPawnIslandCount(game, color),
-            majorFiles: this._getMajorPieceFileScore(game, color),
-            connectedPawns: this._getConnectedPawnPairCount(game, color),
-            doubledRooks: this._getDoubledRookFileCount(game, color),
-            advancedRanks: this._getAdvancedMajorPieceRankCount(game, color)
-        };
-    }
-
-    _evaluateStatic(simulated, move, color, oppColor, baseline, exposure) {
-        let score = 0;
-
-        // 1. Captures
-        if (move.isCapture && move.targetPiece) {
-            const captureValue = this.pieceValues[move.targetPiece.type] || 0;
-            const attackerValue = this.pieceValues[move.piece.type] || 0;
-            score += captureValue * 10;
-            score += this._getFavorableTradeBonus(
-                simulated, move, color, this.pieceValues.knight, 2
-            );
-            if (captureValue > attackerValue * 0.7) score += 0.5;
-            if (exposure === 0) score += 0.3;
-        }
-
-        // 2. Promotion
-        if (this._isPromotionMove(move)) score += 1000;
-
-        // 3. Échec
-        if (this._isKingInCheck(simulated, oppColor)) score += 1.5;
-
-        // 4. Centre
-        if (move.toRow >= 2 && move.toRow <= 5 && move.toCol >= 2 && move.toCol <= 5) {
-            score += 0.1;
-        }
-
-        // 5. Développement en ouverture
-        if (this._countPieces(simulated) > 20
-            && (move.piece?.type === 'knight' || move.piece?.type === 'bishop')) {
-            score += 0.05;
-        }
-
-        // 6. Sécurité & structure (deltas)
-        score -= exposure * 0.5;
-        score += (this._getCenterControlScore(simulated, color) - baseline.center) * 0.2;
-        score -= (this._getDoubledPawnCount(simulated, color) - baseline.doubledPawns) * 0.5;
-        score -= (this._getPawnIslandCount(simulated, color) - baseline.islands) * 0.5;
-        score += (this._getMajorPieceFileScore(simulated, color) - baseline.majorFiles) * 0.2;
-        move._linkedPawnDelta = this._getConnectedPawnPairCount(simulated, color) - baseline.connectedPawns;
-        score += move._linkedPawnDelta * 0.3;
-        score += (this._getDoubledRookFileCount(simulated, color) - baseline.doubledRooks) * 0.8;
-        score += (this._getAdvancedMajorPieceRankCount(simulated, color) - baseline.advancedRanks) * 0.5;
-
-        // 7. Fourchette de cavalier
-        score += this.gameFonctions.getSafeKnightForkBonus(simulated, move, color, {
-            simulated,
-            exposure,
-            baseBonus: 1.2,
-            perExtraTarget: 0.4,
-            targetValueFactor: 0.1,
-            maximumBonus: 2.5
-        });
-
-        // 8. Roque
-        if (move.details?.type === 'castling') score += 0.5;
-
-        // 9. Sauver une pièce attaquée
-        if (this._isSquareAttacked(simulated, move.fromRow, move.fromCol, oppColor)) {
-            score += (this.pieceValues[move.piece.type] || 0) * 0.5;
-        }
-
-        return score;
-    }
-
-    /**
-     * Pénalité légère basée sur la meilleure réponse adverse.
-     * Version rapide v5.1.0 :
-     *   - skip les réponses non-capturantes et non-échecs
-     *   - SEE simplifié (pas de récursion _bestExchange)
-     *   - limite maxOppRepliesExamined
-     */
-    _opponentBestReplyPenalty(simulatedGame, oppColor, myColor) {
-        const replies = this._getAllLegalMoves(simulatedGame, oppColor);
-        if (replies.length === 0) return 0;
-
-        let worst = 0;
-        let examined = 0;
-
-        for (const reply of replies) {
-            if (!reply.isCapture && !reply.isCheck) continue;
-            if (++examined > this.maxOppRepliesExamined) break;
-
-            let penalty = 0;
-
-            if (reply.isCapture && reply.targetPiece) {
-                const attackVal = this.pieceValues[reply.piece.type] || 0;
-                const targetVal = this.pieceValues[reply.targetPiece.type] || 0;
-                const defended = this._isSquareAttacked(
-                    simulatedGame, reply.toRow, reply.toCol, myColor
-                );
-                const gain = defended ? (targetVal - attackVal) : targetVal;
-                if (gain > 0) penalty += gain * 1.5;
-            }
-
-            if (reply.isCheck) penalty += 1.5;
-            if (this._isPromotionMove(reply)) penalty += 50;
-
-            if (penalty > worst) worst = penalty;
-            if (worst > 20) break;
-        }
-        return worst * 2;
-    }
-
-    // =====================================================================
-    // 4. MAT EN 2 (élagué, optionnel)
-    // =====================================================================
-
-    _findMateInTwo(game, color, oppColor, candidateMoves) {
-        const checkingMoves = [];
-        for (const move of candidateMoves) {
-            const sim = this._simulateMove(game, move);
-            if (sim && this._isKingInCheck(sim, oppColor)) {
-                checkingMoves.push({ move, sim });
-            }
-            if (checkingMoves.length >= this.mateInTwoMaxCandidates) break;
-        }
-        if (checkingMoves.length === 0) return null;
-
-        for (const { move, sim } of checkingMoves) {
-            const oppReplies = this._getAllLegalMoves(sim, oppColor);
-            if (oppReplies.length === 0) continue;
-
-            let allLeadToMate = true;
-            for (const reply of oppReplies) {
-                const afterReply = this._simulateMove(sim, reply);
-                if (!afterReply) { allLeadToMate = false; break; }
-
-                const myMoves = this._getAllLegalMoves(afterReply, color);
-                const mate = this._findMateInOne(afterReply, color, myMoves);
-                if (!mate) { allLeadToMate = false; break; }
-            }
-            if (allLeadToMate) return move;
-        }
-        return null;
-    }
-
-    // =====================================================================
-    // 5/6. FINALE + SÉLECTION FINALE
-    // =====================================================================
-
-    _pickEndgameMove(game, scoredMoves, color, oppColor) {
-        const pawnMoves = scoredMoves.filter(m => m.piece?.type === 'pawn');
-        if (pawnMoves.length > 0) {
-            const safest = this._preferSafestMoves(pawnMoves, game, oppColor);
-            safest.sort((a, b) => {
-                const linkedDelta = (b._linkedPawnDelta || 0) - (a._linkedPawnDelta || 0);
-                if (linkedDelta !== 0) return linkedDelta;
-                const aProgress = color === 'white' ? 7 - a.toRow : a.toRow;
-                const bProgress = color === 'white' ? 7 - b.toRow : b.toRow;
-                return bProgress - aProgress;
-            });
-            return safest[0];
-        }
-
-        const kingMoves = this._preferSafestMoves(
-            scoredMoves.filter(m => m.piece?.type === 'king'),
-            game,
-            oppColor
-        );
-        if (kingMoves.length > 0) {
-            const oppKing = this._findKing(game, oppColor);
-            if (oppKing) {
-                kingMoves.sort((a, b) => {
-                    const dA = Math.abs(a.toRow - oppKing.row) + Math.abs(a.toCol - oppKing.col);
-                    const dB = Math.abs(b.toRow - oppKing.row) + Math.abs(b.toCol - oppKing.col);
-                    return dA - dB;
-                });
-                return kingMoves[0];
-            }
-        }
-        return null;
-    }
-
-    _pickBest(scoredMoves) {
-        if (!scoredMoves || scoredMoves.length === 0) return null;
-
-        scoredMoves.sort((a, b) => b._score - a._score);
-        const best = scoredMoves[0];
-
-        if (this._isEndgame(window.chessGame?.core || window.chessGame)) {
-            const oppColor = this._opposite(best.piece?.color);
-            if (this._isMoveAttackingKing(window.chessGame?.core || window.chessGame, best, oppColor)) {
-                return best;
-            }
-        }
-
-        return best;
-    }
-
-    _preferSafestMoves(moves, game, opponent) {
-        moves.forEach(move => {
-            if (move._exposure === undefined) {
-                move._exposure = this._evaluateMoveExposure(game, move, opponent);
-            }
-        });
-        const minExposure = Math.min(...moves.map(m => m._exposure ?? 0));
-        return moves.filter(m => (m._exposure ?? 0) === minExposure);
-    }
-
-    // =====================================================================
-    // ÉVALUATIONS PARTAGÉES (GameFonctions)
-    // =====================================================================
-
-    _evaluateMoveExposure(game, move, opponentColor, simulated = null) {
-        return this.gameFonctions.evaluateMoveExposure(game, move, opponentColor, simulated);
-    }
-
-    _isPromotionMove(move) {
-        return this.gameFonctions.isPromotionMove(move);
-    }
-
-    /**
-     * Version rapide sans ChessEngine (parse FEN coûteux).
-     * Occupation + contrôle via _isSquareAttacked (fallback manuel).
-     */
-    _getCenterControlScore(game, color) {
-        const centerSquares = [[3, 3], [3, 4], [4, 3], [4, 4]];
-        let score = 0;
-        for (const [row, col] of centerSquares) {
-            const piece = this.gameFonctions.getPiece(game, row, col);
-            if (piece && this._sameColor(piece.color, color)) score += 1;
-            if (this._isSquareAttacked(game, row, col, color)) score += 1;
-        }
-        return score;
-    }
-
-    _getDoubledPawnCount(game, color) {
-        return this.gameFonctions.getDoubledPawnCount(game, color);
-    }
-
-    _getPawnIslandCount(game, color) {
-        return this.gameFonctions.getPawnIslandCount(game, color);
-    }
-
-    _getConnectedPawnPairCount(game, color) {
-        return this.gameFonctions.getConnectedPawnPairCount(game, color);
-    }
-
-    _getDoubledRookFileCount(game, color) {
-        return this.gameFonctions.getDoubledRookFileCount(game, color);
-    }
-
-    _getMajorPieceFileScore(game, color) {
-        return this.gameFonctions.getMajorPieceFileScore(game, color);
-    }
-
-    _getAdvancedMajorPieceRankCount(game, color) {
-        return this.gameFonctions.getAdvancedMajorPieceRankCount(game, color);
-    }
-
-    _getMaterialBalance(game, color) {
-        return this.gameFonctions.getMaterialBalance(game, color);
-    }
-
-    _getFavorableTradeBonus(game, move, color, threshold, bonus) {
-        return this.gameFonctions.getFavorableTradeBonus(game, move, color, threshold, bonus);
-    }
-
-    _countPieces(game) {
-        return this.gameFonctions.countPieces(game);
-    }
-
-    // =====================================================================
-    // SIMULATION & COUPS LÉGAUX
-    // =====================================================================
-
-    _simulateMove(game, move) {
-        try {
-            return this.gameFonctions.simulateMove(game, move);
-        } catch (e) {
-            return null;
-        }
-    }
-
-    _getAllLegalMoves(game, color) {
-        try {
-            return this.gameFonctions.getAllLegalMoves(game, color);
-        } catch (e) {
-            return [];
-        }
-    }
-
-    // =====================================================================
-    // SÉCURITÉ / ROI
-    // =====================================================================
-
-    _isKingInCheck(game, color) {
-        const king = this._findKing(game, color);
-        if (!king) return false;
-        return this._isSquareAttacked(game, king.row, king.col, this._opposite(color));
-    }
-
-    _isSquareAttacked(game, row, col, byColor) {
-        if (this.useChessEngineForAttack && game.moveValidator?.generateCurrentFEN) {
-            try {
-                const fen = game.moveValidator.generateCurrentFEN(byColor);
-                const engine = new ChessEngine(fen);
-                return engine.isSquareAttacked(row, col, byColor.charAt(0).toLowerCase());
-            } catch (e) {
-                // fallback ci-dessous
-            }
-        }
-
-        const key = byColor.charAt(0).toLowerCase();
-        for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 8; c++) {
-                const piece = this.gameFonctions.getPiece(game, r, c);
-                if (!piece || piece.color.charAt(0).toLowerCase() !== key) continue;
-                const moves = game.moveValidator.getPossibleMoves(piece, r, c) || [];
-                if (moves.some(m => m.row === row && m.col === col)) return true;
-            }
-        }
-        return false;
-    }
-
-    _findKing(game, color) {
-        const king = this.gameFonctions.findKing(game, color);
-        return king ? { row: king.row, col: king.col, r: king.row, c: king.col } : null;
-    }
-
-    _isMoveAttackingKing(game, move, oppColor) {
-        const sim = this._simulateMove(game, move);
-        return sim ? this._isKingInCheck(sim, oppColor) : false;
-    }
-
-    // =====================================================================
-    // UTILITAIRES
-    // =====================================================================
-
-    _isEndgame(game) {
-        if (!game) return false;
-        let heavy = 0;
-        for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 8; c++) {
-                const piece = this.gameFonctions.getPiece(game, r, c);
-                if (piece && piece.type !== 'pawn' && piece.type !== 'king') heavy++;
-            }
-        }
-        return heavy <= 4;
-    }
-
-    _opposite(color) {
-        return (color || '').toLowerCase().startsWith('w') ? 'black' : 'white';
-    }
-
     _sameColor(a, b) {
         if (typeof a !== 'string' || typeof b !== 'string') return false;
         return a.charAt(0).toLowerCase() === b.charAt(0).toLowerCase();
-    }
-
-    _finalize(move) {
-        if (!move) return null;
-
-        if (move.piece?.type === 'pawn' && (move.toRow === 0 || move.toRow === 7)) {
-            move.promotion = 'queen';
-        }
-
-        delete move._exposure;
-        delete move._score;
-        delete move._linkedPawnDelta;
-
-        return {
-            fromRow: move.fromRow,
-            fromCol: move.fromCol,
-            toRow: move.toRow,
-            toCol: move.toCol,
-            promotion: move.promotion || undefined
-        };
     }
 }
 

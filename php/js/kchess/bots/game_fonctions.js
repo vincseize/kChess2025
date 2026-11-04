@@ -1,12 +1,18 @@
 /**
  * php/js/kchess/bots/game_fonctions.js
- * Utilitaires communs candidats à la mutualisation entre les bots.
  *
- * Ce fichier est autonome et n'est pas encore chargé par app.php ni utilisé
- * par les niveaux. Un niveau pourra l'inclure puis créer GameFonctions.
+ * v1.3.0 :
+ *   - Ajout opponentBestReplyPenalty (threat detection publique)
+ *   - Ajout getCenterValue (utilitaire commun L5-L8)
+ *   - Ajout countAttackersOnSquare (déjà présent, mais maintenant exposé via adapter)
+ *   - Ajout isKingUnderThreatAfterMove (raccourci)
+ *   - Ajout opponentCanMateInOne (raccourci)
+ *   - Nouveaux adapters : _opponentBestReplyPenalty, _isKingUnderThreatAfterMove,
+ *     _opponentCanMateInOne, _countAttackersOnSquare, _getCenterValue
+ *   - Nouveau paramètre constructeur : maxOppCaptures (défaut 8)
  */
 class GameFonctions {
-    static VERSION = '1.0.0';
+    static VERSION = '1.3.0';
 
     constructor(options = {}) {
         this.pieceValues = {
@@ -19,16 +25,18 @@ class GameFonctions {
             ...options.pieceValues
         };
         this.maxExchangeDepth = options.maxExchangeDepth ?? 8;
+        this.maxOppCaptures = options.maxOppCaptures ?? 8;
+        this.centerValues = options.centerValues ?? null;
     }
 
-    /**
-     * Branche les utilitaires communs sur les méthodes déjà présentes d'un
-     * bot, sans remplacer ses règles de score ni ses choix stratégiques.
-     */
     static attach(bot) {
         if (!bot) throw new Error('Un bot est requis.');
 
-        const shared = new GameFonctions({ pieceValues: bot.pieceValues });
+        const shared = new GameFonctions({
+            pieceValues: bot.pieceValues,
+            maxOppCaptures: bot.maxOppCaptures ?? 8,
+            centerValues: bot.centerValues ?? null
+        });
         const asGame = game => game?.board ? game : { board: game };
         const adapters = {
             getMoves: (game, color) => shared.getAllLegalMoves(game, color),
@@ -43,6 +51,8 @@ class GameFonctions {
             },
             _getCenterControlScore: (game, color) =>
                 shared.getCenterControlScore(game, color),
+            _getCenterValue: (pieceType, row, col) =>
+                shared.getCenterValue(pieceType, row, col),
             _isPromotionMove: move => shared.isPromotionMove(move),
             _getDoubledPawnCount: (game, color) => shared.getDoubledPawnCount(game, color),
             _getPawnIslandCount: (game, color) => shared.getPawnIslandCount(game, color),
@@ -68,24 +78,128 @@ class GameFonctions {
             _evaluateMoveExposure: (game, move, color, simulated = null) =>
                 shared.evaluateMoveExposure(game, move, color, simulated),
             _countPieces: game => shared.countPieces(game),
+
+            // Détection pat / échec
+            isStalemate: (game, color) => shared.isStalemate(game, color),
+            isKingInCheck: (game, color) => shared.isKingInCheck(game, color),
+            isStalemateAfterMove: (game, move, oppColor, sim) =>
+                shared.isStalemateAfterMove(game, move, oppColor, sim),
+
+            // Sécurité du roi / mat adverse
+            countAttackersOnSquare: (game, row, col, byColor) =>
+                shared.countAttackersOnSquare(game, row, col, byColor),
+            isKingUnderThreat: (game, color) => shared.isKingUnderThreat(game, color),
+            opponentCanMateInOne: (game, oppColor, myColor, sim) =>
+                shared.opponentCanMateInOne(game, oppColor, myColor, sim),
+
+            // ★ NOUVEAU v1.3.0 : threat detection + wrappers
+            _opponentBestReplyPenalty: (simulatedGame, oppColor, myColor) =>
+                shared.opponentBestReplyPenalty(simulatedGame, oppColor, myColor),
+            _countAttackersOnSquare: (game, row, col, byColor) =>
+                shared.countAttackersOnSquare(game, row, col, byColor),
+            _isKingUnderThreatAfterMove: (afterMove, myColor) =>
+                afterMove ? shared.isKingUnderThreat(afterMove, myColor) : false,
+            _opponentCanMateInOne: (afterMove, oppColor, myColor) =>
+                shared.opponentCanMateInOne(afterMove, oppColor, myColor),
+
             _getBestMove: moves => shared.chooseBestMove(moves, bot.level === 4 ? 0.9 : 0.75),
             finalize: move => shared.finalize(move),
             _finalize: move => shared.finalize(move)
         };
 
+        const botClassName = bot.constructor?.name || 'bot';
         for (const [name, adapter] of Object.entries(adapters)) {
-            if (typeof bot[name] === 'function' || name === '_getFavorableTradeBonus') {
-                bot[name] = adapter;
+            const proto = Object.getPrototypeOf(bot);
+            const hasPrototypeMethod = proto && typeof proto[name] === 'function';
+            if (hasPrototypeMethod) continue;
+            bot[name] = adapter;
+        }
+
+        const critical = [
+            '_getAllLegalMoves',
+            '_simulateMove',
+            '_findKing',
+            '_getPieceCompat',
+            '_finalize',
+            '_opponentBestReplyPenalty'
+        ];
+        for (const name of critical) {
+            if (typeof bot[name] !== 'function') {
+                console.error(
+                    `❌ GameFonctions.attach : ${name} non défini sur ${botClassName}. ` +
+                    `Le bot va probablement crasher. Vérifiez la déclaration de classe.`
+                );
             }
         }
+
         bot.gameFonctions = shared;
         return shared;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // THREAT DETECTION (v1.3.0)
+    // ═══════════════════════════════════════════════════════════════
+
     /**
-     * Lit une pièce sur le plateau avec compatibilité entre les différentes
-     * représentations BoardPosition, ChessBoard et grilles simples.
+     * Pénalité basée sur la meilleure réponse adverse après un coup candidat.
+     * Approximation rapide de depth-2 : ne simule que les captures et échecs.
      */
+    opponentBestReplyPenalty(simulatedGame, oppColor, myColor, maxReplies = null) {
+        const limit = maxReplies ?? this.maxOppCaptures;
+        const replies = this.getAllLegalMoves(simulatedGame, oppColor);
+        if (replies.length === 0) return 0;
+
+        let worstNet = 0;
+        let examined = 0;
+
+        for (const reply of replies) {
+            if (!reply.isCapture && !reply.isCheck) continue;
+            if (++examined > limit) break;
+
+            let net = 0;
+
+            if (reply.isCapture && reply.targetPiece) {
+                const attackVal = this.pieceValues[reply.piece.type] || 0;
+                const targetVal = this.pieceValues[reply.targetPiece.type] || 0;
+                const defended = this.isSquareAttacked(simulatedGame, reply.toRow, reply.toCol, myColor);
+                const gain = defended ? (targetVal - attackVal) : targetVal;
+                if (gain > 0) net += gain;
+            }
+
+            if (reply.isCheck) net += 100;
+            if (this.isPromotionMove(reply)) net += 5000;
+
+            if (net > worstNet) worstNet = net;
+            if (worstNet > 1000) break;
+        }
+
+        return worstNet * 2;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CENTER VALUE (v1.3.0)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Évalue la proximité au centre d'une pièce selon son type.
+     * Utilise this.centerValues (optionnel, configurable par niveau).
+     */
+    getCenterValue(pieceType, row, col) {
+        if (!this.centerValues) return 0;
+
+        const distance = Math.min(
+            ...[3, 4].flatMap(centerRow => [3, 4].map(centerCol =>
+                Math.abs(row - centerRow) + Math.abs(col - centerCol)
+            ))
+        );
+        const proximity = [1, 0.65, 0.3, 0.1][distance] || 0;
+        return (this.centerValues[pieceType] || 0) * proximity;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SUITE INCHANGÉE
+    // ═══════════════════════════════════════════════════════════════
+
     getPiece(game, row, col) {
         if (!game?.board || !Number.isInteger(row) || !Number.isInteger(col)
             || row < 0 || row > 7 || col < 0 || col > 7) {
@@ -103,10 +217,6 @@ class GameFonctions {
         return square?.piece || (square?.type ? square : null);
     }
 
-    /**
-     * Énumère les coups légaux d'une couleur et conserve leurs détails
-     * d'origine pour permettre la simulation (roque, en passant, promotion).
-     */
     getAllLegalMoves(game, color) {
         if (!game?.moveValidator || !color) {
             throw new Error('Un jeu avec moveValidator et une couleur sont requis.');
@@ -140,10 +250,6 @@ class GameFonctions {
         return moves;
     }
 
-    /**
-     * Indique si une case est attaquée selon les coups produits par le
-     * validateur courant.
-     */
     isSquareAttacked(game, row, col, byColor) {
         if (!game?.moveValidator || !byColor) {
             throw new Error('Un jeu avec moveValidator et une couleur sont requis.');
@@ -161,10 +267,6 @@ class GameFonctions {
         return false;
     }
 
-    /**
-     * Recherche le roi d'une couleur et renvoie ses coordonnées, ou null s'il
-     * n'est pas présent sur le plateau.
-     */
     findKing(game, color) {
         if (!color) throw new Error('Une couleur est requise pour trouver le roi.');
 
@@ -179,10 +281,6 @@ class GameFonctions {
         return null;
     }
 
-    /**
-     * Calcule le matériel net d'un camp. Les rois sont exclus, car leur valeur
-     * est une sentinelle d'évaluation et non du matériel échangeable.
-     */
     getMaterialBalance(game, color) {
         if (!color) throw new Error('Une couleur est requise pour évaluer le matériel.');
 
@@ -199,28 +297,17 @@ class GameFonctions {
         return balance;
     }
 
-    /**
-     * Compte les pions en surplus sur leurs colonnes : deux pions sur la même
-     * colonne en comptent un, trois en comptent deux.
-     */
     getDoubledPawnCount(game, color) {
         const pawnsByFile = this._getPawnCountsByFile(game, color);
         return pawnsByFile.reduce((total, count) => total + Math.max(0, count - 1), 0);
     }
 
-    /**
-     * Compte les groupes de pions occupant des colonnes adjacentes. Une
-     * augmentation du nombre de groupes correspond à la création d'un îlot.
-     */
     getPawnIslandCount(game, color) {
         const pawnsByFile = this._getPawnCountsByFile(game, color);
         return pawnsByFile.reduce((islands, count, col) =>
             count > 0 && (col === 0 || pawnsByFile[col - 1] === 0) ? islands + 1 : islands, 0);
     }
 
-    /**
-     * Compte les paires de pions qui se défendent mutuellement en diagonale.
-     */
     getConnectedPawnPairCount(game, color) {
         const supportRowOffset = this._sameColor(color, 'white') ? 1 : -1;
         let pairCount = 0;
@@ -244,10 +331,6 @@ class GameFonctions {
         return pairCount;
     }
 
-    /**
-     * Compte les pions isolés : ceux qui n'ont aucun pion allié sur une
-     * colonne adjacente, même si ce pion est situé plusieurs rangées plus loin.
-     */
     getIsolatedPawnCount(game, color) {
         const pawnsByFile = this._getPawnCountsByFile(game, color);
         let isolated = 0;
@@ -265,9 +348,6 @@ class GameFonctions {
         return isolated;
     }
 
-    /**
-     * Compte les colonnes sur lesquelles le camp possède au moins deux tours.
-     */
     getDoubledRookFileCount(game, color) {
         const rooksByFile = Array(8).fill(0);
         for (let row = 0; row < 8; row++) {
@@ -281,10 +361,6 @@ class GameFonctions {
         return rooksByFile.filter(count => count > 1).length;
     }
 
-    /**
-     * Évalue le placement des tours et dames sur colonnes sans pion allié :
-     * bonus supérieur si la colonne ne contient aucun pion adverse.
-     */
     getMajorPieceFileScore(game, color) {
         const ownPawns = this._getPawnCountsByFile(game, color);
         const opponent = this._oppositeColor(color);
@@ -304,11 +380,6 @@ class GameFonctions {
         return score;
     }
 
-    /**
-     * Compte les rangées du camp adverse occupées par au moins une tour ou une
-     * dame alliée. La valeur permet de favoriser ces pièces sur plusieurs
-     * lignes plutôt que de les empiler sur une seule.
-     */
     getAdvancedMajorPieceRankCount(game, color) {
         const firstOpponentRow = this._sameColor(color, 'white') ? 0 : 4;
         const lastOpponentRow = this._sameColor(color, 'white') ? 3 : 7;
@@ -326,10 +397,6 @@ class GameFonctions {
         return occupiedRanks.size;
     }
 
-    /**
-     * Mesure occupation et contrôle des quatre cases centrales avec le moteur
-     * d'échecs utilisé par l'application.
-     */
     getCenterControlScore(game, color) {
         if (!game?.moveValidator?.generateCurrentFEN || typeof ChessEngine === 'undefined') {
             throw new Error('Le validateur et ChessEngine sont requis pour évaluer le centre.');
@@ -346,20 +413,79 @@ class GameFonctions {
         return score;
     }
 
-    /**
-     * Reconnaît un coup de promotion même si le validateur n'a pas renseigné
-     * explicitement son indicateur isPromotion.
-     */
     isPromotionMove(move) {
         return move?.piece?.type === 'pawn'
             && (move.details?.isPromotion || move.toRow === 0 || move.toRow === 7);
     }
 
-    /**
-     * Simule un coup sur un plateau indépendant sans altérer la partie réelle.
-     * Les droits de roque et le dernier coup d'historique sont copiés pour que
-     * le validateur simulé conserve le contexte nécessaire.
-     */
+    isKingInCheck(game, color) {
+        const king = this.findKing(game, color);
+        if (!king) return false;
+        return this.isSquareAttacked(game, king.row, king.col, this._oppositeColor(color));
+    }
+
+    isStalemate(game, colorToMove) {
+        if (!game?.moveValidator) return false;
+
+        const legalMoves = this.getAllLegalMoves(game, colorToMove);
+        if (legalMoves.length > 0) return false;
+
+        return !this.isKingInCheck(game, colorToMove);
+    }
+
+    isStalemateAfterMove(game, move, opponentColor, simulated = null) {
+        const afterMove = simulated || this.simulateMove(game, move);
+        if (!afterMove) return false;
+        return this.isStalemate(afterMove, opponentColor);
+    }
+
+    countAttackersOnSquare(game, row, col, byColor) {
+        if (!game?.moveValidator || !byColor) return 0;
+
+        let count = 0;
+        for (let fromRow = 0; fromRow < 8; fromRow++) {
+            for (let fromCol = 0; fromCol < 8; fromCol++) {
+                const piece = this.getPiece(game, fromRow, fromCol);
+                if (!piece || !this._sameColor(piece.color, byColor)) continue;
+
+                const moves = game.moveValidator.getPossibleMoves(piece, fromRow, fromCol) || [];
+                if (moves.some(move => move.row === row && move.col === col)) count++;
+            }
+        }
+        return count;
+    }
+
+    isKingUnderThreat(game, color) {
+        const king = this.findKing(game, color);
+        if (!king) return false;
+
+        const oppColor = this._oppositeColor(color);
+        const attackers = this.countAttackersOnSquare(game, king.row, king.col, oppColor);
+        if (attackers >= 2) return true;
+
+        return king.row === 0 || king.row === 7 || king.col === 0 || king.col === 7;
+    }
+
+    opponentCanMateInOne(game, oppColor, myColor, simulated = null) {
+        if (!game?.moveValidator) return false;
+        const position = simulated || game;
+
+        const oppMoves = this.getAllLegalMoves(position, oppColor);
+        for (const oppMove of oppMoves) {
+            const afterOpp = this.simulateMove(position, oppMove);
+            if (!afterOpp) continue;
+
+            const myMoves = this.getAllLegalMoves(afterOpp, myColor);
+            if (myMoves.length !== 0) continue;
+
+            const myKing = this.findKing(afterOpp, myColor);
+            if (myKing && this.isSquareAttacked(afterOpp, myKing.row, myKing.col, oppColor)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     simulateMove(game, move) {
         if (typeof BoardPosition === 'undefined' || typeof MoveValidator === 'undefined') {
             throw new Error('BoardPosition et MoveValidator sont requis pour simuler un coup.');
@@ -452,10 +578,6 @@ class GameFonctions {
         return simulated;
     }
 
-    /**
-     * Calcule la valeur matérielle immédiate d'une prise, en tenant compte de
-     * l'en passant et du gain associé à une promotion en dame.
-     */
     getImmediateExchangeGain(game, move) {
         const details = move?.details || {};
         const row = details.kingTo?.row ?? move?.toRow;
@@ -470,10 +592,6 @@ class GameFonctions {
         return capturedValue + promotionGain;
     }
 
-    /**
-     * Évalue une séquence de prises/reprises sur une case, chaque camp pouvant
-     * choisir de ne pas poursuivre l'échange. La profondeur est plafonnée.
-     */
     bestExchange(game, targetRow, targetCol, capturingColor, depth = 0) {
         if (depth >= this.maxExchangeDepth) return 0;
 
@@ -496,10 +614,6 @@ class GameFonctions {
         return bestScore;
     }
 
-    /**
-     * Retourne le gain net d'une prise après les meilleures reprises légales
-     * sur la case d'arrivée.
-     */
     evaluateExchange(game, move, color) {
         const immediateGain = this.getImmediateExchangeGain(game, move);
         if (immediateGain === 0) return 0;
@@ -511,10 +625,6 @@ class GameFonctions {
         return immediateGain - this.bestExchange(afterMove, row, col, this._oppositeColor(color));
     }
 
-    /**
-     * Estime la valeur de la pièce déplacée exposée aux prises et reprises
-     * adverses après simulation.
-     */
     evaluateMoveExposure(game, move, opponentColor, simulated = null) {
         const afterMove = simulated || this.simulateMove(game, move);
         const row = move.details?.kingTo?.row ?? move.toRow;
@@ -522,10 +632,6 @@ class GameFonctions {
         return this.bestExchange(afterMove, row, col, opponentColor);
     }
 
-    /**
-     * Trouve les pièces adverses attaquées par un cavalier après le coup
-     * candidat. Les pions peuvent être inclus ou exclus selon la stratégie.
-     */
     getKnightForkTargets(game, move, color, includePawns = false, simulated = null) {
         if (move?.piece?.type !== 'knight') return [];
 
@@ -545,11 +651,6 @@ class GameFonctions {
                 && (includePawns || target.piece.type !== 'pawn'));
     }
 
-    /**
-     * Donne un bonus à une fourchette de cavalier seulement si elle attaque au
-     * moins deux pièces adverses et si le cavalier ne peut pas être pris selon
-     * l'évaluation locale des échanges.
-     */
     getSafeKnightForkBonus(game, move, color, options = {}) {
         if (move?.piece?.type !== 'knight') return 0;
 
@@ -580,11 +681,6 @@ class GameFonctions {
         );
     }
 
-    /**
-     * Ajoute un bonus à une prise de pièce au moins aussi précieuse que la
-     * pièce attaquante, uniquement si le camp possède déjà un avantage matériel
-     * supérieur ou égal au seuil fourni.
-     */
     getFavorableTradeBonus(game, move, color, advantageThreshold = this.pieceValues.knight, bonus = 100) {
         if (!move?.isCapture || !move.targetPiece || move.piece?.type === 'pawn'
             || move.targetPiece.type === 'pawn'
@@ -597,10 +693,6 @@ class GameFonctions {
         return targetValue >= attackerValue ? bonus : 0;
     }
 
-    /**
-     * Finalise un coup au format attendu par l'interface et choisit la dame
-     * lorsque le pion atteint la dernière rangée.
-     */
     finalize(move) {
         if (!move) return null;
         return {
@@ -615,9 +707,6 @@ class GameFonctions {
         };
     }
 
-    /**
-     * Compte le nombre total de pièces présentes, rois et pions compris.
-     */
     countPieces(game) {
         let count = 0;
         for (let row = 0; row < 8; row++) {
@@ -628,10 +717,6 @@ class GameFonctions {
         return count;
     }
 
-    /**
-     * Retourne les coups parmi les meilleurs scores, avec une marge relative
-     * configurable pour conserver le style parfois aléatoire des niveaux.
-     */
     getBestMoves(moves, thresholdRatio = 0.75) {
         if (!moves?.length) return [];
         const sortedMoves = [...moves].sort((a, b) => b._finalScore - a._finalScore);
@@ -642,9 +727,6 @@ class GameFonctions {
         return sortedMoves.filter(move => move._finalScore >= threshold);
     }
 
-    /**
-     * Renvoie un meilleur coup tiré parmi les coups retenus par le seuil fourni.
-     */
     chooseBestMove(moves, thresholdRatio = 0.75) {
         const candidates = this.getBestMoves(moves, thresholdRatio);
         return candidates.length
@@ -652,10 +734,6 @@ class GameFonctions {
             : null;
     }
 
-    /**
-     * Met à jour les droits de roque dans l'état simulé après déplacement ou
-     * capture d'un roi ou d'une tour.
-     */
     _updateCastlingState(state, movingPiece, move, capturedPiece) {
         const color = movingPiece.color;
         const homeRow = this._sameColor(color, 'white') ? 7 : 0;
@@ -685,10 +763,6 @@ class GameFonctions {
         }
     }
 
-    /**
-     * Compte les pions d'un camp par colonne. Utilisé par les évaluations de
-     * pions doublés, d'îlots et de colonnes ouvertes.
-     */
     _getPawnCountsByFile(game, color) {
         const counts = Array(8).fill(0);
         for (let row = 0; row < 8; row++) {
@@ -700,18 +774,12 @@ class GameFonctions {
         return counts;
     }
 
-    /**
-     * Compare les couleurs en tolérant les formats white/black et w/b.
-     */
     _sameColor(first, second) {
         return typeof first === 'string'
             && typeof second === 'string'
             && first.charAt(0).toLowerCase() === second.charAt(0).toLowerCase();
     }
 
-    /**
-     * Renvoie la couleur adverse dans le format long du moteur.
-     */
     _oppositeColor(color) {
         return this._sameColor(color, 'white') ? 'black' : 'white';
     }
