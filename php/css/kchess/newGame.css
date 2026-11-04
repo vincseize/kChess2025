@@ -214,6 +214,14 @@
     letter-spacing: -0.025em;
 }
 
+.setup-header > div:first-child {
+    min-width: 0;
+}
+
+.setup-header h2 {
+    white-space: nowrap;
+}
+
 .lang-selector {
     flex: 0 0 auto;
 }
@@ -630,6 +638,10 @@
         font-size: 0.75rem;
     }
 
+    .setup-header > div:first-child {
+        flex: 1 1 auto;
+    }
+
     .game-mode-btn {
         min-height: 56px;
         padding: 10px;
@@ -673,6 +685,17 @@
     .color-piece {
         width: 31px;
         height: 31px;
+    }
+}
+
+@media (max-width: 360px) {
+    .setup-header h2 {
+        font-size: clamp(0.8rem, 4vw, 0.95rem);
+    }
+
+    .lang-select {
+        min-width: 108px;
+        padding-right: 22px;
     }
 }
 
