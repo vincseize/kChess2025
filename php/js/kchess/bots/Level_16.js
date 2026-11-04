@@ -1,22 +1,28 @@
 /**
  * Level_16 - Bot Killer
- * Version 5.0.0 - ECMO depth-1 + ouverture + mat en 2
+ * Version 5.1.0 - ECMO depth-1 optimisé + ouverture + mat en 1
  *
- * Pipeline de décision :
+ * Pipeline :
  *   0. Ouverture (game_ouverture.js) si phase d'ouverture
  *   1. Mat en 1
- *   2. ECMO depth=1 : score statique + pénalité réponse adverse légère
- *   3. Mat en 2 élagué (coups d'échec uniquement)
- *   4. Sélection finale (parmi les meilleurs scores)
+ *   2. ECMO depth=1 : score statique + pénalité réponse adverse légère (SEE simplifié)
+ *   3. Mat en 2 (désactivé par défaut pour la perf — activable via enableMateInTwo)
+ *   4. Sélection finale (promotions > finale > meilleur score)
+ *
+ * Optimisations perf (v5.1.0) :
+ *   - Réponses adverses limitées à 10, skip non-captures/non-échecs
+ *   - SEE simplifié (pas de _bestExchange récursif)
+ *   - _getCenterControlScore sans ChessEngine
+ *   - _isSquareAttacked en fallback manuel
+ *   - Mat en 2 désactivé par défaut
  */
 class Level_16 extends BotBase {
-    static VERSION = '5.0.0';
+    static VERSION = '5.1.0';
 
     constructor() {
         super();
         this.name = "Bot Level 16 (Killer)";
         this.level = 16;
-        // Échelle "pawn = 1" propre à ce bot (hérite de BotBase mais on écrase)
         this.pieceValues = {
             pawn: 1,
             knight: 3.2,
@@ -25,13 +31,13 @@ class Level_16 extends BotBase {
             queen: 9,
             king: 100
         };
-        // Re-attache GameFonctions avec nos valeurs
         this.gameFonctions = GameFonctions.attach(this);
 
-        // Seuils de sécurité (évite les calculs infinis)
-        this.maxOppRepliesExamined = 40;
+        // ---- PERF ----
+        this.maxOppRepliesExamined = 10;        // limite de réponses adverses examinées
         this.mateInTwoMaxCandidates = 12;
-        this.useChessEngineForAttack = (typeof ChessEngine !== 'undefined');
+        this.enableMateInTwo = false;           // désactivé par défaut (coûteux)
+        this.useChessEngineForAttack = false;   // fallback manuel plus rapide que parse FEN
     }
 
     // =====================================================================
@@ -57,21 +63,23 @@ class Level_16 extends BotBase {
         const mateMove = this._findMateInOne(game, color, allMoves);
         if (mateMove) return this._finalize(mateMove);
 
-        // ---- 3. ECMO DEPTH-1 (score statique + réponse adverse) ----
+        // ---- 3. ECMO DEPTH-1 ----
         const scoredMoves = this._scoreDepthOne(game, allMoves, color, oppColor);
 
-        // ---- 4. MAT EN 2 (élagué sur les coups d'échec) ----
-        const mateInTwo = this._findMateInTwo(game, color, oppColor, scoredMoves);
-        if (mateInTwo) return this._finalize(mateInTwo);
+        // ---- 4. MAT EN 2 (optionnel) ----
+        if (this.enableMateInTwo) {
+            const mateInTwo = this._findMateInTwo(game, color, oppColor, scoredMoves);
+            if (mateInTwo) return this._finalize(mateInTwo);
+        }
 
-        // ---- 5. PROMOTIONS (priorité si présentes) ----
+        // ---- 5. PROMOTIONS ----
         const promotions = scoredMoves.filter(m => this._isPromotionMove(m));
         if (promotions.length > 0) {
             promotions.sort((a, b) => b._score - a._score);
             return this._finalize(promotions[0]);
         }
 
-        // ---- 6. FINALE : comportement agressif (pions avancés / roi actif) ----
+        // ---- 6. FINALE ----
         if (this._isEndgame(game)) {
             const endgamePick = this._pickEndgameMove(game, scoredMoves, color, oppColor);
             if (endgamePick) return this._finalize(endgamePick);
@@ -89,9 +97,8 @@ class Level_16 extends BotBase {
         if (typeof window.GameOuverture === 'undefined') return null;
 
         const history = game.gameState.moveHistory || [];
-        if (history.length >= 6) return null; // au-delà des 6 demi-coups prévus
+        if (history.length >= 6) return null;
 
-        // Filtre les lignes dont le préfixe correspond à l'historique joué
         const candidateLines = window.GameOuverture.lignes.filter(line => {
             if (line.coups.length <= history.length) return false;
             for (let i = 0; i < history.length; i++) {
@@ -108,10 +115,9 @@ class Level_16 extends BotBase {
         if (!this._sameColor(nextBookMove.couleur, color)) return null;
 
         const from = this._algebraicToCoords(nextBookMove.depart);
-        const to   = this._algebraicToCoords(nextBookMove.arrivee);
+        const to = this._algebraicToCoords(nextBookMove.arrivee);
         if (!from || !to) return null;
 
-        // Vérifie la légalité du coup dans la position actuelle
         const legal = this._getAllLegalMoves(game, color).find(m =>
             m.fromRow === from.row && m.fromCol === from.col &&
             m.toRow === to.row && m.toCol === to.col
@@ -121,20 +127,19 @@ class Level_16 extends BotBase {
 
     _moveMatchesHistory(played, expectedBookEntry) {
         const from = this._algebraicToCoords(expectedBookEntry.depart);
-        const to   = this._algebraicToCoords(expectedBookEntry.arrivee);
+        const to = this._algebraicToCoords(expectedBookEntry.arrivee);
         if (!from || !to) return false;
 
-        // Format de moveHistory : { from:{row,col}, to:{row,col}, ... }
         const pFrom = played.from || { row: played.fromRow, col: played.fromCol };
-        const pTo   = played.to   || { row: played.toRow,   col: played.toCol };
+        const pTo = played.to || { row: played.toRow, col: played.toCol };
         return pFrom.row === from.row && pFrom.col === from.col
-            && pTo.row === to.row   && pTo.col === to.col;
+            && pTo.row === to.row && pTo.col === to.col;
     }
 
     _algebraicToCoords(square) {
         if (typeof square !== 'string' || square.length !== 2) return null;
-        const col = square.charCodeAt(0) - 97;        // 'a' = 0
-        const row = 8 - parseInt(square[1], 10);      // '8' = 0, '1' = 7
+        const col = square.charCodeAt(0) - 97;
+        const row = 8 - parseInt(square[1], 10);
         if (col < 0 || col > 7 || row < 0 || row > 7) return null;
         return { row, col };
     }
@@ -255,42 +260,48 @@ class Level_16 extends BotBase {
 
     /**
      * Pénalité légère basée sur la meilleure réponse adverse.
-     * On NE fait PAS un minimax : on ne regarde que :
-     *   - la meilleure capture gagnante adverse
-     *   - les échecs
-     *   - les promotions imminentes
-     * Early-exit dès qu'une réponse dépasse un seuil.
+     * Version rapide v5.1.0 :
+     *   - skip les réponses non-capturantes et non-échecs
+     *   - SEE simplifié (pas de récursion _bestExchange)
+     *   - limite maxOppRepliesExamined
      */
     _opponentBestReplyPenalty(simulatedGame, oppColor, myColor) {
         const replies = this._getAllLegalMoves(simulatedGame, oppColor);
         if (replies.length === 0) return 0;
 
         let worst = 0;
-        const limit = Math.min(replies.length, this.maxOppRepliesExamined);
+        let examined = 0;
 
-        for (let i = 0; i < limit; i++) {
-            const reply = replies[i];
+        for (const reply of replies) {
+            if (!reply.isCapture && !reply.isCheck) continue;
+            if (++examined > this.maxOppRepliesExamined) break;
+
             let penalty = 0;
 
             if (reply.isCapture && reply.targetPiece) {
-                const net = this._evaluateExchange(simulatedGame, reply, oppColor);
-                if (net > 0) penalty += net * 1.5; // échelle pawn=1
+                const attackVal = this.pieceValues[reply.piece.type] || 0;
+                const targetVal = this.pieceValues[reply.targetPiece.type] || 0;
+                const defended = this._isSquareAttacked(
+                    simulatedGame, reply.toRow, reply.toCol, myColor
+                );
+                const gain = defended ? (targetVal - attackVal) : targetVal;
+                if (gain > 0) penalty += gain * 1.5;
             }
+
             if (reply.isCheck) penalty += 1.5;
             if (this._isPromotionMove(reply)) penalty += 50;
 
             if (penalty > worst) worst = penalty;
-            if (worst > 20) break; // early exit
+            if (worst > 20) break;
         }
         return worst * 2;
     }
 
     // =====================================================================
-    // 4. MAT EN 2 (élagué)
+    // 4. MAT EN 2 (élagué, optionnel)
     // =====================================================================
 
     _findMateInTwo(game, color, oppColor, candidateMoves) {
-        // Élagage : ne tester que les coups qui donnent échec
         const checkingMoves = [];
         for (const move of candidateMoves) {
             const sim = this._simulateMove(game, move);
@@ -303,7 +314,7 @@ class Level_16 extends BotBase {
 
         for (const { move, sim } of checkingMoves) {
             const oppReplies = this._getAllLegalMoves(sim, oppColor);
-            if (oppReplies.length === 0) continue; // déjà mat en 1
+            if (oppReplies.length === 0) continue;
 
             let allLeadToMate = true;
             for (const reply of oppReplies) {
@@ -324,7 +335,6 @@ class Level_16 extends BotBase {
     // =====================================================================
 
     _pickEndgameMove(game, scoredMoves, color, oppColor) {
-        // Priorité : pions avancés les plus proches de la promotion
         const pawnMoves = scoredMoves.filter(m => m.piece?.type === 'pawn');
         if (pawnMoves.length > 0) {
             const safest = this._preferSafestMoves(pawnMoves, game, oppColor);
@@ -338,7 +348,6 @@ class Level_16 extends BotBase {
             return safest[0];
         }
 
-        // Activer le roi vers le roi adverse
         const kingMoves = this._preferSafestMoves(
             scoredMoves.filter(m => m.piece?.type === 'king'),
             game,
@@ -361,11 +370,9 @@ class Level_16 extends BotBase {
     _pickBest(scoredMoves) {
         if (!scoredMoves || scoredMoves.length === 0) return null;
 
-        // Tri par score décroissant
         scoredMoves.sort((a, b) => b._score - a._score);
         const best = scoredMoves[0];
 
-        // Attaque du roi en finale = tie-breaker
         if (this._isEndgame(window.chessGame?.core || window.chessGame)) {
             const oppColor = this._opposite(best.piece?.color);
             if (this._isMoveAttackingKing(window.chessGame?.core || window.chessGame, best, oppColor)) {
@@ -394,16 +401,23 @@ class Level_16 extends BotBase {
         return this.gameFonctions.evaluateMoveExposure(game, move, opponentColor, simulated);
     }
 
-    _evaluateExchange(game, move, color) {
-        return this.gameFonctions.evaluateExchange(game, move, color);
-    }
-
     _isPromotionMove(move) {
         return this.gameFonctions.isPromotionMove(move);
     }
 
+    /**
+     * Version rapide sans ChessEngine (parse FEN coûteux).
+     * Occupation + contrôle via _isSquareAttacked (fallback manuel).
+     */
     _getCenterControlScore(game, color) {
-        return this.gameFonctions.getCenterControlScore(game, color);
+        const centerSquares = [[3, 3], [3, 4], [4, 3], [4, 4]];
+        let score = 0;
+        for (const [row, col] of centerSquares) {
+            const piece = this.gameFonctions.getPiece(game, row, col);
+            if (piece && this._sameColor(piece.color, color)) score += 1;
+            if (this._isSquareAttacked(game, row, col, color)) score += 1;
+        }
+        return score;
     }
 
     _getDoubledPawnCount(game, color) {
@@ -463,7 +477,7 @@ class Level_16 extends BotBase {
     }
 
     // =====================================================================
-    // SÉCURITÉ / ROI (accéléré via ChessEngine si dispo)
+    // SÉCURITÉ / ROI
     // =====================================================================
 
     _isKingInCheck(game, color) {
@@ -482,7 +496,7 @@ class Level_16 extends BotBase {
                 // fallback ci-dessous
             }
         }
-        // Fallback manuel
+
         const key = byColor.charAt(0).toLowerCase();
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
@@ -533,17 +547,14 @@ class Level_16 extends BotBase {
     _finalize(move) {
         if (!move) return null;
 
-        // Promotion automatique
         if (move.piece?.type === 'pawn' && (move.toRow === 0 || move.toRow === 7)) {
             move.promotion = 'queen';
         }
 
-        // Nettoyage des champs internes
         delete move._exposure;
         delete move._score;
         delete move._linkedPawnDelta;
 
-        // Format de retour canonique
         return {
             fromRow: move.fromRow,
             fromCol: move.fromCol,
