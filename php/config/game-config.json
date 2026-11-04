@@ -252,6 +252,12 @@
                     "clock": "00:10:00",
                     "increment": "00:00:05"
                 },
+                "bot_6": {
+                    "title": "Niveau 6 : Petit Maître (Centre)",
+                    "description": "Même stratégie que le niveau 5, avec un bonus pour le contrôle des cases centrales.",
+                    "clock": "00:06:00",
+                    "increment": "00:00:00"
+                },
                 "bot_16": {
                     "title": "Niveau 16 : Deep Neural (Expérimental)",
                     "description": "Phase de test du réseau de neurones profonds.",
@@ -443,6 +449,12 @@
                     "description": "Tight positional play aiming to suffocate the opponent.",
                     "clock": "00:10:00",
                     "increment": "00:00:05"
+                },
+                "bot_6": {
+                    "title": "Level 6: Little Master (Center)",
+                    "description": "Level 5 strategy with an added bonus for controlling central squares.",
+                    "clock": "00:06:00",
+                    "increment": "00:00:00"
                 },
                 "bot_16": {
                     "title": "Level 16: Deep Neural (Experimental)",
@@ -636,6 +648,12 @@
                     "clock": "00:10:00",
                     "increment": "00:00:05"
                 },
+                "bot_6": {
+                    "title": "Nivel 6: Pequeño maestro (Centro)",
+                    "description": "La estrategia del nivel 5 con una bonificación por controlar las casillas centrales.",
+                    "clock": "00:06:00",
+                    "increment": "00:00:00"
+                },
                 "bot_16": {
                     "title": "Nivel 16: Red neuronal profunda (Experimental)",
                     "description": "Fase de pruebas de la red neuronal profunda.",
@@ -827,6 +845,12 @@
                     "description": "Enges Positionsspiel, das den Gegner einschnüren soll.",
                     "clock": "00:10:00",
                     "increment": "00:00:05"
+                },
+                "bot_6": {
+                    "title": "Stufe 6: Kleiner Meister (Zentrum)",
+                    "description": "Strategie wie Stufe 5, zusätzlich mit Bonus für die Kontrolle des Zentrums.",
+                    "clock": "00:06:00",
+                    "increment": "00:00:00"
                 },
                 "bot_16": {
                     "title": "Stufe 16: Tiefes neuronales Netz (Experimentell)",

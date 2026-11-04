@@ -13,6 +13,7 @@ The application uses PHP, JavaScript, and browser storage. It does not require a
 ## Game modes and clocks
 
 - **Bot:** the selected bot level determines the initial clock in minutes: level 1 gets 1 minute, level 2 gets 2 minutes, and so forth. Bot games use a zero-second increment.
+- **Bot Level 6:** uses the Level 5 strategy with an additional positional bonus for occupying or approaching central squares.
 - **Human vs Human:** select a cadence before starting; the clocks remain stopped until the start button is pressed.
 - **Human vs Human 960:** select a side (or a random side), then select a cadence and explicitly start the game. A random Chess960 starting position is generated for each new game.
 - The Chess960 button below **Clock** on the home page opens a game with a random starting position.

@@ -16,6 +16,7 @@ No separate package installation or database setup is required for the web app.
 - **Human vs Human 960:** choose either side or a random side; the board uses a randomized Chess960 starting position and the same time-control selector and explicit start behavior.
 - **Chess960 home shortcut:** opens a game with a newly randomized Chess960 position.
 - **Bots:** choose a bot level and side. The level sets the game duration in minutes (level 1 = 1 minute, level 2 = 2 minutes, and so on), with no increment.
+- **Level 6:** builds on Level 5's positional strategy and additionally rewards control of the central squares.
 - **Clock:** open the standalone clock from the home page. Choose a preset or enter a custom time control. Black presses their clock to start; players tap the active clock after each move.
 
 Preset and custom time controls use the `minutes + increment in seconds` format. The most recently selected control is remembered in browser local storage and reused by Human vs Human, Chess960, and the standalone clock. Custom time controls are also saved locally and can be removed from the standalone clock's settings.
