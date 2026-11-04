@@ -1,9 +1,9 @@
 /**
  * Level_3 - Tactique & Finalisation
- * Version 2.0.0 - Réponse adverse et évaluation de position
+ * Version 2.1.0 - Réponse adverse et évaluation des échanges
  */
 class Level_3 {
-    static VERSION = '2.0.0';
+    static VERSION = '2.1.0';
 
     constructor() {
         this.name = "Bot Level 3 (Tactique+)";
@@ -61,7 +61,12 @@ class Level_3 {
                 let worstResponseScore = Infinity;
                 for (const response of responses) {
                     const afterResponse = this._simulateMove(afterMove, response);
-                    const responseScore = this._evaluatePosition(afterResponse, myColor);
+                    let responseScore = this._evaluatePosition(afterResponse, myColor);
+                    if (response.isCapture || response.details?.isPromotion) {
+                        const immediateGain = this._getImmediateExchangeGain(afterMove, response);
+                        const exchangeScore = this._evaluateExchange(afterMove, response, oppColor);
+                        responseScore += immediateGain - exchangeScore;
+                    }
                     worstResponseScore = Math.min(worstResponseScore, responseScore);
 
                     if (worstResponseScore + move._quickScore * 0.1 <= bestScore) break;
@@ -85,7 +90,7 @@ class Level_3 {
     _scoreMoveQuickly(game, move, color, opponentKing) {
         let score = Math.random() * 15;
         if (move.isCapture && move.targetPiece) {
-            score += this.pieceValues[move.targetPiece.type] * 10;
+            score += this._evaluateExchange(game, move, color) * 10;
         }
         if (move.piece.type === 'pawn') {
             const progress = color === 'white' ? 7 - move.toRow : move.toRow;
@@ -104,6 +109,57 @@ class Level_3 {
             score += 15;
         }
         return score;
+    }
+
+    _evaluateExchange(game, move, color) {
+        const immediateGain = this._getImmediateExchangeGain(game, move);
+        if (immediateGain === 0) return 0;
+
+        const details = move.details || {};
+        const toRow = details.kingTo?.row ?? move.toRow;
+        const toCol = details.kingTo?.col ?? move.toCol;
+        const afterMove = this._simulateMove(game, move);
+        const opponent = color === 'white' ? 'black' : 'white';
+        return immediateGain
+            - this._bestExchange(afterMove, toRow, toCol, opponent, 0);
+    }
+
+    _getImmediateExchangeGain(game, move) {
+        const details = move.details || {};
+        const toRow = details.kingTo?.row ?? move.toRow;
+        const toCol = details.kingTo?.col ?? move.toCol;
+        const capturedPiece = details.type === 'en-passant'
+            ? { type: 'pawn' }
+            : this._getPieceCompat(game, toRow, toCol);
+        const capturedValue = capturedPiece ? this.pieceValues[capturedPiece.type] || 0 : 0;
+        const promotionGain = details.isPromotion || (move.piece.type === 'pawn' && (toRow === 0 || toRow === 7))
+            ? this.pieceValues.queen - this.pieceValues.pawn
+            : 0;
+        return capturedValue + promotionGain;
+    }
+
+    _bestExchange(game, targetRow, targetCol, capturingColor, depth) {
+        if (depth >= 8) return 0;
+
+        const target = this._getPieceCompat(game, targetRow, targetCol);
+        if (!target || target.color === capturingColor) return 0;
+
+        const capturedValue = this.pieceValues[target.type] || 0;
+        let bestScore = 0;
+        for (const move of this._getAllLegalMoves(game, capturingColor)) {
+            if (move.toRow !== targetRow || move.toCol !== targetCol || !move.isCapture) continue;
+
+            const promotionGain = move.piece.type === 'pawn'
+                && (targetRow === 0 || targetRow === 7)
+                ? this.pieceValues.queen - this.pieceValues.pawn
+                : 0;
+            const afterCapture = this._simulateMove(game, move);
+            const nextColor = capturingColor === 'white' ? 'black' : 'white';
+            const score = capturedValue + promotionGain
+                - this._bestExchange(afterCapture, targetRow, targetCol, nextColor, depth + 1);
+            bestScore = Math.max(bestScore, score);
+        }
+        return bestScore;
     }
 
     _evaluatePosition(game, perspective) {

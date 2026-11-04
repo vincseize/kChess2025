@@ -85,7 +85,8 @@ Au premier coup de cette couleur ?
 si d'autres coups légaux restent disponibles
         |
 Pour chaque coup, calculer un score :
-  + captures, progression des pions, promotion,
+  + gain net des échanges (prises et reprises légales),
+    progression des pions, promotion,
     centre, développement et petite part aléatoire
         |
 Bonus de préclassement si le coup attaque le roi adverse
@@ -97,7 +98,8 @@ avec son propre validateur
 Énumérer toutes les réponses légales adverses
         |
 Pour chaque réponse, réévaluer matériel,
-pièces non défendues, centre et sécurité des rois
+sécurité des rois et position ; corriger les prises
+selon les reprises légales sur la case d'échange
         |
 Retenir pour chaque candidat sa pire réponse
 (mat adverse = victoire immédiate)
@@ -105,7 +107,7 @@ Retenir pour chaque candidat sa pire réponse
 Choisir le meilleur résultat minimax à 2 demi-coups
 ```
 
-Au premier coup propre aux Blancs et aux Noirs, le niveau 3 évite les pions a et h si d'autres coups légaux sont disponibles. La recherche est volontairement limitée aux huit meilleurs candidats préclassés et à une réponse adverse ; elle ne constitue pas une recherche tactique profonde.
+Au premier coup propre aux Blancs et aux Noirs, le niveau 3 évite les pions a et h si d'autres coups légaux sont disponibles. L'évaluation d'échange suit les prises successives sur la case visée, chaque camp pouvant s'arrêter plutôt que reprendre ; elle est plafonnée à huit reprises. La recherche générale reste limitée aux huit meilleurs candidats préclassés et à une réponse adverse ; elle ne constitue pas une recherche tactique profonde.
 
 ## Niveau 4 — score heuristique et choix parmi les proches
 
