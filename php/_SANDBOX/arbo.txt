@@ -12,6 +12,8 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
   📁 _SANDBOX
     📄 arbo.php
     📄 arbo.txt
+    📄 gen_icons.py
+    📄 gen_icons_chrome.py
   📄 app.php
   📄 clock.php
   📁 config
@@ -92,6 +94,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
         📄 BotCore.js
         📄 ChessScanner.js
         📄 Evaluator.js
+        📄 LadderBot.js
         📄 Level_1.js
         📄 Level_16.js
         📄 Level_2.js
@@ -136,12 +139,17 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
             📄 stress_test-White_L3-vs-Black_L4.json
             📄 stress_test-White_L4-vs-Black_L3-RANDOM.json
             📄 stress_test-White_L4-vs-Black_L3.json
+            📄 stress_test-White_L4-vs-Black_L5-RANDOM.json
             📄 stress_test-White_L5-vs-Black_L1.json
             📄 stress_test-White_L5-vs-Black_L2-RANDOM.json
+            📄 stress_test-White_L5-vs-Black_L3-RANDOM.json
             📄 stress_test-White_L5-vs-Black_L4-RANDOM.json
+            📄 stress_test-White_L5-vs-Black_L6-RANDOM.json
             📄 stress_test-White_L6-vs-Black_L1-RANDOM.json
             📄 stress_test-White_L6-vs-Black_L5-RANDOM.json
+            📄 stress_test-White_L6-vs-Black_L7-RANDOM.json
             📄 stress_test-White_L7-vs-Black_L6-RANDOM.json
+            📄 stress_test-White_L7-vs-Black_L8-RANDOM.json
             📄 stress_test-White_L8-vs-Black_L1-RANDOM.json
             📄 stress_test-White_L8-vs-Black_L1.json
             📄 stress_test-White_L8-vs-Black_L16-RANDOM.json
