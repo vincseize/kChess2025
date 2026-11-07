@@ -4,6 +4,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
   📄 ARCHITECTURE_BOTS.md
   📄 AUDIT_BOTS.md
   📄 BOTS_DECISION_FLOWS.md
+  📄 PARTIES_FAVORITES.md
   📄 README.md
   📄 echecs_chapitre16.pdf
   📄 echecs_structureDePions.jpg
@@ -109,8 +110,10 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
         📄 game_fonctions.js
         📄 game_ouverture.js
         📁 unitTests
+          📄 Bot_Process.php
           📄 Bot_vs_Bot.php
           📁 css
+            📄 process-lab.css
             📄 stress-test.css
           📁 img
             📄 favicon.png
@@ -119,6 +122,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
           📁 js
             📄 ArenaAnalyst.js
             📄 bot-helper.js
+            📄 process-lab.js
             📄 stress-test-bot.js
           📄 log_error.php
           📁 results

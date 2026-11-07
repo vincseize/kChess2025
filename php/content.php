@@ -23,6 +23,12 @@ $botsClock = $config['bots_clock'] ?? [];
                                     <i class="bi bi-speedometer2 me-1"></i> Stress Test
                                 </a>
 
+                                <a href="js/kchess/bots/unitTests/Bot_Process.php" 
+                                   target="_blank" 
+                                   class="btn btn-outline-info btn-sm d-none d-md-block shadow-sm">
+                                    <i class="bi bi-diagram-3 me-1"></i> Process Bots
+                                </a>
+
                                 <a href="index.php" class="btn btn-primary btn-sm">
                                     <i class="bi bi-house-door me-1" aria-hidden="true"></i> <span><?php echo htmlspecialchars($translations['accueil']); ?></span>
                                 </a>
