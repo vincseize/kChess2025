@@ -14,6 +14,9 @@
  *     _countAttackersOnSquare, etc. sont injectés par attach().
  */
 class Level_16 {
+    // Profondeur de recherche réelle (lue par newGame.php pour l'affichage)
+    static SEARCH_DEPTH = 1;
+
     static VERSION = '1.4.0';
 
     constructor() {

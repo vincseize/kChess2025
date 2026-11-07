@@ -3,6 +3,9 @@
  * Niveau 1 : Débutant - Joue des coups totalement aléatoires.
  */
 class Level_1 extends BotBase {
+    // Profondeur de recherche réelle (lue par newGame.php pour l'affichage)
+    static SEARCH_DEPTH = 0;
+
     constructor() {
         super();
         this.name = "Bot Level 1";

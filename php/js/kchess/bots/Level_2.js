@@ -3,6 +3,9 @@
  * Version 2.0.0 : v1.7.0 + mat en 1 + garde anti-pat (sinon L2 stalemate L1 dans 28 % des parties).
  */
 class Level_2 {
+    // Profondeur de recherche réelle (lue par newGame.php pour l'affichage)
+    static SEARCH_DEPTH = 0;
+
     static VERSION = '2.0.0';
 
     constructor() {

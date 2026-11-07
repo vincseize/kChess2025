@@ -51,7 +51,7 @@ if (empty($availableBots)) {
     };
 </script>
 
-    <h2>🧪 Stress Test : <span style="color: #6e7681; font-weight: normal;">Bot Arena</span></h2>
+    <h2>🧪 Stress Test : <span style="color: #6e7681; font-weight: normal;">Bot Arena</span> <a href="Bot_Process.php" style="font-size: 0.6em; font-weight: normal; color: #58a6ff; text-decoration: none; margin-left: 12px;">🧭 Process des bots</a></h2>
 
     <div id="sandbox-ui" style="display: none;">
         <div id="chessBoard"></div>
