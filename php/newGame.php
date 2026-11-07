@@ -239,7 +239,16 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const savedBotLevel = localStorage.getItem('kchess.selectedBotLevel');
             const savedTrainingProgress = localStorage.getItem(BotTrainingProgress.storageKey);
+            // Outils de test (page Process, arène) : on garde leurs réglages et cases cochées
+            const keptLabEntries = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('kchess_process_lab') || key.startsWith('kchess_arena'))) {
+                    keptLabEntries.push([key, localStorage.getItem(key)]);
+                }
+            }
             localStorage.clear();
+            keptLabEntries.forEach(([key, value]) => localStorage.setItem(key, value));
             if (savedBotLevel) localStorage.setItem('kchess.selectedBotLevel', savedBotLevel);
             if (savedTrainingProgress) localStorage.setItem(BotTrainingProgress.storageKey, savedTrainingProgress);
         } catch (error) {
