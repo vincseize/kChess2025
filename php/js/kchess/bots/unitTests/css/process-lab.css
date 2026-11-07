@@ -128,3 +128,14 @@ body {
     background: #090c10; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin: 0;
     font-family: Consolas, Monaco, monospace; font-size: 11px; line-height: 1.45; max-height: 520px; overflow: auto; color: #aff5b4; white-space: pre;
 }
+
+/* --- Modifications factices (matrice / diagrammes) --- */
+.pl-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; font-size: 12px; color: var(--muted); }
+.pl-toolbar label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text); }
+.pl-matrix td.cell { cursor: pointer; user-select: none; }
+.pl-matrix td.cell:hover { background: #2b323b; outline: 1px solid var(--blue); }
+.pl-matrix td.add { color: var(--purple); font-weight: 700; background: rgba(188,140,255,.14); }
+.pl-matrix td.rm { color: var(--red); font-weight: 700; background: rgba(248,81,73,.10); }
+.pl-node .tag.removed { background: var(--red); color: #0d1117; }
+.pl-node.removed { opacity: .5; }
+.pl-node.removed { text-decoration: line-through; text-decoration-color: var(--red); }

@@ -15,7 +15,8 @@
         decision: { label: 'Décision immédiate (joue le coup et s\'arrête)', color: '#f85149' },
         filtre:   { label: 'Filtre (écarte des coups)',                       color: '#d29922' },
         score:    { label: 'Score (ajoute des points à chaque coup)',         color: '#58a6ff' },
-        choix:    { label: 'Choix final',                                     color: '#3fb950' }
+        choix:    { label: 'Choix final',                                     color: '#3fb950' },
+        ecmo:     { label: 'ECMO — principe de réflexion (factice)',          color: '#bc8cff' }
     };
 
     // ------------------------------------------------------------------
@@ -45,7 +46,34 @@
         repli_aleatoire:        { label: 'Repli aléatoire', group: 'choix', desc: "Dernier recours : coup au hasard parmi les coups restants." },
         coup_aleatoire:         { label: 'Coup aléatoire', group: 'choix', desc: "Choisit au hasard parmi tous les coups légaux (promotion en dame automatique)." }
     };
-    const ORDER = Object.keys(CATALOG);
+
+    // Principe ECMO : Échecs → Captures → Menaces → Optimisation (process factices, ajoutés via la matrice)
+    const ECMO_IDS = ['ecmo_echecs', 'ecmo_captures', 'ecmo_menaces', 'ecmo_optimisation'];
+    Object.assign(CATALOG, {
+        ecmo_echecs:       { label: 'ECMO · Échecs', group: 'ecmo', factice: true, desc: "É : examiner d'abord les coups qui donnent échec (mat en 1, gain de temps, roi adverse acculé)." },
+        ecmo_captures:     { label: 'ECMO · Captures', group: 'ecmo', factice: true, desc: "C : examiner ensuite les prises : gain net, pièce protégée ou non (échange statique)." },
+        ecmo_menaces:      { label: 'ECMO · Menaces', group: 'ecmo', factice: true, desc: "M : repérer les pièces attaquées (les siennes, celles de l'adversaire) et les menaces adverses à parer ; créer ses propres menaces (fourchettes)." },
+        ecmo_optimisation: { label: 'ECMO · Optimisation', group: 'ecmo', factice: true, desc: "O : sans échec, capture ni menace, améliorer la pièce la moins active ou la structure (développement, centre, roque)." }
+    });
+
+    // Ordre canonique des process (sert à trier la matrice et à placer un process ajouté)
+    const ORDER = ['ouverture_livre', 'mat_en_1', 'filtre_ouverture', 'ecmo_echecs', 'ecmo_captures', 'captures_rentables',
+        'echange_statique', 'exposition_piece_jouee', 'bonus_positionnels', 'ecmo_menaces', 'structure_base', 'structure_avancee',
+        'garde_pat', 'centre_sur', 'coup_sur', 'conversion_finale', 'anti_repetition', 'reponse_adverse', 'securite_roi',
+        'menace_mat_en_1', 'ecmo_optimisation', 'promotion_prioritaire', 'choix', 'choix_meilleur', 'repli_aleatoire', 'coup_aleatoire'];
+    const rankOf = (id) => { const i = ORDER.indexOf(id); return i < 0 ? 999 : i; };
+
+    // Règles de placement ECMO par rapport aux process existants (le pipeline réel n'est jamais modifié)
+    //   É : après mat en 1 / filtre d'ouverture, sinon au début
+    //   C : avant les captures (captures rentables / échange statique)
+    //   M : avant « réponse adverse » (depth 1), sinon après bonus de position / exposition, sinon avant « coups sûrs »
+    //   O : juste avant le choix final
+    const ECMO_RULES = {
+        ecmo_echecs:       { afterLast: ['ouverture_livre', 'mat_en_1', 'filtre_ouverture'], start: true },
+        ecmo_captures:     { before: ['captures_rentables', 'echange_statique'] },
+        ecmo_menaces:      { before: ['reponse_adverse'], afterLast: ['bonus_positionnels', 'exposition_piece_jouee'], before2: ['coup_sur'] },
+        ecmo_optimisation: {}
+    };
 
     // Bots sans getter PIPELINE : décrits ici (badge « doc »), à remplacer par un vrai getter plus tard
     const FALLBACK = {
@@ -129,13 +157,15 @@
         steps.forEach((s) => {
             col.appendChild(el('div', 'pl-edge', '▼'));
             const i = info(s.id);
-            const b = el('button', 'pl-node' + (s.custom ? ' custom' : ''));
+            const b = el('button', 'pl-node' + ((s.custom || s.added) ? ' custom' : '') + (s.removed ? ' removed' : ''));
             b.style.setProperty('--c', color(s.id));
             b.dataset.step = s.id;
             b.appendChild(document.createTextNode(i.label));
             if (s.arg) b.appendChild(el('span', 'arg', s.arg));
             if (i.group === 'decision') b.appendChild(el('span', 'exit', '↳ joue le coup si trouvé'));
             if (s.custom) b.appendChild(el('span', 'tag custom', 'nouveau'));
+            else if (s.added) b.appendChild(el('span', 'tag custom', 'factice'));
+            else if (s.removed) b.appendChild(el('span', 'tag removed', 'retiré'));
             else if (s.isNew) b.appendChild(el('span', 'tag new', '+'));
             else if (i.implicit) b.appendChild(el('span', 'tag impl', 'implicite'));
             if (selected && selected !== s.id) b.classList.add('dim');
@@ -178,6 +208,7 @@
         idLine.appendChild(document.createTextNode(' · ' + GROUPS[i.group].label));
         box.appendChild(idLine);
         box.appendChild(el('p', null, i.desc));
+        if (i.factice) box.appendChild(el('p', 'pl-note', 'Process factice : il n\'existe pas dans le code des bots, il sert à visualiser où il s\'insérerait.'));
 
         // paramètres (valeurs du level courant si connu)
         const cfg = ctx && ctx.cfg;
@@ -185,7 +216,7 @@
             (i.c || []).forEach(k => box.appendChild(kv(k, cfg[k])));
             (i.w || []).forEach(k => box.appendChild(kv('w.' + k, cfg.w ? cfg.w[k] : undefined)));
         }
-        const used = LEVELS.filter(l => l.steps && l.steps.some(s => s.id === id)).map(l => 'L' + l.n);
+        const used = LEVELS.filter(l => l.steps && effectiveSteps(l).some(s => s.id === id && !s.removed)).map(l => 'L' + l.n);
         box.appendChild(el('div', 'lv', 'Présent dans : ' + (used.join(', ') || '—')));
         box.hidden = false;
     }
@@ -204,20 +235,108 @@
         root.innerHTML = '';
         LEVELS.forEach(lv => {
             if (lv.error) { const c = el('div', 'pl-col error', 'L' + lv.n + ' : ' + lv.error); root.appendChild(c); return; }
-            root.appendChild(renderColumn('Level ' + lv.n, { text: 'depth ' + lv.depth, badge: lv.source }, lv.steps, lv));
+            root.appendChild(renderColumn('Level ' + lv.n, { text: 'depth ' + lv.depth, badge: lv.source }, effectiveSteps(lv), lv));
         });
+    }
+
+    // ------------------------------------------------------------------
+    // Modifications factices (overlay) : ajouter / enlever un process par level, sans toucher aux bots
+    // ------------------------------------------------------------------
+    const OVERLAY_KEY = 'kchess_process_lab_overlay_v1';
+    let overlay = { enabled: true, levels: {} };
+
+    const isChoice = (id) => info(id).group === 'choix';
+
+    /** Index d'insertion de `id` dans la liste d'ids, selon les règles ECMO ou l'ordre canonique. */
+    function placeIndex(ids, id) {
+        let choiceIdx = ids.length;
+        for (let i = ids.length - 1; i >= 0; i--) { if (isChoice(ids[i])) { choiceIdx = i; break; } }
+        const R = ECMO_RULES[id];
+        const firstOf = (list) => { for (const a of (list || [])) { const i = ids.indexOf(a); if (i >= 0) return i; } return -1; };
+        const lastOf = (list) => { let m = -1; (list || []).forEach(a => { const i = ids.lastIndexOf(a); if (i > m) m = i; }); return m; };
+        if (R) {
+            let i = firstOf(R.before); if (i >= 0) return i;
+            i = lastOf(R.afterLast); if (i >= 0) return i + 1;
+            i = firstOf(R.before2); if (i >= 0) return i;
+            if (R.start) return 0;
+            return choiceIdx;
+        }
+        const r = rankOf(id);
+        for (let i = 0; i < ids.length; i++) { if (rankOf(ids[i]) > r) return Math.min(i, choiceIdx); }
+        return choiceIdx;
+    }
+
+    /** Étapes du level + modifications factices (retirées marquées, ajoutées insérées au bon endroit). */
+    function effectiveSteps(lv) {
+        const steps = (lv.steps || []).map(s => Object.assign({}, s));
+        const ov = overlay.enabled ? overlay.levels[lv.n] : null;
+        if (!ov) return steps;
+        steps.forEach(s => { if (ov.removed.includes(s.id)) s.removed = true; });
+        const nativeIds = new Set(steps.map(s => s.id));
+        const key = (id) => { const e = ECMO_IDS.indexOf(id); return e >= 0 ? [0, e] : [1, rankOf(id)]; };
+        ov.added.filter(id => !nativeIds.has(id))
+            .sort((a, b) => { const x = key(a), y = key(b); return (x[0] - y[0]) || (x[1] - y[1]); })
+            .forEach(id => { steps.splice(placeIndex(steps.map(s => s.id), id), 0, { raw: id, id, arg: '', added: true }); });
+        return steps;
+    }
+
+    function levelOverlay(n) {
+        if (!overlay.levels[n]) overlay.levels[n] = { added: [], removed: [] };
+        return overlay.levels[n];
+    }
+    function saveOverlay() { lsSet(OVERLAY_KEY, JSON.stringify(overlay)); }
+    function loadOverlay() {
+        try {
+            const o = JSON.parse(lsGet(OVERLAY_KEY) || 'null');
+            if (o && o.levels) { overlay = { enabled: o.enabled !== false, levels: o.levels }; return; }
+        } catch (e) { /* ignore */ }
+        applyEcmoEverywhere();   // première visite : ECMO visible sur tous les levels
+        overlay.enabled = true;
+    }
+    function applyEcmoEverywhere() {
+        LEVELS.filter(l => l.steps).forEach(l => {
+            const ov = levelOverlay(l.n), native = new Set(l.steps.map(s => s.id));
+            ECMO_IDS.forEach(id => { if (!native.has(id) && !ov.added.includes(id)) ov.added.push(id); });
+        });
+    }
+    function removeEcmoEverywhere() {
+        Object.keys(overlay.levels).forEach(n => { overlay.levels[n].added = overlay.levels[n].added.filter(id => !ECMO_IDS.includes(id)); });
+    }
+    function overlayCount() {
+        return Object.keys(overlay.levels).reduce((t, n) => t + overlay.levels[n].added.length + overlay.levels[n].removed.length, 0);
+    }
+    function overlaySummary() {
+        const lines = [];
+        LEVELS.filter(l => l.steps).forEach(l => {
+            const ov = overlay.levels[l.n]; if (!ov) return;
+            const parts = ov.added.map(id => '+' + id).concat(ov.removed.map(id => '-' + id));
+            if (parts.length) lines.push('L' + l.n + ' : ' + parts.join(', '));
+        });
+        return lines.join('\n') || '(aucune modification)';
+    }
+
+    function toggleCell(n, id) {
+        const lv = LEVELS.find(l => l.n === n);
+        if (!lv || !lv.steps) return;
+        const ov = levelOverlay(n);
+        const list = lv.steps.some(s => s.id === id) ? ov.removed : ov.added;   // natif → retiré ; absent → ajouté
+        const i = list.indexOf(id);
+        if (i >= 0) list.splice(i, 1); else list.push(id);
+        overlay.enabled = true;
+        saveOverlay();
+        refreshAll();
     }
 
     function renderMatrix() {
         const t = $('#matrix');
         t.innerHTML = '';
         const ok = LEVELS.filter(l => l.steps);
-        const ids = [];
+        const eff = {};
+        ok.forEach(l => { eff[l.n] = effectiveSteps(l); });
+
+        // lignes : tous les process connus (pour pouvoir en ajouter) + ceux inconnus du catalogue présents dans un level
+        const ids = ORDER.slice();
         ok.forEach(l => l.steps.forEach(s => { if (!ids.includes(s.id)) ids.push(s.id); }));
-        ids.sort((a, b) => {
-            const ia = ORDER.indexOf(a), ib = ORDER.indexOf(b);
-            return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
-        });
 
         const hr = el('tr');
         hr.appendChild(el('th', null, 'Process'));
@@ -236,12 +355,40 @@
             name.addEventListener('click', () => showDetail(id, null));
             tr.appendChild(name);
             ok.forEach(l => {
-                const s = l.steps.find(x => x.id === id);
-                const td = el('td', s ? 'on' + (s.isNew ? ' new' : '') : 'off', s ? '●' : '·');
+                const s = eff[l.n].find(x => x.id === id);
+                let cls = 'off', txt = '·', title = 'Cliquer pour ajouter (factice)';
+                if (s && s.removed) { cls = 'rm'; txt = '✕'; title = 'Retiré (factice) — cliquer pour remettre'; }
+                else if (s && s.added) { cls = 'add'; txt = '●'; title = 'Ajouté (factice) — cliquer pour enlever'; }
+                else if (s) { cls = 'on' + (s.isNew ? ' new' : ''); txt = '●'; title = 'Présent dans le bot — cliquer pour enlever (factice)'; }
+                const td = el('td', cls + ' cell', txt);
+                td.title = title;
                 if (s && s.arg) td.appendChild(el('span', 'arg', s.arg));
+                td.addEventListener('click', () => toggleCell(l.n, id));
                 tr.appendChild(td);
             });
             t.appendChild(tr);
+        });
+
+        const cr = el('tr');
+        cr.appendChild(el('td', 'rowname', 'étapes actives'));
+        ok.forEach(l => cr.appendChild(el('td', null, String(eff[l.n].filter(s => !s.removed).length))));
+        t.appendChild(cr);
+    }
+
+    function updateToolbar() {
+        const cb = $('#ov-enabled'); if (cb) cb.checked = overlay.enabled;
+        const c = $('#ov-count'); if (c) c.textContent = overlayCount() + ' modification(s) factice(s)';
+    }
+    function bindToolbar() {
+        const cb = $('#ov-enabled');
+        cb.addEventListener('change', () => { overlay.enabled = cb.checked; saveOverlay(); refreshAll(); });
+        $('#ov-ecmo').addEventListener('click', () => { applyEcmoEverywhere(); overlay.enabled = true; saveOverlay(); refreshAll(); });
+        $('#ov-noecmo').addEventListener('click', () => { removeEcmoEverywhere(); saveOverlay(); refreshAll(); });
+        $('#ov-clear').addEventListener('click', () => { overlay.levels = {}; saveOverlay(); refreshAll(); });
+        $('#ov-copy').addEventListener('click', async (e) => {
+            try { await navigator.clipboard.writeText(overlaySummary()); e.target.textContent = '✅ Copié'; }
+            catch (err) { e.target.textContent = 'Copie impossible'; }
+            setTimeout(() => { e.target.textContent = 'Copier les modifs'; }, 1200);
         });
     }
 
@@ -430,10 +577,26 @@
         });
         add.appendChild(nm); add.appendChild(addBtn);
         fsC.appendChild(add);
+        const ecmoRow = el('div', 'pl-row');
+        const ecmoBtn = el('button', 'pl-btn', '+ ECMO (4 process, bon endroit)');
+        ecmoBtn.addEventListener('click', () => { addEcmoToDraft(); saveDraft(); renderBuilder(); });
+        ecmoRow.appendChild(ecmoBtn); fsC.appendChild(ecmoRow);
         fsC.appendChild(el('p', 'pl-note', "Le score des process s'additionne : leur position dans le schéma est indicative (seuls « mat en 1 » et le filtre d'ouverture agissent avant le calcul)."));
         form.appendChild(fsC);
 
         updateOutputs();
+    }
+
+    /** Ajoute les 4 process ECMO au draft, positionnés selon les mêmes règles que la matrice. */
+    function addEcmoToDraft() {
+        const arr = new LadderBot(draftCfg()).PIPELINE.map(r => parse(r).id);
+        draft.customs.forEach(c => { arr.splice(Math.max(0, Math.min(arr.length, arr.length - c.fromEnd)), 0, c.name); });
+        ECMO_IDS.forEach(id => {
+            if (draft.customs.some(c => c.name === id)) return;
+            const idx = placeIndex(arr, id);
+            draft.customs.push({ name: id, weight: 1, fromEnd: arr.length - idx });
+            arr.splice(idx, 0, id);
+        });
     }
 
     function numRow(label, value, onSet, title) {
@@ -488,7 +651,7 @@
     // ------------------------------------------------------------------
     // Init
     // ------------------------------------------------------------------
-    function refreshAll() { renderDiagrams(); renderMatrix(); if (draft) updateOutputs(); }
+    function refreshAll() { renderDiagrams(); renderMatrix(); updateToolbar(); if (draft) updateOutputs(); }
 
     function renderLegend() {
         const lg = $('#pl-legend');
@@ -499,6 +662,10 @@
         const n = el('span'); const tg = el('b', null, '+'); tg.style.cssText = 'background:#3fb950;color:#0d1117;padding:0 5px;border-radius:3px;font-size:10px';
         n.appendChild(tg); n.appendChild(document.createTextNode(' nouveau par rapport au level précédent'));
         lg.appendChild(n);
+        const f = el('span'); const tf = el('b', null, 'factice'); tf.style.cssText = 'background:#bc8cff;color:#0d1117;padding:0 5px;border-radius:3px;font-size:10px';
+        f.appendChild(tf); f.appendChild(document.createTextNode(' ajouté (modification fictive)')); lg.appendChild(f);
+        const r = el('span'); const tr2 = el('b', null, 'retiré'); tr2.style.cssText = 'background:#f85149;color:#0d1117;padding:0 5px;border-radius:3px;font-size:10px';
+        r.appendChild(tr2); r.appendChild(document.createTextNode(' enlevé (modification fictive)')); lg.appendChild(r);
     }
 
     function initTabs() {
@@ -515,12 +682,15 @@
     document.addEventListener('DOMContentLoaded', () => {
         LEVELS = (window.PROCESS_LAB_LEVELS || []).map(levelInfo);
         markNew(LEVELS);
+        loadOverlay();
         renderLegend();
         draft = loadDraft();
         renderDiagrams();
         renderMatrix();
         renderBuilder();
         bindExport();
+        bindToolbar();
+        updateToolbar();
         initTabs();
         window.processLab = { LEVELS, CATALOG, get draft() { return draft; } };
     });

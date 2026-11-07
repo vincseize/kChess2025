@@ -43,12 +43,22 @@ usort($availableBots, function ($a, $b) { return $a['level'] - $b['level']; });
 
     <div class="pl-legend" id="pl-legend"></div>
 
+    <div class="pl-toolbar" id="pl-toolbar">
+        <label><input type="checkbox" id="ov-enabled" checked> Afficher les modifications factices</label>
+        <button id="ov-ecmo" class="pl-btn" title="Échecs → Captures → Menaces → Optimisation, placés au bon endroit dans chaque level">ECMO sur tous les levels</button>
+        <button id="ov-noecmo" class="pl-btn">Retirer ECMO</button>
+        <button id="ov-clear" class="pl-btn pl-btn-danger">Tout effacer</button>
+        <button id="ov-copy" class="pl-btn">Copier les modifs</button>
+        <span id="ov-count"></span>
+    </div>
+
     <main class="pl-main">
         <section id="tab-diagrams" class="pl-view active">
             <div id="diagrams" class="pl-columns"></div>
         </section>
 
         <section id="tab-matrix" class="pl-view">
+            <p class="pl-note">Clique une case pour ajouter ou enlever un process à un level (modification <b>factice</b> : les bots ne sont pas modifiés, tout est mémorisé dans ton navigateur).</p>
             <div class="pl-scroll"><table id="matrix" class="pl-matrix"></table></div>
         </section>
 
