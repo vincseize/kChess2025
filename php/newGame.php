@@ -36,6 +36,10 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
             </div>
 
             <div class="board-preview-group">
+                <p class="board-preview-caption">
+                    <span class="game-players"><?php echo htmlspecialchars($translations['opera_game_players'] ?? 'Paul Morphy – Duc de Brunswick & comte Isouard'); ?></span>
+                    <span class="game-year"><?php echo htmlspecialchars($translations['opera_game_year'] ?? '1858'); ?></span>
+                </p>
                 <div class="board-preview">
                     <picture>
                         <source media="(prefers-reduced-motion: reduce)" srcset="img/opera-game-poster.png?v=<?php echo htmlspecialchars((string)$assetVersion); ?>">
@@ -94,21 +98,19 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
                 $botDir = __DIR__ . '/js/kchess/bots/';
                 $botFiles = glob($botDir . 'Level_*.js');
                 sort($botFiles, SORT_NATURAL);
-                $botSearchDepths = [
-                    1 => 0,
-                    2 => 0,
-                    3 => 0,
-                    4 => 0,
-                    5 => 0,
-                    6 => 0,
-                    7 => 0,
-                    8 => 0,
-                    16 => 1,
-                ];
+                // Profondeur lue dynamiquement dans chaque Level_X.js :
+                // 'depth: N' (config LadderBot, L3-L8) ou 'static SEARCH_DEPTH = N;' (L1, L2, L16)
+                $readBotDepth = function ($file) {
+                    $src = @file_get_contents($file);
+                    if ($src === false) return null;
+                    if (preg_match('/static\s+SEARCH_DEPTH\s*=\s*(\d+)\s*;/', $src, $m)) return (int)$m[1];
+                    if (preg_match('/\bdepth\s*:\s*(\d+)/', $src, $m)) return (int)$m[1];
+                    return null;
+                };
 
                 foreach ($botFiles as $file):
                     $levelNum = str_replace(['Level_', '.js'], '', basename($file));
-                    $searchDepth = $botSearchDepths[(int)$levelNum] ?? null;
+                    $searchDepth = $readBotDepth($file);
                     $botKey = "bot_" . $levelNum;
                     $botData = $translations['bots'][$botKey] ?? null;
                     if (is_array($botData)) {
