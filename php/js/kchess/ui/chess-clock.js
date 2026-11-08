@@ -28,7 +28,6 @@
     const dividerPlayPause = document.getElementById('dividerPlayPause');
     const dividerTempo = document.getElementById('dividerTempo');
     const dividerSound = document.getElementById('dividerSound');
-    const dividerTempoLabel = document.getElementById('dividerTempoLabel');
     const dividerResetYes = document.getElementById('dividerResetYes');
     const dividerResetNo = document.getElementById('dividerResetNo');
     const soundStorageKey = 'kchess.clock.sound';
@@ -160,10 +159,14 @@
         startPauseButton.querySelector('i').className = running
             ? 'bi bi-pause-fill'
             : 'bi bi-play-fill';
-        document.querySelector('.clock-page').classList.toggle('not-started', !hasStarted);
-        dividerTempoLabel.textContent = `${Math.floor(initialTime / 60)} +${increment}`;
+        const page = document.querySelector('.clock-page');
+        page.classList.toggle('not-started', !hasStarted);
+        if (times[activePlayer] > 0) page.dataset.turn = activePlayer;
+        else page.removeAttribute('data-turn');
+        dividerTempo.title = `${text.choose_format} (${Math.floor(initialTime / 60)} +${increment})`;
         const playLabel = running ? text.pause : hasStarted ? text.resume : text.ready;
         dividerPlayPause.querySelector('i').className = running ? 'bi bi-pause-fill' : 'bi bi-play-fill';
+        dividerPlayPause.classList.toggle('is-running', running);
         dividerPlayPause.setAttribute('aria-label', playLabel);
         dividerPlayPause.title = playLabel;
         presetButtons.forEach(button => button.disabled = running);

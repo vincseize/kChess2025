@@ -75,19 +75,24 @@ $version = htmlspecialchars((string) getVersion(), ENT_QUOTES, 'UTF-8');
 
         <nav class="clock-divider" id="clockDivider" aria-label="<?php echo $translate('controls_label'); ?>" data-sound-src="sounds/clock-click.mp3">
             <div class="clock-divider-actions" id="dividerActions">
-                <button type="button" class="clock-divider-btn" id="dividerReset" aria-label="<?php echo $translate('reset'); ?>" title="<?php echo $translate('reset'); ?>">
-                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="clock-divider-btn primary" id="dividerPlayPause" aria-label="<?php echo $translate('ready'); ?>" title="<?php echo $translate('ready'); ?>">
-                    <i class="bi bi-play-fill" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="clock-divider-btn wide" id="dividerTempo" aria-label="<?php echo $translate('choose_format'); ?>" title="<?php echo $translate('choose_format'); ?>">
-                    <i class="bi bi-stopwatch" aria-hidden="true"></i>
-                    <span class="clock-divider-label" id="dividerTempoLabel">10 +0</span>
-                </button>
-                <button type="button" class="clock-divider-btn" id="dividerSound" aria-pressed="true" aria-label="<?php echo $translate('sound_on'); ?>" title="<?php echo $translate('sound_on'); ?>">
-                    <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
-                </button>
+                <div class="clock-divider-group start">
+                    <button type="button" class="clock-divider-btn" id="dividerReset" aria-label="<?php echo $translate('reset'); ?>" title="<?php echo $translate('reset'); ?>">
+                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="clock-divider-group center">
+                    <button type="button" class="clock-divider-btn primary" id="dividerPlayPause" aria-label="<?php echo $translate('ready'); ?>" title="<?php echo $translate('ready'); ?>">
+                        <i class="bi bi-play-fill" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="clock-divider-group end">
+                    <button type="button" class="clock-divider-btn" id="dividerTempo" aria-label="<?php echo $translate('choose_format'); ?>" title="<?php echo $translate('choose_format'); ?>">
+                        <i class="bi bi-stopwatch" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="clock-divider-btn" id="dividerSound" aria-pressed="true" aria-label="<?php echo $translate('sound_on'); ?>" title="<?php echo $translate('sound_on'); ?>">
+                        <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
+                    </button>
+                </div>
             </div>
             <div class="clock-divider-confirm" id="dividerConfirm" role="alertdialog" aria-label="<?php echo $translate('reset_confirm'); ?>" hidden>
                 <span class="clock-divider-question"><?php echo $translate('reset_confirm'); ?></span>
