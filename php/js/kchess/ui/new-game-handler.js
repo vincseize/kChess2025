@@ -1,10 +1,15 @@
 /**
  * js/ui/new-game-handler.js
- * v2.1.0 - Couleur inline à droite du bouton Démarrer (par level)
+ * v2.2.0 - Déverrouillage progressif strict
  *
- * - Accordéon : clic sur un level ouvre son bouton Démarrer + picker de couleur
- * - Chaque level a son propre picker (white / black / random)
- * - Le bouton Démarrer récupère la couleur du picker de SON level
+ * Règles :
+ *  - Level 1 : toujours accessible
+ *  - Level N (N ≥ 2) : accessible si Level N-1 a white + black + random validés
+ *  - Level 16 : accessible si Level 8 est validé (précédent dans la liste)
+ *  - Humain / Humain 960 : toujours accessibles
+ *
+ * Compatible avec bot-training-progress.js (storageKey = 'kchess.botTrainingProgress.v1')
+ * Format : { "1": { white: true, black: true, random: true }, ... }
  */
 
 const NewGameHandler = {
@@ -16,26 +21,105 @@ const NewGameHandler = {
 
     init(targetPage) {
         this.targetPage = targetPage;
+        this.applyLockStates();
         this.bindEvents();
         this.selectDefaultMode();
-        console.log("🎮 NewGameHandler v2.1.0 initialisé (couleur par level)");
+        console.log("🎮 NewGameHandler v2.2.0 initialisé (verrouillage strict)");
+    },
+
+    /**
+     * Lit l'état d'entraînement depuis localStorage.
+     */
+    getTrainingState() {
+        try {
+            if (typeof BotTrainingProgress === 'undefined') return {};
+            const raw = localStorage.getItem(BotTrainingProgress.storageKey);
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+        } catch (e) {
+            return {};
+        }
+    },
+
+    /**
+     * Vérifie si un level a les 3 victoires (white + black + random).
+     */
+    isLevelComplete(level) {
+        const state = this.getTrainingState();
+        const entry = state[String(level)];
+        if (!entry || typeof entry !== 'object') return false;
+        return entry.white === true
+            && entry.black === true
+            && entry.random === true;
+    },
+
+    /**
+     * Vérifie si un level est déverrouillé.
+     */
+    isLevelUnlocked(level, prevLevel) {
+        const lvl = parseInt(level, 10);
+        if (isNaN(lvl) || lvl <= 1) return true; // humain (0) ou level 1
+        const prev = parseInt(prevLevel, 10);
+        if (isNaN(prev) || prev <= 0) return true; // pas de précédent défini → autorisé
+        return this.isLevelComplete(prev);
+    },
+
+    /**
+     * Applique l'état visuel verrouillé/déverrouillé sur toutes les cards.
+     */
+    applyLockStates() {
+        document.querySelectorAll('.level-accordion').forEach(acc => {
+            const btn = acc.querySelector('.game-mode-btn');
+            if (!btn) return;
+
+            const level = btn.dataset.level;
+            const prevLevel = btn.dataset.prevLevel || acc.dataset.prevLevel || '0';
+            const unlocked = this.isLevelUnlocked(level, prevLevel);
+            const lock = acc.querySelector('.level-lock');
+
+            if (unlocked) {
+                acc.classList.remove('is-locked');
+                btn.removeAttribute('aria-disabled');
+                btn.disabled = false;
+                if (lock) lock.hidden = true;
+            } else {
+                acc.classList.add('is-locked');
+                btn.setAttribute('aria-disabled', 'true');
+                btn.disabled = true;
+                if (lock) lock.hidden = false;
+            }
+        });
     },
 
     bindEvents() {
-        // Clic sur un mode → toggle accordéon
         document.querySelectorAll('.game-mode-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleModeSelection(e.currentTarget));
+            btn.addEventListener('click', (e) => {
+                if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const prevLevel = btn.dataset.prevLevel;
+                    if (prevLevel && prevLevel !== '0') {
+                        this.notifyLocked(prevLevel);
+                    }
+                    return;
+                }
+                this.handleModeSelection(e.currentTarget);
+            });
         });
 
-        // Clic sur un bouton "Démarrer" de level → lance la partie
         document.querySelectorAll('.start-level-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                const acc = btn.closest('.level-accordion');
+                if (acc?.classList.contains('is-locked')) {
+                    this.notifyLocked(btn.dataset.prevLevel || btn.dataset.level);
+                    return;
+                }
                 this.startGameFromLevel(btn);
             });
         });
 
-        // Clic sur une couleur dans un picker inline
         document.querySelectorAll('.inline-color-option').forEach(option => {
             option.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -43,7 +127,6 @@ const NewGameHandler = {
             });
         });
 
-        // Chess960 button (raccourci en haut de la page d'accueil)
         document.getElementById('startChess960')?.addEventListener('click', () => {
             this.startGame({
                 mode: 'human',
@@ -55,15 +138,21 @@ const NewGameHandler = {
         });
     },
 
-    /**
-     * Toggle accordéon : si le bouton est déjà sélectionné, on referme.
-     * Sinon, on ferme tous les autres et on ouvre celui-ci.
-     */
+    notifyLocked(prevLevel) {
+        // Flash rouge sur la carte du level précédent à valider
+        const acc = document.querySelector(`.level-accordion[data-level="${prevLevel}"]`);
+        if (acc) {
+            acc.classList.add('flash');
+            setTimeout(() => acc.classList.remove('flash'), 800);
+            acc.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        console.warn(`🔒 Terminez d'abord le Level ${prevLevel} (blanc + noir + aléatoire) pour déverrouiller ce niveau.`);
+    },
+
     handleModeSelection(btn) {
         const accordion = btn.closest('.level-accordion');
         const isAlreadySelected = btn.classList.contains('selected');
 
-        // Ferme tous les accordéons
         document.querySelectorAll('.level-accordion').forEach(acc => {
             const b = acc.querySelector('.game-mode-btn');
             if (b) {
@@ -75,7 +164,6 @@ const NewGameHandler = {
         });
 
         if (isAlreadySelected) {
-            // L'utilisateur a cliqué sur le même level → on referme tout
             this.selectedMode = null;
             this.selectedLevel = null;
             this.selectedProfondeur = null;
@@ -83,7 +171,6 @@ const NewGameHandler = {
             return;
         }
 
-        // Ouvre le nouveau
         btn.classList.add('selected');
         btn.setAttribute('aria-pressed', 'true');
         btn.setAttribute('aria-expanded', 'true');
@@ -101,17 +188,8 @@ const NewGameHandler = {
                 console.warn('Impossible de mémoriser le niveau du bot.', error);
             }
         }
-
-        console.log('🕹️ Mode sélectionné:', {
-            mode: this.selectedMode,
-            level: this.selectedLevel
-        });
     },
 
-    /**
-     * Sélection de couleur dans un picker inline (spécifique au level ouvert).
-     * Ne touche qu'au picker du même conteneur.
-     */
     handleInlineColorSelection(option) {
         const picker = option.closest('.inline-color-picker');
         if (!picker) return;
@@ -124,31 +202,18 @@ const NewGameHandler = {
         option.setAttribute('aria-pressed', 'true');
     },
 
-    /**
-     * Récupère la couleur sélectionnée dans le picker du level courant.
-     */
     getColorForLevel(level) {
         const accordion = document.querySelector(`.level-accordion[data-level="${level}"]`);
         if (!accordion) return 'white';
-
         const selected = accordion.querySelector('.inline-color-option.selected');
         return selected?.dataset.color || 'white';
     },
 
-    /**
-     * Lance la partie avec le level du bouton cliqué.
-     */
     startGameFromLevel(btn) {
-        const mode = btn.dataset.mode;
-        const level = btn.dataset.level;
-        const profondeur = btn.dataset.profondeur;
-        const variant = btn.dataset.variant || null;
-
-        this.selectedMode = mode;
-        this.selectedLevel = level;
-        this.selectedProfondeur = profondeur;
-        this.selectedVariant = variant;
-
+        this.selectedMode = btn.dataset.mode;
+        this.selectedLevel = btn.dataset.level;
+        this.selectedProfondeur = btn.dataset.profondeur;
+        this.selectedVariant = btn.dataset.variant || null;
         this.startGame();
     },
 
@@ -161,7 +226,6 @@ const NewGameHandler = {
             return;
         }
 
-        // Couleur : override > picker du level courant > white
         let finalColor = overrides.color || this.getColorForLevel(level) || 'white';
         if (finalColor === 'random') {
             finalColor = Math.random() > 0.5 ? 'white' : 'black';
@@ -191,7 +255,7 @@ const NewGameHandler = {
             console.warn('Impossible de lire le niveau du bot mémorisé.', error);
         }
 
-        const botButtons = [...document.querySelectorAll('.game-mode-btn[data-mode="bot"]')];
+        const botButtons = [...document.querySelectorAll('.game-mode-btn[data-mode="bot"]:not([disabled])')];
         const defaultBot = botButtons.find(btn => btn.dataset.level === savedLevel)
             || botButtons.find(btn => btn.dataset.level === '1');
 

@@ -48,7 +48,6 @@
     font-size: 1.1rem;
 }
 
-/* Actions à droite : profil + langue */
 .home-navbar-right {
     display: flex;
     align-items: center;
@@ -56,7 +55,6 @@
     gap: 0;
 }
 
-/* Icône Profil (désactivée pour le moment) */
 .home-navbar-profile {
     display: inline-flex;
     align-items: center;
@@ -91,7 +89,6 @@
     color: var(--site-text-muted);
 }
 
-/* Sélecteur de langue */
 .home-navbar-lang {
     position: relative;
     height: 100%;
@@ -141,7 +138,6 @@
     transform: rotate(180deg);
 }
 
-/* Dropdown : drapeaux uniquement, en grille 2×2 */
 .home-navbar-lang-dropdown {
     position: absolute;
     top: 100%;
@@ -450,7 +446,54 @@
     display: flex;
     flex-direction: column;
     gap: 0;
+    position: relative;
 }
+
+/* ★ ÉTAT VERROUILLÉ */
+.level-accordion.is-locked .game-mode-btn {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.6);
+}
+
+.level-accordion.is-locked .game-mode-btn:hover {
+    filter: grayscale(0.6);
+    border-color: var(--site-border);
+}
+
+.level-accordion.is-locked .start-level-container {
+    display: none;
+}
+
+.level-accordion.is-locked .level-lock {
+    display: inline-grid !important;
+    place-items: center;
+    margin-left: 8px;
+    color: var(--site-text-muted);
+    font-size: 1rem;
+}
+
+/* ★ ICÔNE CADENAS */
+.level-lock {
+    display: none;
+    place-items: center;
+    color: var(--site-text-muted);
+    font-size: 1rem;
+}
+
+/* ★ FLASH (feedback au clic sur card verrouillée) */
+@keyframes levelFlash {
+    0%, 100% { background: transparent; }
+    50% { background: color-mix(in srgb, var(--accent-red, #f85149) 22%, transparent); }
+}
+
+.level-accordion.flash .game-mode-btn {
+    animation: levelFlash 700ms ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODE BUTTON (état normal)
+   ═══════════════════════════════════════════════════════════════ */
 
 .game-mode-btn {
     position: relative;
@@ -468,7 +511,7 @@
     font: inherit;
     text-align: left;
     cursor: pointer;
-    transition: background-color 140ms ease, border-color 140ms ease;
+    transition: background-color 140ms ease, border-color 140ms ease, opacity 140ms ease, filter 140ms ease;
 }
 
 .bot-search-depth {
@@ -1002,5 +1045,8 @@
     .home-navbar-lang-item,
     .home-navbar-profile {
         transition: none;
+    }
+    .level-accordion.flash .game-mode-btn {
+        animation: none;
     }
 }

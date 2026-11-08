@@ -23,7 +23,7 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
     :root { <?php echo getThemeCssVariables($config); ?> }
 </style>
 
-<!-- ★ NAVBAR : brand + profil + sélecteur langue (drapeau + dropdown) -->
+<!-- ★ NAVBAR : brand + profil + sélecteur langue -->
 <nav class="home-navbar" aria-label="Navigation principale">
     <a href="index.php" class="home-navbar-brand">
         <i class="bi bi-chess-queen" aria-hidden="true"></i>
@@ -31,7 +31,6 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
     </a>
 
     <div class="home-navbar-right">
-        <!-- Icône Profil (inactive pour le moment) -->
         <button type="button"
                 class="home-navbar-profile"
                 id="profileTrigger"
@@ -41,7 +40,6 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
             <i class="bi bi-person-circle" aria-hidden="true"></i>
         </button>
 
-        <!-- Sélecteur de langue -->
         <div class="home-navbar-lang" id="homeLangPicker">
             <button type="button"
                     class="home-navbar-lang-btn"
@@ -140,6 +138,12 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
                     return null;
                 };
 
+                // Liste des niveaux triés pour déterminer "le précédent"
+                $levelList = [];
+                foreach ($botFiles as $file) {
+                    $levelList[] = (int)str_replace(['Level_', '.js'], '', basename($file));
+                }
+
                 foreach ($botFiles as $file):
                     $levelNum = str_replace(['Level_', '.js'], '', basename($file));
                     $searchDepth = $readBotDepth($file);
@@ -152,11 +156,22 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
                     }
 
                     $btnClass = "btn-level-" . $levelNum;
+                    $levelNumInt = (int)$levelNum;
+
+                    // Détermine le level précédent (celui qui doit être validé)
+                    $prevLevel = 0;
+                    $idx = array_search($levelNumInt, $levelList);
+                    if ($idx !== false && $idx > 0) {
+                        $prevLevel = $levelList[$idx - 1];
+                    }
                     ?>
-                    <div class="level-accordion" data-level="<?php echo htmlspecialchars($levelNum); ?>">
+                    <div class="level-accordion"
+                         data-level="<?php echo htmlspecialchars($levelNum); ?>"
+                         data-prev-level="<?php echo htmlspecialchars((string)$prevLevel); ?>">
                         <button type="button" class="game-mode-btn <?php echo htmlspecialchars($btnClass); ?>"
                                 data-mode="bot"
                                 data-level="<?php echo htmlspecialchars($levelNum); ?>"
+                                data-prev-level="<?php echo htmlspecialchars((string)$prevLevel); ?>"
                                 <?php if ($searchDepth !== null): ?>
                                 data-profondeur="<?php echo htmlspecialchars((string)$searchDepth); ?>"
                                 <?php endif; ?>
@@ -179,6 +194,9 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
                                         echo htmlspecialchars($botData['description'] ?? ($translations['computer_player'] ?? 'Ordinateur') . " " . $levelNum);
                                     ?>
                                 </div>
+                            </div>
+                            <div class="level-lock" aria-hidden="true" hidden>
+                                <i class="bi bi-lock-fill"></i>
                             </div>
                             <div class="bot-training-progress"
                                  data-training-level="<?php echo htmlspecialchars($levelNum); ?>"
@@ -240,7 +258,7 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
                     </div>
                 <?php endforeach; ?>
 
-                <div class="level-accordion" data-level="0">
+                <div class="level-accordion" data-level="0" data-prev-level="0">
                     <button type="button" class="game-mode-btn btn-human" data-mode="human" data-level="0" data-profondeur="false" aria-pressed="false" aria-expanded="false">
                         <div class="mode-description">
                             <div><i class="bi bi-people-fill mode-icon" aria-hidden="true"></i>
@@ -265,7 +283,7 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
                     </div>
                 </div>
 
-                <div class="level-accordion" data-level="0" data-variant="chess960">
+                <div class="level-accordion" data-level="0" data-prev-level="0" data-variant="chess960">
                     <button type="button" class="game-mode-btn btn-human-960" data-mode="human" data-level="0" data-profondeur="false" data-variant="chess960" aria-pressed="false" aria-expanded="false">
                         <div class="mode-description">
                             <div><i class="bi bi-people-fill mode-icon" aria-hidden="true"></i>
