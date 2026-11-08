@@ -131,7 +131,8 @@
             timeElements[player].textContent = formatTime(times[player]);
             const panel = document.querySelector(`[data-player-panel="${player}"]`);
             const face = document.querySelector(`[data-player="${player}"].clock-face`);
-            panel.classList.toggle('active', player === activePlayer && running);
+            // couleurs « actif » dès le départ (avant le 1er coup et en pause) : c'est le camp dont c'est le tour
+            panel.classList.toggle('active', player === activePlayer && times[player] > 0);
             panel.classList.toggle('expired', times[player] <= 0);
             face.disabled = !(running && player === activePlayer)
                 && !(ready && !hasStarted && player === 'black');

@@ -85,14 +85,12 @@ body {
     background: var(--site-background);
 }
 
-.clock-player.white-player {
-    color: #172a33;
-    background: #f7fbfc;
-}
-
-.clock-player.black-player {
-    color: var(--site-text);
-    background: var(--site-surface);
+/* Deux couleurs qui s'échangent : repos = fond gris / texte vert ; pendule en marche = fond vert / texte gris */
+.clock-player {
+    --clock-green: #22c55e;
+    --clock-gray: #2b3036;
+    color: var(--clock-green);
+    background: var(--clock-gray);
 }
 
 .clock-face {
@@ -104,7 +102,7 @@ body {
     justify-content: center;
     width: 100%;
     height: 100%;
-    padding: 48px 80px;
+    padding: 48px 12px;
     border: 0;
     border-radius: 0;
     color: inherit;
@@ -122,27 +120,30 @@ body {
     opacity: 1;
 }
 
-.clock-player.active::after {
-    position: absolute;
-    z-index: 1;
-    inset: 4px;
-    border: 2px solid #dc3545;
-    content: "";
-    pointer-events: none;
+.clock-player {
+    container-type: size;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.clock-player-name {
-    font-size: clamp(1rem, 3.2vmin, 1.5rem);
-    font-weight: 700;
+/* Joueur dont la pendule tourne : on inverse */
+.clock-player.active {
+    color: var(--clock-gray);
+    background: var(--clock-green);
 }
 
 .clock-time {
-    margin-top: 6px;
+    margin: 0;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: clamp(3.2rem, 15vmin, 8rem);
+    font-size: clamp(3.2rem, 15vmin, 8rem);   /* repli sans container queries */
+    font-size: min(25cqw, 55cqh);
     font-weight: 750;
     font-variant-numeric: tabular-nums;
     line-height: 1;
+}
+
+/* Joueur en face : chiffres tête en bas */
+.black-player .clock-time {
+    transform: rotate(180deg);
 }
 
 .clock-player.expired .clock-time {
@@ -371,7 +372,7 @@ body {
     }
 
     .clock-face {
-        padding: 72px 64px 32px;
+        padding: 72px 12px 32px;
     }
 
     .clock-settings-panel {

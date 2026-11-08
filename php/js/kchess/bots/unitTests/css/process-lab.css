@@ -139,3 +139,8 @@ body {
 .pl-node .tag.removed { background: var(--red); color: #0d1117; }
 .pl-node.removed { opacity: .5; }
 .pl-node.removed { text-decoration: line-through; text-decoration-color: var(--red); }
+
+/* --- Export matrice -> level factice --- */
+.pl-warn { color: var(--yellow); white-space: pre-line; }
+.pl-th-btn { background: var(--panel2); border: 1px solid var(--border); color: var(--blue); border-radius: 4px; cursor: pointer; padding: 1px 8px; font-size: 13px; }
+.pl-th-btn:hover { background: var(--blue); color: #0d1117; }

@@ -69,6 +69,7 @@ usort($availableBots, function ($a, $b) { return $a['level'] - $b['level']; });
                     <h3>Aperçu du pipeline</h3>
                     <div id="builder-preview" class="pl-columns"></div>
                     <div id="builder-diff" class="pl-note"></div>
+                    <div id="builder-warn" class="pl-note pl-warn"></div>
                 </div>
                 <div class="pl-export">
                     <h3>Export</h3>

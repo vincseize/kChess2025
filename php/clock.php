@@ -17,6 +17,8 @@ $version = htmlspecialchars((string) getVersion(), ENT_QUOTES, 'UTF-8');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title><?php echo $clockTitle; ?> | <?php echo htmlspecialchars($config['app_name'], ENT_QUOTES, 'UTF-8'); ?></title>
+    <link rel="icon" type="image/svg+xml" href="img/icon.svg">
+    <link rel="manifest" href="manifest.json">
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/bootstrap-icons.css">
     <link rel="stylesheet" href="css/kchess/clock.css?v=<?php echo $version; ?>">
@@ -37,13 +39,11 @@ $version = htmlspecialchars((string) getVersion(), ENT_QUOTES, 'UTF-8');
         <section class="clock-players" aria-label="<?php echo $translate('board_label'); ?>">
             <div class="clock-player black-player" data-player-panel="black">
                 <button type="button" class="clock-face" id="blackClock" data-player="black" disabled aria-label="<?php echo $translate('black'); ?>">
-                    <span class="clock-player-name"><?php echo $translate('black'); ?></span>
                     <span class="clock-time" id="blackTime">10:00</span>
                 </button>
             </div>
             <div class="clock-player white-player" data-player-panel="white">
                 <button type="button" class="clock-face" id="whiteClock" data-player="white" disabled aria-label="<?php echo $translate('white'); ?>">
-                    <span class="clock-player-name"><?php echo $translate('white'); ?></span>
                     <span class="clock-time" id="whiteTime">10:00</span>
                 </button>
             </div>

@@ -15,7 +15,22 @@ class Level_2 {
         this.gameFonctions = GameFonctions.attach(this);
     }
 
-    get PIPELINE() { return ['mat_en_1', 'captures_rentables', 'garde_pat', 'centre_sur', 'coup_sur', 'repli_aleatoire']; }
+    /**
+     * Process du niveau, dans l'ordre d'exécution (lu par Bot_Process.php).
+     * Étape 1 : les paramètres (maxCandidates, stalePieces) sont lus par le code ; les on/off sont descriptifs.
+     */
+    get PROCESS_CONFIG() {
+        return {
+            mat_en_1: true,
+            captures_rentables: { maxCandidates: 3 },
+            garde_pat: { stalePieces: 12 },
+            centre_sur: true,
+            coup_sur: true,
+            repli_aleatoire: true
+        };
+    }
+
+    get PIPELINE() { return Object.keys(this.PROCESS_CONFIG); }
 
     async getMove() {
         try {
@@ -39,14 +54,15 @@ class Level_2 {
             }
 
             // garde anti-pat (seulement quand il reste peu de pièces : coût limité)
-            const few = this._countPieces(game) <= 12;
+            const pc = this.PROCESS_CONFIG;
+            const few = this._countPieces(game) <= pc.garde_pat.stalePieces;
             const noPat = m => !(few && gf.isStalemateAfterMove(game, m, oppColor));
 
             // --- 1. CAPTURES RENTABLES ---
             const captureMoves = allMoves.filter(m => m.isCapture);
             if (captureMoves.length > 0) {
                 captureMoves.sort((a, b) => this.pieceValues[b.targetPiece.type] - this.pieceValues[a.targetPiece.type]);
-                for (let i = 0; i < Math.min(captureMoves.length, 3); i++) {
+                for (let i = 0; i < Math.min(captureMoves.length, pc.captures_rentables.maxCandidates); i++) {
                     const m = captureMoves[i];
                     const isAttacked = this._isSquareAttacked(game, m.toRow, m.toCol, oppColor);
                     if ((!isAttacked || this.pieceValues[m.targetPiece.type] >= this.pieceValues[m.piece.type]) && noPat(m)) {

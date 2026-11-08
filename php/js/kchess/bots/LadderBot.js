@@ -22,20 +22,38 @@ class LadderBot {
         this.gf = GameFonctions.attach(this);
     }
 
-    /** Étapes actives du niveau, dans l'ordre : sert au schéma de process. */
-    get PIPELINE() {
-        const c = this.cfg, w = c.w, p = [];
-        if (c.mateIn1) p.push('mat_en_1');
-        if (c.openingFilter) p.push('filtre_ouverture');
-        p.push('echange_statique', 'exposition_piece_jouee');
-        if (w.centerControl || w.doubledPawns || w.majorFile) p.push('structure_base');
-        if (w.connected || w.doubledRooks || w.fork || w.islands || w.advRanks) p.push('structure_avancee');
-        if (c.stalemateGuard) p.push('garde_pat');
-        if (c.conversion) p.push('conversion_finale');
-        if (c.repetition) p.push('anti_repetition');
-        if (c.depth >= 1) p.push(`reponse_adverse(${c.replyLimit})`, 'securite_roi', 'menace_mat_en_1');
-        p.push(`choix(bruit=${c.noise})`);
+    /**
+     * Process actifs du niveau et leurs paramètres, dans l'ordre du pipeline (source unique).
+     * Lu par Bot_Process.php (matrice / diagrammes). Valeur : true ou { paramètres }.
+     */
+    get PROCESS_CONFIG() {
+        const c = this.cfg, w = c.w || {};
+        const pick = (...keys) => Object.fromEntries(keys.filter(k => w[k] !== undefined).map(k => [k, w[k]]));
+        const p = {};
+        if (c.mateIn1) p.mat_en_1 = true;
+        if (c.openingFilter) p.filtre_ouverture = true;
+        if (w.capture) p.echange_statique = pick('capture');
+        if (w.exposure) p.exposition_piece_jouee = pick('exposure');
+        const bonus = pick('promotion', 'pawnAdvance', 'centerSquare', 'develop', 'castle', 'check');
+        if (Object.values(bonus).some(v => v > 0)) p.bonus_positionnels = bonus;
+        if (w.centerControl || w.doubledPawns || w.majorFile) p.structure_base = pick('centerControl', 'doubledPawns', 'majorFile');
+        if (w.connected || w.doubledRooks || w.fork || w.islands || w.advRanks) p.structure_avancee = pick('connected', 'doubledRooks', 'fork', 'islands', 'advRanks');
+        if (c.stalemateGuard) p.garde_pat = { stalePieces: c.stalePieces };
+        if (c.conversion) p.conversion_finale = true;
+        if (c.repetition) p.anti_repetition = true;
+        if (c.depth >= 1) {   // trois process indépendants : poids / drapeau à 0 = inactif
+            if (c.replyW > 0 && c.replyLimit > 0) p.reponse_adverse = { replyLimit: c.replyLimit, replyW: c.replyW };
+            if (c.kingAttackers > 0) p.securite_roi = { kingAttackers: c.kingAttackers };
+            if (c.mateThreat) p.menace_mat_en_1 = { mateThreat: c.mateThreat };
+        }
+        p.choix = { noise: c.noise };
         return p;
+    }
+
+    /** Étapes actives du niveau, dans l'ordre : sert au schéma de process (dérivé de PROCESS_CONFIG). */
+    get PIPELINE() {
+        const arg = { reponse_adverse: v => `(${v.replyLimit})`, choix: v => `(bruit=${v.noise})` };
+        return Object.entries(this.PROCESS_CONFIG).map(([id, v]) => id + (arg[id] ? arg[id](v) : ''));
     }
 
     async getMove() {

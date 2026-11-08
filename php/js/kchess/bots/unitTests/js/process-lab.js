@@ -33,7 +33,7 @@
         centre_sur:             { label: 'Centre (coups sûrs)', group: 'filtre', desc: "Parmi les coups sûrs, préfère ceux qui arrivent dans le centre (c3–f6)." },
         echange_statique:       { label: 'Échange statique', group: 'score', desc: "Capture : gain net de la séquence de prises et reprises sur la case.", w: ['capture'] },
         exposition_piece_jouee: { label: 'Exposition pièce jouée', group: 'score', desc: "Coup tranquille : pénalise la pièce jouée si elle arrive sur une case attaquée ou mal défendue.", w: ['exposure'] },
-        bonus_positionnels:     { label: 'Bonus de position', group: 'score', implicit: true, desc: "Toujours actif dans LadderBot (absent de PIPELINE) : promotion, avance des pions, centre, développement, roque, échec.", w: ['promotion', 'pawnAdvance', 'centerSquare', 'develop', 'castle', 'check'] },
+        bonus_positionnels:     { label: 'Bonus de position', group: 'score', desc: "Promotion, avance des pions, centre, développement, roque, échec.", w: ['promotion', 'pawnAdvance', 'centerSquare', 'develop', 'castle', 'check'] },
         structure_base:         { label: 'Structure de base', group: 'score', desc: "Variation du contrôle du centre, des pions doublés, des colonnes des pièces lourdes.", w: ['centerControl', 'doubledPawns', 'majorFile'] },
         structure_avancee:      { label: 'Structure avancée', group: 'score', desc: "Pions liés, tours doublées, fourchettes de cavalier, îlots de pions, rangées avancées.", w: ['connected', 'doubledRooks', 'fork', 'islands', 'advRanks'] },
         conversion_finale:      { label: 'Conversion finale', group: 'score', desc: "Avec un net avantage matériel et peu de pièces : réduit les coups adverses et rapproche le roi." },
@@ -75,11 +75,11 @@
         ecmo_optimisation: {}
     };
 
-    // Bots sans getter PIPELINE : décrits ici (badge « doc »), à remplacer par un vrai getter plus tard
+    // Repli uniquement si un bot n'expose ni PIPELINE ni PROCESS_CONFIG (badge « doc »)
     const FALLBACK = {
         1:  ['coup_aleatoire'],
         16: ['ouverture_livre', 'mat_en_1', 'echange_statique', 'exposition_piece_jouee', 'bonus_positionnels',
-             'structure_base', 'structure_avancee', 'garde_pat', 'reponse_adverse', 'securite_roi',
+             'structure_base', 'structure_avancee', 'reponse_adverse', 'garde_pat', 'securite_roi',
              'menace_mat_en_1', 'promotion_prioritaire', 'choix_meilleur']
     };
 
@@ -89,6 +89,18 @@
     const BOOL_KEYS = ['mateIn1', 'openingFilter', 'stalemateGuard', 'conversion', 'repetition', 'mateThreat'];
     const NUM_KEYS = ['noise', 'stalePieces', 'replyLimit', 'replyW', 'kingAttackers'];
     const DRAFT_KEY = 'kchess_process_lab_draft';
+
+    // Valeurs par défaut quand un process est activé sur un level qui n'en avait pas les poids (poids de L8)
+    const DEFAULT_W = { capture: 1, exposure: 1, promotion: 800, pawnAdvance: 3, centerSquare: 12, develop: 15, castle: 60, check: 30,
+                        centerControl: 8, doubledPawns: 20, majorFile: 10, connected: 15, doubledRooks: 25, fork: 1, islands: 20, advRanks: 15 };
+    const DEFAULT_CFG = { depth: 0, noise: 50, mateIn1: false, openingFilter: false, stalemateGuard: false, stalePieces: 12,
+                          conversion: false, repetition: false, replyLimit: 8, replyW: 1, kingAttackers: 60, mateThreat: false, w: {} };
+    // Poids lus sans garde par LadderBot : toujours écrits dans l'export (0 = inactif), sinon NaN
+    const UNGUARDED_W = ['capture', 'exposure', 'promotion', 'pawnAdvance', 'centerSquare', 'develop', 'castle', 'check'];
+    // Process que LadderBot sait réellement exécuter
+    const LADDER_SUPPORTED = ['mat_en_1', 'filtre_ouverture', 'echange_statique', 'exposition_piece_jouee', 'bonus_positionnels',
+                              'structure_base', 'structure_avancee', 'garde_pat', 'conversion_finale', 'anti_repetition',
+                              'reponse_adverse', 'securite_roi', 'menace_mat_en_1', 'choix'];
 
     // ------------------------------------------------------------------
     // Utilitaires
@@ -130,11 +142,14 @@
         if (isLadder) insertImplicit(raw);
 
         const depth = (cls.SEARCH_DEPTH !== undefined) ? cls.SEARCH_DEPTH : (inst.cfg && inst.cfg.depth);
-        return { n, name: inst.name || ('Level ' + n), cfg: inst.cfg || null, depth: depth === undefined ? '?' : depth,
+        let processConfig = null;
+        try { processConfig = inst.PROCESS_CONFIG || null; } catch (e) { /* ignore */ }
+        return { n, name: inst.name || ('Level ' + n), cfg: inst.cfg || null, processConfig, depth: depth === undefined ? '?' : depth,
                  source, steps: toSteps(raw) };
     }
 
     function insertImplicit(raw) {
+        if (raw.some(s => parse(s).id === 'bonus_positionnels')) return;   // déjà dans le PIPELINE du bot
         const i = raw.findIndex(s => parse(s).id === 'exposition_piece_jouee');
         if (i >= 0) raw.splice(i + 1, 0, 'bonus_positionnels');
     }
@@ -211,8 +226,11 @@
         if (i.factice) box.appendChild(el('p', 'pl-note', 'Process factice : il n\'existe pas dans le code des bots, il sert à visualiser où il s\'insérerait.'));
 
         // paramètres (valeurs du level courant si connu)
+        const pc = ctx && ctx.processConfig && ctx.processConfig[id];
         const cfg = ctx && ctx.cfg;
-        if (cfg) {
+        if (pc && typeof pc === 'object') {
+            Object.keys(pc).forEach(k => box.appendChild(kv(k, pc[k])));
+        } else if (cfg) {
             (i.c || []).forEach(k => box.appendChild(kv(k, cfg[k])));
             (i.w || []).forEach(k => box.appendChild(kv('w.' + k, cfg.w ? cfg.w[k] : undefined)));
         }
@@ -343,6 +361,16 @@
         ok.forEach(l => hr.appendChild(el('th', null, 'L' + l.n)));
         t.appendChild(hr);
 
+        const er = el('tr');
+        er.appendChild(el('td', 'rowname', 'exporter ⤓'));
+        ok.forEach(l => {
+            const td = el('td'); const b = el('button', 'pl-th-btn', '⤓');
+            b.title = 'Envoyer cette colonne vers « Level factice » pour la télécharger en Level_NN.js';
+            b.addEventListener('click', () => sendColumnToBuilder(l));
+            td.appendChild(b); er.appendChild(td);
+        });
+        t.appendChild(er);
+
         const dr = el('tr');
         dr.appendChild(el('td', 'rowname', 'depth'));
         ok.forEach(l => dr.appendChild(el('td', null, String(l.depth))));
@@ -359,7 +387,11 @@
                 let cls = 'off', txt = '·', title = 'Cliquer pour ajouter (factice)';
                 if (s && s.removed) { cls = 'rm'; txt = '✕'; title = 'Retiré (factice) — cliquer pour remettre'; }
                 else if (s && s.added) { cls = 'add'; txt = '●'; title = 'Ajouté (factice) — cliquer pour enlever'; }
-                else if (s) { cls = 'on' + (s.isNew ? ' new' : ''); txt = '●'; title = 'Présent dans le bot — cliquer pour enlever (factice)'; }
+                else if (s) {
+                    cls = 'on' + (s.isNew ? ' new' : ''); txt = '●'; title = 'Présent dans le bot — cliquer pour enlever (factice)';
+                    const pc = l.processConfig && l.processConfig[id];
+                    if (pc && typeof pc === 'object' && Object.keys(pc).length) title += '\n' + Object.keys(pc).map(k => k + ' = ' + pc[k]).join(', ');
+                }
                 const td = el('td', cls + ' cell', txt);
                 td.title = title;
                 if (s && s.arg) td.appendChild(el('span', 'arg', s.arg));
@@ -403,7 +435,7 @@
         const base = baseLevels().find(l => l.n === baseN) || baseLevels()[0];
         const cfg = base ? JSON.parse(JSON.stringify(base.cfg)) : { depth: 0, noise: 50, w: {} };
         cfg.name = 'Bot Level 99 (test)';
-        return { base: base ? base.n : null, level: 99, cfg, customs: [] };
+        return { base: base ? base.n : null, level: 99, cfg, customs: [], from: '', warn: [] };
     }
 
     function loadDraft() {
@@ -430,18 +462,22 @@
             flags.splice(idx, 0, { custom: true });
         });
         const i = raw.findIndex(s => parse(s).id === 'exposition_piece_jouee');
-        if (i >= 0) { raw.splice(i + 1, 0, 'bonus_positionnels'); flags.splice(i + 1, 0, null); }
+        if (i >= 0 && !raw.some(r => parse(r).id === 'bonus_positionnels')) { raw.splice(i + 1, 0, 'bonus_positionnels'); flags.splice(i + 1, 0, null); }
         return toSteps(raw, flags);
     }
 
     function buildCode() {
         const c = draft.cfg, lv = draft.level;
         const q = (v) => JSON.stringify(v);
-        const w = Object.keys(c.w || {}).filter(k => c.w[k] !== undefined && c.w[k] !== '')
-            .map(k => k + ': ' + c.w[k]).join(', ');
+        const wAll = Object.assign({}, c.w || {});
+        UNGUARDED_W.forEach(k => { if (wAll[k] === undefined || wAll[k] === '') wAll[k] = 0; });
+        const w = Object.keys(wAll).filter(k => wAll[k] !== '' && (UNGUARDED_W.includes(k) || Number(wAll[k]) !== 0))
+            .map(k => k + ': ' + wAll[k]).join(', ');
         const L = [];
         L.push('/**');
         L.push(' * Level_' + lv + ' — level factice généré par Bot_Process.php (base : Level_' + (draft.base || '?') + ')');
+        if (draft.from) L.push(' * Source : ' + draft.from);
+        (draft.warn || []).forEach(x => L.push(' * ⚠ ' + x));
         L.push(' * Configuration LadderBot' + (draft.customs.length ? ' + process ajoutés : ' + draft.customs.map(x => x.name).join(', ') : '') + '.');
         L.push(' */');
         L.push('class Level_' + lv + ' extends LadderBot {');
@@ -486,6 +522,66 @@
         L.push('}');
         L.push('window.Level_' + lv + ' = Level_' + lv + ';');
         return L.join('\n') + '\n';
+    }
+
+    /**
+     * Colonne de la matrice (état affiché : process natifs + modifications factices) → draft de Level_NN.js.
+     * Seuls les process que LadderBot exécute vraiment deviennent de la config ; les ECMO deviennent des squelettes.
+     */
+    function columnToDraft(lv) {
+        const on = new Set(effectiveSteps(lv).filter(s => !s.removed).map(s => s.id));
+        const cfg = JSON.parse(JSON.stringify(lv.cfg || DEFAULT_CFG));
+        cfg.w = cfg.w || {};
+        const w = cfg.w;
+
+        // process à poids : actif = au moins un poids > 0 (défauts si aucun), inactif = tous à 0
+        ['echange_statique', 'exposition_piece_jouee', 'bonus_positionnels', 'structure_base', 'structure_avancee'].forEach(id => {
+            const keys = info(id).w || [];
+            if (on.has(id)) { if (!keys.some(k => w[k] > 0)) keys.forEach(k => { w[k] = DEFAULT_W[k]; }); }
+            else keys.forEach(k => { w[k] = 0; });
+        });
+        // drapeaux
+        cfg.mateIn1 = on.has('mat_en_1');
+        cfg.openingFilter = on.has('filtre_ouverture');
+        cfg.stalemateGuard = on.has('garde_pat');
+        if (cfg.stalemateGuard && !(cfg.stalePieces > 0)) cfg.stalePieces = 12;
+        cfg.conversion = on.has('conversion_finale');
+        cfg.repetition = on.has('anti_repetition');
+        // depth 1 : trois process indépendants (poids / drapeau à 0 = inactif)
+        if (on.has('reponse_adverse')) { if (!(cfg.replyW > 0)) cfg.replyW = 1; if (!(cfg.replyLimit > 0)) cfg.replyLimit = 8; }
+        else { cfg.replyW = 0; cfg.replyLimit = 0; }
+        if (on.has('securite_roi')) { if (!(cfg.kingAttackers > 0)) cfg.kingAttackers = 60; } else cfg.kingAttackers = 0;
+        cfg.mateThreat = on.has('menace_mat_en_1');
+        cfg.depth = (cfg.replyW > 0 || cfg.kingAttackers > 0 || cfg.mateThreat) ? 1 : 0;
+        if (!(cfg.noise >= 0)) cfg.noise = 50;
+        const level = draft ? draft.level : 99;
+        cfg.name = 'Bot Level ' + level + ' (test)';
+
+        // ECMO présents dans la colonne → squelettes placés comme dans la matrice
+        const arr = new LadderBot(Object.assign({}, cfg, { level })).PIPELINE.map(r => parse(r).id);
+        const customs = [];
+        ECMO_IDS.filter(id => on.has(id)).forEach(id => {
+            const idx = placeIndex(arr, id);
+            customs.push({ name: id, weight: 1, fromEnd: arr.length - idx });
+            arr.splice(idx, 0, id);
+        });
+
+        const warn = [];
+        const ignored = [...on].filter(id => !LADDER_SUPPORTED.includes(id) && !ECMO_IDS.includes(id));
+        if (ignored.length) warn.push('Non exécutables par LadderBot (ignorés) : ' + ignored.map(id => info(id).label).join(', ') + '.');
+        if (!on.has('choix')) warn.push('« Choix (meilleur + bruit) » est toujours présent dans LadderBot : bruit conservé (' + cfg.noise + ').');
+        if (customs.length) warn.push('ECMO : squelettes qui renvoient 0 (à coder dans _proc_ecmo_*).');
+
+        return { base: lv.cfg ? lv.n : null, level, cfg, customs, from: 'matrice, colonne L' + lv.n, warn };
+    }
+
+    function sendColumnToBuilder(lv) {
+        if (typeof LadderBot === 'undefined') return;
+        if (draft && (draft.customs.length || draft.from) && !confirm('Remplacer le level factice en cours par la colonne L' + lv.n + ' ?')) return;
+        draft = columnToDraft(lv);
+        saveDraft();
+        renderBuilder();
+        const tab = $('.pl-tab[data-tab=builder]'); if (tab) tab.click();
     }
 
     function renderBuilder() {
@@ -625,6 +721,7 @@
         const added = steps.filter(s => s.isNew || s.custom).map(s => info(s.id).label);
         $('#builder-diff').textContent = 'Par rapport à Level ' + (draft.base || '?') + ' — ajoutés : ' + (added.join(', ') || 'aucun') + ' · retirés : ' + (removed.join(', ') || 'aucun');
         $('#builder-code').textContent = buildCode();
+        const wEl = $('#builder-warn'); if (wEl) wEl.textContent = (draft.warn || []).map(x => '⚠ ' + x).join('\n');
         $('#btn-download').textContent = 'Télécharger Level_' + draft.level + '.js';
     }
 
@@ -692,6 +789,6 @@
         bindToolbar();
         updateToolbar();
         initTabs();
-        window.processLab = { LEVELS, CATALOG, get draft() { return draft; } };
+        window.processLab = { LEVELS, CATALOG, columnToDraft, effectiveSteps, get overlay() { return overlay; }, get draft() { return draft; } };
     });
 })();
