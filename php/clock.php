@@ -71,6 +71,8 @@ $version = htmlspecialchars((string) getVersion(), ENT_QUOTES, 'UTF-8');
             </div>
         </section>
 
+        <div class="clock-veil" aria-hidden="true"></div>
+
         <nav class="clock-divider" id="clockDivider" aria-label="<?php echo $translate('controls_label'); ?>" data-sound-src="sounds/clock-click.mp3">
             <div class="clock-divider-actions" id="dividerActions">
                 <button type="button" class="clock-divider-btn" id="dividerReset" aria-label="<?php echo $translate('reset'); ?>" title="<?php echo $translate('reset'); ?>">
@@ -79,8 +81,9 @@ $version = htmlspecialchars((string) getVersion(), ENT_QUOTES, 'UTF-8');
                 <button type="button" class="clock-divider-btn primary" id="dividerPlayPause" aria-label="<?php echo $translate('ready'); ?>" title="<?php echo $translate('ready'); ?>">
                     <i class="bi bi-play-fill" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="clock-divider-btn" id="dividerTempo" aria-label="<?php echo $translate('choose_format'); ?>" title="<?php echo $translate('choose_format'); ?>">
+                <button type="button" class="clock-divider-btn wide" id="dividerTempo" aria-label="<?php echo $translate('choose_format'); ?>" title="<?php echo $translate('choose_format'); ?>">
                     <i class="bi bi-stopwatch" aria-hidden="true"></i>
+                    <span class="clock-divider-label" id="dividerTempoLabel">10 +0</span>
                 </button>
                 <button type="button" class="clock-divider-btn" id="dividerSound" aria-pressed="true" aria-label="<?php echo $translate('sound_on'); ?>" title="<?php echo $translate('sound_on'); ?>">
                     <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
@@ -95,7 +98,7 @@ $version = htmlspecialchars((string) getVersion(), ENT_QUOTES, 'UTF-8');
 
         <p class="visually-hidden" id="clockStatus" role="status" aria-live="polite"><?php echo $translate('initial_status'); ?></p>
 
-        <section class="clock-settings-overlay" id="clockSettings" role="dialog" aria-modal="true" aria-label="<?php echo $clockTitle; ?>">
+        <section class="clock-settings-overlay" id="clockSettings" role="dialog" aria-modal="true" aria-label="<?php echo $clockTitle; ?>" hidden>
             <div class="clock-settings-panel">
                 <div class="clock-presets" role="group" aria-label="<?php echo $translate('cadence'); ?>">
                     <div class="clock-preset-group" aria-label="1 <?php echo $translate('minute'); ?>">

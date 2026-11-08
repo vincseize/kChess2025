@@ -404,7 +404,7 @@ body {
     top: 50%;
     left: 0;
     right: 0;
-    height: 64px;
+    height: 48px;
     transform: translateY(-50%);
     display: flex;
     align-items: center;
@@ -419,7 +419,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 14px;
+    gap: 10px;
 }
 
 .clock-divider-actions[hidden],
@@ -428,17 +428,38 @@ body {
 }
 
 .clock-divider-btn {
-    display: grid;
-    place-items: center;
-    width: 46px;
-    height: 46px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 50%;
-    color: #e6edf3;
-    background: transparent;
-    font-size: 1.25rem;
+    color: #f0f6fc;
+    background: #2d343c;
+    font-size: 1rem;
+    line-height: 1;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: transform 0.08s ease, filter 0.08s ease;
+}
+
+.clock-divider-btn.wide {
+    width: auto;
+    padding: 0 11px;
+    border-radius: 999px;
+}
+
+.clock-divider-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.clock-divider-btn:active {
+    transform: scale(0.9);
+    filter: brightness(1.3);
 }
 
 .clock-divider-btn:hover,
@@ -461,6 +482,7 @@ body {
 
 .clock-divider-btn[aria-pressed="false"] {
     color: #8b949e;
+    background: transparent;
     border-style: dashed;
 }
 
@@ -471,9 +493,9 @@ body {
 }
 
 .clock-divider-choice {
-    min-width: 64px;
-    min-height: 40px;
-    padding: 6px 14px;
+    min-width: 56px;
+    min-height: 34px;
+    padding: 4px 12px;
     border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: 999px;
     color: #e6edf3;
@@ -497,11 +519,11 @@ body {
 @media (orientation: landscape) {
     /* écran large : la barre devient verticale, sous l'en-tête */
     .clock-divider {
-        top: 64px;
+        top: 60px;
         bottom: 0;
         left: 50%;
         right: auto;
-        width: 68px;
+        width: 52px;
         height: auto;
         transform: translateX(-50%);
         flex-direction: column;
@@ -512,17 +534,37 @@ body {
     .clock-divider-actions,
     .clock-divider-confirm {
         flex-direction: column;
-        gap: 12px;
+        gap: 9px;
     }
 
     .clock-divider-question {
-        max-width: 56px;
-        font-size: 0.72rem;
+        max-width: 46px;
+        font-size: 0.66rem;
         text-align: center;
     }
 
     .clock-divider-choice {
-        min-width: 52px;
-        padding-inline: 8px;
+        min-width: 44px;
+        padding-inline: 6px;
     }
+}
+
+@media (orientation: landscape) {
+    .clock-divider-btn.wide { width: 34px; padding: 0; border-radius: 50%; }
+    .clock-divider-label { display: none; }
+}
+
+/* Voile gris tant que la partie n'a pas commencé (ne bloque aucun clic) */
+.clock-veil {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    background: rgba(70, 75, 82, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.clock-page.not-started .clock-veil {
+    opacity: 1;
 }

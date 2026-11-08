@@ -28,6 +28,7 @@
     const dividerPlayPause = document.getElementById('dividerPlayPause');
     const dividerTempo = document.getElementById('dividerTempo');
     const dividerSound = document.getElementById('dividerSound');
+    const dividerTempoLabel = document.getElementById('dividerTempoLabel');
     const dividerResetYes = document.getElementById('dividerResetYes');
     const dividerResetNo = document.getElementById('dividerResetNo');
     const soundStorageKey = 'kchess.clock.sound';
@@ -148,8 +149,9 @@
             // couleurs « actif » dès le départ (avant le 1er coup et en pause) : c'est le camp dont c'est le tour
             panel.classList.toggle('active', player === activePlayer && times[player] > 0);
             panel.classList.toggle('expired', times[player] <= 0);
+            // avant le départ, un tap côté Noirs lance la partie (sans passer par « Prêt »)
             face.disabled = !(running && player === activePlayer)
-                && !(ready && !hasStarted && player === 'black');
+                && !(!hasStarted && player === 'black');
         }
 
         startPauseButton.querySelector('span').textContent = running
@@ -158,6 +160,8 @@
         startPauseButton.querySelector('i').className = running
             ? 'bi bi-pause-fill'
             : 'bi bi-play-fill';
+        document.querySelector('.clock-page').classList.toggle('not-started', !hasStarted);
+        dividerTempoLabel.textContent = `${Math.floor(initialTime / 60)} +${increment}`;
         const playLabel = running ? text.pause : hasStarted ? text.resume : text.ready;
         dividerPlayPause.querySelector('i').className = running ? 'bi bi-pause-fill' : 'bi bi-play-fill';
         dividerPlayPause.setAttribute('aria-label', playLabel);
@@ -373,7 +377,7 @@
     }
 
     clockButtons.forEach(button => button.addEventListener('click', () => {
-        if (!hasStarted && ready && button.dataset.player === 'black') {
+        if (!hasStarted && button.dataset.player === 'black') {
             playClick();
             start();
         } else if (running && button.dataset.player === activePlayer) {
