@@ -47,9 +47,8 @@ usort($availableBots, function ($a, $b) { return $a['level'] - $b['level']; });
         <label><input type="checkbox" id="ov-enabled" checked> Afficher les modifications factices</label>
         <button id="ov-ecmo" class="pl-btn" title="Échecs → Captures → Menaces → Optimisation, placés au bon endroit dans chaque level">ECMO sur tous les levels</button>
         <button id="ov-noecmo" class="pl-btn">Retirer ECMO</button>
-        <button id="ov-clear" class="pl-btn pl-btn-danger">Tout effacer</button>
-        <button id="ov-copy" class="pl-btn">Copier les modifs</button>
-        <span id="ov-count"></span>
+        <button id="ov-clear" class="pl-btn pl-btn-danger" title="Efface toutes les modifications factices (double confirmation, sauvegarde automatique avant)">Tout effacer</button>
+        <button id="ov-restore" class="pl-btn" hidden></button>
     </div>
 
     <main class="pl-main">

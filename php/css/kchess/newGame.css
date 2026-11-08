@@ -202,7 +202,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   OVERLAY (sous la navbar)
+   OVERLAY
    ═══════════════════════════════════════════════════════════════ */
 
 .new-game-overlay {
@@ -449,7 +449,7 @@
     position: relative;
 }
 
-/* ★ ÉTAT VERROUILLÉ */
+/* ÉTAT VERROUILLÉ */
 .level-accordion.is-locked .game-mode-btn {
     opacity: 0.4;
     cursor: not-allowed;
@@ -473,7 +473,6 @@
     font-size: 1rem;
 }
 
-/* ★ ICÔNE CADENAS */
 .level-lock {
     display: none;
     place-items: center;
@@ -481,10 +480,10 @@
     font-size: 1rem;
 }
 
-/* ★ FLASH (feedback au clic sur card verrouillée) */
+/* FLASH */
 @keyframes levelFlash {
     0%, 100% { background: transparent; }
-    50% { background: color-mix(in srgb, var(--accent-red, #f85149) 22%, transparent); }
+    50% { background: color-mix(in srgb, #f85149 22%, transparent); }
 }
 
 .level-accordion.flash .game-mode-btn {
@@ -492,7 +491,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MODE BUTTON (état normal)
+   MODE BUTTON
    ═══════════════════════════════════════════════════════════════ */
 
 .game-mode-btn {
@@ -542,7 +541,8 @@
 
 .game-mode-btn:focus-visible,
 .start-level-btn:focus-visible,
-.inline-color-option:focus-visible {
+.inline-color-option:focus-visible,
+.level-reset-btn:focus-visible {
     outline: 3px solid var(--chess-selected);
     outline-offset: 3px;
 }
@@ -638,24 +638,79 @@
     display: block;
 }
 
-.check-icon {
-    flex: 0 0 10px;
+/* ═══════════════════════════════════════════════════════════════
+   STATUT LEVEL : bouton reset "R" (remplace le point vert)
+   ═══════════════════════════════════════════════════════════════ */
+
+.level-status {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-left: 10px;
+    min-width: 28px;
+    height: 28px;
+}
+
+.level-complete-dot {
+    display: inline-block;
     width: 10px;
     height: 10px;
-    margin: 0 6px 0 10px;
     border-radius: 50%;
     background: var(--success-color);
-    font-size: 0;
     opacity: 0;
+    transition: opacity 140ms ease;
 }
 
-.check-icon::before {
-    content: none;
-}
-
-.game-mode-btn.selected .check-icon,
-.game-mode-btn[aria-expanded="true"] .check-icon {
+.game-mode-btn.selected .level-complete-dot {
     opacity: 1;
+}
+
+/* Sur un level complété : le point vert disparaît, R prend sa place */
+.level-accordion.is-completed .level-complete-dot {
+    display: none;
+}
+
+.level-reset-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--site-border);
+    border-radius: 6px;
+    background: var(--site-surface);
+    color: var(--site-text-muted);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.level-reset-btn:hover,
+.level-reset-btn:focus-visible {
+    border-color: #f85149;
+    background: color-mix(in srgb, #f85149 12%, var(--site-surface));
+    color: #f85149;
+    outline: none;
+    transform: rotate(-45deg);
+}
+
+.level-reset-btn:active {
+    transform: rotate(-45deg) scale(0.92);
+}
+
+.level-reset-btn[hidden] {
+    display: none;
+}
+
+/* Ancien check-icon : neutralisé pour ne pas interférer avec R / point vert */
+.check-icon {
+    display: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -672,16 +727,16 @@
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     max-height: 0;
     overflow: hidden;
     opacity: 0;
     margin-top: 0;
-    transition: max-height 240ms ease, opacity 200ms ease, margin-top 200ms ease;
+    transition: max-height 260ms ease, opacity 200ms ease, margin-top 200ms ease;
 }
 
 .level-accordion.open .level-start-container {
-    max-height: 80px;
+    max-height: 100px;
     opacity: 1;
     margin-top: 6px;
 }
@@ -692,14 +747,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 44px;
-    padding: 10px 16px;
+    min-height: 48px;
+    padding: 12px 18px;
     border: 1px solid var(--success-color);
     border-radius: 8px;
     background: var(--success-color);
     color: var(--site-background);
     font: inherit;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 700;
     cursor: pointer;
     transition: background-color 140ms ease, transform 140ms ease, filter 140ms ease;
@@ -724,51 +779,57 @@
     filter: none;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   PICKER COULEUR INLINE (AGRANDI)
+   ═══════════════════════════════════════════════════════════════ */
+
 .inline-color-picker {
     display: flex;
     flex: 0 0 auto;
-    gap: 4px;
-    padding: 4px;
+    gap: 6px;
+    padding: 6px;
     border: 1px solid var(--site-border);
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--site-surface-alt);
 }
 
 .inline-color-option {
     display: grid;
     place-items: center;
-    width: 34px;
-    height: 34px;
+    width: 48px;
+    height: 48px;
     padding: 0;
-    border: 1px solid transparent;
-    border-radius: 6px;
+    border: 2px solid transparent;
+    border-radius: 8px;
     background: var(--site-surface);
     color: var(--site-text);
     cursor: pointer;
-    transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
+    transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
 
 .inline-color-option img {
-    width: 24px;
-    height: 24px;
+    width: 36px;
+    height: 36px;
     object-fit: contain;
     pointer-events: none;
 }
 
 .inline-color-option.random i {
     color: var(--success-color);
-    font-size: 1rem;
+    font-size: 1.6rem;
 }
 
 .inline-color-option:hover {
     border-color: var(--primary-color);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .inline-color-option.selected {
     border-color: var(--success-color);
-    background: color-mix(in srgb, var(--success-color) 14%, var(--site-surface));
-    box-shadow: inset 0 0 0 1px var(--success-color);
+    background: color-mix(in srgb, var(--success-color) 18%, var(--site-surface));
+    box-shadow: 0 0 0 2px var(--success-color), inset 0 0 0 1px var(--success-color);
+    transform: translateY(-1px);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -988,49 +1049,65 @@
     }
 
     .level-start-container {
-        gap: 6px;
+        gap: 8px;
     }
 
     .start-level-btn {
-        min-height: 40px;
-        padding: 8px 12px;
-        font-size: 0.84rem;
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 0.88rem;
     }
 
     .inline-color-picker {
-        gap: 3px;
-        padding: 3px;
+        gap: 5px;
+        padding: 5px;
     }
 
     .inline-color-option {
+        width: 42px;
+        height: 42px;
+    }
+
+    .inline-color-option img {
         width: 30px;
         height: 30px;
     }
 
-    .inline-color-option img {
-        width: 20px;
-        height: 20px;
+    .inline-color-option.random i {
+        font-size: 1.35rem;
     }
 
-    .inline-color-option.random i {
-        font-size: 0.85rem;
+    .level-reset-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 0.8rem;
+    }
+
+    .level-status {
+        min-width: 26px;
+        height: 26px;
+        margin-left: 6px;
     }
 }
 
 @media (max-width: 360px) {
     .inline-color-picker {
-        gap: 2px;
-        padding: 2px;
+        gap: 4px;
+        padding: 4px;
     }
 
     .inline-color-option {
+        width: 38px;
+        height: 38px;
+    }
+
+    .inline-color-option img {
         width: 26px;
         height: 26px;
     }
 
-    .inline-color-option img {
-        width: 18px;
-        height: 18px;
+    .inline-color-option.random i {
+        font-size: 1.2rem;
     }
 }
 
@@ -1043,10 +1120,34 @@
     .home-navbar-lang-btn i,
     .home-navbar-brand,
     .home-navbar-lang-item,
-    .home-navbar-profile {
+    .home-navbar-profile,
+    .level-reset-btn {
         transition: none;
     }
     .level-accordion.flash .game-mode-btn {
         animation: none;
     }
+}
+/* Message après reset d'un level */
+#levelToast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translate(-50%, 20px);
+    max-width: calc(100vw - 32px);
+    padding: 10px 16px;
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
+    background: var(--site-surface);
+    color: var(--site-text);
+    font-size: 0.9rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+    z-index: 2000;
+}
+
+#levelToast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
 }

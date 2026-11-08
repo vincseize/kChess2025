@@ -12,10 +12,10 @@
     // Familles de process
     // ------------------------------------------------------------------
     const GROUPS = {
-        decision: { label: 'Décision immédiate (joue le coup et s\'arrête)', color: '#f85149' },
+        decision: { label: 'Décision immédiate (joue le coup et s\'arrête)', color: '#f0883e' },
         filtre:   { label: 'Filtre (écarte des coups)',                       color: '#d29922' },
         score:    { label: 'Score (ajoute des points à chaque coup)',         color: '#58a6ff' },
-        choix:    { label: 'Choix final',                                     color: '#3fb950' },
+        choix:    { label: 'Choix final',                                     color: '#f85149' },
         ecmo:     { label: 'ECMO — principe de réflexion (factice)',          color: '#bc8cff' }
     };
 
@@ -158,6 +158,8 @@
     // Rendu d'une colonne de diagramme
     // ------------------------------------------------------------------
     let selected = null;
+    const SOLO_KEY = 'kchess_process_lab_solo';
+    let soloN = null;   // level affiché seul (null = tous)
 
     function renderColumn(title, meta, steps, ctx) {
         const col = el('div', 'pl-col');
@@ -166,6 +168,14 @@
         const m = el('div', 'pl-col-meta', meta.text || '');
         if (meta.badge) { m.appendChild(document.createTextNode(' ')); m.appendChild(el('span', 'pl-badge ' + meta.badge, meta.badge === 'bot' ? 'lu du bot' : 'doc')); }
         head.appendChild(m);
+        if (meta.solo !== undefined) {
+            const on = soloN === meta.solo;
+            const sb = el('button', 'pl-th-btn pl-solo' + (on ? ' on' : ''), on ? '↩' : '⛶');
+            sb.title = on ? 'Afficher tous les levels' : 'Afficher ce level seul (plus de place)';
+            sb.addEventListener('click', () => { soloN = on ? null : meta.solo; lsSet(SOLO_KEY, soloN === null ? '' : String(soloN)); refreshAll(); });
+            head.appendChild(sb);
+        }
+        if (meta.cls) col.classList.add(meta.cls);
         col.appendChild(head);
 
         col.appendChild(el('div', 'pl-terminal', 'coups légaux'));
@@ -251,9 +261,11 @@
     function renderDiagrams() {
         const root = $('#diagrams');
         root.innerHTML = '';
+        const solo = soloN !== null && LEVELS.some(l => l.n === soloN && !l.error);
         LEVELS.forEach(lv => {
+            if (solo && lv.n !== soloN) return;
             if (lv.error) { const c = el('div', 'pl-col error', 'L' + lv.n + ' : ' + lv.error); root.appendChild(c); return; }
-            root.appendChild(renderColumn('Level ' + lv.n, { text: 'depth ' + lv.depth, badge: lv.source }, effectiveSteps(lv), lv));
+            root.appendChild(renderColumn('Level ' + lv.n, { text: 'depth ' + lv.depth, badge: lv.source, solo: lv.n, cls: solo ? 'solo' : '' }, effectiveSteps(lv), lv));
         });
     }
 
@@ -320,19 +332,6 @@
     function removeEcmoEverywhere() {
         Object.keys(overlay.levels).forEach(n => { overlay.levels[n].added = overlay.levels[n].added.filter(id => !ECMO_IDS.includes(id)); });
     }
-    function overlayCount() {
-        return Object.keys(overlay.levels).reduce((t, n) => t + overlay.levels[n].added.length + overlay.levels[n].removed.length, 0);
-    }
-    function overlaySummary() {
-        const lines = [];
-        LEVELS.filter(l => l.steps).forEach(l => {
-            const ov = overlay.levels[l.n]; if (!ov) return;
-            const parts = ov.added.map(id => '+' + id).concat(ov.removed.map(id => '-' + id));
-            if (parts.length) lines.push('L' + l.n + ' : ' + parts.join(', '));
-        });
-        return lines.join('\n') || '(aucune modification)';
-    }
-
     function toggleCell(n, id) {
         const lv = LEVELS.find(l => l.n === n);
         if (!lv || !lv.steps) return;
@@ -407,20 +406,50 @@
         t.appendChild(cr);
     }
 
+    // Sauvegardes de l'état factice (avant « Tout effacer » ou une restauration)
+    const BACKUP_KEY = 'kchess_process_lab_backups';
+    const hasMods = () => Object.keys(overlay.levels).some(n => overlay.levels[n].added.length || overlay.levels[n].removed.length);
+    function readBackups() {
+        try { const a = JSON.parse(lsGet(BACKUP_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+    }
+    function writeBackups(list) { lsSet(BACKUP_KEY, JSON.stringify(list.slice(-10))); }
+    function pushBackup() {
+        const list = readBackups();
+        list.push({ t: new Date().toISOString(), overlay: JSON.parse(JSON.stringify(overlay)) });
+        writeBackups(list);
+    }
+    const fmtDate = (iso) => { const d = new Date(iso); const p2 = (n) => String(n).padStart(2, '0'); return p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()); };
+
     function updateToolbar() {
         const cb = $('#ov-enabled'); if (cb) cb.checked = overlay.enabled;
-        const c = $('#ov-count'); if (c) c.textContent = overlayCount() + ' modification(s) factice(s)';
+        const rb = $('#ov-restore');
+        if (rb) {
+            const list = readBackups(), last = list[list.length - 1];
+            rb.hidden = !last;
+            if (last) { rb.textContent = '↩ Restaurer (' + fmtDate(last.t) + ')'; rb.title = list.length + ' sauvegarde(s) : restaure la plus récente'; }
+        }
     }
     function bindToolbar() {
         const cb = $('#ov-enabled');
         cb.addEventListener('change', () => { overlay.enabled = cb.checked; saveOverlay(); refreshAll(); });
         $('#ov-ecmo').addEventListener('click', () => { applyEcmoEverywhere(); overlay.enabled = true; saveOverlay(); refreshAll(); });
         $('#ov-noecmo').addEventListener('click', () => { removeEcmoEverywhere(); saveOverlay(); refreshAll(); });
-        $('#ov-clear').addEventListener('click', () => { overlay.levels = {}; saveOverlay(); refreshAll(); });
-        $('#ov-copy').addEventListener('click', async (e) => {
-            try { await navigator.clipboard.writeText(overlaySummary()); e.target.textContent = '✅ Copié'; }
-            catch (err) { e.target.textContent = 'Copie impossible'; }
-            setTimeout(() => { e.target.textContent = 'Copier les modifs'; }, 1200);
+        $('#ov-clear').addEventListener('click', () => {
+            if (!hasMods()) return;
+            if (!confirm('Tout effacer : supprimer toutes les modifications factices (ajouts et retraits) ?')) return;
+            if (!confirm('Dernière confirmation. Une sauvegarde est gardée : le bouton « Restaurer » la remettra.')) return;
+            pushBackup();
+            overlay.levels = {};
+            saveOverlay(); refreshAll();
+        });
+        $('#ov-restore').addEventListener('click', () => {
+            const list = readBackups(), last = list[list.length - 1];
+            if (!last) return;
+            if (!confirm('Restaurer la sauvegarde du ' + fmtDate(last.t) + ' ?\nL\'état actuel sera sauvegardé à son tour.')) return;
+            list.pop(); writeBackups(list);
+            if (hasMods()) pushBackup();
+            overlay = { enabled: last.overlay.enabled !== false, levels: last.overlay.levels || {} };
+            saveOverlay(); refreshAll();
         });
     }
 
@@ -752,17 +781,14 @@
 
     function renderLegend() {
         const lg = $('#pl-legend');
-        Object.keys(GROUPS).forEach(g => {
-            const s = el('span'); const i = el('i'); i.style.background = GROUPS[g].color;
-            s.appendChild(i); s.appendChild(document.createTextNode(GROUPS[g].label)); lg.appendChild(s);
-        });
+        const swatch = (g) => { const s = el('span'); const i = el('i'); i.style.background = GROUPS[g].color; s.appendChild(i); s.appendChild(document.createTextNode(GROUPS[g].label)); lg.appendChild(s); };
+        Object.keys(GROUPS).filter(g => g !== 'choix').forEach(swatch);
         const n = el('span'); const tg = el('b', null, '+'); tg.style.cssText = 'background:#3fb950;color:#0d1117;padding:0 5px;border-radius:3px;font-size:10px';
         n.appendChild(tg); n.appendChild(document.createTextNode(' nouveau par rapport au level précédent'));
         lg.appendChild(n);
         const f = el('span'); const tf = el('b', null, 'factice'); tf.style.cssText = 'background:#bc8cff;color:#0d1117;padding:0 5px;border-radius:3px;font-size:10px';
         f.appendChild(tf); f.appendChild(document.createTextNode(' ajouté (modification fictive)')); lg.appendChild(f);
-        const r = el('span'); const tr2 = el('b', null, 'retiré'); tr2.style.cssText = 'background:#f85149;color:#0d1117;padding:0 5px;border-radius:3px;font-size:10px';
-        r.appendChild(tr2); r.appendChild(document.createTextNode(' enlevé (modification fictive)')); lg.appendChild(r);
+        swatch('choix');   // Choix final : en rouge, en dernier sur la ligne
     }
 
     function initTabs() {
@@ -780,6 +806,7 @@
         LEVELS = (window.PROCESS_LAB_LEVELS || []).map(levelInfo);
         markNew(LEVELS);
         loadOverlay();
+        { const v = Number(lsGet(SOLO_KEY)); if (v) soloN = v; }
         renderLegend();
         draft = loadDraft();
         renderDiagrams();

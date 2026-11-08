@@ -138,7 +138,6 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
                     return null;
                 };
 
-                // Liste des niveaux triés pour déterminer "le précédent"
                 $levelList = [];
                 foreach ($botFiles as $file) {
                     $levelList[] = (int)str_replace(['Level_', '.js'], '', basename($file));
@@ -158,7 +157,6 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
                     $btnClass = "btn-level-" . $levelNum;
                     $levelNumInt = (int)$levelNum;
 
-                    // Détermine le level précédent (celui qui doit être validé)
                     $prevLevel = 0;
                     $idx = array_search($levelNumInt, $levelList);
                     if ($idx !== false && $idx > 0) {
@@ -230,7 +228,18 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
                                     <i class="bi bi-check-lg training-check" aria-hidden="true"></i>
                                 </span>
                             </div>
-                            <i class="bi bi-check-lg check-icon" aria-hidden="true"></i>
+                            <div class="level-status">
+                                <span role="button" tabindex="0"
+                                        class="level-reset-btn"
+                                        data-level="<?php echo htmlspecialchars($levelNum); ?>"
+                                        aria-label="<?php echo htmlspecialchars(($translations['reset_level'] ?? 'Réinitialiser le niveau') . ' ' . $levelNum); ?>"
+                                        title="<?php echo htmlspecialchars($translations['reset_level'] ?? 'Réinitialiser le niveau'); ?>"
+                                        data-confirm="<?php echo htmlspecialchars($translations['reset_confirm'] ?? "Réinitialiser le Level {level} ?\n\nLes victoires (Blancs, Noirs, Aléatoire) sont remises à 0.\nLe Level {next} sera à nouveau verrouillé."); ?>"
+                                        data-done="<?php echo htmlspecialchars($translations['reset_done'] ?? 'Level {level} réinitialisé : victoires remises à 0.'); ?>"
+                                        hidden>
+                                    R
+                                </span>
+                            </div>
                         </button>
                         <div class="level-start-container">
                             <button type="button"
@@ -320,10 +329,18 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const params = new URLSearchParams(window.location.search);
+
+    // ★ CORRECTION : ?new ne doit JAMAIS effacer la progression des levels
     if (params.has('new')) {
         try {
+            const PROGRESS_FALLBACK_KEY = 'kchess_training_progress';
+            const progressKey = (typeof BotTrainingProgress !== 'undefined' && BotTrainingProgress.storageKey)
+                ? BotTrainingProgress.storageKey
+                : PROGRESS_FALLBACK_KEY;
+
             const savedBotLevel = localStorage.getItem('kchess.selectedBotLevel');
-            const savedTrainingProgress = localStorage.getItem(BotTrainingProgress.storageKey);
+            const savedTrainingProgress = localStorage.getItem(progressKey);
+
             const keptLabEntries = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
@@ -331,22 +348,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     keptLabEntries.push([key, localStorage.getItem(key)]);
                 }
             }
+
             localStorage.clear();
+
             keptLabEntries.forEach(([key, value]) => localStorage.setItem(key, value));
             if (savedBotLevel) localStorage.setItem('kchess.selectedBotLevel', savedBotLevel);
-            if (savedTrainingProgress) localStorage.setItem(BotTrainingProgress.storageKey, savedTrainingProgress);
+            // ★ On restaure la progression sous la clé réellement utilisée
+            if (savedTrainingProgress) localStorage.setItem(progressKey, savedTrainingProgress);
         } catch (error) {
             console.warn('Impossible de réinitialiser les préférences locales.', error);
         }
         sessionStorage.clear();
     }
+
     if (typeof NewGameHandler !== 'undefined') {
         NewGameHandler.init('<?php echo $targetPage; ?>');
     }
-    BotTrainingProgress.render();
+    if (typeof BotTrainingProgress !== 'undefined' && typeof BotTrainingProgress.render === 'function') {
+        BotTrainingProgress.render();
+    }
 });
 
-// ★ Lang selector : drapeau actif + dropdown de drapeaux
+// ★ Lang selector
 document.addEventListener('DOMContentLoaded', function() {
     const picker = document.getElementById('homeLangPicker');
     const trigger = document.getElementById('langTrigger');
@@ -357,7 +380,6 @@ document.addEventListener('DOMContentLoaded', function() {
         dropdown.hidden = true;
         trigger.setAttribute('aria-expanded', 'false');
     };
-
     const open = () => {
         dropdown.hidden = false;
         trigger.setAttribute('aria-expanded', 'true');
@@ -365,8 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     trigger.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (dropdown.hidden) open();
-        else close();
+        if (dropdown.hidden) open(); else close();
     });
 
     document.addEventListener('click', (e) => {
