@@ -2,6 +2,12 @@
     box-sizing: border-box;
 }
 
+:root {
+    --clock-green: #22c55e;
+    --clock-gray: #2b3036;
+    --clock-band: #11151a;
+}
+
 html,
 body {
     width: 100%;
@@ -87,8 +93,6 @@ body {
 
 /* Deux couleurs qui s'échangent : repos = fond gris / texte vert ; pendule en marche = fond vert / texte gris */
 .clock-player {
-    --clock-green: #22c55e;
-    --clock-gray: #2b3036;
     color: var(--clock-green);
     background: var(--clock-gray);
 }
@@ -390,5 +394,135 @@ body {
         min-width: 0;
         padding-inline: 5px;
         font-size: 0.78rem;
+    }
+}
+
+/* --- Barre centrale : séparateur avec les commandes --- */
+.clock-divider {
+    position: absolute;
+    z-index: 4;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 64px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--clock-band);
+    border-block: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 0 18px rgba(0, 0, 0, 0.45);
+}
+
+.clock-divider-actions,
+.clock-divider-confirm {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+}
+
+.clock-divider-actions[hidden],
+.clock-divider-confirm[hidden] {
+    display: none;
+}
+
+.clock-divider-btn {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 50%;
+    color: #e6edf3;
+    background: transparent;
+    font-size: 1.25rem;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.clock-divider-btn:hover,
+.clock-divider-btn:focus-visible {
+    border-color: var(--clock-green);
+    color: var(--clock-green);
+}
+
+.clock-divider-btn.primary {
+    border-color: var(--clock-green);
+    color: var(--clock-gray);
+    background: var(--clock-green);
+}
+
+.clock-divider-btn.primary:hover,
+.clock-divider-btn.primary:focus-visible {
+    color: var(--clock-gray);
+    filter: brightness(1.12);
+}
+
+.clock-divider-btn[aria-pressed="false"] {
+    color: #8b949e;
+    border-style: dashed;
+}
+
+.clock-divider-question {
+    color: #e6edf3;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.clock-divider-choice {
+    min-width: 64px;
+    min-height: 40px;
+    padding: 6px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    color: #e6edf3;
+    background: transparent;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.clock-divider-choice.danger {
+    border-color: #dc3545;
+    color: #fff;
+    background: #dc3545;
+}
+
+.clock-divider-choice:hover,
+.clock-divider-choice:focus-visible {
+    filter: brightness(1.15);
+}
+
+@media (orientation: landscape) {
+    /* écran large : la barre devient verticale, sous l'en-tête */
+    .clock-divider {
+        top: 64px;
+        bottom: 0;
+        left: 50%;
+        right: auto;
+        width: 68px;
+        height: auto;
+        transform: translateX(-50%);
+        flex-direction: column;
+        border-block: 0;
+        border-inline: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .clock-divider-actions,
+    .clock-divider-confirm {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .clock-divider-question {
+        max-width: 56px;
+        font-size: 0.72rem;
+        text-align: center;
+    }
+
+    .clock-divider-choice {
+        min-width: 52px;
+        padding-inline: 8px;
     }
 }

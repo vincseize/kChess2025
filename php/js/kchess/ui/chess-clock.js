@@ -21,6 +21,20 @@
     const restartButton = document.getElementById('restartClock');
     const chooseAnotherTempoButton = document.getElementById('chooseAnotherTempo');
     const savedPreset = localStorage.getItem('kchess.clock.lastPreset');
+    const divider = document.getElementById('clockDivider');
+    const dividerActions = document.getElementById('dividerActions');
+    const dividerConfirm = document.getElementById('dividerConfirm');
+    const dividerReset = document.getElementById('dividerReset');
+    const dividerPlayPause = document.getElementById('dividerPlayPause');
+    const dividerTempo = document.getElementById('dividerTempo');
+    const dividerSound = document.getElementById('dividerSound');
+    const dividerResetYes = document.getElementById('dividerResetYes');
+    const dividerResetNo = document.getElementById('dividerResetNo');
+    const soundStorageKey = 'kchess.clock.sound';
+    let soundOn = true;
+    try { soundOn = localStorage.getItem(soundStorageKey) !== '0'; } catch (error) { /* son activé par défaut */ }
+    const clickSound = new Audio(divider.dataset.soundSrc);
+    clickSound.preload = 'auto';
     const customTimeStorageKey = 'kchess.clock.customTimes';
 
     let initialTime = 600;
@@ -144,6 +158,10 @@
         startPauseButton.querySelector('i').className = running
             ? 'bi bi-pause-fill'
             : 'bi bi-play-fill';
+        const playLabel = running ? text.pause : hasStarted ? text.resume : text.ready;
+        dividerPlayPause.querySelector('i').className = running ? 'bi bi-pause-fill' : 'bi bi-play-fill';
+        dividerPlayPause.setAttribute('aria-label', playLabel);
+        dividerPlayPause.title = playLabel;
         presetButtons.forEach(button => button.disabled = running);
         closeSettingsButton.hidden = !hasStarted;
         settingsFooter.classList.toggle('without-close', closeSettingsButton.hidden);
@@ -331,13 +349,58 @@
             .replace('{increment}', customIncrement);
     });
 
+    function playClick() {
+        if (!soundOn) return;
+        try {
+            clickSound.currentTime = 0;
+            const result = clickSound.play();
+            if (result && typeof result.catch === 'function') result.catch(() => {});
+        } catch (error) { /* son indisponible : on ignore */ }
+    }
+
+    function renderSoundButton() {
+        dividerSound.setAttribute('aria-pressed', String(soundOn));
+        const label = soundOn ? text.sound_on : text.sound_off;
+        dividerSound.setAttribute('aria-label', label);
+        dividerSound.title = label;
+        dividerSound.querySelector('i').className = soundOn ? 'bi bi-volume-up-fill' : 'bi bi-volume-mute-fill';
+    }
+
+    function showResetConfirm(show) {
+        dividerConfirm.hidden = !show;
+        dividerActions.hidden = show;
+        if (show) dividerResetNo.focus();
+    }
+
     clockButtons.forEach(button => button.addEventListener('click', () => {
         if (!hasStarted && ready && button.dataset.player === 'black') {
+            playClick();
             start();
         } else if (running && button.dataset.player === activePlayer) {
+            playClick();
             switchTurn();
         }
     }));
+
+    // Barre centrale
+    dividerPlayPause.addEventListener('click', () => {
+        if (running) pause();
+        else start();
+    });
+    dividerTempo.addEventListener('click', openSettings);
+    dividerSound.addEventListener('click', () => {
+        soundOn = !soundOn;
+        try { localStorage.setItem(soundStorageKey, soundOn ? '1' : '0'); } catch (error) { /* ignore */ }
+        renderSoundButton();
+        playClick();   // petit aperçu quand on réactive le son
+    });
+    dividerReset.addEventListener('click', () => showResetConfirm(true));
+    dividerResetNo.addEventListener('click', () => showResetConfirm(false));
+    dividerResetYes.addEventListener('click', () => {
+        reset();
+        showResetConfirm(false);
+    });
+    renderSoundButton();
 
     startPauseButton.addEventListener('click', () => {
         if (running) {
@@ -373,9 +436,11 @@
         const targetIsButton = event.target instanceof Element && event.target.closest('button');
         if (event.code === 'Space' && !event.repeat && !targetIsButton) {
             event.preventDefault();
+            if (running) playClick();
             switchTurn();
         } else if (event.key === 'Escape') {
-            if (settings.hidden) openSettings();
+            if (!dividerConfirm.hidden) showResetConfirm(false);
+            else if (settings.hidden) openSettings();
             else if (hasStarted) settings.hidden = true;
         }
     });
