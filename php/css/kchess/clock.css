@@ -549,7 +549,7 @@ body {
 @media (orientation: landscape) {
     /* écran large : la barre devient verticale, sous l'en-tête */
     .clock-divider {
-        top: 60px;
+        top: 0;
         bottom: 0;
         left: 50%;
         right: auto;
