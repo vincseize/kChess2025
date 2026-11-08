@@ -222,6 +222,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
   📄 newGame.php
   📄 project_flow_mapper.php
   📁 sounds
+    📄 clock-click.mp3
     📄 tok.mp3
   📁 splashscreens
     📄 splashscreen0.php

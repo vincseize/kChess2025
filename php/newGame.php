@@ -9,10 +9,12 @@ $targetPage = 'app.php';
 
 require_once __DIR__ . '/config-loader.php';
 $config = loadGameConfig();
-$currentLang = $config['current_lang'] ?? 'fr'; // Défaut fr si vide
+$currentLang = $config['current_lang'] ?? 'fr';
 $translations = $config['lang'][$currentLang] ?? [];
 $assetVersion = $version ?? getVersion();
 $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Morphy, 1858";
+$langFlags = ['fr' => '🇫🇷', 'en' => '🇬🇧', 'es' => '🇪🇸', 'de' => '🇩🇪'];
+$langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' => 'Deutsch'];
 ?>
 
 <link rel="stylesheet" href="css/kchess/newGame.css?v=<?php echo htmlspecialchars((string)$assetVersion); ?>">
@@ -20,6 +22,63 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
 <style>
     :root { <?php echo getThemeCssVariables($config); ?> }
 </style>
+
+<!-- ★ NAVBAR : brand + profil + sélecteur langue (drapeau + dropdown) -->
+<nav class="home-navbar" aria-label="Navigation principale">
+    <a href="index.php" class="home-navbar-brand">
+        <i class="bi bi-chess-queen" aria-hidden="true"></i>
+        <span>CharlyChess</span>
+    </a>
+
+    <div class="home-navbar-right">
+        <!-- Icône Profil (inactive pour le moment) -->
+        <button type="button"
+                class="home-navbar-profile"
+                id="profileTrigger"
+                aria-label="<?php echo htmlspecialchars($translations['profile'] ?? 'Profil'); ?>"
+                title="<?php echo htmlspecialchars($translations['profile'] ?? 'Profil'); ?>"
+                aria-disabled="true">
+            <i class="bi bi-person-circle" aria-hidden="true"></i>
+        </button>
+
+        <!-- Sélecteur de langue -->
+        <div class="home-navbar-lang" id="homeLangPicker">
+            <button type="button"
+                    class="home-navbar-lang-btn"
+                    id="langTrigger"
+                    aria-haspopup="listbox"
+                    aria-expanded="false"
+                    aria-controls="langDropdown"
+                    title="<?php echo htmlspecialchars($langNames[$currentLang] ?? 'Langue'); ?>">
+                <span class="lang-flag"><?php echo $langFlags[$currentLang] ?? '🌐'; ?></span>
+                <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </button>
+
+            <ul class="home-navbar-lang-dropdown"
+                id="langDropdown"
+                role="listbox"
+                aria-label="<?php echo htmlspecialchars($translations['language'] ?? 'Langue'); ?>"
+                hidden>
+                <?php foreach ($config['lang'] as $langCode => $langData): ?>
+                    <li role="option" aria-selected="<?php echo $currentLang === $langCode ? 'true' : 'false'; ?>">
+                        <a href="?<?php
+                            $q = $_GET;
+                            $q['lang'] = $langCode;
+                            if (isset($q['new'])) unset($q['new']);
+                            echo htmlspecialchars(http_build_query($q));
+                        ?>"
+                           class="home-navbar-lang-item <?php echo $currentLang === $langCode ? 'is-active' : ''; ?>"
+                           data-lang="<?php echo htmlspecialchars($langCode); ?>"
+                           title="<?php echo htmlspecialchars($langNames[$langCode] ?? strtoupper($langCode)); ?>"
+                           aria-label="<?php echo htmlspecialchars($langNames[$langCode] ?? strtoupper($langCode)); ?>">
+                            <span class="lang-flag"><?php echo $langFlags[$langCode] ?? ''; ?></span>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    </div>
+</nav>
 
 <div class="new-game-overlay">
     <main class="new-game-layout">
@@ -37,7 +96,7 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
 
             <div class="board-preview-group">
                 <p class="board-preview-caption">
-                    <span class="game-players"><?php echo htmlspecialchars($translations['opera_game_players'] ?? 'Paul Morphy – Duc de Brunswick & comte Isouard'); ?></span>
+                    <span class="game-players"><?php echo htmlspecialchars($translations['opera_game_players'] ?? 'Paul Morphy – Duc de Brunswick & comte Isouard'); ?></span>
                     <span class="game-year"><?php echo htmlspecialchars($translations['opera_game_year'] ?? '1858'); ?></span>
                 </p>
                 <div class="board-preview">
@@ -65,41 +124,14 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
             </p>
         </section>
 
-        <section class="new-game-content" aria-labelledby="setup-title">
-            <header class="setup-header">
-                <div>
-                    <h2 id="setup-title"><?php echo htmlspecialchars($translations['setup_title'] ?? 'Préparez votre partie'); ?></h2>
-                </div>
-                <div class="lang-selector">
-                    <form method="GET" action="index.php">
-                        <?php if(isset($_GET['new'])): ?><input type="hidden" name="new" value="1"><?php endif; ?>
-                        <label class="visually-hidden" for="languageSelect"><?php echo htmlspecialchars($translations['language'] ?? 'Langue'); ?></label>
-                        <select id="languageSelect" name="lang" class="form-select form-select-sm lang-select" onchange="this.form.submit()">
-                            <?php foreach ($config['lang'] as $langCode => $langData): ?>
-                                <option value="<?php echo htmlspecialchars($langCode); ?>" <?php echo $currentLang === $langCode ? 'selected' : ''; ?>>
-                                    <?php
-                                    $languageNames = [
-                                        'fr' => '🇫🇷 Français',
-                                        'en' => '🇬🇧 English',
-                                        'es' => '🇪🇸 Español',
-                                        'de' => '🇩🇪 Deutsch',
-                                    ];
-                                    echo htmlspecialchars($languageNames[$langCode] ?? strtoupper($langCode));
-                                    ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </form>
-                </div>
-            </header>
+        <section class="new-game-content">
+            <header class="setup-header" aria-hidden="true"></header>
 
-            <div class="new-game-buttons" role="group" aria-labelledby="setup-title">
+            <div class="new-game-buttons" role="group">
                 <?php
                 $botDir = __DIR__ . '/js/kchess/bots/';
                 $botFiles = glob($botDir . 'Level_*.js');
                 sort($botFiles, SORT_NATURAL);
-                // Profondeur lue dynamiquement dans chaque Level_X.js :
-                // 'depth: N' (config LadderBot, L3-L8) ou 'static SEARCH_DEPTH = N;' (L1, L2, L16)
                 $readBotDepth = function ($file) {
                     $src = @file_get_contents($file);
                     if ($src === false) return null;
@@ -121,111 +153,146 @@ $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Mo
 
                     $btnClass = "btn-level-" . $levelNum;
                     ?>
-                    <button type="button" class="game-mode-btn <?php echo htmlspecialchars($btnClass); ?>"
-                            data-mode="bot"
-                            data-level="<?php echo htmlspecialchars($levelNum); ?>"
+                    <div class="level-accordion" data-level="<?php echo htmlspecialchars($levelNum); ?>">
+                        <button type="button" class="game-mode-btn <?php echo htmlspecialchars($btnClass); ?>"
+                                data-mode="bot"
+                                data-level="<?php echo htmlspecialchars($levelNum); ?>"
+                                <?php if ($searchDepth !== null): ?>
+                                data-profondeur="<?php echo htmlspecialchars((string)$searchDepth); ?>"
+                                <?php endif; ?>
+                                aria-pressed="false"
+                                aria-expanded="false">
                             <?php if ($searchDepth !== null): ?>
-                            data-profondeur="<?php echo htmlspecialchars((string)$searchDepth); ?>"
+                            <span class="bot-search-depth"
+                                  title="<?php echo htmlspecialchars('Profondeur de recherche indiquée : ' . $searchDepth); ?>"
+                                  aria-label="<?php echo htmlspecialchars('Profondeur de recherche indiquée : ' . $searchDepth); ?>">
+                                <?php echo htmlspecialchars((string)$searchDepth); ?>
+                            </span>
                             <?php endif; ?>
-                            aria-pressed="false">
-                        <?php if ($searchDepth !== null): ?>
-                        <span class="bot-search-depth"
-                              title="<?php echo htmlspecialchars('Profondeur de recherche indiquée : ' . $searchDepth); ?>"
-                              aria-label="<?php echo htmlspecialchars('Profondeur de recherche indiquée : ' . $searchDepth); ?>">
-                            <?php echo htmlspecialchars((string)$searchDepth); ?>
-                        </span>
-                        <?php endif; ?>
-                        <div class="mode-description">
-                            <div>
-                                <i class="bi bi-robot mode-icon" aria-hidden="true"></i>
-                                <?php echo htmlspecialchars($botTitle); ?>
+                            <div class="mode-description">
+                                <div>
+                                    <i class="bi bi-robot mode-icon" aria-hidden="true"></i>
+                                    <?php echo htmlspecialchars($botTitle); ?>
+                                </div>
+                                <div class="mode-difficulty">
+                                    <?php
+                                        echo htmlspecialchars($botData['description'] ?? ($translations['computer_player'] ?? 'Ordinateur') . " " . $levelNum);
+                                    ?>
+                                </div>
                             </div>
-                            <div class="mode-difficulty">
-                                <?php
-                                    echo htmlspecialchars($botData['description'] ?? ($translations['computer_player'] ?? 'Ordinateur') . " " . $levelNum);
-                                ?>
+                            <div class="bot-training-progress"
+                                 data-training-level="<?php echo htmlspecialchars($levelNum); ?>"
+                                 role="group"
+                                 aria-label="<?php echo htmlspecialchars($translations['training_progress'] ?? 'Victoires d’entraînement'); ?>">
+                                <span class="training-mark" data-training-type="white"
+                                      data-label="<?php echo htmlspecialchars($translations['training_white_win'] ?? 'Victoire avec les Blancs'); ?>"
+                                      data-done-label="<?php echo htmlspecialchars($translations['training_done'] ?? 'terminé'); ?>"
+                                      data-pending-label="<?php echo htmlspecialchars($translations['training_pending'] ?? 'à faire'); ?>"
+                                      role="img"
+                                      aria-label="<?php echo htmlspecialchars($translations['training_white_win'] ?? 'Victoire avec les Blancs'); ?>">
+                                    <span class="training-symbol" aria-hidden="true">♔</span>
+                                    <i class="bi bi-check-lg training-check" aria-hidden="true"></i>
+                                </span>
+                                <span class="training-mark" data-training-type="black"
+                                      data-label="<?php echo htmlspecialchars($translations['training_black_win'] ?? 'Victoire avec les Noirs'); ?>"
+                                      data-done-label="<?php echo htmlspecialchars($translations['training_done'] ?? 'terminé'); ?>"
+                                      data-pending-label="<?php echo htmlspecialchars($translations['training_pending'] ?? 'à faire'); ?>"
+                                      role="img"
+                                      aria-label="<?php echo htmlspecialchars($translations['training_black_win'] ?? 'Victoire avec les Noirs'); ?>">
+                                    <span class="training-symbol" aria-hidden="true">♚</span>
+                                    <i class="bi bi-check-lg training-check" aria-hidden="true"></i>
+                                </span>
+                                <span class="training-mark" data-training-type="random"
+                                      data-label="<?php echo htmlspecialchars($translations['training_random_win'] ?? 'Victoire en choisissant Aléatoire'); ?>"
+                                      data-done-label="<?php echo htmlspecialchars($translations['training_done'] ?? 'terminé'); ?>"
+                                      data-pending-label="<?php echo htmlspecialchars($translations['training_pending'] ?? 'à faire'); ?>"
+                                      role="img"
+                                      aria-label="<?php echo htmlspecialchars($translations['training_random_win'] ?? 'Victoire en choisissant Aléatoire'); ?>">
+                                    <i class="bi bi-shuffle training-symbol" aria-hidden="true"></i>
+                                    <i class="bi bi-check-lg training-check" aria-hidden="true"></i>
+                                </span>
+                            </div>
+                            <i class="bi bi-check-lg check-icon" aria-hidden="true"></i>
+                        </button>
+                        <div class="level-start-container">
+                            <button type="button"
+                                    class="start-level-btn"
+                                    data-mode="bot"
+                                    data-level="<?php echo htmlspecialchars($levelNum); ?>"
+                                    <?php if ($searchDepth !== null): ?>
+                                    data-profondeur="<?php echo htmlspecialchars((string)$searchDepth); ?>"
+                                    <?php endif; ?>>
+                                <i class="bi bi-play-circle me-2" aria-hidden="true"></i>
+                                <?php echo htmlspecialchars($translations['start_game'] ?? 'Démarrer la partie'); ?>
+                            </button>
+                            <div class="inline-color-picker" role="group" aria-label="<?php echo htmlspecialchars($translations['choose_color'] ?? 'Choisissez votre camp'); ?>">
+                                <button type="button" class="inline-color-option selected" data-color="white" aria-pressed="true" title="<?php echo htmlspecialchars($translations['white'] ?? 'Blanc'); ?>">
+                                    <img src="img/chesspieces/wikipedia/wK.png" alt="">
+                                </button>
+                                <button type="button" class="inline-color-option" data-color="black" aria-pressed="false" title="<?php echo htmlspecialchars($translations['black'] ?? 'Noir'); ?>">
+                                    <img src="img/chesspieces/wikipedia/bK.png" alt="">
+                                </button>
+                                <button type="button" class="inline-color-option random" data-color="random" aria-pressed="false" title="<?php echo htmlspecialchars($translations['random'] ?? 'Aléatoire'); ?>">
+                                    <i class="bi bi-shuffle" aria-hidden="true"></i>
+                                </button>
                             </div>
                         </div>
-                        <div class="bot-training-progress"
-                             data-training-level="<?php echo htmlspecialchars($levelNum); ?>"
-                             role="group"
-                             aria-label="<?php echo htmlspecialchars($translations['training_progress'] ?? 'Victoires d’entraînement'); ?>">
-                            <span class="training-mark" data-training-type="white"
-                                  data-label="<?php echo htmlspecialchars($translations['training_white_win'] ?? 'Victoire avec les Blancs'); ?>"
-                                  data-done-label="<?php echo htmlspecialchars($translations['training_done'] ?? 'terminé'); ?>"
-                                  data-pending-label="<?php echo htmlspecialchars($translations['training_pending'] ?? 'à faire'); ?>"
-                                  role="img"
-                                  aria-label="<?php echo htmlspecialchars($translations['training_white_win'] ?? 'Victoire avec les Blancs'); ?>">
-                                <span class="training-symbol" aria-hidden="true">♔</span>
-                                <i class="bi bi-check-lg training-check" aria-hidden="true"></i>
-                            </span>
-                            <span class="training-mark" data-training-type="black"
-                                  data-label="<?php echo htmlspecialchars($translations['training_black_win'] ?? 'Victoire avec les Noirs'); ?>"
-                                  data-done-label="<?php echo htmlspecialchars($translations['training_done'] ?? 'terminé'); ?>"
-                                  data-pending-label="<?php echo htmlspecialchars($translations['training_pending'] ?? 'à faire'); ?>"
-                                  role="img"
-                                  aria-label="<?php echo htmlspecialchars($translations['training_black_win'] ?? 'Victoire avec les Noirs'); ?>">
-                                <span class="training-symbol" aria-hidden="true">♚</span>
-                                <i class="bi bi-check-lg training-check" aria-hidden="true"></i>
-                            </span>
-                            <span class="training-mark" data-training-type="random"
-                                  data-label="<?php echo htmlspecialchars($translations['training_random_win'] ?? 'Victoire en choisissant Aléatoire'); ?>"
-                                  data-done-label="<?php echo htmlspecialchars($translations['training_done'] ?? 'terminé'); ?>"
-                                  data-pending-label="<?php echo htmlspecialchars($translations['training_pending'] ?? 'à faire'); ?>"
-                                  role="img"
-                                  aria-label="<?php echo htmlspecialchars($translations['training_random_win'] ?? 'Victoire en choisissant Aléatoire'); ?>">
-                                <i class="bi bi-shuffle training-symbol" aria-hidden="true"></i>
-                                <i class="bi bi-check-lg training-check" aria-hidden="true"></i>
-                            </span>
+                    </div>
+                <?php endforeach; ?>
+
+                <div class="level-accordion" data-level="0">
+                    <button type="button" class="game-mode-btn btn-human" data-mode="human" data-level="0" data-profondeur="false" aria-pressed="false" aria-expanded="false">
+                        <div class="mode-description">
+                            <div><i class="bi bi-people-fill mode-icon" aria-hidden="true"></i>
+                                <?php echo htmlspecialchars($translations['human_vs_human'] ?? 'Humain vs Humain'); ?>
+                            </div>
                         </div>
                         <i class="bi bi-check-lg check-icon" aria-hidden="true"></i>
                     </button>
-                <?php endforeach; ?>
-
-                <button type="button" class="game-mode-btn btn-human" data-mode="human" data-level="0" data-profondeur="false" aria-pressed="false">
-                    <div class="mode-description">
-                        <div><i class="bi bi-people-fill mode-icon" aria-hidden="true"></i>
-                            <?php echo htmlspecialchars($translations['human_vs_human'] ?? 'Humain vs Humain'); ?>
+                    <div class="level-start-container">
+                        <button type="button" class="start-level-btn" data-mode="human" data-level="0" data-profondeur="false">
+                            <i class="bi bi-play-circle me-2" aria-hidden="true"></i>
+                            <?php echo htmlspecialchars($translations['start_game'] ?? 'Démarrer la partie'); ?>
+                        </button>
+                        <div class="inline-color-picker" role="group" aria-label="<?php echo htmlspecialchars($translations['choose_color'] ?? 'Choisissez votre camp'); ?>">
+                            <button type="button" class="inline-color-option selected" data-color="white" aria-pressed="true" title="<?php echo htmlspecialchars($translations['white'] ?? 'Blanc'); ?>">
+                                <img src="img/chesspieces/wikipedia/wK.png" alt="">
+                            </button>
+                            <button type="button" class="inline-color-option" data-color="black" aria-pressed="false" title="<?php echo htmlspecialchars($translations['black'] ?? 'Noir'); ?>">
+                                <img src="img/chesspieces/wikipedia/bK.png" alt="">
+                            </button>
                         </div>
                     </div>
-                    <i class="bi bi-check-lg check-icon" aria-hidden="true"></i>
-                </button>
+                </div>
 
-                <button type="button" class="game-mode-btn btn-human-960" data-mode="human" data-level="0" data-profondeur="false" data-variant="chess960" aria-pressed="false">
-                    <div class="mode-description">
-                        <div><i class="bi bi-people-fill mode-icon" aria-hidden="true"></i>
-                            <?php echo htmlspecialchars($translations['human_vs_human_960'] ?? 'Humain vs Humain 960'); ?>
+                <div class="level-accordion" data-level="0" data-variant="chess960">
+                    <button type="button" class="game-mode-btn btn-human-960" data-mode="human" data-level="0" data-profondeur="false" data-variant="chess960" aria-pressed="false" aria-expanded="false">
+                        <div class="mode-description">
+                            <div><i class="bi bi-people-fill mode-icon" aria-hidden="true"></i>
+                                <?php echo htmlspecialchars($translations['human_vs_human_960'] ?? 'Humain vs Humain 960'); ?>
+                            </div>
+                            <div class="mode-difficulty">
+                                <?php echo htmlspecialchars($translations['random_chess960_position'] ?? 'Position Chess960 aléatoire'); ?>
+                            </div>
                         </div>
-                        <div class="mode-difficulty">
-                            <?php echo htmlspecialchars($translations['random_chess960_position'] ?? 'Position Chess960 aléatoire'); ?>
+                        <i class="bi bi-check-lg check-icon" aria-hidden="true"></i>
+                    </button>
+                    <div class="level-start-container">
+                        <button type="button" class="start-level-btn" data-mode="human" data-level="0" data-profondeur="false" data-variant="chess960">
+                            <i class="bi bi-play-circle me-2" aria-hidden="true"></i>
+                            <?php echo htmlspecialchars($translations['start_game'] ?? 'Démarrer la partie'); ?>
+                        </button>
+                        <div class="inline-color-picker" role="group" aria-label="<?php echo htmlspecialchars($translations['choose_color'] ?? 'Choisissez votre camp'); ?>">
+                            <button type="button" class="inline-color-option selected" data-color="white" aria-pressed="true" title="<?php echo htmlspecialchars($translations['white'] ?? 'Blanc'); ?>">
+                                <img src="img/chesspieces/wikipedia/wK.png" alt="">
+                            </button>
+                            <button type="button" class="inline-color-option" data-color="black" aria-pressed="false" title="<?php echo htmlspecialchars($translations['black'] ?? 'Noir'); ?>">
+                                <img src="img/chesspieces/wikipedia/bK.png" alt="">
+                            </button>
                         </div>
                     </div>
-                    <i class="bi bi-check-lg check-icon" aria-hidden="true"></i>
-                </button>
-            </div>
-
-            <div class="color-selection">
-                <h3 class="section-title"><?php echo htmlspecialchars($translations['choose_color'] ?? '2. Choisissez votre camp'); ?></h3>
-                <div class="color-options" role="group" aria-label="<?php echo htmlspecialchars($translations['choose_color'] ?? 'Choisissez votre camp'); ?>">
-                    <button type="button" class="color-option selected" data-color="white" aria-pressed="true">
-                        <span class="color-piece"><img src="img/chesspieces/wikipedia/wK.png" alt=""></span>
-                        <span><?php echo htmlspecialchars($translations['white'] ?? 'Blanc'); ?></span>
-                    </button>
-                    <button type="button" class="color-option" data-color="black" aria-pressed="false">
-                        <span class="color-piece"><img src="img/chesspieces/wikipedia/bK.png" alt=""></span>
-                        <span><?php echo htmlspecialchars($translations['black'] ?? 'Noir'); ?></span>
-                    </button>
-                    <button type="button" class="color-option random" data-color="random" aria-pressed="false">
-                        <span class="color-piece"><i class="bi bi-shuffle" aria-hidden="true"></i></span>
-                        <span><?php echo htmlspecialchars($translations['random'] ?? 'Aléatoire'); ?></span>
-                    </button>
                 </div>
             </div>
-
-            <button type="button" class="start-game-btn" id="startGameBtn" disabled>
-                <i class="bi bi-play-circle me-2" aria-hidden="true"></i>
-                <?php echo htmlspecialchars($translations['start_game'] ?? 'Démarrer la partie'); ?>
-            </button>
         </section>
     </main>
 </div>
@@ -239,7 +306,6 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const savedBotLevel = localStorage.getItem('kchess.selectedBotLevel');
             const savedTrainingProgress = localStorage.getItem(BotTrainingProgress.storageKey);
-            // Outils de test (page Process, arène) : on garde leurs réglages et cases cochées
             const keptLabEntries = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
@@ -255,12 +321,49 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('Impossible de réinitialiser les préférences locales.', error);
         }
         sessionStorage.clear();
-        const startBtn = document.getElementById('startGameBtn');
-        if (startBtn) startBtn.disabled = true;
     }
     if (typeof NewGameHandler !== 'undefined') {
         NewGameHandler.init('<?php echo $targetPage; ?>');
     }
     BotTrainingProgress.render();
+});
+
+// ★ Lang selector : drapeau actif + dropdown de drapeaux
+document.addEventListener('DOMContentLoaded', function() {
+    const picker = document.getElementById('homeLangPicker');
+    const trigger = document.getElementById('langTrigger');
+    const dropdown = document.getElementById('langDropdown');
+    if (!picker || !trigger || !dropdown) return;
+
+    const close = () => {
+        dropdown.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+    };
+
+    const open = () => {
+        dropdown.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+    };
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (dropdown.hidden) open();
+        else close();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!dropdown.hidden && !picker.contains(e.target)) close();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !dropdown.hidden) {
+            close();
+            trigger.focus();
+        }
+    });
+
+    dropdown.querySelectorAll('.home-navbar-lang-item').forEach(item => {
+        item.addEventListener('click', () => close());
+    });
 });
 </script>
