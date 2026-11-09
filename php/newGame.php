@@ -31,14 +31,13 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
     </a>
 
     <div class="home-navbar-right">
-        <button type="button"
-                class="home-navbar-profile"
-                id="profileTrigger"
-                aria-label="<?php echo htmlspecialchars($translations['profile'] ?? 'Profil'); ?>"
-                title="<?php echo htmlspecialchars($translations['profile'] ?? 'Profil'); ?>"
-                aria-disabled="true">
+        <a href="profile.php"
+           class="home-navbar-profile"
+           id="profileTrigger"
+           aria-label="<?php echo htmlspecialchars($translations['profile'] ?? 'Profil'); ?>"
+           title="<?php echo htmlspecialchars($translations['profile'] ?? 'Profil'); ?>">
             <i class="bi bi-person-circle" aria-hidden="true"></i>
-        </button>
+        </a>
 
         <div class="home-navbar-lang" id="homeLangPicker">
             <button type="button"

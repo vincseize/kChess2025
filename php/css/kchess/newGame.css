@@ -403,17 +403,18 @@
 
 .new-game-content {
     width: 100%;
-    max-height: calc(100vh - 88px);
-    max-height: calc(100svh - 88px);
+    /* Tous les levels visibles : c'est la page qui défile, plus le panneau */
+    max-height: none;
     margin: 0;
     padding: clamp(22px, 3vw, 34px);
-    overflow-y: auto;
+    overflow: visible;
     border: 1px solid var(--site-border);
     border-radius: 16px;
     background: var(--site-surface);
     box-shadow: 0 22px 65px rgba(0, 0, 0, 0.35);
     text-align: left;
-    scrollbar-color: var(--site-border) transparent;
+    scrollbar-width: thin;
+    scrollbar-color: var(--success-color) var(--site-surface-alt);
     position: relative;
 }
 
@@ -1150,4 +1151,19 @@
 #levelToast.show {
     opacity: 1;
     transform: translate(-50%, 0);
+}
+
+/* Barre de défilement bien visible : les levels 5, 6, 7, 8, 16... sont plus bas */
+.new-game-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.new-game-content::-webkit-scrollbar-track {
+    background: var(--site-surface-alt);
+    border-radius: 8px;
+}
+
+.new-game-content::-webkit-scrollbar-thumb {
+    background: var(--success-color);
+    border-radius: 8px;
 }

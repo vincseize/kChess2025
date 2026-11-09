@@ -40,6 +40,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
       📄 components.css
       📄 layout.css
       📄 newGame.css
+      📄 profile.css
       📄 promotion-modal.css
       📄 responsive.css
       📄 utilities.css
@@ -195,6 +196,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
         📄 chess-game-ui-styles.js
         📄 chess-game-ui-timer.js
         📄 new-game-handler.js
+        📄 profile.js
       📁 validators
         📄 move-executor.js
         📄 move-handler-core.js
@@ -220,6 +222,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
   📄 layoutMobile.php
   📄 manifest.json
   📄 newGame.php
+  📄 profile.php
   📄 project_flow_mapper.php
   📁 sounds
     📄 clock-click.mp3
