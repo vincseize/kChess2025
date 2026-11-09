@@ -12,18 +12,18 @@ $config = loadGameConfig();
 $version = getVersion();
 
 // --- LOGIQUE D'AFFICHAGE DU SPLASHSCREEN ---
-// On vérifie le Referer (page précédente)
+// Le logo ne s'affiche qu'UNE fois par session : pas au retour du profil, d'une partie, etc.
+// (il revient quand le navigateur est fermé puis rouvert)
 $referer = $_SERVER['HTTP_REFERER'] ?? '';
 $isComingFromApp = (strpos($referer, 'app.php') !== false);
 
-// On utilise aussi le marqueur de session pour plus de fiabilité
-$gameWasInProgress = isset($_SESSION['from_app']) && $_SESSION['from_app'] === true;
-
-// On ne montre le splash que si : 
-// 1. On ne vient pas de app.php
-// 2. Ce n'est pas un changement de langue (?lang)
-// 3. Ce n'est pas un reset manuel (?new)
-$showSplash = !$isComingFromApp && !$gameWasInProgress && !isset($_GET['lang']) && !isset($_GET['new']);
+$showSplash = empty($_SESSION['splash_seen'])
+    && !$isComingFromApp
+    && !isset($_GET['lang'])
+    && !isset($_GET['new']);
+if ($showSplash) {
+    $_SESSION['splash_seen'] = true;
+}
 
 // Nettoyage du marqueur de session après vérification pour permettre au Splash de revenir au prochain reload complet
 if ($isComingFromApp) {

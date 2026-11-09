@@ -1,0 +1,11 @@
+{
+  "_aide": "Un club = un nom + une ville (facultative) + ses joueurs. Un joueur = {\"name\": \"Nom Prénom\", \"fide\": \"code FIDE\"} ; le code FIDE est facultatif (sans code : pas d'Elo ni de fiche). Le club s'affiche sur la fiche d'un joueur dont le code FIDE figure ici.",
+  "clubs": [
+    {
+      "id": "bellefontaine",
+      "name": "La Dame de Bellefontaine",
+      "city": "",
+      "players": []
+    }
+  ]
+}
