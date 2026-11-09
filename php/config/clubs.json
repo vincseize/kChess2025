@@ -1,11 +1,55 @@
 {
-  "_aide": "Un club = un nom + une ville (facultative) + ses joueurs. Un joueur = {\"name\": \"Nom Prénom\", \"fide\": \"code FIDE\"} ; le code FIDE est facultatif (sans code : pas d'Elo ni de fiche). Le club s'affiche sur la fiche d'un joueur dont le code FIDE figure ici.",
-  "clubs": [
-    {
-      "id": "bellefontaine",
-      "name": "La Dame de Bellefontaine",
-      "city": "",
-      "players": []
-    }
-  ]
+    "clubs": [
+        {
+            "name": "La Dame de Bellefontaine",
+            "city": "Bellefontaine",
+            "region": "Martinique",
+            "department": "972",
+            "country": "France",
+            "address": "Maison des Associations, place Simon Charles Francois, 97222 Bellefontaine",
+            "phone": "06 96 25 99 25",
+            "email": "bellefontaine.echecs@gmail.com",
+            "website": "www.echecs-bellefontaine.com",
+            "ffe_ref": "Z9D039",
+            "president": "Stephan COLLIN",
+            "players": [
+                { "name": "Ney-Alexandre, Ylan", "fide": "551009013" },
+                { "name": "Nardol, Fred", "fide": "26043165" },
+                { "name": "Guillaume, Marvin", "fide": "20621612" },
+                { "name": "Alcindor, Samuel", "fide": "36066320" },
+                { "name": "Ramdani, Nayati", "fide": "653078888" },
+                { "name": "Suez-Panama, Gilles", "fide": "620165" },
+                { "name": "Cyprienne Fonsat, Ethan", "fide": "551008874" },
+                { "name": "Casimir, Sarah", "fide": "36066362" },
+                { "name": "Burnet, Steeve", "fide": "80427111" },
+                { "name": "Clovel, Gregory", "fide": "651076683" },
+                { "name": "Moulanier, Lorens", "fide": "45108862" },
+                { "name": "Chancerel, Dominique", "fide": "697770" },
+                { "name": "Taye, Melvin", "fide": "36015997" },
+                { "name": "Tissot-Mamadou, Sael-Alexandre", "fide": "551049643" },
+                { "name": "Huyghues-Beaufond, Mathis", "fide": "36066400" },
+                { "name": "Durand, Alain", "fide": "45113033" },
+                { "name": "Pottier, Charles", "fide": "36009172" },
+                { "name": "Laposte, Emmanuelle", "fide": "551008963" },
+                { "name": "Passani, Helric", "fide": "653078764" },
+                { "name": "Giacobbi Torres, Antoine", "fide": "651070227" },
+                { "name": "Huyghues-Beaufond, Nathalie", "fide": "36066419" },
+                { "name": "Féréol, Falundo" },
+                { "name": "Nicaud, Corentin" },
+                { "name": "Ronin, Clément" },
+                { "name": "François-Haugrin Bucher, Swan" },
+                { "name": "Fonsat, Jean-Marc" },
+                { "name": "Marin-Cudraz, Theodore", "fide": "80456910" },
+                { "name": "Blanchard, Diego-Francois", "fide": "80427472" },
+                { "name": "Jean-Louis, Lukas", "fide": "651070235" },
+                { "name": "Agot, Victor", "fide": "653078578" },
+                { "name": "Agot, Diane", "fide": "653078918" },
+                { "name": "Costa, Raphael", "fide": "544015143" },
+                { "name": "Salomon, Ally", "fide": "544014902" },
+                { "name": "Jean-Baptiste, Nelson", "fide": "527045927" },
+                { "name": "Blanchard, Sophia-Daly", "fide": "653014502" },
+                { "name": "Jacques, Steneycia", "fide": "527036626" }
+            ]
+        }
+    ]
 }

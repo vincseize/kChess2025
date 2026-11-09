@@ -16,9 +16,46 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
     📄 gen_icons.py
     📄 gen_icons_chrome.py
   📄 app.php
+  📁 cache
+    📁 fide
+      📄 0e917c7374809c33523a3ba335887c86.json
+      📄 1181ab6a1c9bd2118adf43a9768ba3ca.json
+      📄 1c943e98ae74d95f910bf3335358d5fd.json
+      📄 295eafdb264a04417899bfbab0051316.json
+      📄 299bdc8cd6e42ebdb299c32fc6b8404f.json
+      📄 2f8a4f7f90a03700c8202fe3b56d5e02.json
+      📄 3ca37b48e72f8f7ca2565ea430f05ff0.json
+      📄 42154e273cffbdccc70156d8ce08ad4b.json
+      📄 47b12e6820de5e5a705033b2edc73083.json
+      📄 4d9438c4578130f4b84c49a2828c867b.json
+      📄 54537866da92a841835fb00953b4ed1e.json
+      📄 59c88202788451c044bb2fa74f4eb059.json
+      📄 7bc692c700317b95ee6088edaa2b314d.json
+      📄 7e4e5e71352216ba5bcba5b730fecfa3.json
+      📄 8085c39b0c97bf3156f845034f4310ab.json
+      📄 8c5adab57141e7aadbf13d576467b229.json
+      📄 8e0d8a37461fdade9b83e1f6c91a21bd.json
+      📄 916972a7775c0cf215a7a7aab8f82593.json
+      📄 9d7268c0754db2b28edfd0885c570cb0.json
+      📄 9f4126e5471b9c88f46d8301dfd54bb0.json
+      📄 9f424cebfe17fd6a4a7cf9e865482c48.json
+      📄 adad6239e8377e6d0c911c86889a3034.json
+      📄 afdbd9f3f1655c19949af6ecc42e1233.json
+      📄 b3dfb2c8676bc14e3177da4939df4cc7.json
+      📄 b521ad188df262bf1876e57e06622b4d.json
+      📄 b5779954a93e4ccc82a7840c6402c940.json
+      📄 b83508e06c1cdf2f1d82a3316743eb05.json
+      📄 bd72798b7cb5ee4e200aa027e28cccde.json
+      📄 dcd67ec552c4b0d9713c27c4aabd689d.json
+      📄 e20834b88144bf8139aa75b584cf52dd.json
+      📄 e74e4fc39409abcdd9ae2efc647d59ec.json
+      📄 f5db2ca497622071d6c750d8e00a4811.json
+      📄 ff68d4935d4db21f7504996490fd171b.json
   📄 clock.php
   📁 config
+    📄 clubs.json
     📄 game-config.json
+    📄 parties.json
   📄 config-loader.php
   📄 content.php
   📄 content_mobile.php
@@ -56,6 +93,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
       📄 preset6.css
     📄 responsive.css
   📄 engine-scripts.php
+  📄 fide.php
   📄 footer.php
   📄 header.php
   📁 img
@@ -196,7 +234,12 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
         📄 chess-game-ui-styles.js
         📄 chess-game-ui-timer.js
         📄 new-game-handler.js
-        📄 profile.js
+        📄 pgn-parser.js
+        📄 profile-clubs.js
+        📄 profile-core.js
+        📄 profile-me.js
+        📄 profile-players.js
+        📄 profile..js
       📁 validators
         📄 move-executor.js
         📄 move-handler-core.js
@@ -220,8 +263,10 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
     📄 wow.min.js
     📄 zone_navbar.js
   📄 layoutMobile.php
+  📄 local-only.php
   📄 manifest.json
   📄 newGame.php
+  📄 parties_save.php
   📄 profile.php
   📄 project_flow_mapper.php
   📁 sounds
