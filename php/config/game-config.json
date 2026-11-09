@@ -1,6 +1,6 @@
 {
     "app_name": "CharlyChess",
-    "version": "1.6",
+    "version": "1.7.2",
     "author": "Karlova",
     "author2": "von Vincseize",
     "default_theme": "classic",
@@ -135,6 +135,9 @@
             "training_random_win": "Victoire en choisissant Aléatoire",
             "training_done": "terminé",
             "training_pending": "à faire",
+            "reset_level": "Réinitialiser le niveau",
+            "reset_confirm": "Réinitialiser le Level {level} ?\n\nLes victoires (Blancs, Noirs, Aléatoire) sont remises à 0.\nLe Level {next} sera à nouveau verrouillé.",
+            "reset_done": "Level {level} réinitialisé : victoires remises à 0.",
             "language": "Langue",
             "human_vs_human": "Humain vs Humain",
             "random_bot": "Niveau 1 - Aléatoire",
@@ -336,6 +339,9 @@
             "training_random_win": "Win with Random",
             "training_done": "completed",
             "training_pending": "not completed",
+            "reset_level": "Reset level",
+            "reset_confirm": "Reset Level {level}?\n\nAll wins (White, Black, Random) are set back to 0.\nLevel {next} will be locked again.",
+            "reset_done": "Level {level} reset: wins set back to 0.",
             "language": "Language",
             "human_vs_human": "Human vs Human",
             "random_bot": "Level 1 - Random",
@@ -537,6 +543,9 @@
             "training_random_win": "Victoria con elección aleatoria",
             "training_done": "completado",
             "training_pending": "pendiente",
+            "reset_level": "Reiniciar el nivel",
+            "reset_confirm": "¿Reiniciar el Nivel {level}?\n\nLas victorias (Blancas, Negras, Aleatorio) vuelven a 0.\nEl Nivel {next} se bloqueará de nuevo.",
+            "reset_done": "Nivel {level} reiniciado: victorias a 0.",
             "language": "Idioma",
             "human_vs_human": "Humano contra humano",
             "random_bot": "Nivel 1 - Aleatorio",
@@ -666,7 +675,7 @@
                 "bot_16": {
                     "title": "Nivel 16: Red neuronal profunda (Experimental)",
                     "description": "Fase de pruebas de la red neuronal profunda.",
-                    "clock": "Unlimited",
+                    "clock": "Ilimitado",
                     "increment": "00:00:00"
                 }
             }
@@ -738,6 +747,9 @@
             "training_random_win": "Sieg mit Zufallsauswahl",
             "training_done": "abgeschlossen",
             "training_pending": "offen",
+            "reset_level": "Stufe zurücksetzen",
+            "reset_confirm": "Stufe {level} zurücksetzen?\n\nAlle Siege (Weiß, Schwarz, Zufall) werden auf 0 gesetzt.\nStufe {next} wird wieder gesperrt.",
+            "reset_done": "Stufe {level} zurückgesetzt: Siege auf 0.",
             "language": "Sprache",
             "human_vs_human": "Mensch gegen Mensch",
             "random_bot": "Stufe 1 - Zufall",
@@ -867,7 +879,7 @@
                 "bot_16": {
                     "title": "Stufe 16: Tiefes neuronales Netz (Experimentell)",
                     "description": "Testphase des tiefen neuronalen Netzwerks.",
-                    "clock": "Unlimited",
+                    "clock": "Unbegrenzt",
                     "increment": "00:00:00"
                 }
             }

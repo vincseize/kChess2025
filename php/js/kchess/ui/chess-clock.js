@@ -21,6 +21,20 @@
     const restartButton = document.getElementById('restartClock');
     const chooseAnotherTempoButton = document.getElementById('chooseAnotherTempo');
     const savedPreset = localStorage.getItem('kchess.clock.lastPreset');
+    const divider = document.getElementById('clockDivider');
+    const dividerActions = document.getElementById('dividerActions');
+    const dividerConfirm = document.getElementById('dividerConfirm');
+    const dividerReset = document.getElementById('dividerReset');
+    const dividerPlayPause = document.getElementById('dividerPlayPause');
+    const dividerTempo = document.getElementById('dividerTempo');
+    const dividerSound = document.getElementById('dividerSound');
+    const dividerResetYes = document.getElementById('dividerResetYes');
+    const dividerResetNo = document.getElementById('dividerResetNo');
+    const soundStorageKey = 'kchess.clock.sound';
+    let soundOn = true;
+    try { soundOn = localStorage.getItem(soundStorageKey) !== '0'; } catch (error) { /* son activé par défaut */ }
+    const clickSound = new Audio(divider.dataset.soundSrc);
+    clickSound.preload = 'auto';
     const customTimeStorageKey = 'kchess.clock.customTimes';
 
     let initialTime = 600;
@@ -131,10 +145,12 @@
             timeElements[player].textContent = formatTime(times[player]);
             const panel = document.querySelector(`[data-player-panel="${player}"]`);
             const face = document.querySelector(`[data-player="${player}"].clock-face`);
-            panel.classList.toggle('active', player === activePlayer && running);
+            // couleurs « actif » dès le départ (avant le 1er coup et en pause) : c'est le camp dont c'est le tour
+            panel.classList.toggle('active', player === activePlayer && times[player] > 0);
             panel.classList.toggle('expired', times[player] <= 0);
+            // avant le départ, un tap côté Noirs lance la partie (sans passer par « Prêt »)
             face.disabled = !(running && player === activePlayer)
-                && !(ready && !hasStarted && player === 'black');
+                && !(!hasStarted && player === 'black');
         }
 
         startPauseButton.querySelector('span').textContent = running
@@ -143,6 +159,16 @@
         startPauseButton.querySelector('i').className = running
             ? 'bi bi-pause-fill'
             : 'bi bi-play-fill';
+        const page = document.querySelector('.clock-page');
+        page.classList.toggle('not-started', !hasStarted);
+        if (times[activePlayer] > 0) page.dataset.turn = activePlayer;
+        else page.removeAttribute('data-turn');
+        dividerTempo.title = `${text.choose_format} (${Math.floor(initialTime / 60)} +${increment})`;
+        const playLabel = running ? text.pause : hasStarted ? text.resume : text.ready;
+        dividerPlayPause.querySelector('i').className = running ? 'bi bi-pause-fill' : 'bi bi-play-fill';
+        dividerPlayPause.classList.toggle('is-running', running);
+        dividerPlayPause.setAttribute('aria-label', playLabel);
+        dividerPlayPause.title = playLabel;
         presetButtons.forEach(button => button.disabled = running);
         closeSettingsButton.hidden = !hasStarted;
         settingsFooter.classList.toggle('without-close', closeSettingsButton.hidden);
@@ -330,13 +356,58 @@
             .replace('{increment}', customIncrement);
     });
 
+    function playClick() {
+        if (!soundOn) return;
+        try {
+            clickSound.currentTime = 0;
+            const result = clickSound.play();
+            if (result && typeof result.catch === 'function') result.catch(() => {});
+        } catch (error) { /* son indisponible : on ignore */ }
+    }
+
+    function renderSoundButton() {
+        dividerSound.setAttribute('aria-pressed', String(soundOn));
+        const label = soundOn ? text.sound_on : text.sound_off;
+        dividerSound.setAttribute('aria-label', label);
+        dividerSound.title = label;
+        dividerSound.querySelector('i').className = soundOn ? 'bi bi-volume-up-fill' : 'bi bi-volume-mute-fill';
+    }
+
+    function showResetConfirm(show) {
+        dividerConfirm.hidden = !show;
+        dividerActions.hidden = show;
+        if (show) dividerResetNo.focus();
+    }
+
     clockButtons.forEach(button => button.addEventListener('click', () => {
-        if (!hasStarted && ready && button.dataset.player === 'black') {
+        if (!hasStarted && button.dataset.player === 'black') {
+            playClick();
             start();
         } else if (running && button.dataset.player === activePlayer) {
+            playClick();
             switchTurn();
         }
     }));
+
+    // Barre centrale
+    dividerPlayPause.addEventListener('click', () => {
+        if (running) pause();
+        else start();
+    });
+    dividerTempo.addEventListener('click', openSettings);
+    dividerSound.addEventListener('click', () => {
+        soundOn = !soundOn;
+        try { localStorage.setItem(soundStorageKey, soundOn ? '1' : '0'); } catch (error) { /* ignore */ }
+        renderSoundButton();
+        playClick();   // petit aperçu quand on réactive le son
+    });
+    dividerReset.addEventListener('click', () => showResetConfirm(true));
+    dividerResetNo.addEventListener('click', () => showResetConfirm(false));
+    dividerResetYes.addEventListener('click', () => {
+        reset();
+        showResetConfirm(false);
+    });
+    renderSoundButton();
 
     startPauseButton.addEventListener('click', () => {
         if (running) {
@@ -372,9 +443,11 @@
         const targetIsButton = event.target instanceof Element && event.target.closest('button');
         if (event.code === 'Space' && !event.repeat && !targetIsButton) {
             event.preventDefault();
+            if (running) playClick();
             switchTurn();
         } else if (event.key === 'Escape') {
-            if (settings.hidden) openSettings();
+            if (!dividerConfirm.hidden) showResetConfirm(false);
+            else if (settings.hidden) openSettings();
             else if (hasStarted) settings.hidden = true;
         }
     });

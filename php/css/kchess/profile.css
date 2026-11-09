@@ -1,0 +1,266 @@
+/* ═══════════════════════════════════════════════════════════════
+   PROFIL — aligné sur le design newGame
+   ═══════════════════════════════════════════════════════════════ */
+
+.profile-layout { align-items: center; }
+.profile-intro  { gap: 0; }
+
+.home-navbar-profile.is-active {
+    background: var(--site-surface-alt);
+    color: var(--site-text);
+}
+
+/* ── Aperçu plateau (même style que newGame) ── */
+.profile-board-preview { margin-top: clamp(28px, 5vh, 48px); }
+
+/* ── Recherche (dans le panneau droit) ── */
+.profile-content .profile-search {
+    margin-bottom: 22px;
+}
+
+.profile-search-label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.profile-search-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 48px;
+    padding: 0 12px;
+    border: 1px solid var(--site-border);
+    border-radius: 10px;
+    background: var(--site-surface-alt);
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.profile-search-field:focus-within {
+    border-color: var(--success-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--success-color) 22%, transparent);
+}
+
+.profile-search-field > i.bi-search {
+    color: var(--site-text-muted);
+    font-size: 1rem;
+    flex: 0 0 auto;
+}
+
+.profile-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--site-text);
+    font: inherit;
+    font-size: 1rem;
+    outline: none;
+}
+
+.profile-search-input::placeholder { color: var(--site-text-muted); opacity: 0.7; }
+.profile-search-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+.profile-search-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--site-text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+
+.profile-search-clear:hover,
+.profile-search-clear:focus-visible {
+    background: var(--site-surface);
+    color: var(--site-text);
+    outline: none;
+}
+
+.profile-search-clear[hidden] { display: none; }
+
+.profile-search-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 10px 0 0;
+    color: var(--site-text-muted);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.profile-search-hint i { color: var(--success-color); }
+
+/* ── Liste des levels (dans le panneau droit) ── */
+.profile-levels { margin-bottom: 22px; }
+
+.profile-levels-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.profile-levels-head h2 {
+    margin: 0;
+    color: var(--site-text);
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.profile-levels-count {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border: 1px solid var(--site-border);
+    border-radius: 999px;
+    background: var(--site-surface-alt);
+    color: var(--site-text-muted);
+    font-size: 0.74rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.profile-levels-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.profile-level-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--site-border);
+    border-radius: 9px;
+    background: var(--site-surface-alt);
+}
+
+.profile-level-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 34px;
+    height: 26px;
+    padding: 0 7px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--success-color) 14%, var(--site-surface));
+    border: 1px solid var(--success-color);
+    color: var(--success-color);
+    font-size: 0.78rem;
+    font-weight: 750;
+    letter-spacing: 0.02em;
+}
+
+.profile-level-wins { display: inline-flex; align-items: center; gap: 3px; }
+
+.profile-win {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--site-border);
+    border-radius: 5px;
+    color: var(--site-text-muted);
+    font-size: 0.8rem;
+    line-height: 1;
+    opacity: 0.45;
+}
+
+.profile-win.is-done {
+    border-color: var(--success-color);
+    background: color-mix(in srgb, var(--success-color) 12%, var(--site-surface));
+    color: var(--success-color);
+    opacity: 1;
+}
+
+.profile-win i { font-size: 0.7rem; }
+
+.profile-levels-empty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 14px;
+    border: 1px dashed var(--site-border);
+    border-radius: 9px;
+    color: var(--site-text-muted);
+    font-size: 0.82rem;
+    background: var(--site-surface-alt);
+}
+
+.profile-levels-empty i { color: var(--site-text-muted); font-size: 1rem; }
+
+/* ── Reset all ── */
+.profile-actions {
+    margin-top: 8px;
+    padding-top: 18px;
+    border-top: 1px solid var(--site-border);
+}
+
+.profile-reset-all-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 18px;
+    border: 1px solid #f85149;
+    border-radius: 9px;
+    background: transparent;
+    color: #f85149;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.profile-reset-all-btn:hover,
+.profile-reset-all-btn:focus-visible {
+    background: #f85149;
+    color: #fff;
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.profile-reset-all-btn:active { transform: translateY(0); }
+
+.profile-reset-all-note {
+    margin: 10px 0 0;
+    color: var(--site-text-muted);
+    font-size: 0.76rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+    .profile-layout { align-items: stretch; }
+    .profile-board-preview { margin-top: 18px; }
+}
+
+@media (max-width: 520px) {
+    .profile-levels-list { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profile-search-field,
+    .profile-search-clear,
+    .profile-reset-all-btn { transition: none; }
+}

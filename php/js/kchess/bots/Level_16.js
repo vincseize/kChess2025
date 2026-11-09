@@ -30,6 +30,32 @@ class Level_16 {
         this.maxOppCaptures = 8;
     }
 
+    /**
+     * Process du niveau, dans l'ordre d'exécution (lu par Bot_Process.php).
+     * Étape 1 : les paramètres (maxPlies, stalePieces, replyLimit) sont lus par le code ; les on/off sont descriptifs.
+     */
+    get PROCESS_CONFIG() {
+        return {
+            ouverture_livre: { maxPlies: 6 },
+            mat_en_1: true,
+            echange_statique: true,
+            exposition_piece_jouee: true,
+            bonus_positionnels: true,
+            structure_base: true,
+            structure_avancee: true,
+            reponse_adverse: { replyLimit: this.maxOppCaptures },
+            garde_pat: { stalePieces: 12 },
+            securite_roi: true,
+            menace_mat_en_1: true,
+            promotion_prioritaire: true,
+            choix_meilleur: true
+        };
+    }
+
+    get PIPELINE() {
+        return Object.entries(this.PROCESS_CONFIG).map(([id, v]) => id + (id === 'reponse_adverse' ? `(${v.replyLimit})` : ''));
+    }
+
     async getMove() {
         try {
             const game = window.chessGame?.core || window.chessGame;
@@ -199,7 +225,7 @@ class Level_16 {
     _shouldCheckStalemate(afterMove, oppColor) {
         if (!afterMove) return false;
         const pieceCount = this._countPieces(afterMove);
-        if (pieceCount <= 12) return true;
+        if (pieceCount <= this.PROCESS_CONFIG.garde_pat.stalePieces) return true;
 
         const oppKing = this._findKing(afterMove, oppColor);
         if (!oppKing) return false;
@@ -214,7 +240,7 @@ class Level_16 {
         if (typeof window.GameOuverture === 'undefined') return null;
 
         const history = game.gameState.moveHistory || [];
-        if (history.length >= 6) return null;
+        if (history.length >= this.PROCESS_CONFIG.ouverture_livre.maxPlies) return null;
 
         const candidateLines = window.GameOuverture.lignes.filter(line => {
             if (line.coups.length <= history.length) return false;

@@ -12,6 +12,16 @@ class Level_1 extends BotBase {
     }
 
     /**
+     * Process du niveau (étape 1 : configuration descriptive, le code ne lit pas encore les on/off).
+     * Lu par Bot_Process.php (matrice / diagrammes).
+     */
+    get PROCESS_CONFIG() {
+        return { coup_aleatoire: true };
+    }
+
+    get PIPELINE() { return Object.keys(this.PROCESS_CONFIG); }
+
+    /**
      * Retourne un coup aléatoire parmi les coups légaux
      */
     async getMove() {

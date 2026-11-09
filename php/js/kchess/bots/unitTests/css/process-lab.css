@@ -5,7 +5,7 @@
     --bg: #0d1117; --panel: #161b22; --panel2: #21262d; --border: #30363d;
     --text: #c9d1d9; --muted: #8b949e; --blue: #58a6ff; --green: #3fb950;
     --yellow: #d29922; --red: #f85149; --purple: #bc8cff;
-    --g-decision: #f85149; --g-filtre: #d29922; --g-score: #58a6ff; --g-choix: #3fb950;
+    --g-decision: #f0883e; --g-filtre: #d29922; --g-score: #58a6ff; --g-choix: #f85149;
 }
 
 body {
@@ -40,7 +40,7 @@ body {
     flex: 0 0 210px; background: var(--panel); border: 1px solid var(--border);
     border-radius: 8px; padding: 10px; display: flex; flex-direction: column; align-items: stretch;
 }
-.pl-col-head { text-align: center; margin-bottom: 8px; }
+.pl-col-head { position: relative; text-align: center; margin-bottom: 8px; }
 .pl-col-title { font-weight: 700; font-size: 15px; }
 .pl-col-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .pl-badge {
@@ -128,3 +128,24 @@ body {
     background: #090c10; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin: 0;
     font-family: Consolas, Monaco, monospace; font-size: 11px; line-height: 1.45; max-height: 520px; overflow: auto; color: #aff5b4; white-space: pre;
 }
+
+/* --- Modifications factices (matrice / diagrammes) --- */
+.pl-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; font-size: 12px; color: var(--muted); }
+.pl-toolbar label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text); }
+.pl-matrix td.cell { cursor: pointer; user-select: none; }
+.pl-matrix td.cell:hover { background: #2b323b; outline: 1px solid var(--blue); }
+.pl-matrix td.add { color: var(--purple); font-weight: 700; background: rgba(188,140,255,.14); }
+.pl-matrix td.rm { color: var(--red); font-weight: 700; background: rgba(248,81,73,.10); }
+.pl-node .tag.removed { background: var(--red); color: #0d1117; }
+.pl-node.removed { opacity: .5; }
+.pl-node.removed { text-decoration: line-through; text-decoration-color: var(--red); }
+
+/* --- Export matrice -> level factice --- */
+.pl-warn { color: var(--yellow); white-space: pre-line; }
+.pl-th-btn { background: var(--panel2); border: 1px solid var(--border); color: var(--blue); border-radius: 4px; cursor: pointer; padding: 1px 8px; font-size: 13px; }
+.pl-th-btn:hover { background: var(--blue); color: #0d1117; }
+
+/* --- Un seul level à la fois --- */
+.pl-solo { position: absolute; top: 0; right: 0; padding: 0 6px; font-size: 12px; line-height: 18px; }
+.pl-solo.on { background: var(--blue); color: #0d1117; }
+.pl-col.solo { flex: 0 0 360px; }

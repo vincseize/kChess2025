@@ -3,9 +3,211 @@
     box-sizing: border-box;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   NAVBAR : brand + actions (profil + langue)
+   ═══════════════════════════════════════════════════════════════ */
+
+.home-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    padding: 0;
+    height: 40px;
+    background: var(--site-surface);
+    border-bottom: 1px solid var(--site-border);
+    font-family: inherit;
+}
+
+.home-navbar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 0 10px;
+    height: 100%;
+    color: var(--site-text);
+    font-size: 0.9rem;
+    font-weight: 750;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    transition: color 140ms ease;
+}
+
+.home-navbar-brand:hover {
+    color: var(--success-color);
+}
+
+.home-navbar-brand i {
+    color: var(--success-color);
+    font-size: 1.1rem;
+}
+
+.home-navbar-right {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 0;
+}
+
+.home-navbar-profile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 12px;
+    border: 0;
+    background: transparent;
+    color: var(--site-text-muted);
+    font: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+
+.home-navbar-profile:hover,
+.home-navbar-profile:focus-visible {
+    background: var(--site-surface-alt);
+    color: var(--site-text);
+    outline: none;
+}
+
+.home-navbar-profile[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.home-navbar-profile[aria-disabled="true"]:hover,
+.home-navbar-profile[aria-disabled="true"]:focus-visible {
+    background: transparent;
+    color: var(--site-text-muted);
+}
+
+.home-navbar-lang {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.home-navbar-lang-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 100%;
+    padding: 0 12px;
+    border: 0;
+    background: transparent;
+    color: var(--site-text);
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 140ms ease;
+}
+
+.home-navbar-lang-btn:hover,
+.home-navbar-lang-btn:focus-visible,
+.home-navbar-lang-btn[aria-expanded="true"] {
+    background: var(--site-surface-alt);
+    outline: none;
+}
+
+.home-navbar-lang-btn .lang-flag {
+    display: inline-grid;
+    place-items: center;
+    font-size: 1.25rem;
+    line-height: 1;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.home-navbar-lang-btn i {
+    font-size: 0.6rem;
+    color: var(--site-text-muted);
+    transition: transform 160ms ease;
+}
+
+.home-navbar-lang-btn[aria-expanded="true"] i {
+    transform: rotate(180deg);
+}
+
+.home-navbar-lang-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 100001;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    min-width: 0;
+    border: 1px solid var(--site-border);
+    border-top: 0;
+    border-radius: 0 0 10px 10px;
+    background: var(--site-surface);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.home-navbar-lang-dropdown[hidden] {
+    display: none;
+}
+
+.home-navbar-lang-dropdown li {
+    margin: 0;
+    padding: 0;
+}
+
+.home-navbar-lang-item {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: var(--site-surface-alt);
+    text-decoration: none;
+    transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.home-navbar-lang-item:hover,
+.home-navbar-lang-item:focus-visible {
+    border-color: var(--primary-color);
+    background: var(--site-surface);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.home-navbar-lang-item.is-active {
+    border-color: var(--success-color);
+    background: color-mix(in srgb, var(--success-color) 14%, var(--site-surface));
+    box-shadow: inset 0 0 0 1px var(--success-color);
+}
+
+.home-navbar-lang-item .lang-flag {
+    display: inline-grid;
+    place-items: center;
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OVERLAY
+   ═══════════════════════════════════════════════════════════════ */
+
 .new-game-overlay {
     position: fixed;
-    inset: 0;
+    inset: 40px 0 0 0;
     z-index: 9999;
     display: grid;
     place-items: center;
@@ -99,7 +301,6 @@
     container-type: inline-size;
 }
 
-/* Légende de la partie : posée sur le bord haut de l'échiquier incliné (même angle, calée sur son coin haut-gauche) */
 .board-preview-caption {
     margin: 0 0 2px;
     color: var(--site-text-muted);
@@ -196,73 +397,29 @@
     color: var(--success-color);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   PANNEAU DE CONFIGURATION
+   ═══════════════════════════════════════════════════════════════ */
+
 .new-game-content {
     width: 100%;
-    max-height: calc(100vh - 48px);
-    max-height: calc(100svh - 48px);
+    /* Tous les levels visibles : c'est la page qui défile, plus le panneau */
+    max-height: none;
     margin: 0;
     padding: clamp(22px, 3vw, 34px);
-    overflow-y: auto;
+    overflow: visible;
     border: 1px solid var(--site-border);
     border-radius: 16px;
     background: var(--site-surface);
     box-shadow: 0 22px 65px rgba(0, 0, 0, 0.35);
     text-align: left;
-    scrollbar-color: var(--site-border) transparent;
+    scrollbar-width: thin;
+    scrollbar-color: var(--success-color) var(--site-surface-alt);
+    position: relative;
 }
 
 .setup-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
-.setup-kicker {
-    margin-bottom: 4px;
-    color: var(--site-text-muted);
-    letter-spacing: 0.08em;
-}
-
-.setup-header h2 {
-    margin: 0;
-    color: var(--site-text);
-    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
-    font-weight: 700;
-    letter-spacing: -0.025em;
-}
-
-.setup-header > div:first-child {
-    min-width: 0;
-}
-
-.setup-header h2 {
-    white-space: nowrap;
-}
-
-.lang-selector {
-    flex: 0 0 auto;
-}
-
-.lang-selector form {
-    margin: 0;
-}
-
-.lang-select {
-    width: auto;
-    min-width: 126px;
-    padding: 7px 30px 7px 10px;
-    border: 1px solid var(--site-border);
-    border-radius: 7px;
-    background-color: var(--site-surface-alt);
-    color: var(--site-text);
-    font-size: 0.82rem;
-}
-
-.lang-select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 24%, transparent);
+    display: none;
 }
 
 .section-title {
@@ -272,16 +429,71 @@
     font-weight: 700;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   LISTE DES LEVELS (accordéon)
+   ═══════════════════════════════════════════════════════════════ */
+
 .new-game-buttons {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    max-height: 284px;
-    margin: 0 0 20px;
+    margin: 0;
     padding: 1px 5px 1px 1px;
-    overflow-y: auto;
+    overflow: visible;
     scrollbar-color: var(--site-border) transparent;
 }
+
+.level-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+}
+
+/* ÉTAT VERROUILLÉ */
+.level-accordion.is-locked .game-mode-btn {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.6);
+}
+
+.level-accordion.is-locked .game-mode-btn:hover {
+    filter: grayscale(0.6);
+    border-color: var(--site-border);
+}
+
+.level-accordion.is-locked .start-level-container {
+    display: none;
+}
+
+.level-accordion.is-locked .level-lock {
+    display: inline-grid !important;
+    place-items: center;
+    margin-left: 8px;
+    color: var(--site-text-muted);
+    font-size: 1rem;
+}
+
+.level-lock {
+    display: none;
+    place-items: center;
+    color: var(--site-text-muted);
+    font-size: 1rem;
+}
+
+/* FLASH */
+@keyframes levelFlash {
+    0%, 100% { background: transparent; }
+    50% { background: color-mix(in srgb, #f85149 22%, transparent); }
+}
+
+.level-accordion.flash .game-mode-btn {
+    animation: levelFlash 700ms ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODE BUTTON
+   ═══════════════════════════════════════════════════════════════ */
 
 .game-mode-btn {
     position: relative;
@@ -299,7 +511,7 @@
     font: inherit;
     text-align: left;
     cursor: pointer;
-    transition: background-color 140ms ease, border-color 140ms ease;
+    transition: background-color 140ms ease, border-color 140ms ease, opacity 140ms ease, filter 140ms ease;
 }
 
 .bot-search-depth {
@@ -329,8 +541,9 @@
 }
 
 .game-mode-btn:focus-visible,
-.color-option:focus-visible,
-.start-game-btn:focus-visible {
+.start-level-btn:focus-visible,
+.inline-color-option:focus-visible,
+.level-reset-btn:focus-visible {
     outline: 3px solid var(--chess-selected);
     outline-offset: 3px;
 }
@@ -426,122 +639,220 @@
     display: block;
 }
 
-/* Indicateur de niveau sélectionné : petit rond, même couleur que la bordure de la carte */
-.check-icon {
-    flex: 0 0 10px;
+/* ═══════════════════════════════════════════════════════════════
+   STATUT LEVEL : bouton reset "R" (remplace le point vert)
+   ═══════════════════════════════════════════════════════════════ */
+
+.level-status {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-left: 10px;
+    min-width: 28px;
+    height: 28px;
+}
+
+.level-complete-dot {
+    display: inline-block;
     width: 10px;
     height: 10px;
-    margin: 0 6px 0 10px;
     border-radius: 50%;
     background: var(--success-color);
-    font-size: 0; /* masque le glyphe bootstrap-icons */
     opacity: 0;
+    transition: opacity 140ms ease;
 }
 
-.check-icon::before {
-    content: none;
-}
-
-.game-mode-btn.selected .check-icon {
+.game-mode-btn.selected .level-complete-dot {
     opacity: 1;
 }
 
-.color-selection {
-    margin: 0;
-    padding: 16px;
-    border: 1px solid var(--site-border);
-    border-radius: 9px;
-    background: var(--site-surface-alt);
+/* Sur un level complété : le point vert disparaît, R prend sa place */
+.level-accordion.is-completed .level-complete-dot {
+    display: none;
 }
 
-.color-options {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-}
-
-.color-option {
-    display: flex;
-    flex-direction: column;
+.level-reset-btn {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    min-width: 0;
-    min-height: 83px;
-    padding: 8px 4px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
     border: 1px solid var(--site-border);
-    border-radius: 8px;
+    border-radius: 6px;
     background: var(--site-surface);
-    color: var(--site-text);
+    color: var(--site-text-muted);
     font: inherit;
-    font-size: 0.83rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1;
     cursor: pointer;
-    transition: background-color 140ms ease, border-color 140ms ease;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
 }
 
-.color-option:hover {
-    border-color: var(--primary-color);
-    filter: brightness(1.12);
+.level-reset-btn:hover,
+.level-reset-btn:focus-visible {
+    border-color: #f85149;
+    background: color-mix(in srgb, #f85149 12%, var(--site-surface));
+    color: #f85149;
+    outline: none;
+    transform: rotate(-45deg);
 }
 
-.color-option.selected {
-    border-color: var(--success-color);
-    background: var(--site-surface);
-    box-shadow: inset 0 0 0 1px var(--success-color);
+.level-reset-btn:active {
+    transform: rotate(-45deg) scale(0.92);
 }
 
-.color-piece {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
+.level-reset-btn[hidden] {
+    display: none;
 }
 
-.color-piece img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+/* Ancien check-icon : neutralisé pour ne pas interférer avec R / point vert */
+.check-icon {
+    display: none;
 }
 
-.color-option.random .color-piece i {
-    color: var(--success-color);
-    font-size: 1.35rem;
+/* ═══════════════════════════════════════════════════════════════
+   ACCORDÉON : bouton Démarrer + picker de couleur inline
+   ═══════════════════════════════════════════════════════════════ */
+
+.level-accordion.open .game-mode-btn {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-color: transparent;
 }
 
-.start-game-btn {
+.level-start-container {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+    transition: max-height 260ms ease, opacity 200ms ease, margin-top 200ms ease;
+}
+
+.level-accordion.open .level-start-container {
+    max-height: 100px;
+    opacity: 1;
+    margin-top: 6px;
+}
+
+.start-level-btn {
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    min-height: 50px;
-    margin-top: 16px;
+    min-height: 48px;
     padding: 12px 18px;
-    border: 0;
+    border: 1px solid var(--success-color);
     border-radius: 8px;
     background: var(--success-color);
     color: var(--site-background);
     font: inherit;
-    font-size: 1rem;
-    font-weight: 750;
+    font-size: 0.95rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: background-color 140ms ease, transform 140ms ease;
+    transition: background-color 140ms ease, transform 140ms ease, filter 140ms ease;
 }
 
-.start-game-btn:not(:disabled):hover {
+.start-level-btn:hover {
     background: color-mix(in srgb, var(--success-color) 86%, var(--site-background));
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+}
+
+.start-level-btn:active {
+    transform: translateY(0);
+}
+
+.start-level-btn:disabled {
+    background: var(--site-surface-alt);
+    color: var(--site-text-muted);
+    border-color: var(--site-border);
+    cursor: not-allowed;
+    transform: none;
+    filter: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PICKER COULEUR INLINE (AGRANDI)
+   ═══════════════════════════════════════════════════════════════ */
+
+.inline-color-picker {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 6px;
+    padding: 6px;
+    border: 1px solid var(--site-border);
+    border-radius: 10px;
+    background: var(--site-surface-alt);
+}
+
+.inline-color-option {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: var(--site-surface);
+    color: var(--site-text);
+    cursor: pointer;
+    transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.inline-color-option img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.inline-color-option.random i {
+    color: var(--success-color);
+    font-size: 1.6rem;
+}
+
+.inline-color-option:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.inline-color-option.selected {
+    border-color: var(--success-color);
+    background: color-mix(in srgb, var(--success-color) 18%, var(--site-surface));
+    box-shadow: 0 0 0 2px var(--success-color), inset 0 0 0 1px var(--success-color);
     transform: translateY(-1px);
 }
 
-.start-game-btn:disabled {
-    background: var(--site-surface-alt);
-    color: var(--site-text-muted);
-    cursor: not-allowed;
+/* ═══════════════════════════════════════════════════════════════
+   MASQUER LES ANCIENS ÉLÉMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.start-game-btn {
+    display: none !important;
 }
+
+.color-selection {
+    display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 860px) {
     .new-game-overlay {
         display: block;
-        padding: 24px;
+        padding: 20px;
     }
 
     .new-game-layout {
@@ -601,7 +912,48 @@
 }
 
 @media (max-width: 520px) {
+    .home-navbar {
+        height: 38px;
+    }
+
+    .home-navbar-brand {
+        padding: 0 8px;
+        font-size: 0.82rem;
+    }
+
+    .home-navbar-brand span {
+        display: none;
+    }
+
+    .home-navbar-brand i {
+        font-size: 1.05rem;
+    }
+
+    .home-navbar-profile {
+        padding: 0 10px;
+        font-size: 1.15rem;
+    }
+
+    .home-navbar-lang-btn {
+        padding: 0 10px;
+        font-size: 0.95rem;
+    }
+
+    .home-navbar-lang-btn .lang-flag {
+        font-size: 1.15rem;
+    }
+
+    .home-navbar-lang-item {
+        width: 38px;
+        height: 38px;
+    }
+
+    .home-navbar-lang-item .lang-flag {
+        font-size: 1.35rem;
+    }
+
     .new-game-overlay {
+        inset: 38px 0 0 0;
         padding: 14px 12px 20px;
     }
 
@@ -670,30 +1022,6 @@
         border-radius: 12px;
     }
 
-    .setup-header {
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 20px;
-    }
-
-    .setup-header h2 {
-        font-size: 1.25rem;
-    }
-
-    .setup-kicker {
-        font-size: 0.64rem;
-    }
-
-    .lang-select {
-        min-width: 112px;
-        padding: 6px 26px 6px 8px;
-        font-size: 0.75rem;
-    }
-
-    .setup-header > div:first-child {
-        flex: 1 1 auto;
-    }
-
     .game-mode-btn {
         min-height: 56px;
         padding: 10px;
@@ -721,40 +1049,121 @@
         font-size: 0.78rem;
     }
 
-    .color-selection {
-        padding: 13px 10px;
+    .level-start-container {
+        gap: 8px;
     }
 
-    .color-options {
-        gap: 6px;
+    .start-level-btn {
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 0.88rem;
     }
 
-    .color-option {
-        min-height: 75px;
-        font-size: 0.78rem;
+    .inline-color-picker {
+        gap: 5px;
+        padding: 5px;
     }
 
-    .color-piece {
-        width: 31px;
-        height: 31px;
+    .inline-color-option {
+        width: 42px;
+        height: 42px;
+    }
+
+    .inline-color-option img {
+        width: 30px;
+        height: 30px;
+    }
+
+    .inline-color-option.random i {
+        font-size: 1.35rem;
+    }
+
+    .level-reset-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 0.8rem;
+    }
+
+    .level-status {
+        min-width: 26px;
+        height: 26px;
+        margin-left: 6px;
     }
 }
 
 @media (max-width: 360px) {
-    .setup-header h2 {
-        font-size: clamp(0.8rem, 4vw, 0.95rem);
+    .inline-color-picker {
+        gap: 4px;
+        padding: 4px;
     }
 
-    .lang-select {
-        min-width: 108px;
-        padding-right: 22px;
+    .inline-color-option {
+        width: 38px;
+        height: 38px;
+    }
+
+    .inline-color-option img {
+        width: 26px;
+        height: 26px;
+    }
+
+    .inline-color-option.random i {
+        font-size: 1.2rem;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .game-mode-btn,
-    .color-option,
-    .start-game-btn {
+    .start-level-btn,
+    .inline-color-option,
+    .level-start-container,
+    .home-navbar-lang-btn,
+    .home-navbar-lang-btn i,
+    .home-navbar-brand,
+    .home-navbar-lang-item,
+    .home-navbar-profile,
+    .level-reset-btn {
         transition: none;
     }
+    .level-accordion.flash .game-mode-btn {
+        animation: none;
+    }
+}
+/* Message après reset d'un level */
+#levelToast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translate(-50%, 20px);
+    max-width: calc(100vw - 32px);
+    padding: 10px 16px;
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
+    background: var(--site-surface);
+    color: var(--site-text);
+    font-size: 0.9rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+    z-index: 2000;
+}
+
+#levelToast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+/* Barre de défilement bien visible : les levels 5, 6, 7, 8, 16... sont plus bas */
+.new-game-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.new-game-content::-webkit-scrollbar-track {
+    background: var(--site-surface-alt);
+    border-radius: 8px;
+}
+
+.new-game-content::-webkit-scrollbar-thumb {
+    background: var(--success-color);
+    border-radius: 8px;
 }
