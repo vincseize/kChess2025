@@ -2,7 +2,7 @@
    PROFIL — aligné sur le design newGame
    ═══════════════════════════════════════════════════════════════ */
 
-.profile-layout { align-items: center; }
+.profile-layout { align-items: start; }
 .profile-intro  { gap: 0; }
 
 .home-navbar-profile.is-active {
@@ -204,6 +204,466 @@
 }
 
 .profile-levels-empty i { color: var(--site-text-muted); font-size: 1rem; }
+
+.profile-search-btn {
+    flex: 0 0 auto;
+    height: 34px;
+    padding: 0 14px;
+    border: 1px solid var(--success-color);
+    border-radius: 8px;
+    background: var(--success-color);
+    color: #04201a;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 140ms ease, transform 140ms ease;
+}
+
+.profile-search-btn:hover,
+.profile-search-btn:focus-visible { filter: brightness(1.1); outline: none; }
+.profile-search-btn:active { transform: translateY(1px); }
+
+.profile-search-adv { margin: 0 0 18px; font-size: 0.78rem; }
+.profile-search-adv a { color: var(--site-text-muted); text-decoration: none; }
+.profile-search-adv a:hover, .profile-search-adv a:focus-visible { color: var(--success-color); text-decoration: underline; }
+.profile-search-adv i { margin-right: 4px; }
+
+/* ── Fiche joueur FIDE ── */
+.profile-fide { margin-bottom: 22px; }
+.profile-fide[hidden] { display: none; }
+
+.profile-fide-note {
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px dashed var(--site-border);
+    border-radius: 9px;
+    background: var(--site-surface-alt);
+    color: var(--site-text-muted);
+    font-size: 0.84rem;
+}
+
+.profile-fide-note.is-error { border-color: #f85149; color: #f85149; }
+
+.profile-fide-card {
+    padding: 14px;
+    border: 1px solid var(--site-border);
+    border-radius: 10px;
+    background: var(--site-surface-alt);
+}
+
+.profile-fide-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.profile-fide-head h3 { margin: 0 0 2px; color: var(--site-text); font-size: 1.05rem; }
+.profile-fide-head p { margin: 0; color: var(--site-text-muted); font-size: 0.82rem; }
+.profile-fide-id { margin-top: 2px !important; font-size: 0.74rem !important; font-variant-numeric: tabular-nums; }
+
+.profile-fide-photo {
+    flex: 0 0 auto;
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    border: 1px solid var(--site-border);
+    object-fit: cover;
+}
+
+.profile-fide-ratings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+.profile-fide-rating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 6px;
+    border: 1px solid var(--site-border);
+    border-radius: 9px;
+    background: var(--site-surface);
+}
+
+.profile-fide-rating strong {
+    color: var(--success-color);
+    font-size: 1.3rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.profile-fide-rating span { color: var(--site-text-muted); font-size: 0.74rem; }
+
+.profile-fide-chart { margin-top: 14px; color: var(--success-color); }
+.profile-fide-chart span { display: block; margin-bottom: 4px; color: var(--site-text-muted); font-size: 0.74rem; }
+.profile-fide-chart svg { display: block; width: 100%; height: 70px; }
+
+.profile-fide-credit { margin: 10px 0 0; color: var(--site-text-muted); font-size: 0.7rem; }
+
+.profile-fide-pick { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+
+.profile-fide-pick-btn {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--site-border);
+    border-radius: 9px;
+    background: var(--site-surface-alt);
+    color: var(--site-text);
+    font: inherit;
+    font-size: 0.88rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 140ms ease;
+}
+
+.profile-fide-pick-btn:hover,
+.profile-fide-pick-btn:focus-visible { border-color: var(--success-color); outline: none; }
+.profile-fide-pick-btn small { color: var(--site-text-muted); }
+
+/* ── Historique des recherches ── */
+.profile-history { margin-bottom: 18px; }
+.profile-history[hidden] { display: none; }
+
+.profile-history-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: var(--site-text-muted);
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.profile-history-clear {
+    padding: 2px 6px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--site-text-muted);
+    font: inherit;
+    font-size: 0.74rem;
+    cursor: pointer;
+}
+
+.profile-history-clear:hover,
+.profile-history-clear:focus-visible { color: #f85149; outline: none; }
+
+.profile-history-list {
+    display: grid;
+    gap: 6px;
+    max-height: 190px;
+    margin: 0;
+    padding: 0 2px 0 0;
+    overflow-y: auto;
+    list-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--success-color) var(--site-surface-alt);
+}
+
+.profile-history-list li { display: flex; gap: 6px; }
+
+.profile-history-item {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--site-border);
+    border-radius: 9px;
+    background: var(--site-surface-alt);
+    color: var(--site-text);
+    font: inherit;
+    font-size: 0.86rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 140ms ease;
+}
+
+.profile-history-item:hover,
+.profile-history-item:focus-visible { border-color: var(--success-color); outline: none; }
+.profile-history-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-history-item small { flex: 0 0 auto; color: var(--site-text-muted); font-variant-numeric: tabular-nums; }
+
+.profile-history-del {
+    flex: 0 0 auto;
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    border: 1px solid var(--site-border);
+    border-radius: 9px;
+    background: var(--site-surface-alt);
+    color: var(--site-text-muted);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: border-color 140ms ease, color 140ms ease;
+}
+
+.profile-history-del:hover,
+.profile-history-del:focus-visible { border-color: #f85149; color: #f85149; outline: none; }
+
+/* ── Parties : échiquier droit (non incliné) ── */
+.profile-game-caption {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: 0 0 6px;
+    color: var(--site-text-muted);
+    font-size: 0.72rem;
+    line-height: 1.3;
+    text-wrap: balance;
+}
+
+.profile-game-name { color: var(--site-text); font-weight: 700; }
+.profile-game-caption .game-year { color: var(--site-text); font-weight: 600; white-space: nowrap; }
+
+.profile-board {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-rows: repeat(8, minmax(0, 1fr));
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border: 5px solid var(--site-border);
+    border-radius: 8px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+    user-select: none;
+}
+
+.pb-sq { position: relative; display: grid; place-items: center; }
+.pb-sq.is-light { background: var(--chess-square-white, #C9F3E9); }
+.pb-sq.is-dark  { background: var(--chess-square-black, #168B8D); }
+.pb-sq.is-last::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--chess-selected, #5EEAD4) 45%, transparent);
+}
+.pb-sq img { position: relative; z-index: 1; width: 92%; height: 92%; object-fit: contain; pointer-events: none; }
+
+.profile-game-players {
+    margin: 6px 0 0;
+    color: var(--site-text-muted);
+    font-size: 0.7rem;
+    line-height: 1.35;
+}
+
+.profile-zoom-btn { margin-top: 10px; }
+
+.profile-games-title {
+    margin: 18px 0 8px;
+    color: var(--site-text);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.profile-games-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+.profile-game-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--site-border);
+    border-radius: 9px;
+    background: var(--site-surface);
+    color: var(--site-text);
+    font: inherit;
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.profile-game-item small { color: var(--site-text-muted); font-variant-numeric: tabular-nums; }
+.profile-game-item:hover,
+.profile-game-item:focus-visible { border-color: var(--success-color); outline: none; }
+.profile-game-item.is-active {
+    border-color: var(--success-color);
+    background: color-mix(in srgb, var(--success-color) 12%, var(--site-surface));
+}
+
+/* ── Grande vue (même page) ── */
+body.profile-modal-open { overflow: hidden; }
+
+.profile-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 200000;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: rgba(2, 10, 12, 0.78);
+    backdrop-filter: blur(3px);
+}
+
+.profile-modal[hidden] { display: none; }
+
+.profile-modal-card {
+    width: min(92vw, 640px, calc(100vh - 150px));
+    min-width: 280px;
+    padding: 14px;
+    border: 1px solid var(--site-border);
+    border-radius: 14px;
+    background: var(--site-surface);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+.profile-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.profile-modal-title { margin: 0; color: var(--site-text); font-size: 1rem; }
+.profile-modal-players { margin: 2px 0 0; color: var(--site-text-muted); font-size: 0.76rem; }
+
+.profile-modal-close {
+    flex: 0 0 auto;
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
+    background: var(--site-surface-alt);
+    color: var(--site-text);
+    cursor: pointer;
+}
+
+.profile-modal-close:hover,
+.profile-modal-close:focus-visible { border-color: var(--success-color); outline: none; }
+
+.profile-modal-move {
+    margin: 10px 0 8px;
+    color: var(--site-text);
+    font-size: 0.95rem;
+    font-weight: 650;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.profile-modal-controls { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+.profile-modal-controls button {
+    display: inline-grid;
+    place-items: center;
+    width: 42px;
+    height: 38px;
+    border: 1px solid var(--site-border);
+    border-radius: 9px;
+    background: var(--site-surface-alt);
+    color: var(--site-text);
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: border-color 140ms ease;
+}
+
+.profile-modal-controls button:hover,
+.profile-modal-controls button:focus-visible { border-color: var(--success-color); outline: none; }
+.profile-modal-controls .is-primary { border-color: var(--success-color); color: var(--success-color); }
+.profile-modal-count { margin-left: 6px; color: var(--site-text-muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+
+/* ── Bascule Joueur / Club ── */
+.profile-mode { display: inline-flex; gap: 4px; margin-bottom: 12px; padding: 3px; border: 1px solid var(--site-border); border-radius: 10px; background: var(--site-surface-alt); }
+
+.profile-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--site-text-muted);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+
+.profile-mode-btn:hover,
+.profile-mode-btn:focus-visible { color: var(--site-text); outline: none; }
+.profile-mode-btn.is-active { background: var(--success-color); color: #04201a; }
+.profile-history.is-off { display: none; }
+
+/* ── Club ── */
+.profile-fide-club { margin-top: 4px !important; }
+.profile-fide-club-link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--success-color);
+    font: inherit;
+    font-weight: 650;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.profile-club-head h3 { margin: 0 0 2px; color: var(--site-text); font-size: 1.05rem; }
+.profile-club-head p { margin: 0 0 12px; color: var(--site-text-muted); font-size: 0.82rem; }
+.profile-club-list { display: grid; gap: 6px; max-height: 340px; margin: 0; padding: 0 2px 0 0; overflow-y: auto; list-style: none; scrollbar-width: thin; scrollbar-color: var(--success-color) var(--site-surface-alt); }
+
+.profile-club-player {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--site-border);
+    border-radius: 9px;
+    background: var(--site-surface);
+    color: var(--site-text);
+    font: inherit;
+    font-size: 0.86rem;
+    text-align: left;
+}
+
+button.profile-club-player { cursor: pointer; transition: border-color 140ms ease; }
+button.profile-club-player:hover,
+button.profile-club-player:focus-visible { border-color: var(--success-color); outline: none; }
+.profile-club-player small { color: var(--site-text-muted); font-variant-numeric: tabular-nums; }
+
+/* ── Ajout d'une partie (localhost) ── */
+.profile-add-game-btn { margin-top: 10px; border-style: dashed; }
+.profile-add-card { width: min(94vw, 560px); max-height: calc(100vh - 32px); overflow-y: auto; }
+.profile-add-field { display: block; margin-bottom: 10px; }
+.profile-add-field > span { display: block; margin-bottom: 4px; color: var(--site-text-muted); font-size: 0.76rem; font-weight: 650; }
+
+.profile-add-field input,
+.profile-add-field select,
+.profile-add-field textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
+    background: var(--site-surface-alt);
+    color: var(--site-text);
+    font: inherit;
+    font-size: 0.9rem;
+}
+
+.profile-add-field textarea { resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 0.82rem; }
+.profile-add-field input:focus,
+.profile-add-field select:focus,
+.profile-add-field textarea:focus { border-color: var(--success-color); outline: none; }
+.profile-add-row { display: grid; grid-template-columns: 1fr 90px 90px; gap: 10px; }
+.profile-add-msg { min-height: 1.2em; margin: 0 0 6px; color: var(--success-color); font-size: 0.82rem; }
+.profile-add-msg.is-error { color: #f85149; }
+.profile-add-note { margin: 0 0 12px; color: var(--site-text-muted); font-size: 0.72rem; }
+.profile-add-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+.profile-add-cancel {
+    padding: 0 14px;
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--site-text);
+    font: inherit;
+    font-size: 0.86rem;
+    cursor: pointer;
+}
+
+.profile-add-actions .profile-search-btn { height: 36px; }
 
 /* ── Reset all ── */
 .profile-actions {

@@ -48,6 +48,21 @@
     font-size: 1.1rem;
 }
 
+/* Numéro de version à côté du nom */
+.home-navbar-version {
+    align-self: center;
+    margin-left: -1px;
+    padding: 1px 6px;
+    border: 1px solid var(--site-border);
+    border-radius: 999px;
+    color: var(--site-text-muted);
+    font-size: 0.66rem;
+    font-weight: 650;
+    letter-spacing: 0;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+}
+
 .home-navbar-right {
     display: flex;
     align-items: center;

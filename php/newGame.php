@@ -28,6 +28,7 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
     <a href="index.php" class="home-navbar-brand">
         <i class="bi bi-chess-queen" aria-hidden="true"></i>
         <span>CharlyChess</span>
+        <small class="home-navbar-version" title="Version"><?php echo htmlspecialchars('v' . ($config['version'] ?? '')); ?></small>
     </a>
 
     <div class="home-navbar-right">
