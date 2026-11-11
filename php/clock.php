@@ -53,9 +53,6 @@ $version = htmlspecialchars((string) getVersion(), ENT_QUOTES, 'UTF-8');
                 <i class="bi bi-arrow-left" aria-hidden="true"></i>
             </button>
             <h1><?php echo htmlspecialchars($clockTitle, ENT_QUOTES, 'UTF-8'); ?></h1>
-            <button type="button" class="clock-menu-button" id="openClockSettings" aria-label="<?php echo $translate('settings'); ?>">
-                <i class="bi bi-gear-fill" aria-hidden="true"></i>
-            </button>
         </header>
 
         <section class="clock-players" aria-label="<?php echo $translate('board_label'); ?>">
@@ -70,6 +67,11 @@ $version = htmlspecialchars((string) getVersion(), ENT_QUOTES, 'UTF-8');
                 </button>
             </div>
         </section>
+
+        <!-- ★ Bouton paramètres : flottant, en bas à droite, en diagonale du retour -->
+        <button type="button" class="clock-menu-button--floating" id="openClockSettings" aria-label="<?php echo $translate('settings'); ?>">
+            <i class="bi bi-gear-fill" aria-hidden="true"></i>
+        </button>
 
         <div class="clock-veil" aria-hidden="true"></div>
 
