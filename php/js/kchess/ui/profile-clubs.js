@@ -55,34 +55,6 @@ Object.assign(ProfilePage, {
         return this.CLUBS.filter(c => (c.players || []).some(pl => pl && String(pl.fide || '') === sid));
     },
 
-    // Enregistre un club : JSON partagé en localhost, localStorage sinon
-    async commitClub(patch) {
-        if (window.PROFILE_LOCAL) {
-            const list = (Array.isArray(window.PROFILE_CLUBS) ? window.PROFILE_CLUBS : []).map(c => ({ ...c }));
-            const i = list.findIndex(c => c.name === patch.name);
-            if (i >= 0) list[i] = { ...list[i], ...patch }; else list.push({ ...patch });
-            const r = await this.saveShared('clubs', list);
-            if (!r.ok) return false;
-            // le JSON fait foi : on retire les copies locales de ce club
-            const local = this.readLocalClubs();
-            local.clubs = local.clubs.filter(c => c.name !== patch.name);
-            delete local.overrides[patch.name];
-            this.writeLocalClubs(local);
-            return true;
-        }
-        const local = this.readLocalClubs();
-        const base = (Array.isArray(window.PROFILE_CLUBS) ? window.PROFILE_CLUBS : []).find(c => c.name === patch.name);
-        if (base) {
-            local.overrides[patch.name] = patch;
-            local.clubs = local.clubs.filter(c => c.name !== patch.name);
-        } else {
-            local.clubs = local.clubs.filter(c => c.name !== patch.name);
-            local.clubs.push(patch);
-        }
-        this.writeLocalClubs(local);
-        return true;
-    },
-
     // ── Vue Clubs ──
     initClubsView() {
         const searchInput = document.getElementById('profileClubSearchInput');
@@ -117,16 +89,8 @@ Object.assign(ProfilePage, {
             });
         });
 
-        this.renderHistory();
         this.updateClubStats();
-        const qParam = new URLSearchParams(window.location.search).get('q');
-        if (qParam) {
-            searchInput.value = qParam;
-            updateClear();
-            this.searchClubs(qParam);
-        } else {
-            this.renderClubResults(this.CLUBS, searchInput.value.trim());
-        }
+        this.renderClubResults(this.CLUBS, searchInput.value.trim());
 
         if (window.PROFILE_LOCAL) this.initClubsEditor();
     },
@@ -149,8 +113,7 @@ Object.assign(ProfilePage, {
         box.hidden = true;
     },
 
-    searchClubs(q, silent) {
-        if (q && !silent) this.addHistory({ q: String(q) }, 'club');
+    searchClubs(q) {
         const regionEl = document.getElementById('profileClubRegion');
         const countryEl = document.getElementById('profileClubCountry');
         const region = regionEl ? regionEl.value.trim() : '';
@@ -186,79 +149,89 @@ Object.assign(ProfilePage, {
             return;
         }
 
-        const card = document.createElement('article');
-        card.className = 'profile-fide-card profile-club-card';
-
-        const head = document.createElement('header');
-        head.className = 'profile-club-head';
-        const h = document.createElement('h3');
-        h.textContent = q ? `Résultats pour « ${q} »` : 'Tous les clubs';
-        const sub = document.createElement('p');
-        sub.textContent = `${clubs.length} club(s)`;
-        head.append(h, sub);
-        card.appendChild(head);
+        const wrap = document.createElement('div');
+        wrap.className = 'profile-club-sections';
 
         clubs.forEach(club => {
-            const section = document.createElement('section');
-            section.className = 'profile-club-section';
+            const details = document.createElement('details');
+            details.className = 'profile-club-section';
 
-            const title = document.createElement('h4');
-            title.className = 'profile-club-section-title';
-            title.textContent = club.name;
+            // ── Le summary contient le chevron (pour ouvrir) et le lien (pour naviguer)
+            const summary = document.createElement('summary');
+            summary.className = 'profile-club-section-title';
+
+            const icon = document.createElement('i');
+            icon.className = 'bi bi-chevron-right profile-club-chevron';
+            icon.style.pointerEvents = 'auto';
+
+            const titleLink = document.createElement('a');
+            titleLink.href = 'club.php?nom=' + encodeURIComponent(club.name);
+            titleLink.textContent = club.name;
+            titleLink.className = 'profile-club-link';
+            // Bloque la propagation pour ne pas que le summary s'ouvre en cliquant sur le lien
+            titleLink.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            summary.append(icon, titleLink);
 
             const info = document.createElement('p');
             info.className = 'profile-club-section-info';
             info.textContent = [club.city, club.region, club.country, `${(club.players || []).length} ${this.T.pf_club_players}`]
                 .filter(Boolean).join(' · ');
 
-            section.append(title, info);
+            details.appendChild(summary);
+            details.appendChild(info);
 
             const players = (club.players || []).filter(p => p && p.name);
             if (!players.length) {
                 const empty = document.createElement('p');
                 empty.className = 'profile-fide-note';
                 empty.textContent = this.T.pf_club_empty;
-                section.appendChild(empty);
-                card.appendChild(section);
-                return;
+                details.appendChild(empty);
+            } else {
+                const ul = document.createElement('ul');
+                ul.className = 'profile-club-list';
+                const sorted = players.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+                const rows = {};
+
+                sorted.forEach(pl => {
+                    const li = document.createElement('li');
+                    const btn = document.createElement(pl.fide && /^\d+$/.test(pl.fide) ? 'a' : 'div');
+                    btn.className = 'profile-club-player';
+                    if (pl.fide && /^\d+$/.test(pl.fide)) {
+                        btn.href = `profile.php?view=players&fide=${encodeURIComponent(pl.fide)}`;
+                    }
+                    const name = document.createElement('span');
+                    name.textContent = pl.name;
+                    const meta = document.createElement('small');
+                    meta.textContent = pl.fide ? String(pl.fide) : '';
+                    btn.append(name, meta);
+                    li.appendChild(btn);
+                    ul.appendChild(li);
+                    if (pl.fide && /^\d+$/.test(pl.fide)) rows[String(pl.fide)] = meta;
+                });
+
+                details.appendChild(ul);
+
+                const ids = Object.keys(rows);
+                if (ids.length) {
+                    fetch('fide.php?ids=' + ids.join(','))
+                        .then(r => r.json())
+                        .then(data => {
+                            if (!data.ok) return;
+                            Object.entries(data.players || {}).forEach(([id, info]) => {
+                                if (rows[id]) rows[id].textContent = id + (info.standard ? ' · ' + info.standard : '');
+                            });
+                        })
+                        .catch(() => {});
+                }
             }
 
-            const ul = document.createElement('ul');
-            ul.className = 'profile-club-list';
-            const sorted = players.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
-            const rows = {};
-            sorted.forEach(pl => {
-                const li = document.createElement('li');
-                const btn = document.createElement(pl.fide ? 'a' : 'div');
-                btn.className = 'profile-club-player';
-                if (pl.fide) btn.href = `profile.php?view=players&fide=${encodeURIComponent(pl.fide)}`;
-                const name = document.createElement('span');
-                name.textContent = pl.name;
-                const meta = document.createElement('small');
-                meta.textContent = pl.fide ? String(pl.fide) : '';
-                btn.append(name, meta);
-                li.appendChild(btn);
-                ul.appendChild(li);
-                if (pl.fide) rows[String(pl.fide)] = meta;
-            });
-            section.appendChild(ul);
-            card.appendChild(section);
-
-            const ids = Object.keys(rows);
-            if (ids.length) {
-                fetch('fide.php?ids=' + ids.join(','))
-                    .then(r => r.json())
-                    .then(data => {
-                        if (!data.ok) return;
-                        Object.entries(data.players || {}).forEach(([id, info]) => {
-                            if (rows[id]) rows[id].textContent = id + (info.standard ? ' · ' + info.standard : '');
-                        });
-                    })
-                    .catch(() => {});
-            }
+            wrap.appendChild(details);
         });
 
-        box.appendChild(card);
+        box.appendChild(wrap);
     },
 
     // ── Éditeur clubs / joueurs (2 sous-onglets) ──
@@ -331,13 +304,19 @@ Object.assign(ProfilePage, {
             fName.focus();
         };
 
-        const save = async () => {
+        const save = () => {
             const name = fName.value.trim();
             if (!name) {
                 if (msgClub) { msgClub.textContent = 'Le nom du club est requis.'; msgClub.classList.add('is-error'); }
                 return;
             }
-            const existing = currentClubs().find(c => c.name === name) || {};
+            const local = this.readLocalClubs();
+            const existingBase = (Array.isArray(window.PROFILE_CLUBS) ? window.PROFILE_CLUBS : [])
+                .find(c => c.name === name);
+            const existingLocal = local.clubs.find(c => c.name === name);
+            const existingOverride = local.overrides[name];
+            const existing = existingOverride || existingLocal || existingBase || {};
+
             const patch = {
                 ...existing,
                 name,
@@ -346,15 +325,20 @@ Object.assign(ProfilePage, {
                 country: fCountry.value.trim(),
                 players: Array.isArray(existing.players) ? existing.players : []
             };
-            if (!(await this.commitClub(patch))) {
-                if (msgClub) { msgClub.textContent = 'Enregistrement impossible (config/clubs.json).'; msgClub.classList.add('is-error'); }
-                return;
+
+            if (existingBase) {
+                local.overrides[name] = patch;
+                local.clubs = local.clubs.filter(c => c.name !== name);
+            } else {
+                local.clubs = local.clubs.filter(c => c.name !== name);
+                local.clubs.push(patch);
             }
+            this.writeLocalClubs(local);
             if (msgClub) { msgClub.textContent = `✅ « ${name} » enregistré.`; msgClub.classList.remove('is-error'); }
             editor.hidden = true;
             renderList();
             this.updateClubStats();
-            this.searchClubs(document.getElementById('profileClubSearchInput')?.value.trim() || '', true);
+            this.searchClubs(document.getElementById('profileClubSearchInput')?.value.trim() || '');
         };
 
         btn.addEventListener('click', () => {
@@ -413,7 +397,7 @@ Object.assign(ProfilePage, {
         playersSelect.addEventListener('change', loadPlayersForSelected);
 
         if (playersSave) {
-            playersSave.addEventListener('click', async () => {
+            playersSave.addEventListener('click', () => {
                 const name = playersSelect.value;
                 if (!name) return;
                 const lines = playersInput.value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -427,31 +411,34 @@ Object.assign(ProfilePage, {
                     const playerName = parts.join(', ');
                     if (playerName) players.push(fide ? { name: playerName, fide } : { name: playerName });
                 }
-                const existing = currentClubs().find(c => c.name === name) || {};
-                if (!(await this.commitClub({ ...existing, name, players }))) {
-                    if (playersMsg) { playersMsg.textContent = 'Enregistrement impossible (config/clubs.json).'; playersMsg.classList.add('is-error'); }
-                    return;
+                const local = this.readLocalClubs();
+                const existingBase = (Array.isArray(window.PROFILE_CLUBS) ? window.PROFILE_CLUBS : [])
+                    .find(c => c.name === name);
+                const existingLocal = local.clubs.find(c => c.name === name);
+                const existingOverride = local.overrides[name];
+                const existing = existingOverride || existingLocal || existingBase || {};
+
+                const patch = { ...existing, name, players };
+                if (existingBase) {
+                    local.overrides[name] = patch;
+                    local.clubs = local.clubs.filter(c => c.name !== name);
+                } else {
+                    local.clubs = local.clubs.filter(c => c.name !== name);
+                    local.clubs.push(patch);
                 }
-                // les joueurs avec code FIDE rejoignent aussi players.json
-                if (window.PROFILE_LOCAL) {
-                    const all = this.PLAYERS.map(p => ({ ...p }));
-                    players.filter(p => p.fide).forEach(p => {
-                        if (!all.some(x => String(x.fide) === String(p.fide))) all.push({ fide: p.fide, name: p.name });
-                    });
-                    await this.saveShared('players', all);
-                }
+                this.writeLocalClubs(local);
                 if (playersMsg) {
                     playersMsg.textContent = `✅ ${players.length} joueur(s) enregistrés pour « ${name} ».`;
                     playersMsg.classList.remove('is-error');
                 }
                 this.updateClubStats();
-                this.searchClubs(document.getElementById('profileClubSearchInput')?.value.trim() || '', true);
+                this.searchClubs(document.getElementById('profileClubSearchInput')?.value.trim() || '');
             });
         }
     },
 
     // ── Affiliation joueur → club ──
-    async openAffiliateDialog(player) {
+    openAffiliateDialog(player) {
         const clubs = this.CLUBS;
         if (!clubs.length) {
             alert('Aucun club disponible. Créez-en un via "Gérer les clubs & joueurs" dans la vue Clubs.');
@@ -471,15 +458,28 @@ Object.assign(ProfilePage, {
             return;
         }
         const club = clubs[idx];
-        const target = { ...club, players: Array.isArray(club.players) ? club.players.slice() : [] };
+        const local = this.readLocalClubs();
+        const base = (Array.isArray(window.PROFILE_CLUBS) ? window.PROFILE_CLUBS : [])
+            .find(c => c.name === club.name);
+        const target = (local.clubs.find(c => c.name === club.name))
+            || (local.overrides[club.name])
+            || (base ? { ...base } : { name: club.name, players: [] });
+
+        target.players = Array.isArray(target.players) ? target.players : [];
         if (target.players.some(p => String(p.fide || '') === String(player.id))) {
             alert(`« ${player.name} » est déjà dans « ${club.name} ».`);
             return;
         }
         target.players.push({ name: player.name, fide: String(player.id) });
-        if (!(await this.commitClub(target))) { alert('Enregistrement impossible (config/clubs.json).'); return; }
-        await this.upsertSharedPlayer(player);
+
+        if (base) {
+            local.overrides[club.name] = target;
+        } else {
+            const i = local.clubs.findIndex(c => c.name === club.name);
+            if (i >= 0) local.clubs[i] = target; else local.clubs.push(target);
+        }
+        this.writeLocalClubs(local);
         alert(`✅ « ${player.name} » ajouté à « ${club.name} ».`);
         this.renderPlayer(player, null);
     }
-});
+});

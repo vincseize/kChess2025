@@ -1,17 +1,26 @@
 @echo off
 chcp 65001 >nul
-REM Se placer dans le dossier du .bat (arbo.txt sera cree ici)
 cd /d "%~dp0"
 
-if exist "C:\xampp\php\php.exe" (
-    "C:\xampp\php\php.exe" arbo.php
-) else (
-    php arbo.php
+set "PYTHON_CMD="
+py --version >nul 2>&1
+if %errorlevel% equ 0 set "PYTHON_CMD=py"
+
+if not defined PYTHON_CMD (
+    python --version >nul 2>&1
+    if %errorlevel% equ 0 set "PYTHON_CMD=python"
 )
 
-REM Fermer la console si tout s'est bien passe, sinon rester ouverte
-if errorlevel 1 (
-    echo.
-    echo Une erreur s'est produite.
-    pause
+if not defined PYTHON_CMD (
+    if exist "C:\xampp\python\python.exe" set "PYTHON_CMD=C:\xampp\python\python.exe"
 )
+
+if not defined PYTHON_CMD (
+    pause
+    exit /b 1
+)
+
+%PYTHON_CMD% arbo.py
+
+REM Fermeture immédiate
+exit

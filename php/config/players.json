@@ -1,5 +1,21 @@
 {
     "players": [
-        { "fide": "1503014", "name": "Carlsen Magnus", "federation": "NOR" }
+        { "name": "Pottier, Charles", "fide": "36009172" },
+        { "name": "Collin, Stephan", "fide": "" },
+        { "name": "Ney-Alexandre, Ylan", "fide": "" },
+        { "name": "Nardol, Fred", "fide": "" },
+        { "name": "Guillaume, Marvin", "fide": "" },
+        { "name": "Suez-Panama, Gilles", "fide": "" },
+        { "name": "Féréol, Falundo", "fide": "" },
+        { "name": "Nicaud, Corentin", "fide": "" },
+        { "name": "Ronin, Clément", "fide": "" },
+        { "name": "François-Haugrin Bucher, Swan", "fide": "" },
+        { "name": "Fonsat, Jean-Marc", "fide": "" },
+        { "name": "Chancerel, Dominique", "fide": "" },
+        { "name": "Cyprienne Fonsat, Ethan", "fide": "" },
+        { "name": "Ramdani, Nayati", "fide": "" },
+        { "name": "Casimir, Sarah", "fide": "" },
+        { "name": "Huyghues-Beaufond, Nathalie", "fide": "" },
+        { "name": "Cepisul, Desire", "fide": "" }
     ]
 }

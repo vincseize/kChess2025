@@ -1,307 +1,253 @@
 Arborescence du dossier : C:\xampp\htdocs\kChess2025
-📄 README.md
-📁 docs
-  📄 ARCHITECTURE_BOTS.md
-  📄 AUDIT_BOTS.md
-  📄 BOTS_DECISION_FLOWS.md
-  📄 PARTIES_FAVORITES.md
-  📄 README.md
-  📄 echecs_chapitre16.pdf
-  📄 echecs_structureDePions.jpg
-📁 php
-  📁 _SANDBOX
-    📄 arbo.bat
-    📄 arbo.php
-    📄 arbo.txt
-    📄 gen_icons.py
-    📄 gen_icons_chrome.py
-  📄 app.php
-  📁 cache
-    📁 fide
-      📄 0e917c7374809c33523a3ba335887c86.json
-      📄 1181ab6a1c9bd2118adf43a9768ba3ca.json
-      📄 1c943e98ae74d95f910bf3335358d5fd.json
-      📄 295eafdb264a04417899bfbab0051316.json
-      📄 299bdc8cd6e42ebdb299c32fc6b8404f.json
-      📄 2f8a4f7f90a03700c8202fe3b56d5e02.json
-      📄 3ca37b48e72f8f7ca2565ea430f05ff0.json
-      📄 42154e273cffbdccc70156d8ce08ad4b.json
-      📄 47b12e6820de5e5a705033b2edc73083.json
-      📄 4d9438c4578130f4b84c49a2828c867b.json
-      📄 54537866da92a841835fb00953b4ed1e.json
-      📄 59c88202788451c044bb2fa74f4eb059.json
-      📄 7bc692c700317b95ee6088edaa2b314d.json
-      📄 7e4e5e71352216ba5bcba5b730fecfa3.json
-      📄 8085c39b0c97bf3156f845034f4310ab.json
-      📄 8c5adab57141e7aadbf13d576467b229.json
-      📄 8e0d8a37461fdade9b83e1f6c91a21bd.json
-      📄 916972a7775c0cf215a7a7aab8f82593.json
-      📄 9d7268c0754db2b28edfd0885c570cb0.json
-      📄 9f4126e5471b9c88f46d8301dfd54bb0.json
-      📄 9f424cebfe17fd6a4a7cf9e865482c48.json
-      📄 adad6239e8377e6d0c911c86889a3034.json
-      📄 afdbd9f3f1655c19949af6ecc42e1233.json
-      📄 b3dfb2c8676bc14e3177da4939df4cc7.json
-      📄 b521ad188df262bf1876e57e06622b4d.json
-      📄 b5779954a93e4ccc82a7840c6402c940.json
-      📄 b83508e06c1cdf2f1d82a3316743eb05.json
-      📄 bd72798b7cb5ee4e200aa027e28cccde.json
-      📄 dcd67ec552c4b0d9713c27c4aabd689d.json
-      📄 e20834b88144bf8139aa75b584cf52dd.json
-      📄 e74e4fc39409abcdd9ae2efc647d59ec.json
-      📄 f5db2ca497622071d6c750d8e00a4811.json
-      📄 ff68d4935d4db21f7504996490fd171b.json
-  📄 clock.php
-  📁 config
-    📄 clubs.json
-    📄 game-config.json
-    📄 parties.json
-  📄 config-loader.php
-  📄 content.php
-  📄 content_mobile.php
-  📁 css
-    📄 all.min.css
-    📄 animate.min.css
-    📄 bootstrap-icons.css
-    📄 bootstrap.min.css
-    📄 font-awesome.min.css
-    📁 kchess
-      📄 chess-board-animations.css
-      📄 chess-board-base.css
-      📄 chess-board-coordinates.css
-      📄 chess-board-pieces.css
-      📄 chess-board-special.css
-      📄 chess-board-states.css
-      📄 chess-pieces.css
-      📄 clock.css
-      📄 components.css
-      📄 layout.css
-      📄 newGame.css
-      📄 profile.css
-      📄 promotion-modal.css
-      📄 responsive.css
-      📄 utilities.css
-      📄 variables.css
-      📄 welcome-overlay.css
-    📄 lightbox.css
-    📁 presets
-      📄 preset1.css
-      📄 preset2.css
-      📄 preset3.css
-      📄 preset4.css
-      📄 preset5.css
-      📄 preset6.css
-    📄 responsive.css
-  📄 engine-scripts.php
-  📄 fide.php
-  📄 footer.php
-  📄 header.php
-  📁 img
-    📁 chesspieces
-      📁 wikipedia
-        📄 bB.png
-        📄 bK.png
-        📄 bN.png
-        📄 bP.png
-        📄 bQ.png
-        📄 bR.png
-        📄 wB.png
-        📄 wK.png
-        📄 wN.png
-        📄 wP.png
-        📄 wQ.png
-        📄 wR.png
-    📄 favicon.png
-    📄 icon-192x192.png
-    📄 icon-512x512.png
-    📄 icon.svg
-    📄 opera-game-poster.png
-    📄 opera-game.gif
-  📄 index.php
-  📁 js
-    📄 bootstrap.bundle.min.js
-    📄 bootstrap.min.js
-    📄 check_device.js
-    📄 html5shiv.js
-    📄 jquery.countTo.js
-    📄 jquery.inview.min.js
-    📄 jquery.js
-    📄 jquery.min.js
-    📁 kchess
-      📁 bots
-        📄 BoardAnalyzer.js
-        📄 BotBase.js
-        📄 BotCore.js
-        📄 ChessScanner.js
-        📄 Evaluator.js
-        📄 LadderBot.js
-        📄 Level_1.js
-        📄 Level_16.js
-        📄 Level_2.js
-        📄 Level_3.js
-        📄 Level_4.js
-        📄 Level_5.js
-        📄 Level_6.js
-        📄 Level_7.js
-        📄 Level_8.js
-        📄 SearchEngine.js
-        📄 bot-test-interface.js
-        📄 game_fonctions.js
-        📄 game_ouverture.js
-        📁 unitTests
-          📄 Bot_Process.php
-          📄 Bot_vs_Bot.php
-          📁 css
-            📄 process-lab.css
-            📄 stress-test.css
-          📁 img
-            📄 favicon.png
-            📄 icon-192x192.png
-            📄 icon-512x512.png
-          📁 js
-            📄 ArenaAnalyst.js
-            📄 bot-helper.js
-            📄 process-lab.js
-            📄 stress-test-bot.js
-          📄 log_error.php
-          📁 results
-            📄 stress_test-White_L1-vs-Black_L16-RANDOM.json
-            📄 stress_test-White_L1-vs-Black_L2-RANDOM.json
-            📄 stress_test-White_L1-vs-Black_L2.json
-            📄 stress_test-White_L1-vs-Black_L6-RANDOM.json
-            📄 stress_test-White_L1-vs-Black_L8-RANDOM.json
-            📄 stress_test-White_L16-vs-Black_L1-RANDOM.json
-            📄 stress_test-White_L16-vs-Black_L3-RANDOM.json
-            📄 stress_test-White_L16-vs-Black_L8-RANDOM.json
-            📄 stress_test-White_L2-vs-Black_L1-RANDOM.json
-            📄 stress_test-White_L2-vs-Black_L1.json
-            📄 stress_test-White_L2-vs-Black_L3-RANDOM.json
-            📄 stress_test-White_L2-vs-Black_L3.json
-            📄 stress_test-White_L3-vs-Black_L1.json
-            📄 stress_test-White_L3-vs-Black_L16-RANDOM.json
-            📄 stress_test-White_L3-vs-Black_L2-RANDOM.json
-            📄 stress_test-White_L3-vs-Black_L2.json
-            📄 stress_test-White_L3-vs-Black_L4-RANDOM.json
-            📄 stress_test-White_L3-vs-Black_L4.json
-            📄 stress_test-White_L4-vs-Black_L3-RANDOM.json
-            📄 stress_test-White_L4-vs-Black_L3.json
-            📄 stress_test-White_L4-vs-Black_L5-RANDOM.json
-            📄 stress_test-White_L4-vs-Black_L5.json
-            📄 stress_test-White_L5-vs-Black_L1.json
-            📄 stress_test-White_L5-vs-Black_L2-RANDOM.json
-            📄 stress_test-White_L5-vs-Black_L3-RANDOM.json
-            📄 stress_test-White_L5-vs-Black_L4-RANDOM.json
-            📄 stress_test-White_L5-vs-Black_L4.json
-            📄 stress_test-White_L5-vs-Black_L6-RANDOM.json
-            📄 stress_test-White_L5-vs-Black_L6.json
-            📄 stress_test-White_L6-vs-Black_L1-RANDOM.json
-            📄 stress_test-White_L6-vs-Black_L5-RANDOM.json
-            📄 stress_test-White_L6-vs-Black_L5.json
-            📄 stress_test-White_L6-vs-Black_L7-RANDOM.json
-            📄 stress_test-White_L7-vs-Black_L6-RANDOM.json
-            📄 stress_test-White_L7-vs-Black_L6.json
-            📄 stress_test-White_L7-vs-Black_L8-RANDOM.json
-            📄 stress_test-White_L7-vs-Black_L8.json
-            📄 stress_test-White_L8-vs-Black_L1-RANDOM.json
-            📄 stress_test-White_L8-vs-Black_L1.json
-            📄 stress_test-White_L8-vs-Black_L16-RANDOM.json
-            📄 stress_test-White_L8-vs-Black_L7-RANDOM.json
-            📄 stress_test-White_L8-vs-Black_L7.json
-      📁 check
-        📄 checkChess.js
-        📄 checkChessNulle.js
-        📄 checkFenPostion.js
-      📁 core
-        📄 board-position.js
-        📄 bot-manager.js
-        📄 chess-board.js
-        📄 chess-game-core.js
-        📄 chess-game.js
-        📄 fen-generator.js
-        📄 game-state.js
-        📄 game-status-manager.js
-        📄 pieces.js
-      📁 debug
-        📄 device-logger.js
-      📁 ui
-        📄 bot-training-progress.js
-        📄 chess-clock.js
-        📄 chess-events.js
-        📄 chess-game-ui-clipboard.js
-        📄 chess-game-ui-core.js
-        📄 chess-game-ui-modals.js
-        📄 chess-game-ui-move-history.js
-        📄 chess-game-ui-styles.js
-        📄 chess-game-ui-timer.js
-        📄 new-game-handler.js
-        📄 pgn-parser.js
-        📄 profile-clubs.js
-        📄 profile-core.js
-        📄 profile-me.js
-        📄 profile-players.js
-        📄 profile..js
-      📁 validators
-        📄 move-executor.js
-        📄 move-handler-core.js
-        📁 move-pieces
-          📄 move-validator-bishop.js
-          📄 move-validator-king.js
-          📄 move-validator-knight.js
-          📄 move-validator-pawn.js
-          📄 move-validator-queen.js
-          📄 move-validator-rook.js
-          📄 move-validator-sliding.js
-          📄 move-validator.js
-        📄 move-state-manager.js
-        📄 promotion-manager.js
-        📄 special-moves-handler.js
-        📄 validator-interface.js
-    📄 lightbox.min.js
-    📄 mousescroll.js
-    📄 respond.min.js
-    📄 smoothscroll.js
-    📄 wow.min.js
-    📄 zone_navbar.js
-  📄 layoutMobile.php
-  📄 local-only.php
-  📄 manifest.json
-  📄 newGame.php
-  📄 parties_save.php
-  📄 profile.php
-  📄 project_flow_mapper.php
-  📁 sounds
-    📄 clock-click.mp3
-    📄 tok.mp3
-  📁 splashscreens
-    📄 splashscreen0.php
-    📄 splashscreen1.php
-  📄 sw.js
-📄 project_analyzer.php
-📄 project_analyzer.phpCopy
-📄 project_report.json
-📁 python
-  📄 .gitattributes
-  📄 .gitignore
-  📁 ChessVision
-    📄 APCS_1_large - Copie.jpg
-    📄 APCS_1_large.jpg
-    📄 APCS_2_large.jpg
-    📄 img_ref.py
-    📄 img_to_fen.py
-    📄 reference_chessboard.jpg
-    📄 simple_chessboard.jpg
-  📄 README.md
-  📁 SANDBOX
-    📄 load_json_sample.py
-    📄 menu_sample.py
-    📄 path_sample.py
-  📄 chess_ICEA_main.py
-  📁 classes
-    📄 Check_pieces.py
-    📄 ChessUI.py
-    📄 MenuUI.py
-  📄 config.json
-  📁 images
-    📄 chess.png
-    📄 chess_logo.ico
-    📄 icon.png
+
+[ROOT] kChess2025/
+|-- [D] docs
+|   |-- [F] ARCHITECTURE_BOTS.md
+|   |-- [F] AUDIT_BOTS.md
+|   |-- [F] BOTS_DECISION_FLOWS.md
+|   |-- [F] echecs_chapitre16.pdf
+|   |-- [F] echecs_structureDePions.jpg
+|   |-- [F] PARTIES_FAVORITES.md
+|   \-- [F] README.md
+|-- [D] php
+|   |-- [D] config
+|   |   |-- [F] clubs.json
+|   |   |-- [F] game-config.json
+|   |   |-- [F] parties.json
+|   |   \-- [F] players.json
+|   |-- [D] css
+|   |   |-- [D] kchess
+|   |   |   |-- [F] chess-board-animations.css
+|   |   |   |-- [F] chess-board-base.css
+|   |   |   |-- [F] chess-board-coordinates.css
+|   |   |   |-- [F] chess-board-pieces.css
+|   |   |   |-- [F] chess-board-special.css
+|   |   |   |-- [F] chess-board-states.css
+|   |   |   |-- [F] chess-pieces.css
+|   |   |   |-- [F] clock.css
+|   |   |   |-- [F] components.css
+|   |   |   |-- [F] layout.css
+|   |   |   |-- [F] newGame.css
+|   |   |   |-- [F] profile-views.css
+|   |   |   |-- [F] profile.css
+|   |   |   |-- [F] promotion-modal.css
+|   |   |   |-- [F] responsive.css
+|   |   |   |-- [F] utilities.css
+|   |   |   |-- [F] variables.css
+|   |   |   \-- [F] welcome-overlay.css
+|   |   |-- [D] presets
+|   |   |   |-- [F] preset1.css
+|   |   |   |-- [F] preset2.css
+|   |   |   |-- [F] preset3.css
+|   |   |   |-- [F] preset4.css
+|   |   |   |-- [F] preset5.css
+|   |   |   \-- [F] preset6.css
+|   |   \-- [F] responsive.css
+|   |-- [D] img
+|   |   |-- [D] chesspieces
+|   |   |   \-- [D] wikipedia
+|   |   |       |-- [F] bB.png
+|   |   |       |-- [F] bK.png
+|   |   |       |-- [F] bN.png
+|   |   |       |-- [F] bP.png
+|   |   |       |-- [F] bQ.png
+|   |   |       |-- [F] bR.png
+|   |   |       |-- [F] wB.png
+|   |   |       |-- [F] wK.png
+|   |   |       |-- [F] wN.png
+|   |   |       |-- [F] wP.png
+|   |   |       |-- [F] wQ.png
+|   |   |       \-- [F] wR.png
+|   |   |-- [F] favicon.png
+|   |   |-- [F] icon-192x192.png
+|   |   |-- [F] icon-512x512.png
+|   |   |-- [F] icon.svg
+|   |   |-- [F] opera-game-poster.png
+|   |   \-- [F] opera-game.gif
+|   |-- [D] js
+|   |   |-- [D] kchess
+|   |   |   |-- [D] bots
+|   |   |   |   |-- [D] unitTests
+|   |   |   |   |   |-- [D] css
+|   |   |   |   |   |   |-- [F] process-lab.css
+|   |   |   |   |   |   \-- [F] stress-test.css
+|   |   |   |   |   |-- [D] img
+|   |   |   |   |   |   |-- [F] favicon.png
+|   |   |   |   |   |   |-- [F] icon-192x192.png
+|   |   |   |   |   |   \-- [F] icon-512x512.png
+|   |   |   |   |   |-- [D] js
+|   |   |   |   |   |   |-- [F] ArenaAnalyst.js
+|   |   |   |   |   |   |-- [F] bot-helper.js
+|   |   |   |   |   |   |-- [F] process-lab.js
+|   |   |   |   |   |   \-- [F] stress-test-bot.js
+|   |   |   |   |   |-- [D] results
+|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L16-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L2-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L2.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L6-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L8-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L16-vs-Black_L1-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L16-vs-Black_L3-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L16-vs-Black_L8-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L1-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L1.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L3-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L3.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L1.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L16-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L2-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L2.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L4-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L4.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L3-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L3.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L5-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L5.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L1.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L2-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L3-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L4-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L4.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L6-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L6.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L1-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L5-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L5.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L7-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L6-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L6.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L8-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L8.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L1-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L1.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L16-RANDOM.json
+|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L7-RANDOM.json
+|   |   |   |   |   |   \-- [F] stress_test-White_L8-vs-Black_L7.json
+|   |   |   |   |   |-- [F] Bot_Process.php
+|   |   |   |   |   |-- [F] Bot_vs_Bot.php
+|   |   |   |   |   \-- [F] log_error.php
+|   |   |   |   |-- [F] BoardAnalyzer.js
+|   |   |   |   |-- [F] bot-test-interface.js
+|   |   |   |   |-- [F] BotBase.js
+|   |   |   |   |-- [F] BotCore.js
+|   |   |   |   |-- [F] ChessScanner.js
+|   |   |   |   |-- [F] Evaluator.js
+|   |   |   |   |-- [F] game_fonctions.js
+|   |   |   |   |-- [F] game_ouverture.js
+|   |   |   |   |-- [F] LadderBot.js
+|   |   |   |   |-- [F] Level_1.js
+|   |   |   |   |-- [F] Level_16.js
+|   |   |   |   |-- [F] Level_2.js
+|   |   |   |   |-- [F] Level_3.js
+|   |   |   |   |-- [F] Level_4.js
+|   |   |   |   |-- [F] Level_5.js
+|   |   |   |   |-- [F] Level_6.js
+|   |   |   |   |-- [F] Level_7.js
+|   |   |   |   |-- [F] Level_8.js
+|   |   |   |   \-- [F] SearchEngine.js
+|   |   |   |-- [D] check
+|   |   |   |   |-- [F] checkChess.js
+|   |   |   |   |-- [F] checkChessNulle.js
+|   |   |   |   \-- [F] checkFenPostion.js
+|   |   |   |-- [D] core
+|   |   |   |   |-- [F] board-position.js
+|   |   |   |   |-- [F] bot-manager.js
+|   |   |   |   |-- [F] chess-board.js
+|   |   |   |   |-- [F] chess-game-core.js
+|   |   |   |   |-- [F] chess-game.js
+|   |   |   |   |-- [F] fen-generator.js
+|   |   |   |   |-- [F] game-state.js
+|   |   |   |   |-- [F] game-status-manager.js
+|   |   |   |   \-- [F] pieces.js
+|   |   |   |-- [D] debug
+|   |   |   |   \-- [F] device-logger.js
+|   |   |   |-- [D] ui
+|   |   |   |   |-- [F] bot-training-progress.js
+|   |   |   |   |-- [F] chess-clock.js
+|   |   |   |   |-- [F] chess-events.js
+|   |   |   |   |-- [F] chess-game-ui-clipboard.js
+|   |   |   |   |-- [F] chess-game-ui-core.js
+|   |   |   |   |-- [F] chess-game-ui-modals.js
+|   |   |   |   |-- [F] chess-game-ui-move-history.js
+|   |   |   |   |-- [F] chess-game-ui-styles.js
+|   |   |   |   |-- [F] chess-game-ui-timer.js
+|   |   |   |   |-- [F] new-game-handler.js
+|   |   |   |   |-- [F] pgn-parser.js
+|   |   |   |   |-- [F] profile-clubs.js
+|   |   |   |   |-- [F] profile-core.js
+|   |   |   |   |-- [F] profile-me.js
+|   |   |   |   |-- [F] profile-players.js
+|   |   |   |   \-- [F] profile.js
+|   |   |   \-- [D] validators
+|   |   |       |-- [D] move-pieces
+|   |   |       |   |-- [F] move-validator-bishop.js
+|   |   |       |   |-- [F] move-validator-king.js
+|   |   |       |   |-- [F] move-validator-knight.js
+|   |   |       |   |-- [F] move-validator-pawn.js
+|   |   |       |   |-- [F] move-validator-queen.js
+|   |   |       |   |-- [F] move-validator-rook.js
+|   |   |       |   |-- [F] move-validator-sliding.js
+|   |   |       |   \-- [F] move-validator.js
+|   |   |       |-- [F] move-executor.js
+|   |   |       |-- [F] move-handler-core.js
+|   |   |       |-- [F] move-state-manager.js
+|   |   |       |-- [F] promotion-manager.js
+|   |   |       |-- [F] special-moves-handler.js
+|   |   |       \-- [F] validator-interface.js
+|   |   |-- [F] check_device.js
+|   |   \-- [F] zone_navbar.js
+|   |-- [D] sounds
+|   |   |-- [F] clock-click.mp3
+|   |   \-- [F] tok.mp3
+|   |-- [D] splashscreens
+|   |   |-- [F] splashscreen0.php
+|   |   \-- [F] splashscreen1.php
+|   |-- [F] app.php
+|   |-- [F] clock.php
+|   |-- [F] config-loader.php
+|   |-- [F] content.php
+|   |-- [F] content_mobile.php
+|   |-- [F] data_save.php
+|   |-- [F] engine-scripts.php
+|   |-- [F] fide.php
+|   |-- [F] footer.php
+|   |-- [F] header.php
+|   |-- [F] index.php
+|   |-- [F] layoutMobile.php
+|   |-- [F] local-only.php
+|   |-- [F] manifest.json
+|   |-- [F] newGame.php
+|   |-- [F] parties_save.php
+|   |-- [F] profile.php
+|   |-- [F] project_flow_mapper.php
+|   \-- [F] sw.js
+|-- [D] python
+|   |-- [D] ChessVision
+|   |   |-- [F] APCS_1_large - Copie.jpg
+|   |   |-- [F] APCS_1_large.jpg
+|   |   |-- [F] APCS_2_large.jpg
+|   |   |-- [F] img_ref.py
+|   |   |-- [F] img_to_fen.py
+|   |   |-- [F] reference_chessboard.jpg
+|   |   \-- [F] simple_chessboard.jpg
+|   |-- [D] classes
+|   |   |-- [F] Check_pieces.py
+|   |   |-- [F] ChessUI.py
+|   |   \-- [F] MenuUI.py
+|   |-- [D] images
+|   |   |-- [F] chess.png
+|   |   |-- [F] chess_logo.ico
+|   |   \-- [F] icon.png
+|   |-- [D] SANDBOX
+|   |   |-- [F] load_json_sample.py
+|   |   |-- [F] menu_sample.py
+|   |   \-- [F] path_sample.py
+|   |-- [F] .gitattributes
+|   |-- [F] .gitignore
+|   |-- [F] chess_ICEA_main.py
+|   |-- [F] config.json
+|   \-- [F] README.md
+|-- [F] project_analyzer.php
+|-- [F] project_analyzer.phpCopy
+|-- [F] project_report.json
+\-- [F] README.md

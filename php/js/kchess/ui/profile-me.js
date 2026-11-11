@@ -136,7 +136,7 @@ Object.assign(ProfilePage, {
                 }
                 throw new Error(data.error || 'error');
             }
-            await this.associatePlayer(data.player);
+            this.associatePlayer(data.player);
             box.innerHTML = '';
             box.appendChild(this.note(`✅ « ${data.player.name} » est maintenant associé à votre profil et ajouté au club La Dame de Bellefontaine.`));
             this.renderMeCard();
@@ -148,26 +148,13 @@ Object.assign(ProfilePage, {
     },
 
     // ── Association : localStorage + club ──
-    async associatePlayer(player) {
+    associatePlayer(player) {
         if (!player || !player.id) return;
 
-        // 1) Mon profil : toujours dans localStorage
+        // 1) ID du profil
         try { localStorage.setItem(this.FIDE_KEY, String(player.id)); } catch (e) {}
 
-        // 2) Localhost : le joueur entre aussi dans les JSON partagés (players.json + clubs.json)
-        if (window.PROFILE_LOCAL) {
-            await this.upsertSharedPlayer(player);
-            const CN = 'La Dame de Bellefontaine';
-            const club = this.CLUBS.find(c => c.name === CN) || { name: CN, players: [] };
-            const players = Array.isArray(club.players) ? club.players.slice() : [];
-            if (!players.some(p => String(p.fide || '') === String(player.id))) {
-                players.push({ name: player.name, fide: String(player.id) });
-            }
-            await this.commitClub({ ...club, players });
-            return;
-        }
-
-        // 3) Visiteur : ajout au club "La Dame de Bellefontaine" dans localStorage
+        // 2) Ajout au club "La Dame de Bellefontaine" dans localStorage
         const CLUB_NAME = 'La Dame de Bellefontaine';
         const local = this.readLocalClubs();
         const base = (Array.isArray(window.PROFILE_CLUBS) ? window.PROFILE_CLUBS : [])
@@ -324,13 +311,43 @@ Object.assign(ProfilePage, {
         if (!box) return;
         box.innerHTML = '';
         const id = this.getStoredPlayer();
+
+        // Si pas de profil associé, on affiche tous les clubs existants
         if (!id) {
-            const p = document.createElement('p');
-            p.className = 'profile-fide-note';
-            p.textContent = 'Associez un joueur à votre profil pour voir vos clubs.';
-            box.appendChild(p);
+            const clubs = this.CLUBS;
+            if (!clubs.length) {
+                const p = document.createElement('p');
+                p.className = 'profile-fide-note';
+                p.textContent = 'Aucun club enregistré sur cet appareil.';
+                box.appendChild(p);
+                return;
+            }
+
+            const hint = document.createElement('p');
+            hint.className = 'profile-fide-note';
+            hint.style.marginBottom = '10px';
+            hint.textContent = 'Associez votre profil pour voir vos clubs. En attendant, voici les clubs enregistrés :';
+            box.appendChild(hint);
+
+            const ul = document.createElement('ul');
+            ul.className = 'profile-club-list';
+            clubs.forEach(club => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = 'club.php?nom=' + encodeURIComponent(club.name);
+                a.className = 'profile-club-player';
+                const name = document.createElement('span'); name.textContent = club.name;
+                const meta = document.createElement('small');
+                meta.textContent = [(club.players || []).length + ' joueurs', club.city, club.region, club.country].filter(Boolean).join(' · ');
+                a.append(name, meta);
+                li.appendChild(a);
+                ul.appendChild(li);
+            });
+            box.appendChild(ul);
             return;
         }
+
+        // Sinon, on affiche uniquement les clubs du joueur associé
         const clubs = this.clubsOfPlayer(id);
         if (!clubs.length) {
             const p = document.createElement('p');
@@ -344,7 +361,7 @@ Object.assign(ProfilePage, {
         clubs.forEach(club => {
             const li = document.createElement('li');
             const a = document.createElement('a');
-            a.href = 'profile.php?view=clubs';
+            a.href = 'club.php?nom=' + encodeURIComponent(club.name);
             a.className = 'profile-club-player';
             const name = document.createElement('span'); name.textContent = club.name;
             const meta = document.createElement('small');
@@ -355,4 +372,4 @@ Object.assign(ProfilePage, {
         });
         box.appendChild(ul);
     }
-});
+});

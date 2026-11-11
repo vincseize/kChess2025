@@ -24,8 +24,8 @@ if ($profileStandalone):
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?php echo htmlspecialchars(($translations['profile'] ?? 'Profil') . ' - ' . ($config['app_name'] ?? 'CharlyChess')); ?></title>
     <link rel="icon" type="image/svg+xml" href="img/icon.svg">
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/bootstrap-icons.css">
+    <link href="css/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/vendor/bootstrap/bootstrap-icons.css">
     <style>
         html, body { min-height: 100%; margin: 0; padding: 0; background: var(--site-background, #0B2024); }
     </style>
@@ -205,13 +205,7 @@ if ($profileStandalone):
                     </p>
                 </div>
 
-                <div class="profile-me-clubs" aria-labelledby="profile-me-clubs-title">
-                    <h2 id="profile-me-clubs-title" class="profile-levels-head" style="margin:0 0 12px;">
-                        <span>Mes clubs</span>
-                    </h2>
-                    <div id="profileMeClubs"></div>
-                </div>
-
+                <!-- 1. Bouton Réinitialiser -->
                 <div class="profile-actions">
                     <button type="button" class="profile-reset-all-btn" id="profileResetAllBtn">
                         <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
@@ -220,6 +214,14 @@ if ($profileStandalone):
                     <p class="profile-reset-all-note">
                         Cette action efface toute votre progression (levels, victoires, préférences).
                     </p>
+                </div>
+
+                <!-- 2. Mes clubs (déplacé ici) -->
+                <div class="profile-me-clubs" aria-labelledby="profile-me-clubs-title" style="margin-top: 28px;">
+                    <h2 id="profile-me-clubs-title" class="profile-levels-head" style="margin:0 0 12px;">
+                        <span>Mes clubs</span>
+                    </h2>
+                    <div id="profileMeClubs"></div>
                 </div>
             </section>
         </div>
@@ -389,7 +391,6 @@ if ($profileStandalone):
                 </div>
 
                 <div class="profile-history" hidden></div>
-
             </section>
 
             <section class="new-game-content profile-content" aria-label="Résultats clubs">
