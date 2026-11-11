@@ -52,12 +52,7 @@ body {
     white-space: nowrap;
 }
 
-.clock-menu-button {
-    grid-column: 3;
-}
-
-.clock-back,
-.clock-menu-button {
+.clock-back {
     display: grid;
     place-items: center;
     width: 42px;
@@ -73,11 +68,36 @@ body {
 }
 
 .clock-back:hover,
-.clock-back:focus-visible,
-.clock-menu-button:hover,
-.clock-menu-button:focus-visible {
+.clock-back:focus-visible {
     border-color: var(--success-color);
     color: var(--success-color);
+}
+
+/* ★ Bouton paramètres flottant : bas à droite, en diagonale du bouton retour */
+.clock-menu-button--floating {
+    position: fixed;
+    z-index: 7;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    right: max(14px, env(safe-area-inset-right));
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 50%;
+    color: var(--site-text);
+    background: color-mix(in srgb, var(--site-background) 72%, transparent);
+    font-size: 1rem;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: border-color 140ms ease, color 140ms ease;
+}
+
+.clock-menu-button--floating:hover,
+.clock-menu-button--floating:focus-visible {
+    border-color: var(--success-color);
+    color: var(--success-color);
+    outline: none;
 }
 
 .clock-players {
