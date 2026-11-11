@@ -6,9 +6,11 @@
 
 Object.assign(ProfilePage, {
 
+    // Stockage temporaire de l'historique du joueur pour changer de courbe
+    currentPlayerHistory: null,
+
     // ── Zone FIDE ──
     get fideBox() { return document.getElementById('profileFide'); },
-
     setBox(node) {
         const box = this.fideBox;
         if (!box) return;
@@ -16,10 +18,25 @@ Object.assign(ProfilePage, {
         if (node) { box.appendChild(node); box.hidden = false; }
         else box.hidden = true;
     },
-
     clearFide() { this.setBox(null); },
 
-    // ── Barre de recherche ──
+    // ── NOUVEAU : Chargement direct (via URL ?fide=...) ──
+    initDirectPlayerView(id) {
+        const searchContainer = document.getElementById('profileSearchContainer');
+        if (searchContainer) searchContainer.hidden = true;
+
+        this.loadPlayer(id, true);
+
+        const titleEl = document.getElementById('profile-title-players');
+        const descEl = document.querySelector('#profileViewPlayers .hero-description');
+        const kickerEl = document.querySelector('#profileViewPlayers .hero-kicker');
+
+        if (kickerEl) kickerEl.innerHTML = 'Profil joueur<br>App Chess Club training';
+        if (titleEl) titleEl.innerHTML = 'Mon Profil,<br><span>Chargement…</span>';
+        if (descEl) descEl.textContent = "Voici la fiche détaillée de ce joueur.";
+    },
+
+    // ── Barre de recherche FIDE ──
     bindSearch() {
         const input = document.getElementById('profileSearchInput');
         const clearBtn = document.getElementById('profileSearchClear');
@@ -99,7 +116,20 @@ Object.assign(ProfilePage, {
                 if (data.error === 'not_found') return this.setBox(this.note(this.T.not_found));
                 throw new Error(data.error || 'error');
             }
+            
+            // On sauvegarde l'historique pour les boutons de graphique
+            this.currentPlayerHistory = data.history;
+
             this.renderPlayer(data.player, data.history);
+            
+            // Mise à jour du titre si on est arrivé par un lien direct
+            if (window.PROFILE_TARGET_ID) {
+                const titleEl = document.getElementById('profile-title-players');
+                if (titleEl) {
+                    titleEl.innerHTML = `Mon Profil,<br><span>${data.player.name}</span>`;
+                }
+            }
+
             try { localStorage.setItem(this.FIDE_KEY, String(data.player.id)); } catch (e) {}
             if (!silent) this.addHistory(data.player, 'player');
         } catch (e) {
@@ -145,7 +175,7 @@ Object.assign(ProfilePage, {
             clubs.forEach((c, i) => {
                 if (i) cp.append(', ');
                 const a = document.createElement('a');
-                a.href = 'profile.php?view=clubs';
+                a.href = 'club.php?nom=' + encodeURIComponent(c.name);
                 a.className = 'profile-fide-club-link';
                 a.textContent = c.name;
                 cp.appendChild(a);
@@ -166,9 +196,15 @@ Object.assign(ProfilePage, {
             setMe.className = 'profile-fide-affiliate';
             setMe.style.marginLeft = '6px';
             setMe.innerHTML = '<i class="bi bi-person-check" aria-hidden="true"></i> C’est moi';
-            setMe.addEventListener('click', async () => {
-                await this.associatePlayer(p);
-                alert(`« ${p.name} » est maintenant associé à votre profil (et ajouté aux listes JSON).`);
+            setMe.addEventListener('click', () => {
+                try { 
+                    localStorage.setItem(this.FIDE_KEY, String(p.id)); 
+                    localStorage.setItem('kchess.myProfilePlayer', JSON.stringify({
+                        name: p.name, fide: String(p.id), title: p.title || '', federation: p.federation || '',
+                        standard: p.standard || null, rapid: p.rapid || null, blitz: p.blitz || null
+                    }));
+                } catch (e) {}
+                alert(`« ${p.name} » est maintenant associé à votre profil.`);
             });
             who.appendChild(setMe);
         }
@@ -176,24 +212,64 @@ Object.assign(ProfilePage, {
         head.appendChild(who);
         card.appendChild(head);
 
+        // ── Nouveau : Boutons de classement cliquables ──
         const grid = document.createElement('div');
         grid.className = 'profile-fide-ratings';
-        [['standard', this.T.standard], ['rapid', this.T.rapid], ['blitz', this.T.blitz]].forEach(([k, label]) => {
-            const cell = document.createElement('div');
-            cell.className = 'profile-fide-rating';
-            const v = document.createElement('strong'); v.textContent = p[k] ? String(p[k]) : this.T.unrated;
-            const l = document.createElement('span'); l.textContent = label;
-            cell.append(v, l); grid.appendChild(cell);
+        
+        const modes = [
+            { key: 'standard', label: this.T.standard },
+            { key: 'rapid', label: this.T.rapid },
+            { key: 'blitz', label: this.T.blitz }
+        ];
+
+        modes.forEach((m, index) => {
+            const cell = document.createElement('button');
+            cell.type = 'button';
+            // On ajoute une classe 'is-active' au premier (standard) par défaut
+            cell.className = 'profile-fide-rating' + (index === 0 ? ' is-active' : '');
+            cell.dataset.mode = m.key;
+            cell.style.border = 'none';
+            cell.style.cursor = 'pointer';
+            cell.style.background = 'var(--site-surface)'; // Reprend le style existant
+
+            const v = document.createElement('strong'); 
+            v.textContent = p[m.key] ? String(p[m.key]) : this.T.unrated;
+            const l = document.createElement('span'); 
+            l.textContent = m.label;
+            
+            cell.append(v, l);
+
+            // Action au clic
+            cell.addEventListener('click', () => {
+                // Retirer la classe 'is-active' de tous les boutons
+                grid.querySelectorAll('.profile-fide-rating').forEach(btn => btn.classList.remove('is-active'));
+                // Ajouter au bouton cliqué
+                cell.classList.add('is-active');
+                // Redessiner le graphique pour ce mode
+                this.updateChart(m.key);
+            });
+
+            grid.appendChild(cell);
         });
         card.appendChild(grid);
 
-        const chart = this.sparkline(history && history.standard);
-        if (chart) {
-            const wrap = document.createElement('div');
-            wrap.className = 'profile-fide-chart';
-            const cap = document.createElement('span'); cap.textContent = this.T.history;
-            wrap.append(cap, chart); card.appendChild(wrap);
+        // ── Le graphique (initialisé par défaut avec Standard) ──
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'profile-fide-chart';
+        const cap = document.createElement('span'); 
+        cap.textContent = this.T.history + ' (' + this.T.standard + ')';
+        const chartSvg = this.sparkline(history && history.standard);
+        if (chartSvg) {
+            chartContainer.append(cap, chartSvg);
+        } else {
+            chartContainer.style.display = 'none'; // Cacher si pas de données
         }
+        card.appendChild(chartContainer);
+
+        // Stockage de référence pour updateChart
+        this.chartContainer = chartContainer;
+        this.chartCaption = cap;
+
         if (p.photo && p.photo.credit) {
             const c = document.createElement('p');
             c.className = 'profile-fide-credit';
@@ -201,6 +277,37 @@ Object.assign(ProfilePage, {
             card.appendChild(c);
         }
         this.setBox(card);
+    },
+
+    // ── Nouvelle fonction pour mettre à jour le graphique ──
+    updateChart(mode) {
+        if (!this.chartContainer) return;
+        
+        const modeLabels = {
+            standard: this.T.standard,
+            rapid: this.T.rapid,
+            blitz: this.T.blitz
+        };
+
+        // Mettre à jour le sous-titre
+        if (this.chartCaption) {
+            this.chartCaption.textContent = this.T.history + ' (' + modeLabels[mode] + ')';
+        }
+
+        // Supprimer l'ancien SVG
+        const oldSvg = this.chartContainer.querySelector('svg');
+        if (oldSvg) oldSvg.remove();
+
+        // Générer le nouveau
+        const data = this.currentPlayerHistory && this.currentPlayerHistory[mode];
+        const newSvg = this.sparkline(data);
+        
+        if (newSvg) {
+            this.chartContainer.appendChild(newSvg);
+            this.chartContainer.style.display = 'block';
+        } else {
+            this.chartContainer.style.display = 'none';
+        }
     },
 
     sparkline(points) {
@@ -231,7 +338,7 @@ Object.assign(ProfilePage, {
         return svg;
     },
 
-    // ── Historique ──
+    // ── Historique (inchangé) ──
     readHistory() {
         try {
             const raw = localStorage.getItem(this.HISTORY_KEY);
@@ -294,119 +401,61 @@ Object.assign(ProfilePage, {
         this.renderHistory();
     },
 
-    // Historique toujours visible (joueurs + clubs), dans toutes les vues
     renderHistory() {
-        const boxes = document.querySelectorAll('.profile-history, #profileHistory');
-        if (!boxes.length) return;
+        const box = document.getElementById('profileHistory');
+        if (!box) return;
         const data = this.readHistory();
-        const items = [
-            ...data.player.map(x => ({ item: x, kind: 'player' })),
-            ...data.club.map(x => ({ item: x, kind: 'club' }))
-        ].sort((a, b) => (b.item.ts || 0) - (a.item.ts || 0));
-
-        boxes.forEach(box => {
-            box.innerHTML = '';
-            box.hidden = items.length === 0;
-            if (!items.length) return;
-            const head = document.createElement('div');
-            head.className = 'profile-history-head';
-            const h = document.createElement('span'); h.textContent = this.T.pf_recent;
-            const clear = document.createElement('button');
-            clear.type = 'button';
-            clear.className = 'profile-history-clear';
-            clear.textContent = this.T.pf_clear_all;
-            clear.addEventListener('click', () => {
-                if (!window.confirm(this.T.pf_clear_confirm)) return;
-                this.writeHistory({ player: [], club: [] });
+        const list = data[this.mode] || [];
+        box.innerHTML = '';
+        box.hidden = list.length === 0 || this.mode === 'club';
+        if (!list.length || this.mode === 'club') return;
+        const head = document.createElement('div');
+        head.className = 'profile-history-head';
+        const h = document.createElement('span'); h.textContent = this.T.pf_recent;
+        const clear = document.createElement('button');
+        clear.type = 'button';
+        clear.className = 'profile-history-clear';
+        clear.textContent = this.T.pf_clear_all;
+        clear.addEventListener('click', () => {
+            if (window.confirm(this.T.pf_clear_confirm)) {
+                const current = this.readHistory();
+                current.player = [];
+                this.writeHistory(current);
                 try { localStorage.removeItem(this.FIDE_KEY); } catch (e) {}
                 this.renderHistory();
-            });
-            head.append(h, clear);
-            const ul = document.createElement('ul');
-            ul.className = 'profile-history-list';
-            items.forEach(({ item, kind }) => {
-                const li = document.createElement('li');
-                const open = document.createElement('button');
-                open.type = 'button';
-                open.className = 'profile-history-item';
-                const icon = document.createElement('i');
-                icon.className = 'bi ' + (kind === 'club' ? 'bi-people' : 'bi-person');
-                icon.setAttribute('aria-hidden', 'true');
-                const name = document.createElement('span');
-                name.textContent = item.name || item.q || '';
-                const meta = document.createElement('small');
-                meta.textContent = kind === 'club' ? this.T.pf_club : [item.federation, item.id].filter(Boolean).join(' · ');
-                open.append(icon, name, meta);
-                open.addEventListener('click', () => this.openHistoryItem(item, kind));
-                const del = document.createElement('button');
-                del.type = 'button';
-                del.className = 'profile-history-del';
-                del.title = this.T.pf_delete;
-                del.setAttribute('aria-label', this.T.pf_delete + ' : ' + (item.name || item.q));
-                del.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
-                del.addEventListener('click', () => this.removeHistory(item, kind));
-                li.append(open, del);
-                ul.appendChild(li);
-            });
-            box.append(head, ul);
+            }
         });
-    },
-
-    openHistoryItem(item, kind) {
-        const view = window.PROFILE_VIEW || 'me';
-        if (kind === 'club') {
-            if (view !== 'clubs') { window.location.href = 'profile.php?view=clubs&q=' + encodeURIComponent(item.q || item.name || ''); return; }
-            const input = document.getElementById('profileClubSearchInput');
-            if (input) { input.value = item.q || item.name || ''; input.dispatchEvent(new Event('input')); }
-            this.searchClubs(item.q || item.name || '');
-            return;
-        }
-        if (view !== 'players') {
-            window.location.href = 'profile.php?view=players&' + (item.id ? 'fide=' + encodeURIComponent(item.id) : 'q=' + encodeURIComponent(item.q || ''));
-            return;
-        }
-        const input = document.getElementById('profileSearchInput');
-        const query = item.id || item.q || '';
-        if (input) { input.value = query; input.dispatchEvent(new Event('input')); }
-        if (item.id) this.loadPlayer(item.id); else if (item.q) this.search(item.q);
-    },
-
-    // ── Joueurs connus (config/players.json), filtrés pendant la frappe ──
-    initKnownPlayers() {
-        const box = document.getElementById('profileKnown');
-        const input = document.getElementById('profileSearchInput');
-        if (!box || !input) return;
-        const render = () => {
-            const n = this.norm(input.value);
-            const list = this.PLAYERS
-                .filter(p => !n || this.norm(p.name).includes(n) || String(p.fide).includes(n))
-                .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }))
-                .slice(0, 12);
-            box.innerHTML = '';
-            box.hidden = list.length === 0;
-            if (!list.length) return;
-            const head = document.createElement('div');
-            head.className = 'profile-history-head';
-            const h = document.createElement('span'); h.textContent = 'Joueurs connus';
-            head.appendChild(h);
-            const ul = document.createElement('ul');
-            ul.className = 'profile-history-list';
-            list.forEach(p => {
-                const li = document.createElement('li');
-                const b = document.createElement('button');
-                b.type = 'button';
-                b.className = 'profile-history-item';
-                const name = document.createElement('span'); name.textContent = p.name;
-                const meta = document.createElement('small'); meta.textContent = [p.federation, p.fide].filter(Boolean).join(' · ');
-                b.append(name, meta);
-                b.addEventListener('click', () => { input.value = p.fide; input.dispatchEvent(new Event('input')); this.loadPlayer(p.fide); });
-                li.appendChild(b);
-                ul.appendChild(li);
+        head.append(h, clear);
+        const ul = document.createElement('ul');
+        ul.className = 'profile-history-list';
+        list.forEach(item => {
+            const li = document.createElement('li');
+            const open = document.createElement('button');
+            open.type = 'button';
+            open.className = 'profile-history-item';
+            const name = document.createElement('span');
+            name.textContent = item.name || item.q || '';
+            const meta = document.createElement('small');
+            meta.textContent = [item.federation, item.id].filter(Boolean).join(' · ');
+            open.append(name, meta);
+            open.addEventListener('click', () => {
+                const input = document.getElementById('profileSearchInput');
+                const query = item.id || item.q || '';
+                if (input) { input.value = query; input.dispatchEvent(new Event('input')); }
+                if (item.id) this.loadPlayer(item.id);
+                else if (item.q) this.search(item.q);
             });
-            box.append(head, ul);
-        };
-        input.addEventListener('input', render);
-        render();
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'profile-history-del';
+            del.title = this.T.pf_delete;
+            del.setAttribute('aria-label', this.T.pf_delete + ' : ' + (item.name || item.q));
+            del.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+            del.addEventListener('click', () => this.removeHistory(item, 'player'));
+            li.append(open, del);
+            ul.appendChild(li);
+        });
+        box.append(head, ul);
     },
 
     // ── Parties animées ──
@@ -577,7 +626,51 @@ Object.assign(ProfilePage, {
         play.title = play.ariaLabel = this.modalPlaying ? this.T.pf_pause : this.T.pf_play;
     },
 
-    // ── Ajout de partie (localhost) ──
+    // ── Affiliation joueur → club (Appel serveur JSON) ──
+    async openAffiliateDialog(player) {
+        const clubs = this.CLUBS;
+        if (!clubs.length) {
+            alert('Aucun club disponible.');
+            return;
+        }
+        const names = clubs.map(c => c.name);
+        const choice = window.prompt(
+            'Affilier ce joueur à quel club ?\n\n' +
+            names.map((n, i) => `${i + 1}. ${n}`).join('\n') +
+            '\n\nEntrez le numéro :',
+            '1'
+        );
+        if (!choice) return;
+        const idx = parseInt(choice, 10) - 1;
+        if (isNaN(idx) || idx < 0 || idx >= clubs.length) {
+            alert('Numéro invalide.');
+            return;
+        }
+        const clubName = clubs[idx].name;
+        
+        try {
+            const res = await fetch('save_club.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    clubName: clubName,
+                    player: { name: player.name, fide: String(player.id) }
+                })
+            });
+            const data = await res.json();
+            
+            if (data.ok) {
+                alert(`✅ « ${player.name} » a été ajouté au club « ${clubName} » dans clubs.json.`);
+                window.location.reload();
+            } else {
+                alert('Erreur serveur : ' + (data.error || 'Inconnue'));
+            }
+        } catch (e) {
+            alert('Impossible de contacter le serveur pour enregistrer dans le JSON.');
+        }
+    },
+
+    // ── Ajout de partie ──
     initAddGame() {
         const btn = document.getElementById('profileAddGame');
         const modal = document.getElementById('profileAddModal');
@@ -633,4 +726,4 @@ Object.assign(ProfilePage, {
             } catch (err) { say(this.T.pf_add_err_save, true); }
         });
     }
-});
+});
