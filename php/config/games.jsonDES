@@ -1,0 +1,70 @@
+{
+    "36009172": [
+        {
+            "tournament": "Match FIDE",
+            "white": "Top Open",
+            "black": "Carlsen, Magnus",
+            "result": " NOR"
+        },
+        {
+            "tournament": "Match FIDE",
+            "white": "Top Women",
+            "black": "Hou, Yifan",
+            "result": " CHN"
+        },
+        {
+            "tournament": "Match FIDE",
+            "white": "Top Juniors",
+            "black": "Erdogmus, Yagiz Kaan",
+            "result": " TUR"
+        },
+        {
+            "tournament": "Match FIDE",
+            "white": "Top Girls",
+            "black": "Lee, Alice",
+            "result": " USA"
+        },
+        {
+            "tournament": "Match FIDE",
+            "white": "Top Juniors",
+            "black": "Gukesh D",
+            "result": " IND"
+        },
+        {
+            "tournament": "Match FIDE",
+            "white": "Top Juniors",
+            "black": "Murzin, Volodar",
+            "result": " FID"
+        },
+        {
+            "tournament": "Match FIDE",
+            "white": "Top Girls",
+            "black": "Roebers, Eline",
+            "result": " NED"
+        },
+        {
+            "tournament": "Match FIDE",
+            "white": "List",
+            "black": "Federation",
+            "result": ""
+        },
+        {
+            "tournament": "Match FIDE",
+            "white": "Open",
+            "black": " United States of America",
+            "result": ""
+        },
+        {
+            "tournament": "Match FIDE",
+            "white": "Women",
+            "black": " China",
+            "result": ""
+        },
+        {
+            "tournament": "Match FIDE",
+            "white": "Mixed",
+            "black": " China",
+            "result": ""
+        }
+    ]
+}

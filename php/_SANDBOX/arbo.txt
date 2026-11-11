@@ -204,12 +204,14 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 |   |   \-- [F] splashscreen1.php
 |   |-- [F] app.php
 |   |-- [F] clock.php
+|   |-- [F] club.php
 |   |-- [F] config-loader.php
 |   |-- [F] content.php
 |   |-- [F] content_mobile.php
 |   |-- [F] data_save.php
 |   |-- [F] engine-scripts.php
 |   |-- [F] fide.php
+|   |-- [F] fide_games.php
 |   |-- [F] footer.php
 |   |-- [F] header.php
 |   |-- [F] index.php
@@ -220,6 +222,8 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 |   |-- [F] parties_save.php
 |   |-- [F] profile.php
 |   |-- [F] project_flow_mapper.php
+|   |-- [F] save_club.php
+|   |-- [F] save_games.php
 |   \-- [F] sw.js
 |-- [D] python
 |   |-- [D] ChessVision

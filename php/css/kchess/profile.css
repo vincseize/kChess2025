@@ -500,7 +500,6 @@
     padding: 0;
 }
 
-/* ── Ratings (Standard / Rapide / Blitz) ── */
 .profile-fide-ratings {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1076,6 +1075,32 @@
 .profile-game-item small { color: var(--site-text-muted); font-size: 0.72rem; }
 
 .profile-add-game-btn { margin-top: 6px; }
+
+/* ── Filtres de parties ── */
+.profile-game-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.profile-game-filters button {
+    background: transparent;
+    color: var(--site-text-muted);
+    border: 1px solid var(--site-border);
+}
+
+.profile-game-filters button:hover {
+    background: var(--site-surface-alt);
+    color: var(--site-text);
+}
+
+.profile-game-filters button.active {
+    background-color: var(--success-color) !important;
+    color: var(--site-background) !important;
+    border-color: var(--success-color) !important;
+    font-weight: 700;
+}
 
 /* ── Modales ── */
 .profile-modal {

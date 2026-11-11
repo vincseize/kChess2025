@@ -95,7 +95,7 @@ if ($profileStandalone):
                 <div class="hero-copy">
                     <p class="hero-kicker">La Dame de Bellefontaine<br>App Chess Club training</p>
                     <h1 id="profile-title-me">Mon profil,<br><span>ma progression.</span></h1>
-                    <p class="hero-description">Recherchez votre nom ou votre code FIDE pour associer votre profil. Vous serez automatiquement ajouté au club La Dame de Bellefontaine.</p>
+                    <p class="hero-description">Recherchez votre nom ou votre code FIDE pour associer votre profil.</p>
                     <div class="profile-hero-badges" aria-label="Levels effectués"></div>
                 </div>
 
@@ -112,6 +112,7 @@ if ($profileStandalone):
 
             <section class="profile-me-col" aria-label="Ma fiche joueur">
                 <div class="profile-me-results" id="profileMeResults" aria-live="polite" hidden></div>
+
                 <div class="profile-me-card" id="profileMeCard">
                     <div class="profile-me-loading" id="profileMeLoading">
                         <i class="bi bi-hourglass-split" aria-hidden="true"></i>
@@ -123,6 +124,38 @@ if ($profileStandalone):
                         <p class="profile-me-empty-hint">Recherchez votre nom ou votre code FIDE ci-dessus pour associer votre profil.</p>
                     </div>
                     <div class="profile-me-content" id="profileMeContent" hidden></div>
+                </div>
+
+                <!-- ★ SECTION PARTIES FIDE avec résumé et filtres -->
+                <div class="profile-me-games" id="profileMeGames" style="margin-top: 24px;" hidden>
+                    <div class="profile-levels-head" style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="margin: 0; font-size: 0.9rem;">Mes parties FIDE</h2>
+                        <button type="button" class="home-feature-btn" id="syncGamesBtn" style="padding: 4px 10px; font-size: 0.75rem;">
+                            <i class="bi bi-arrow-repeat"></i> Synchroniser
+                        </button>
+                    </div>
+                    
+                    <!-- Résumé -->
+                    <p id="profileGamesSummary" style="font-size: 0.8rem; color: var(--site-text-muted); margin-bottom: 12px;"></p>
+                    
+                    <!-- Filtres -->
+                    <div class="profile-game-filters" style="display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap;">
+                        <button type="button" class="home-feature-btn" id="filterAll" data-filter="all" style="padding: 4px 10px; font-size: 0.75rem; width: auto; min-height: 28px;">
+                            Toutes
+                        </button>
+                        <button type="button" class="home-feature-btn" id="filterWins" data-filter="win" style="padding: 4px 10px; font-size: 0.75rem; width: auto; min-height: 28px;">
+                            Victoires
+                        </button>
+                        <button type="button" class="home-feature-btn" id="filterLosses" data-filter="loss" style="padding: 4px 10px; font-size: 0.75rem; width: auto; min-height: 28px;">
+                            Défaites
+                        </button>
+                        <button type="button" class="home-feature-btn" id="filterDraws" data-filter="draw" style="padding: 4px 10px; font-size: 0.75rem; width: auto; min-height: 28px;">
+                            Nulles
+                        </button>
+                    </div>
+                    
+                    <!-- Liste -->
+                    <ul class="profile-games-list" id="profileGamesData" role="list"></ul>
                 </div>
             </section>
 
@@ -142,7 +175,7 @@ if ($profileStandalone):
                         <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
                         <span>Réinitialiser mes levels</span>
                     </button>
-                    <p class="profile-reset-all-note">Cette action efface toute votre progression (levels, victoires, préférences).</p>
+                    <p class="profile-reset-all-note">Cette action efface toute votre progression.</p>
                 </div>
 
                 <div class="profile-me-clubs" aria-labelledby="profile-me-clubs-title" style="margin-top: 28px;">
@@ -161,12 +194,8 @@ if ($profileStandalone):
                     <p class="hero-description">Entrez un nom ou un code FIDE. La fiche du joueur s’ouvre avec ses classements et son historique.</p>
                     <div class="profile-hero-badges" aria-label="Levels effectués"></div>
                 </div>
-
                 <div class="board-preview-group profile-board-preview">
-                    <p class="profile-game-caption">
-                        <span class="profile-game-name" id="profileGameTitle"></span>
-                        <span class="game-year" id="profileGameYear"></span>
-                    </p>
+                    <p class="profile-game-caption"><span class="profile-game-name" id="profileGameTitle"></span><span class="game-year" id="profileGameYear"></span></p>
                     <div class="profile-board" id="profileBoard" role="img" aria-label="Partie d'échecs"></div>
                     <p class="profile-game-players" id="profileGamePlayers"></p>
                     <button type="button" class="home-feature-btn profile-zoom-btn" id="profileBoardZoom"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i><span>Voir en grand</span></button>
@@ -179,7 +208,6 @@ if ($profileStandalone):
             </section>
 
             <section class="new-game-content profile-content" aria-label="Joueur">
-                <!-- Search container that will be hidden if ?fide= is present -->
                 <div class="profile-search" role="search" id="profileSearchContainer">
                     <label for="profileSearchInput" class="section-title profile-search-label">Nom, prénom ou code FIDE</label>
                     <div class="profile-search-field">
@@ -190,16 +218,11 @@ if ($profileStandalone):
                     </div>
                     <p class="profile-search-hint"><i class="bi bi-info-circle" aria-hidden="true"></i> Entrez un code FIDE (chiffres) ou un nom, puis Entrée.</p>
                 </div>
-
                 <div class="profile-history" id="profileHistory" hidden></div>
                 <div class="profile-known" id="profileKnown" hidden></div>
-
                 <p class="profile-search-adv">
-                    <a href="https://ratings.fide.com/advanced_search.phtml" target="_blank" rel="noopener noreferrer">
-                        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Recherche avancée sur ratings.fide.com
-                    </a>
+                    <a href="https://ratings.fide.com/advanced_search.phtml" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Recherche avancée sur ratings.fide.com</a>
                 </p>
-
                 <div class="profile-fide" id="profileFide" aria-live="polite" hidden></div>
             </section>
         </div>
@@ -213,7 +236,6 @@ if ($profileStandalone):
                     <p class="hero-description">Recherchez un club par nom, ville, région ou pays. Cliquez sur un club pour voir ses joueurs.</p>
                     <div class="profile-hero-badges" aria-label="Levels effectués"></div>
                 </div>
-
                 <div class="profile-club-stats" id="profileClubStats">
                     <span class="profile-club-stat"><i class="bi bi-people" aria-hidden="true"></i> <strong id="profileClubStatsCount">0</strong> club(s)</span>
                     <span class="profile-club-stat"><i class="bi bi-person-badge" aria-hidden="true"></i> <strong id="profileClubStatsPlayers">0</strong> joueur(s)</span>
@@ -245,9 +267,9 @@ if ($profileStandalone):
                 </div>
                 <div class="profile-club-import" id="profileClubImport" hidden>
                     <h3 class="profile-club-import-title">Clubs &amp; joueurs (JSON &amp; local)</h3>
-                    <div class="profile-club-tabs" role="tablist" aria-label="Gestion clubs et joueurs">
-                        <button type="button" class="profile-club-tab is-active" id="profileClubTabClubs" role="tab" aria-selected="true" aria-controls="profileClubTabPanelClubs" data-tab="clubs"><i class="bi bi-people" aria-hidden="true"></i><span>Clubs</span></button>
-                        <button type="button" class="profile-club-tab" id="profileClubTabPlayers" role="tab" aria-selected="false" aria-controls="profileClubTabPanelPlayers" data-tab="players"><i class="bi bi-person-badge" aria-hidden="true"></i><span>Joueurs</span></button>
+                    <div class="profile-club-tabs" role="tablist">
+                        <button type="button" class="profile-club-tab is-active" id="profileClubTabClubs" role="tab" aria-selected="true" data-tab="clubs"><i class="bi bi-people" aria-hidden="true"></i><span>Clubs</span></button>
+                        <button type="button" class="profile-club-tab" id="profileClubTabPlayers" role="tab" aria-selected="false" data-tab="players"><i class="bi bi-person-badge" aria-hidden="true"></i><span>Joueurs</span></button>
                     </div>
                     <div class="profile-club-tab-panel" id="profileClubTabPanelClubs" role="tabpanel" data-panel="clubs">
                         <div class="profile-club-tab-head">
@@ -360,6 +382,12 @@ if (is_file($playersFile)) {
     $decodedPlayers = json_decode((string)file_get_contents($playersFile), true);
     if (isset($decodedPlayers['players']) && is_array($decodedPlayers['players'])) $profilePlayers = $decodedPlayers['players'];
 }
+$profileGames = [];
+$gamesFile = __DIR__ . '/config/games.json';
+if (is_file($gamesFile)) {
+    $decodedGames = json_decode((string)file_get_contents($gamesFile), true);
+    if (is_array($decodedGames)) $profileGames = $decodedGames;
+}
 $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP;
 ?>
 <script>
@@ -370,8 +398,8 @@ window.PROFILE_CLUBS = <?php echo json_encode($profileClubs, $jsonFlags); ?>;
 window.PROFILE_PLAYERS = <?php echo json_encode($profilePlayers, $jsonFlags); ?>;
 window.PROFILE_LOCAL = <?php echo $isLocal ? 'true' : 'false'; ?>;
 window.PROFILE_VIEW = <?php echo json_encode($view); ?>;
-// ★ NOUVEAU : On passe l'ID cible s'il y en a un dans l'URL
 window.PROFILE_TARGET_ID = <?php echo json_encode($_GET['fide'] ?? null); ?>;
+window.PROFILE_GAMES = <?php echo json_encode($profileGames, $jsonFlags); ?>;
 </script>
 <script src="js/kchess/ui/bot-training-progress.js?v=<?php echo htmlspecialchars((string)$assetVersion); ?>"></script>
 <script src="js/kchess/ui/pgn-parser.js?v=<?php echo htmlspecialchars((string)$assetVersion); ?>"></script>

@@ -1,10 +1,10 @@
 /**
  * js/ui/profile-me.js
- * Vue "Mon profil" : recherche FIDE (profil et joueur).
- * Profil = localStorage. Affiliation = sauvegarde JSON serveur.
+ * Vue "Mon profil" : recherche FIDE, association localStorage + parties.
  */
 
 Object.assign(ProfilePage, {
+    currentGamesFilter: 'all', // 'all', 'win', 'loss', 'draw'
 
     initMeView() {
         this.renderLevels();
@@ -13,6 +13,9 @@ Object.assign(ProfilePage, {
         this.bindPlayerSearch();
         this.renderMeCard();
         this.renderMeClubs();
+        this.renderMeGames();
+        this.bindSyncGames();
+        this.bindGameFilters();
     },
 
     getStoredPlayer() {
@@ -22,7 +25,7 @@ Object.assign(ProfilePage, {
         return id;
     },
 
-    // ── 1. Recherche "Mon Profil" (LocalStorage uniquement) ──
+    // ── 1. Recherche "Mon Profil" ──
     bindMeSearch() {
         const input = document.getElementById('profileMeSearchInput');
         const clearBtn = document.getElementById('profileMeSearchClear');
@@ -115,6 +118,7 @@ Object.assign(ProfilePage, {
             box.appendChild(this.note(`✅ « ${data.player.name} » est maintenant votre profil.`));
             this.renderMeCard();
             this.renderMeClubs();
+            this.renderMeGames();
         } catch (e) {
             box.innerHTML = ''; box.appendChild(this.note(this.T.error, 'is-error'));
         }
@@ -132,7 +136,7 @@ Object.assign(ProfilePage, {
         } catch (e) {}
     },
 
-    // ── 2. Recherche Joueur pour affiliation (écrit dans JSON) ──
+    // ── 2. Recherche Joueur pour affiliation ──
     bindPlayerSearch() {
         const input = document.getElementById('profilePlayerSearchInput');
         const clearBtn = document.getElementById('profilePlayerSearchClear');
@@ -224,49 +228,15 @@ Object.assign(ProfilePage, {
             box.appendChild(card);
 
             document.getElementById('btnAssociateClub').addEventListener('click', () => {
-                this.openAffiliateDialog(data.player);
+                if (typeof this.openAffiliateDialog === 'function') {
+                    this.openAffiliateDialog(data.player);
+                } else {
+                    alert("Erreur: Impossible d'ouvrir la fenêtre d'affiliation.");
+                }
             });
+
         } catch (e) {
             box.innerHTML = ''; box.appendChild(this.note(this.T.error, 'is-error'));
-        }
-    },
-
-    async openAffiliateDialog(player) {
-        const clubs = this.CLUBS;
-        if (!clubs.length) { alert('Aucun club disponible.'); return; }
-        
-        const names = clubs.map(c => c.name);
-        const choice = window.prompt(
-            'Affilier ce joueur à quel club ?\n\n' + names.map((n, i) => `${i + 1}. ${n}`).join('\n') + '\n\nEntrez le numéro :',
-            '1'
-        );
-        if (!choice) return;
-        
-        const idx = parseInt(choice, 10) - 1;
-        if (isNaN(idx) || idx < 0 || idx >= clubs.length) { alert('Numéro invalide.'); return; }
-        
-        const clubName = clubs[idx].name;
-        
-        try {
-            const res = await fetch('save_club.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    clubName: clubName,
-                    player: { name: player.name, fide: String(player.id) }
-                })
-            });
-            const data = await res.json();
-            
-            if (data.ok) {
-                alert(`✅ « ${player.name} » a été ajouté au club « ${clubName} » dans le fichier JSON.`);
-                // Recharger la page pour prendre en compte le nouveau fichier JSON
-                window.location.reload();
-            } else {
-                alert('Erreur lors de la sauvegarde : ' + (data.error || 'Inconnue'));
-            }
-        } catch (e) {
-            alert('Impossible de contacter le serveur.');
         }
     },
 
@@ -386,6 +356,7 @@ Object.assign(ProfilePage, {
             const empty = document.getElementById('profileMeEmpty');
             if (empty) empty.hidden = false;
             this.renderMeClubs();
+            this.renderMeGames();
         });
         actions.appendChild(clearBtn);
 
@@ -455,5 +426,204 @@ Object.assign(ProfilePage, {
             a.append(name, meta); li.appendChild(a); ul.appendChild(li);
         });
         box.appendChild(ul);
+    },
+
+    // ── 3. Gestion des parties (Filtres + Tri) ──
+    bindGameFilters() {
+        const filterWins = document.getElementById('filterWins');
+        const filterLosses = document.getElementById('filterLosses');
+        const filterDraws = document.getElementById('filterDraws');
+        const filterAll = document.getElementById('filterAll');
+        
+        if (filterAll) {
+            filterAll.addEventListener('click', () => {
+                this.currentGamesFilter = 'all';
+                this.updateFilterButtons();
+                this.renderMeGames();
+            });
+        }
+        if (filterWins) {
+            filterWins.addEventListener('click', () => {
+                this.currentGamesFilter = 'win';
+                this.updateFilterButtons();
+                this.renderMeGames();
+            });
+        }
+        if (filterLosses) {
+            filterLosses.addEventListener('click', () => {
+                this.currentGamesFilter = 'loss';
+                this.updateFilterButtons();
+                this.renderMeGames();
+            });
+        }
+        if (filterDraws) {
+            filterDraws.addEventListener('click', () => {
+                this.currentGamesFilter = 'draw';
+                this.updateFilterButtons();
+                this.renderMeGames();
+            });
+        }
+    },
+
+    updateFilterButtons() {
+        ['filterAll', 'filterWins', 'filterLosses', 'filterDraws'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.classList.toggle('active', btn.dataset.filter === this.currentGamesFilter);
+        });
+    },
+
+    renderMeGames() {
+        const wrapper = document.getElementById('profileMeGames');
+        const list = document.getElementById('profileGamesData');
+        if (!wrapper || !list) return;
+
+        const id = this.getStoredPlayer();
+        if (!id) {
+            wrapper.hidden = true;
+            return;
+        }
+
+        wrapper.hidden = false;
+        list.innerHTML = '';
+
+        let games = [];
+        try {
+            const raw = localStorage.getItem('kchess.myGames');
+            if (raw) games = JSON.parse(raw);
+        } catch (e) {}
+
+        if (!games.length) {
+            list.innerHTML = '<li style="color: var(--site-text-muted); font-size: 0.85rem; padding: 10px;">Aucune partie enregistrée. Cliquez sur "Synchroniser" ou ajoutez-les manuellement.</li>';
+            return;
+        }
+
+        // Calcul du résumé (Stats)
+        let total = games.length;
+        let wins = games.filter(g => (g.result === '1-0' || g.result === '1.0')).length;
+        let draws = games.filter(g => (g.result === '0.5-0.5' || g.result === '1/2-1/2' || g.result === '0.5')).length;
+        let losses = total - wins - draws;
+
+        const summaryEl = document.getElementById('profileGamesSummary');
+        if (summaryEl) {
+            summaryEl.textContent = `${total} parties (${wins} gagnées, ${draws} nulles, ${losses} perdues)`;
+        }
+
+        // Tri chronologique (plus récent d'abord)
+        games.sort((a, b) => {
+            const dateA = a.date || '';
+            const dateB = b.date || '';
+            return dateB.localeCompare(dateA);
+        });
+
+        // Application du filtre
+        let filteredGames = games.filter(g => {
+            const isWin = (g.result === '1-0' || g.result === '1.0');
+            const isDraw = (g.result === '0.5-0.5' || g.result === '1/2-1/2' || g.result === '0.5');
+            
+            if (this.currentGamesFilter === 'win' && !isWin) return false;
+            if (this.currentGamesFilter === 'loss' && (isWin || isDraw)) return false;
+            if (this.currentGamesFilter === 'draw' && !isDraw) return false;
+            return true;
+        });
+
+        // Affichage
+        filteredGames.forEach(g => {
+            const li = document.createElement('li');
+            
+            li.style.display = 'flex';
+            li.style.flexDirection = 'column';
+            li.style.padding = '10px 12px';
+            li.style.borderBottom = '1px solid var(--site-border)';
+            li.style.fontSize = '0.85rem';
+            
+            const dateStr = g.date ? `<span style="color: var(--site-text-muted); font-size: 0.75rem; min-width: 80px;">${g.date}</span>` : '';
+            const tournamentStr = g.tournament ? `<span style="color: var(--site-text-muted); font-size: 0.75rem; margin-left: 8px;">(${g.tournament})</span>` : '';
+            const opponentName = g.opponent || g.white || 'Inconnu';
+            
+            // Gestion des Elo (s'ils existent)
+            const myElo = g.my_elo ? `<span style="font-size:0.7rem; color:var(--site-text-muted);">(${g.my_elo})</span>` : '';
+            const oppElo = g.opp_elo ? `<span style="font-size:0.7rem; color:var(--site-text-muted);">(${g.opp_elo})</span>` : '';
+
+            // Couleur du résultat
+            let resultColor = 'var(--site-text-muted)';
+            if (g.result === '1-0' || g.result === '1.0') resultColor = 'var(--success-color)';
+            else if (g.result === '0-1' || g.result === '0.0') resultColor = '#f85149';
+
+            li.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        ${dateStr}
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <strong>${opponentName}</strong> ${oppElo}
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--site-text-muted);">
+                                Moi ${myElo} vs Adversaire ${oppElo}
+                            </div>
+                        </div>
+                    </div>
+                    <span style="color: ${resultColor}; font-weight: bold; font-family: monospace; font-size: 1rem;">${g.result || '?'}</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--site-text-muted); margin-top: 4px;">
+                    ${tournamentStr}
+                </div>
+            `;
+            
+            list.appendChild(li);
+        });
+        
+        list.style.display = 'block';
+        list.style.padding = '0';
+        list.style.listStyle = 'none';
+        list.style.background = 'var(--site-surface)';
+        list.style.borderRadius = '10px';
+        list.style.border = '1px solid var(--site-border)';
+        list.style.maxHeight = '400px'; // Scroll
+        list.style.overflowY = 'auto';
+    },
+
+    bindSyncGames() {
+        const btn = document.getElementById('syncGamesBtn');
+        if (!btn) return;
+
+        btn.addEventListener('click', async () => {
+            const id = this.getStoredPlayer();
+            if (!id) { alert('Associez d\'abord votre profil.'); return; }
+
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Synchro...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`fide_games.php?id=${encodeURIComponent(id)}`);
+                const data = await res.json();
+
+                if (!data.ok) {
+                    alert('Impossible de récupérer les parties : ' + (data.error || 'Erreur inconnue'));
+                    return;
+                }
+
+                const games = data.games || [];
+                if (!games.length) {
+                    alert('Aucune partie trouvée sur le site de la FIDE.');
+                    return;
+                }
+
+                try {
+                    localStorage.setItem('kchess.myGames', JSON.stringify(games));
+                } catch (e) {
+                    alert('Erreur de sauvegarde locale.');
+                }
+
+                this.renderMeGames();
+                alert(`✅ ${games.length} parties synchronisées.`);
+
+            } catch (e) {
+                alert('Erreur réseau lors de la synchronisation.');
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        });
     }
 });
