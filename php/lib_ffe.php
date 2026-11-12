@@ -140,6 +140,41 @@ function ffe_parse_grille(string $html, string $playerName): array {
     return $out;
 }
 
+// ───────────────────────── fiche FIDE (tableau mensuel des classements) ─────────────────────────
+/**
+ * FIDE ne publie PAS de "date d'inscription". Le plus proche : le 1er mois du tableau des classements
+ * de la fiche publique (premier classement FIDE connu). Renvoie [] si la fiche est injoignable.
+ */
+function fide_profile(string $fide): array {
+    if (!joueur_valid_id($fide)) return [];
+    [$c, $html] = ffe_http('https://ratings.fide.com/profile/' . $fide, 86400);
+    if ($c !== 200 || $html === '') return [];
+    static $mois = ['Jan'=>1,'Feb'=>2,'Mar'=>3,'Apr'=>4,'May'=>5,'Jun'=>6,'Jul'=>7,'Aug'=>8,'Sep'=>9,'Oct'=>10,'Nov'=>11,'Dec'=>12];
+    $rows = [];
+    if (preg_match_all('~<tr[^>]*>\s*<td[^>]*>(?:&nbsp;|\s)*(20\d\d)-([A-Za-z]{3})(?:&nbsp;|\s)*</td>(.*?)</tr>~s', $html, $m, PREG_SET_ORDER)) {
+        foreach ($m as $r) {
+            preg_match_all('~<td[^>]*>(.*?)</td>~s', $r[3], $c2);
+            $v = array_map(fn($x) => (int)preg_replace('/\D/', '', strip_tags($x)), $c2[1]);
+            $mo = $mois[$r[2]] ?? 0;
+            if (!$mo) continue;
+            $rows[sprintf('%04d-%02d', $r[1], $mo)] = ['std' => $v[0] ?? 0, 'std_games' => $v[1] ?? 0, 'rapid' => $v[2] ?? 0, 'blitz' => $v[4] ?? 0];
+        }
+    }
+    if (!$rows) return [];
+    ksort($rows);
+    $first = array_key_first($rows);
+    $last = array_key_last($rows);
+    return [
+        'first_period'   => $first,          // ex. 2023-07 = premier classement FIDE visible
+        'first_standard' => $rows[$first]['std'],
+        'first_rapid'    => $rows[$first]['rapid'],
+        'first_blitz'    => $rows[$first]['blitz'],
+        'last_period'    => $last,
+        'months'         => count($rows),
+        'fetched'        => date('c'),
+    ];
+}
+
 // ───────────────────────── fichier joueurs/{fide}.json ─────────────────────────
 function joueur_valid_id(string $id): bool { return (bool)preg_match('/^\d{4,12}$/', $id); }
 function joueur_path(string $fide): string { return JOUEURS_DIR . '/' . $fide . '.json'; }
@@ -219,6 +254,9 @@ function ffe_import(string $ref, string $fide, string $name, bool $save = true):
     usort($d['games'], fn($a, $b) => strcmp((string)($b['date'] ?? ''), (string)($a['date'] ?? '')) ?: ((int)($b['round'] ?? 0) <=> (int)($a['round'] ?? 0)));
     usort($d['tournaments'], fn($a, $b) => strcmp((string)($b['date'] ?? ''), (string)($a['date'] ?? '')));
 
+    $fp = fide_profile($fide);                       // facultatif : si FIDE ne répond pas, on continue
+    if ($fp) $d['profile'] = ['fide' => $fp] + (isset($d['profile']) && is_array($d['profile']) ? $d['profile'] : []);
+
     if ($save && !joueur_save($fide, $d)) return ['ok' => false, 'error' => 'ecriture_impossible', 'path' => joueur_path($fide)];
-    return ['ok' => true, 'saved' => $save, 'tournament' => $t, 'games' => $games, 'byes' => $g['byes'], 'file' => 'joueurs/' . $fide . '.json'];
+    return ['ok' => true, 'saved' => $save, 'tournament' => $t, 'games' => $games, 'byes' => $g['byes'], 'fide_profile' => $fp, 'file' => 'joueurs/' . $fide . '.json'];
 }

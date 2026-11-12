@@ -11,9 +11,9 @@ $dirOk = joueurs_ensure_dir();   // crée php/joueurs/ s'il n'existe pas
 $result = null;
 // VALEURS DE TEST en dur (à retirer plus tard) : tournoi, code FIDE, nom sur la FFE
 $in = [
-    'tournoi' => (string)($_GET['tournoi'] ?? '74138'),
-    'fide'    => (string)($_GET['fide'] ?? '36009172'),
-    'nom'     => (string)($_GET['nom'] ?? 'POTTIER Charles'),
+    'tournoi' => (string)($_GET['tournoi'] ?? ''),
+    'fide'    => (string)($_GET['fide'] ?? ''),
+    'nom'     => (string)($_GET['nom'] ?? ''),
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -79,6 +79,15 @@ $lbl = ['1-0' => 'Victoire', '0-1' => 'Défaite', '1/2-1/2' => 'Nulle', '' => '?
   <?php else: $t = $result['tournament']; ?>
     <p class="ok"><b><?= count($result['games']) ?> parties</b> enregistrées dans <code><?= $h($result['file']) ?></code><br>
     <?= $h($t['name']) ?> — <?= $h($t['place']) ?> — <?= $h($t['date']) ?> <small>(<?= $h($t['cadence']) ?>)</small>
+    <?php $fp = $result['fide_profile'] ?? []; if ($fp):
+        $mn = ['01'=>'janvier','02'=>'février','03'=>'mars','04'=>'avril','05'=>'mai','06'=>'juin','07'=>'juillet','08'=>'août','09'=>'septembre','10'=>'octobre','11'=>'novembre','12'=>'décembre'];
+        [$fy, $fm] = explode('-', $fp['first_period']); ?>
+      <br><b>Premier classement FIDE :</b> <?= $h($mn[$fm] ?? $fm) ?> <?= $h($fy) ?>
+      <small>(Standard <?= (int)$fp['first_standard'] ?>, Rapide <?= (int)$fp['first_rapid'] ?>, Blitz <?= (int)$fp['first_blitz'] ?>)</small>
+      <br><small>FIDE ne publie pas de date d'inscription : c'est le premier mois du tableau des classements de la fiche.</small>
+    <?php else: ?>
+      <br><small>Fiche FIDE non lue (ratings.fide.com injoignable depuis ce serveur).</small>
+    <?php endif; ?>
     <?php if ($result['byes']): ?><br><small><?= count($result['byes']) ?> ronde(s) sans adversaire (exempt/absent), non comptée(s).</small><?php endif; ?></p>
     <table><tr><th>Rd</th><th>Couleur</th><th>Joueur</th><th>Elo</th><th>Adversaire</th><th>Elo</th><th>Résultat</th></tr>
     <?php foreach ($result['games'] as $g): ?>

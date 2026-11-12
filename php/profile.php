@@ -108,6 +108,28 @@ if ($profileStandalone):
                         <button type="button" class="profile-search-btn" id="profileMeSearchBtn">Rechercher</button>
                     </div>
                 </div>
+
+                <div class="profile-me-search" role="search" style="margin-top:14px">
+                    <label for="profilePlayerSearchInput" class="section-title profile-search-label">Rechercher un joueur par nom ou code FIDE</label>
+                    <div class="profile-search-field">
+                        <i class="bi bi-person-search" aria-hidden="true"></i>
+                        <input type="search" id="profilePlayerSearchInput" class="profile-search-input" placeholder="Ex. : Collin, Stephan ou 36009172" autocomplete="off" spellcheck="false">
+                        <button type="button" class="profile-search-clear" id="profilePlayerSearchClear" aria-label="Effacer" hidden><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                        <button type="button" class="profile-search-btn" id="profilePlayerSearchBtn">Rechercher</button>
+                    </div>
+                    <div class="profile-me-results" id="profilePlayerSearchResults" aria-live="polite" hidden></div>
+                </div>
+
+                <div class="profile-me-search" role="search" style="margin-top:14px">
+                    <label for="profileTournoiSearchInput" class="section-title profile-search-label">Rechercher un tournoi (nom, lieu, n° FFE ou lien)</label>
+                    <div class="profile-search-field">
+                        <i class="bi bi-trophy" aria-hidden="true"></i>
+                        <input type="search" id="profileTournoiSearchInput" class="profile-search-input" placeholder="Ex. : 74138 ou echecs.asso.fr/FicheTournoi.aspx?Ref=74138" autocomplete="off" spellcheck="false">
+                        <button type="button" class="profile-search-clear" id="profileTournoiSearchClear" aria-label="Effacer" hidden><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                        <button type="button" class="profile-search-btn" id="profileTournoiSearchBtn">Rechercher</button>
+                    </div>
+                    <div class="profile-me-results" id="profileTournoiResults" aria-live="polite" hidden></div>
+                </div>
             </section>
 
             <section class="profile-me-col" aria-label="Ma fiche joueur">
@@ -129,9 +151,9 @@ if ($profileStandalone):
                 <!-- ★ SECTION PARTIES FIDE avec résumé et filtres -->
                 <div class="profile-me-games" id="profileMeGames" style="margin-top: 24px;" hidden>
                     <div class="profile-levels-head" style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                        <h2 style="margin: 0; font-size: 0.9rem;">Mes parties FIDE</h2>
+                        <h2 style="margin: 0; font-size: 0.9rem;">Mes parties (tournois importés)</h2>
                         <button type="button" class="home-feature-btn" id="syncGamesBtn" style="padding: 4px 10px; font-size: 0.75rem;">
-                            <i class="bi bi-arrow-repeat"></i> Synchroniser
+                            <i class="bi bi-arrow-repeat"></i> Recharger
                         </button>
                     </div>
                     
@@ -405,6 +427,7 @@ window.PROFILE_GAMES = <?php echo json_encode($profileGames, $jsonFlags); ?>;
 <script src="js/kchess/ui/pgn-parser.js?v=<?php echo htmlspecialchars((string)$assetVersion); ?>"></script>
 <script src="js/kchess/ui/profile-core.js?v=<?php echo htmlspecialchars((string)$assetVersion); ?>"></script>
 <script src="js/kchess/ui/profile-me.js?v=<?php echo htmlspecialchars((string)$assetVersion); ?>"></script>
+<script src="js/kchess/ui/profile-games.js?v=<?php echo htmlspecialchars((string)$assetVersion); ?>"></script>
 <script src="js/kchess/ui/profile-players.js?v=<?php echo htmlspecialchars((string)$assetVersion); ?>"></script>
 <script src="js/kchess/ui/profile-clubs.js?v=<?php echo htmlspecialchars((string)$assetVersion); ?>"></script>
 <script src="js/kchess/ui/profile.js?v=<?php echo htmlspecialchars((string)$assetVersion); ?>"></script>

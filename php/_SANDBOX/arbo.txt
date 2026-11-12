@@ -65,6 +65,9 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 |   |   |-- [F] icon.svg
 |   |   |-- [F] opera-game-poster.png
 |   |   \-- [F] opera-game.gif
+|   |-- [D] joueurs
+|   |   |-- [F] .htaccess
+|   |   \-- [F] 36009172.json
 |   |-- [D] js
 |   |   |-- [D] kchess
 |   |   |   |-- [D] bots
