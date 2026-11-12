@@ -13,6 +13,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 |   |-- [D] config
 |   |   |-- [F] clubs.json
 |   |   |-- [F] game-config.json
+|   |   |-- [F] games.jsonDES
 |   |   |-- [F] parties.json
 |   |   \-- [F] players.json
 |   |-- [D] css
@@ -203,6 +204,8 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 |   |   |-- [F] splashscreen0.php
 |   |   \-- [F] splashscreen1.php
 |   |-- [F] app.php
+|   |-- [F] cacert.pem
+|   |-- [F] cacert.pem.bak
 |   |-- [F] clock.php
 |   |-- [F] club.php
 |   |-- [F] config-loader.php
@@ -210,12 +213,19 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 |   |-- [F] content_mobile.php
 |   |-- [F] data_save.php
 |   |-- [F] engine-scripts.php
+|   |-- [F] ffe_raw.php
 |   |-- [F] fide.php
 |   |-- [F] fide_games.php
+|   |-- [F] fide_raw.php
+|   |-- [F] fix_ffe_cert.php
 |   |-- [F] footer.php
+|   |-- [F] games.php
+|   |-- [F] get_opponents.py
 |   |-- [F] header.php
+|   |-- [F] import_ffe.php
 |   |-- [F] index.php
 |   |-- [F] layoutMobile.php
+|   |-- [F] lib_ffe.php
 |   |-- [F] local-only.php
 |   |-- [F] manifest.json
 |   |-- [F] newGame.php
