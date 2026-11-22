@@ -142,26 +142,35 @@ class ChessBoard {
     }
 
     /**
-     * Ajoute les labels 'a-h' et '1-8' sur les bords du plateau
+     * ★ V1.8 : Ajoute la coordonnée 'a1'..'h8' sur CHAQUE case.
+     * Pose les flags data-coordinate-h / data-coordinate-v attendus par le CSS,
+     * ainsi que data-coord-horizontal / data-coord-vertical pour le contenu,
+     * et data-coord-full pour un éventuel affichage combiné.
      */
     addCoordinatesLabels(squareElement, row, col) {
-        const letters = 'abcdefgh';
-        const numbers = '87654321';
+        const letters = 'abcdefgh';                 // col 0 → 'a', col 7 → 'h'
+        const numbers = '87654321';                 // row 0 → '8', row 7 → '1'
+
+        const letter = letters[col];
+        const number = numbers[row];
         const isFlipped = this.gameState.boardFlipped;
 
-        let hLabel = '', vLabel = '';
+        // Flags attendus par le CSS (::before / ::after)
+        squareElement.dataset.coordinateH = 'true';
+        squareElement.dataset.coordinateV = 'true';
 
-        // Logique de placement des labels selon l'orientation
+        // Contenu des pseudo-éléments
+        squareElement.dataset.coordHorizontal = letter;
+        squareElement.dataset.coordVertical = number;
+
+        // Coordonnée combinée (ex. 'e4'), utile pour un affichage centré
+        squareElement.dataset.coordFull = `${letter}${number}`;
+
+        // Classe d'orientation pour permettre au CSS d'ajuster la position
+        // (utile si on veut inverser la position des labels en mode retourné)
         if (isFlipped) {
-            if (row === 0) hLabel = letters[col];
-            if (col === 7) vLabel = numbers[row];
-        } else {
-            if (row === 7) hLabel = letters[col];
-            if (col === 0) vLabel = numbers[row];
+            squareElement.classList.add('is-flipped');
         }
-
-        if (hLabel) squareElement.dataset.coordHorizontal = hLabel;
-        if (vLabel) squareElement.dataset.coordVertical = vLabel;
     }
 
     /**
@@ -178,8 +187,6 @@ class ChessBoard {
         // On récupère le chemin depuis la config globale
         const basePath = (window.appConfig && window.appConfig.piece_path) ? window.appConfig.piece_path : '';
         
-        // Si on veut utiliser des images (ex: wP.png)
-        // Note: Cette logique dépend de si votre pieceManager renvoie du texte ou si vous voulez forcer l'image
         if (basePath) {
             const imgName = `${piece.color[0]}${this.getPieceLetter(piece.type)}.png`;
             pieceElement.style.backgroundImage = `url('${basePath}${imgName}')`;

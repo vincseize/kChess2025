@@ -1,16 +1,13 @@
 <?php
-// header.php - dans le dossier php/
-require_once __DIR__ . '/config-loader.php'; // Même dossier
+// header.php - fragment <head> uniquement, inclus par app.php / clock.php / etc.
+require_once __DIR__ . '/config-loader.php';
 
 $config = loadGameConfig();
 $version = getVersion();
 logConfigInfo($config);
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?php echo htmlspecialchars($config['app_name']); ?> v<?php echo htmlspecialchars($config['version']); ?></title>
     
     <link rel="icon" href="img/favicon.png">
@@ -36,10 +33,7 @@ logConfigInfo($config);
 
     <!-- Configuration JavaScript - NORMALISÉE -->
     <script>
-        // Configuration globale normalisée - MÊME STRUCTURE POUR TOUTES LES PAGES
         window.appConfig = <?php echo getAppConfigJson($config); ?>;
-        
-        // Vérification et log de la configuration
         console.log('⚙️ Configuration header.php chargée:', {
             app: window.appConfig.app_name,
             version: window.appConfig.version,
@@ -47,11 +41,9 @@ logConfigInfo($config);
             chess_engine_console_log: window.appConfig.chess_engine.console_log,
             source: 'header.php'
         });
-        
-
     </script>
 
-    <!-- CSS Chess réorganisé - AVEC VERSION POUR CACHE -->
+    <!-- CSS Chess - AVEC VERSION POUR CACHE -->
     <link href="css/kchess/variables.css?version=<?php echo $version; ?>" rel="stylesheet">
     <link href="css/kchess/layout.css?version=<?php echo $version; ?>" rel="stylesheet">
     <link href="css/kchess/components.css?version=<?php echo $version; ?>" rel="stylesheet">
@@ -69,5 +61,3 @@ logConfigInfo($config);
     <style>
         :root { <?php echo getThemeCssVariables($config); ?> }
     </style>
-
-</head>

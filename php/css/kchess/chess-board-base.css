@@ -1,13 +1,23 @@
 /* chess-board-base.css - Styles de base de l'échiquier */
 .chess-board-container {
     position: relative;
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: min(500px, 85vw, 75vh);
+    aspect-ratio: 1 / 1;
+    min-width: 260px;
+    min-height: 260px;
+    height: auto !important;
+    flex-shrink: 0;
     margin: 20px auto 0 auto;
 }
 
 .chess-board {
     width: 100%;
-    max-width: 500px;
+    height: 100%;
+    max-width: 100%;
     aspect-ratio: 1 / 1;
     border: 3px solid var(--chess-brown-dark);
     background: var(--chess-brown-light);
@@ -25,7 +35,7 @@
     font-size: clamp(2rem, 5vw, 3rem);
     cursor: pointer;
     transition: all 0.2s ease;
-    
+
     /* Empêche les gestes indésirables sur mobile */
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
@@ -74,7 +84,7 @@
     .chess-square {
         cursor: pointer;
     }
-    
+
     .chess-square:active {
         filter: brightness(0.95);
     }

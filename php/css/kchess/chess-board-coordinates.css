@@ -1,29 +1,101 @@
-/* chess-board-coordinates.css - Styles des coordonnées */
+/* chess-board-coordinates.css - Coordonnées a-h / 1-8 dans chaque case (V1.8) */
+
+/* ─────────────────────────────────────────────────────────────
+   Chaque case affiche sa lettre (colonne) et son chiffre (ligne)
+   Position : lettre en bas-droite, chiffre en haut-gauche
+   ───────────────────────────────────────────────────────────── */
+
+.chess-square {
+    position: relative;             /* nécessaire pour les pseudo-éléments */
+}
+
+/* Lettre de colonne (a-h) — bas-droite de la case */
 .chess-square[data-coordinate-h="true"]::after {
     content: attr(data-coord-horizontal);
     position: absolute;
-    bottom: 2px;
     right: 3px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    bottom: 1px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
     pointer-events: none;
-    color: rgba(0, 0, 0, 0.6);
+    color: rgba(0, 0, 0, 0.55);
     z-index: 1;
+    user-select: none;
 }
 
+/* Numéro de ligne (1-8) — haut-gauche de la case */
 .chess-square[data-coordinate-v="true"]::before {
     content: attr(data-coord-vertical);
     position: absolute;
-    top: 2px;
     left: 3px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    top: 1px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
     pointer-events: none;
-    color: rgba(0, 0, 0, 0.6);
+    color: rgba(0, 0, 0, 0.55);
     z-index: 1;
+    user-select: none;
 }
 
+/* Contraste sur cases noires */
 .chess-square.black[data-coordinate-h="true"]::after,
 .chess-square.black[data-coordinate-v="true"]::before {
     color: rgba(255, 255, 255, 0.7);
 }
+
+/* Ne pas afficher les coordonnées sur les pièces (évite le chevauchement visuel) */
+.chess-square .chess-piece ~ .coord-overlay {
+    display: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Responsive : réduire la taille sur tablette / mobile
+   ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 860px) {
+    .chess-square[data-coordinate-h="true"]::after,
+    .chess-square[data-coordinate-v="true"]::before {
+        font-size: 0.6rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .chess-square[data-coordinate-h="true"]::after,
+    .chess-square[data-coordinate-v="true"]::before {
+        font-size: 0.55rem;
+        opacity: 0.85;
+    }
+    .chess-square[data-coordinate-h="true"]::after {
+        right: 2px;
+        bottom: 0;
+    }
+    .chess-square[data-coordinate-v="true"]::before {
+        left: 2px;
+        top: 0;
+    }
+}
+
+@media (max-width: 360px) {
+    .chess-square[data-coordinate-h="true"]::after,
+    .chess-square[data-coordinate-v="true"]::before {
+        font-size: 0.5rem;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Mode retourné : on peut inverser la position des labels
+   pour qu'ils restent "près du joueur" — optionnel, décommenter si voulu
+   ───────────────────────────────────────────────────────────── */
+
+/*
+.chess-square.is-flipped[data-coordinate-h="true"]::after {
+    right: auto;
+    left: 3px;
+}
+.chess-square.is-flipped[data-coordinate-v="true"]::before {
+    left: auto;
+    right: 3px;
+}
+*/

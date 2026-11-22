@@ -2,273 +2,273 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 
 [ROOT] kChess2025/
 |-- [D] docs
-|   |-- [F] ARCHITECTURE_BOTS.md
-|   |-- [F] AUDIT_BOTS.md
-|   |-- [F] BOTS_DECISION_FLOWS.md
-|   |-- [F] echecs_chapitre16.pdf
-|   |-- [F] echecs_structureDePions.jpg
-|   \-- [F] PARTIES_FAVORITES.md
+|   |-- [F] ARCHITECTURE_BOTS.md  ( 12.6 Ko)
+|   |-- [F] AUDIT_BOTS.md  (  9.5 Ko)
+|   |-- [F] BOTS_DECISION_FLOWS.md  ( 16.7 Ko)
+|   |-- [F] echecs_chapitre16.pdf  (  1.1 Mo)
+|   |-- [F] echecs_structureDePions.jpg  (102.7 Ko)
+|   \-- [F] PARTIES_FAVORITES.md  ( 343 o)
 |-- [D] install
-|   \-- [F] AGENTS.md
+|   \-- [F] AGENTS.md  (  1.9 Ko)
 |-- [D] php
 |   |-- [D] config
-|   |   |-- [F] clubs.json
-|   |   |-- [F] game-config.json
-|   |   |-- [F] games.jsonDES
-|   |   |-- [F] parties.json
-|   |   \-- [F] players.json
+|   |   |-- [F] clubs.json  (  8.1 Ko)
+|   |   |-- [F] game-config.json  ( 52.8 Ko)
+|   |   |-- [F] games.jsonDES  (  1.7 Ko)
+|   |   |-- [F] parties.json  (  1.2 Ko)
+|   |   \-- [F] players.json  ( 952 o)
 |   |-- [D] css
 |   |   |-- [D] kchess
-|   |   |   |-- [F] chess-board-animations.css
-|   |   |   |-- [F] chess-board-base.css
-|   |   |   |-- [F] chess-board-coordinates.css
-|   |   |   |-- [F] chess-board-pieces.css
-|   |   |   |-- [F] chess-board-special.css
-|   |   |   |-- [F] chess-board-states.css
-|   |   |   |-- [F] chess-pieces.css
-|   |   |   |-- [F] clock.css
-|   |   |   |-- [F] components.css
-|   |   |   |-- [F] layout.css
-|   |   |   |-- [F] newGame.css
-|   |   |   |-- [F] profile-views.css
-|   |   |   |-- [F] profile.css
-|   |   |   |-- [F] promotion-modal.css
-|   |   |   |-- [F] responsive.css
-|   |   |   |-- [F] utilities.css
-|   |   |   |-- [F] variables.css
-|   |   |   \-- [F] welcome-overlay.css
+|   |   |   |-- [F] chess-board-animations.css  ( 616 o)
+|   |   |   |-- [F] chess-board-base.css  (  2.1 Ko)
+|   |   |   |-- [F] chess-board-coordinates.css  (  3.6 Ko)
+|   |   |   |-- [F] chess-board-pieces.css  (  1.2 Ko)
+|   |   |   |-- [F] chess-board-special.css  (  1.0 Ko)
+|   |   |   |-- [F] chess-board-states.css  (  5.8 Ko)
+|   |   |   |-- [F] chess-pieces.css  (  2.1 Ko)
+|   |   |   |-- [F] clock.css  ( 14.6 Ko)
+|   |   |   |-- [F] components.css  (  6.0 Ko)
+|   |   |   |-- [F] layout.css  (  9.7 Ko)
+|   |   |   |-- [F] newGame.css  ( 28.9 Ko)
+|   |   |   |-- [F] profile-views.css  (  3.6 Ko)
+|   |   |   |-- [F] profile.css  ( 33.1 Ko)
+|   |   |   |-- [F] promotion-modal.css  (  5.0 Ko)
+|   |   |   |-- [F] responsive.css  (  3.1 Ko)
+|   |   |   |-- [F] utilities.css  ( 470 o)
+|   |   |   |-- [F] variables.css  ( 713 o)
+|   |   |   \-- [F] welcome-overlay.css  (  1.9 Ko)
 |   |   |-- [D] presets
-|   |   |   |-- [F] preset1.css
-|   |   |   |-- [F] preset2.css
-|   |   |   |-- [F] preset3.css
-|   |   |   |-- [F] preset4.css
-|   |   |   |-- [F] preset5.css
-|   |   |   \-- [F] preset6.css
-|   |   \-- [F] responsive.css
+|   |   |   |-- [F] preset1.css  (  1.1 Ko)
+|   |   |   |-- [F] preset2.css  (  1.1 Ko)
+|   |   |   |-- [F] preset3.css  (  1.1 Ko)
+|   |   |   |-- [F] preset4.css  (  1.1 Ko)
+|   |   |   |-- [F] preset5.css  (  1.1 Ko)
+|   |   |   \-- [F] preset6.css  (  1.1 Ko)
+|   |   \-- [F] responsive.css  (  1.9 Ko)
 |   |-- [D] img
 |   |   |-- [D] chesspieces
 |   |   |   \-- [D] wikipedia
-|   |   |       |-- [F] bB.png
-|   |   |       |-- [F] bK.png
-|   |   |       |-- [F] bN.png
-|   |   |       |-- [F] bP.png
-|   |   |       |-- [F] bQ.png
-|   |   |       |-- [F] bR.png
-|   |   |       |-- [F] wB.png
-|   |   |       |-- [F] wK.png
-|   |   |       |-- [F] wN.png
-|   |   |       |-- [F] wP.png
-|   |   |       |-- [F] wQ.png
-|   |   |       \-- [F] wR.png
-|   |   |-- [F] favicon.png
-|   |   |-- [F] icon-192x192.png
-|   |   |-- [F] icon-512x512.png
-|   |   |-- [F] icon.svg
-|   |   |-- [F] opera-game-poster.png
-|   |   \-- [F] opera-game.gif
+|   |   |       |-- [F] bB.png  (  1.4 Ko)
+|   |   |       |-- [F] bK.png  (  2.9 Ko)
+|   |   |       |-- [F] bN.png  (  1.8 Ko)
+|   |   |       |-- [F] bP.png  ( 777 o)
+|   |   |       |-- [F] bQ.png  (  2.6 Ko)
+|   |   |       |-- [F] bR.png  ( 748 o)
+|   |   |       |-- [F] wB.png  (  2.3 Ko)
+|   |   |       |-- [F] wK.png  (  2.8 Ko)
+|   |   |       |-- [F] wN.png  (  2.3 Ko)
+|   |   |       |-- [F] wP.png  (  1.5 Ko)
+|   |   |       |-- [F] wQ.png  (  3.7 Ko)
+|   |   |       \-- [F] wR.png  (  1.1 Ko)
+|   |   |-- [F] favicon.png  (  2.9 Ko)
+|   |   |-- [F] icon-192x192.png  (  3.4 Ko)
+|   |   |-- [F] icon-512x512.png  (  3.4 Ko)
+|   |   |-- [F] icon.svg  (  1.6 Ko)
+|   |   |-- [F] opera-game-poster.png  ( 28.3 Ko)
+|   |   \-- [F] opera-game.gif  (515.8 Ko)
 |   |-- [D] joueurs
-|   |   |-- [F] .htaccess
-|   |   \-- [F] 36009172.json
+|   |   |-- [F] .htaccess  (  74 o)
+|   |   \-- [F] 36009172.json  (  4.9 Ko)
 |   |-- [D] js
 |   |   |-- [D] kchess
 |   |   |   |-- [D] bots
 |   |   |   |   |-- [D] unitTests
 |   |   |   |   |   |-- [D] css
-|   |   |   |   |   |   |-- [F] process-lab.css
-|   |   |   |   |   |   \-- [F] stress-test.css
+|   |   |   |   |   |   |-- [F] process-lab.css  (  9.4 Ko)
+|   |   |   |   |   |   \-- [F] stress-test.css  (  8.0 Ko)
 |   |   |   |   |   |-- [D] img
-|   |   |   |   |   |   |-- [F] favicon.png
-|   |   |   |   |   |   |-- [F] icon-192x192.png
-|   |   |   |   |   |   \-- [F] icon-512x512.png
+|   |   |   |   |   |   |-- [F] favicon.png  (  2.9 Ko)
+|   |   |   |   |   |   |-- [F] icon-192x192.png  (  3.4 Ko)
+|   |   |   |   |   |   \-- [F] icon-512x512.png  (  3.4 Ko)
 |   |   |   |   |   |-- [D] js
-|   |   |   |   |   |   |-- [F] ArenaAnalyst.js
-|   |   |   |   |   |   |-- [F] bot-helper.js
-|   |   |   |   |   |   |-- [F] process-lab.js
-|   |   |   |   |   |   \-- [F] stress-test-bot.js
+|   |   |   |   |   |   |-- [F] ArenaAnalyst.js  (  4.3 Ko)
+|   |   |   |   |   |   |-- [F] bot-helper.js  ( 964 o)
+|   |   |   |   |   |   |-- [F] process-lab.js  ( 48.9 Ko)
+|   |   |   |   |   |   \-- [F] stress-test-bot.js  ( 21.4 Ko)
 |   |   |   |   |   |-- [D] results
-|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L16-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L2-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L2.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L6-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L8-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L16-vs-Black_L1-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L16-vs-Black_L3-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L16-vs-Black_L8-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L1-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L1.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L3-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L3.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L1.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L16-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L2-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L2.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L4-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L4.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L3-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L3.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L5-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L5.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L1.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L2-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L3-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L4-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L4.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L6-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L6.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L1-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L5-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L5.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L7-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L6-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L6.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L8-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L8.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L1-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L1.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L16-RANDOM.json
-|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L7-RANDOM.json
-|   |   |   |   |   |   \-- [F] stress_test-White_L8-vs-Black_L7.json
-|   |   |   |   |   |-- [F] Bot_Process.php
-|   |   |   |   |   |-- [F] Bot_vs_Bot.php
-|   |   |   |   |   \-- [F] log_error.php
-|   |   |   |   |-- [F] BoardAnalyzer.js
-|   |   |   |   |-- [F] bot-test-interface.js
-|   |   |   |   |-- [F] BotBase.js
-|   |   |   |   |-- [F] BotCore.js
-|   |   |   |   |-- [F] ChessScanner.js
-|   |   |   |   |-- [F] Evaluator.js
-|   |   |   |   |-- [F] game_fonctions.js
-|   |   |   |   |-- [F] game_ouverture.js
-|   |   |   |   |-- [F] LadderBot.js
-|   |   |   |   |-- [F] Level_1.js
-|   |   |   |   |-- [F] Level_16.js
-|   |   |   |   |-- [F] Level_2.js
-|   |   |   |   |-- [F] Level_3.js
-|   |   |   |   |-- [F] Level_4.js
-|   |   |   |   |-- [F] Level_5.js
-|   |   |   |   |-- [F] Level_6.js
-|   |   |   |   |-- [F] Level_7.js
-|   |   |   |   |-- [F] Level_8.js
-|   |   |   |   \-- [F] SearchEngine.js
+|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L16-RANDOM.json  (  3.5 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L2-RANDOM.json  (  1.5 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L2.json  ( 59.3 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L6-RANDOM.json  (  1.5 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L1-vs-Black_L8-RANDOM.json  (  3.3 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L16-vs-Black_L1-RANDOM.json  (  3.3 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L16-vs-Black_L3-RANDOM.json  (  2.9 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L16-vs-Black_L8-RANDOM.json  ( 882 o)
+|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L1-RANDOM.json  ( 73.1 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L1.json  ( 59.3 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L3-RANDOM.json  ( 14.9 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L2-vs-Black_L3.json  ( 28.1 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L1.json  ( 967 o)
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L16-RANDOM.json  (  3.1 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L2-RANDOM.json  ( 12.9 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L2.json  ( 55.3 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L4-RANDOM.json  (  6.7 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L3-vs-Black_L4.json  ( 58.6 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L3-RANDOM.json  ( 15.4 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L3.json  ( 20.2 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L5-RANDOM.json  (  9.6 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L4-vs-Black_L5.json  (  2.5 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L1.json  (654.5 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L2-RANDOM.json  (  1.4 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L3-RANDOM.json  (  1.9 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L4-RANDOM.json  ( 12.5 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L4.json  ( 12.7 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L6-RANDOM.json  ( 885 o)
+|   |   |   |   |   |   |-- [F] stress_test-White_L5-vs-Black_L6.json  (  6.8 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L1-RANDOM.json  (  3.3 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L5-RANDOM.json  ( 906 o)
+|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L5.json  (  3.2 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L6-vs-Black_L7-RANDOM.json  ( 942 o)
+|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L6-RANDOM.json  ( 905 o)
+|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L6.json  (  6.7 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L8-RANDOM.json  ( 892 o)
+|   |   |   |   |   |   |-- [F] stress_test-White_L7-vs-Black_L8.json  (  6.8 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L1-RANDOM.json  (  3.3 Ko)
+|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L1.json  ( 952 o)
+|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L16-RANDOM.json  ( 887 o)
+|   |   |   |   |   |   |-- [F] stress_test-White_L8-vs-Black_L7-RANDOM.json  ( 918 o)
+|   |   |   |   |   |   \-- [F] stress_test-White_L8-vs-Black_L7.json  (  6.9 Ko)
+|   |   |   |   |   |-- [F] Bot_Process.php  (  4.9 Ko)
+|   |   |   |   |   |-- [F] Bot_vs_Bot.php  ( 11.8 Ko)
+|   |   |   |   |   \-- [F] log_error.php  (  1.6 Ko)
+|   |   |   |   |-- [F] BoardAnalyzer.js  (  1.6 Ko)
+|   |   |   |   |-- [F] bot-test-interface.js  (  7.0 Ko)
+|   |   |   |   |-- [F] BotBase.js  (  2.2 Ko)
+|   |   |   |   |-- [F] BotCore.js  (  2.4 Ko)
+|   |   |   |   |-- [F] ChessScanner.js  (  2.4 Ko)
+|   |   |   |   |-- [F] Evaluator.js  (  8.9 Ko)
+|   |   |   |   |-- [F] game_fonctions.js  ( 33.8 Ko)
+|   |   |   |   |-- [F] game_ouverture.js  (  1.8 Ko)
+|   |   |   |   |-- [F] LadderBot.js  (  9.5 Ko)
+|   |   |   |   |-- [F] Level_1.js  (  1.5 Ko)
+|   |   |   |   |-- [F] Level_16.js  ( 13.1 Ko)
+|   |   |   |   |-- [F] Level_2.js  (  3.9 Ko)
+|   |   |   |   |-- [F] Level_3.js  ( 768 o)
+|   |   |   |   |-- [F] Level_4.js  ( 794 o)
+|   |   |   |   |-- [F] Level_5.js  ( 802 o)
+|   |   |   |   |-- [F] Level_6.js  ( 807 o)
+|   |   |   |   |-- [F] Level_7.js  ( 838 o)
+|   |   |   |   |-- [F] Level_8.js  ( 886 o)
+|   |   |   |   \-- [F] SearchEngine.js  ( 13.3 Ko)
 |   |   |   |-- [D] check
-|   |   |   |   |-- [F] checkChess.js
-|   |   |   |   |-- [F] checkChessNulle.js
-|   |   |   |   \-- [F] checkFenPostion.js
+|   |   |   |   |-- [F] checkChess.js  (  4.0 Ko)
+|   |   |   |   |-- [F] checkChessNulle.js  (  4.8 Ko)
+|   |   |   |   \-- [F] checkFenPostion.js  (  5.0 Ko)
 |   |   |   |-- [D] core
-|   |   |   |   |-- [F] board-position.js
-|   |   |   |   |-- [F] bot-manager.js
-|   |   |   |   |-- [F] chess-board.js
-|   |   |   |   |-- [F] chess-game-core.js
-|   |   |   |   |-- [F] chess-game.js
-|   |   |   |   |-- [F] fen-generator.js
-|   |   |   |   |-- [F] game-state.js
-|   |   |   |   |-- [F] game-status-manager.js
-|   |   |   |   \-- [F] pieces.js
+|   |   |   |   |-- [F] board-position.js  ( 826 o)
+|   |   |   |   |-- [F] bot-manager.js  (  8.8 Ko)
+|   |   |   |   |-- [F] chess-board.js  ( 10.2 Ko)
+|   |   |   |   |-- [F] chess-game-core.js  (  3.8 Ko)
+|   |   |   |   |-- [F] chess-game.js  (  7.2 Ko)
+|   |   |   |   |-- [F] fen-generator.js  (  7.6 Ko)
+|   |   |   |   |-- [F] game-state.js  (  3.8 Ko)
+|   |   |   |   |-- [F] game-status-manager.js  (  7.9 Ko)
+|   |   |   |   \-- [F] pieces.js  (  7.3 Ko)
 |   |   |   |-- [D] debug
-|   |   |   |   \-- [F] device-logger.js
+|   |   |   |   \-- [F] device-logger.js  (  5.3 Ko)
 |   |   |   |-- [D] ui
-|   |   |   |   |-- [F] bot-training-progress.js
-|   |   |   |   |-- [F] chess-clock.js
-|   |   |   |   |-- [F] chess-events.js
-|   |   |   |   |-- [F] chess-game-ui-clipboard.js
-|   |   |   |   |-- [F] chess-game-ui-core.js
-|   |   |   |   |-- [F] chess-game-ui-modals.js
-|   |   |   |   |-- [F] chess-game-ui-move-history.js
-|   |   |   |   |-- [F] chess-game-ui-styles.js
-|   |   |   |   |-- [F] chess-game-ui-timer.js
-|   |   |   |   |-- [F] new-game-handler.js
-|   |   |   |   |-- [F] pgn-parser.js
-|   |   |   |   |-- [F] profile-clubs.js
-|   |   |   |   |-- [F] profile-core.js
-|   |   |   |   |-- [F] profile-games.js
-|   |   |   |   |-- [F] profile-me.js
-|   |   |   |   |-- [F] profile-players.js
-|   |   |   |   \-- [F] profile.js
+|   |   |   |   |-- [F] bot-training-progress.js  (  7.6 Ko)
+|   |   |   |   |-- [F] chess-clock.js  ( 18.7 Ko)
+|   |   |   |   |-- [F] chess-events.js  ( 11.2 Ko)
+|   |   |   |   |-- [F] chess-game-ui-clipboard.js  ( 10.9 Ko)
+|   |   |   |   |-- [F] chess-game-ui-core.js  ( 14.8 Ko)
+|   |   |   |   |-- [F] chess-game-ui-modals.js  ( 23.8 Ko)
+|   |   |   |   |-- [F] chess-game-ui-move-history.js  ( 14.3 Ko)
+|   |   |   |   |-- [F] chess-game-ui-styles.js  ( 31.7 Ko)
+|   |   |   |   |-- [F] chess-game-ui-timer.js  (  6.1 Ko)
+|   |   |   |   |-- [F] new-game-handler.js  ( 13.2 Ko)
+|   |   |   |   |-- [F] pgn-parser.js  ( 10.5 Ko)
+|   |   |   |   |-- [F] profile-clubs.js  ( 21.6 Ko)
+|   |   |   |   |-- [F] profile-core.js  ( 13.0 Ko)
+|   |   |   |   |-- [F] profile-games.js  ( 24.7 Ko)
+|   |   |   |   |-- [F] profile-me.js  ( 26.6 Ko)
+|   |   |   |   |-- [F] profile-players.js  ( 32.0 Ko)
+|   |   |   |   \-- [F] profile.js  (  1.3 Ko)
 |   |   |   \-- [D] validators
 |   |   |       |-- [D] move-pieces
-|   |   |       |   |-- [F] move-validator-bishop.js
-|   |   |       |   |-- [F] move-validator-king.js
-|   |   |       |   |-- [F] move-validator-knight.js
-|   |   |       |   |-- [F] move-validator-pawn.js
-|   |   |       |   |-- [F] move-validator-queen.js
-|   |   |       |   |-- [F] move-validator-rook.js
-|   |   |       |   |-- [F] move-validator-sliding.js
-|   |   |       |   \-- [F] move-validator.js
-|   |   |       |-- [F] move-executor.js
-|   |   |       |-- [F] move-handler-core.js
-|   |   |       |-- [F] move-state-manager.js
-|   |   |       |-- [F] promotion-manager.js
-|   |   |       |-- [F] special-moves-handler.js
-|   |   |       \-- [F] validator-interface.js
-|   |   |-- [F] check_device.js
-|   |   \-- [F] zone_navbar.js
+|   |   |       |   |-- [F] move-validator-bishop.js  (  5.2 Ko)
+|   |   |       |   |-- [F] move-validator-king.js  ( 10.7 Ko)
+|   |   |       |   |-- [F] move-validator-knight.js  (  5.4 Ko)
+|   |   |       |   |-- [F] move-validator-pawn.js  (  7.1 Ko)
+|   |   |       |   |-- [F] move-validator-queen.js  (  3.7 Ko)
+|   |   |       |   |-- [F] move-validator-rook.js  (  5.1 Ko)
+|   |   |       |   |-- [F] move-validator-sliding.js  (  3.3 Ko)
+|   |   |       |   \-- [F] move-validator.js  (  5.7 Ko)
+|   |   |       |-- [F] move-executor.js  (  8.4 Ko)
+|   |   |       |-- [F] move-handler-core.js  (  7.2 Ko)
+|   |   |       |-- [F] move-state-manager.js  (  5.8 Ko)
+|   |   |       |-- [F] promotion-manager.js  (  7.5 Ko)
+|   |   |       |-- [F] special-moves-handler.js  (  7.0 Ko)
+|   |   |       \-- [F] validator-interface.js  (  4.0 Ko)
+|   |   |-- [F] check_device.js  ( 13.7 Ko)
+|   |   \-- [F] zone_navbar.js  (  2.0 Ko)
 |   |-- [D] sounds
-|   |   |-- [F] clock-click.mp3
-|   |   \-- [F] tok.mp3
+|   |   |-- [F] clock-click.mp3  (  2.5 Ko)
+|   |   \-- [F] tok.mp3  ( 16.5 Ko)
 |   |-- [D] splashscreens
-|   |   |-- [F] splashscreen0.php
-|   |   \-- [F] splashscreen1.php
-|   |-- [F] app.php
-|   |-- [F] cacert.pem
-|   |-- [F] cacert.pem.bak
-|   |-- [F] cleanup.php
-|   |-- [F] clock.php
-|   |-- [F] club.php
-|   |-- [F] config-loader.php
-|   |-- [F] content.php
-|   |-- [F] content_mobile.php
-|   |-- [F] data_save.php
-|   |-- [F] engine-scripts.php
-|   |-- [F] ffe_raw.php
-|   |-- [F] fide.php
-|   |-- [F] fide_games.php
-|   |-- [F] fide_raw.php
-|   |-- [F] fix_ffe_cert.php
-|   |-- [F] footer.php
-|   |-- [F] games.php
-|   |-- [F] get_opponents.py
-|   |-- [F] header.php
-|   |-- [F] import_ffe.php
-|   |-- [F] index.php
-|   |-- [F] joueurs_api.php
-|   |-- [F] layoutMobile.php
-|   |-- [F] lib_ffe.php
-|   |-- [F] local-only.php
-|   |-- [F] manifest.json
-|   |-- [F] newGame.php
-|   |-- [F] parties_save.php
-|   |-- [F] profile.php
-|   |-- [F] project_flow_mapper.php
-|   |-- [F] save_club.php
-|   |-- [F] save_games.php
-|   \-- [F] sw.js
+|   |   |-- [F] splashscreen0.php  (  3.9 Ko)
+|   |   \-- [F] splashscreen1.php  (  3.7 Ko)
+|   |-- [F] app.php  (  7.9 Ko)
+|   |-- [F] cacert.pem  (212.5 Ko)
+|   |-- [F] cacert.pem.bak  (210.3 Ko)
+|   |-- [F] cleanup.php  (  3.6 Ko)
+|   |-- [F] clock.php  ( 13.7 Ko)
+|   |-- [F] club.php  (  8.6 Ko)
+|   |-- [F] config-loader.php  (  9.5 Ko)
+|   |-- [F] content.php  ( 12.5 Ko)
+|   |-- [F] content_mobile.php  ( 11.5 Ko)
+|   |-- [F] data_save.php  (  3.9 Ko)
+|   |-- [F] engine-scripts.php  (  3.9 Ko)
+|   |-- [F] ffe_raw.php  (  4.2 Ko)
+|   |-- [F] fide.php  (  4.9 Ko)
+|   |-- [F] fide_games.php  (  1.4 Ko)
+|   |-- [F] fide_raw.php  (  2.2 Ko)
+|   |-- [F] fix_ffe_cert.php  (  4.2 Ko)
+|   |-- [F] footer.php  (  85 o)
+|   |-- [F] games.php  (  7.7 Ko)
+|   |-- [F] get_opponents.py  (  1.1 Ko)
+|   |-- [F] header.php  (  3.3 Ko)
+|   |-- [F] import_ffe.php  (  6.2 Ko)
+|   |-- [F] index.php  (  4.2 Ko)
+|   |-- [F] joueurs_api.php  (  5.6 Ko)
+|   |-- [F] layoutMobile.php  (  3.2 Ko)
+|   |-- [F] lib_ffe.php  ( 13.7 Ko)
+|   |-- [F] local-only.php  ( 650 o)
+|   |-- [F] manifest.json  ( 534 o)
+|   |-- [F] newGame.php  ( 24.4 Ko)
+|   |-- [F] parties_save.php  (  3.1 Ko)
+|   |-- [F] profile.php  ( 31.7 Ko)
+|   |-- [F] project_flow_mapper.php  (  3.0 Ko)
+|   |-- [F] save_club.php  (  2.8 Ko)
+|   |-- [F] save_games.php  (  1.4 Ko)
+|   \-- [F] sw.js  ( 206 o)
 |-- [D] python
 |   |-- [D] ChessVision
-|   |   |-- [F] APCS_1_large - Copie.jpg
-|   |   |-- [F] APCS_1_large.jpg
-|   |   |-- [F] APCS_2_large.jpg
-|   |   |-- [F] img_ref.py
-|   |   |-- [F] img_to_fen.py
-|   |   |-- [F] reference_chessboard.jpg
-|   |   \-- [F] simple_chessboard.jpg
+|   |   |-- [F] APCS_1_large - Copie.jpg  (107.8 Ko)
+|   |   |-- [F] APCS_1_large.jpg  (107.8 Ko)
+|   |   |-- [F] APCS_2_large.jpg  ( 30.0 Ko)
+|   |   |-- [F] img_ref.py  (  6.6 Ko)
+|   |   |-- [F] img_to_fen.py  ( 10.6 Ko)
+|   |   |-- [F] reference_chessboard.jpg  ( 96.9 Ko)
+|   |   \-- [F] simple_chessboard.jpg  ( 28.6 Ko)
 |   |-- [D] classes
-|   |   |-- [F] Check_pieces.py
-|   |   |-- [F] ChessUI.py
-|   |   \-- [F] MenuUI.py
+|   |   |-- [F] Check_pieces.py  (  5.4 Ko)
+|   |   |-- [F] ChessUI.py  ( 15.4 Ko)
+|   |   \-- [F] MenuUI.py  (  4.0 Ko)
 |   |-- [D] images
-|   |   |-- [F] chess.png
-|   |   |-- [F] chess_logo.ico
-|   |   \-- [F] icon.png
+|   |   |-- [F] chess.png  (  1.1 Ko)
+|   |   |-- [F] chess_logo.ico  (  2.6 Ko)
+|   |   \-- [F] icon.png  (  1.1 Ko)
 |   |-- [D] SANDBOX
-|   |   |-- [F] load_json_sample.py
-|   |   |-- [F] menu_sample.py
-|   |   \-- [F] path_sample.py
-|   |-- [F] .gitattributes
-|   |-- [F] .gitignore
-|   |-- [F] chess_ICEA_main.py
-|   |-- [F] config.json
-|   \-- [F] README.md
-|-- [F] project_analyzer.php
-|-- [F] project_report.json
-|-- [F] README.md
-\-- [F] todo.md
+|   |   |-- [F] load_json_sample.py  (  2.3 Ko)
+|   |   |-- [F] menu_sample.py  (  2.0 Ko)
+|   |   \-- [F] path_sample.py  ( 154 o)
+|   |-- [F] .gitattributes  (  68 o)
+|   |-- [F] .gitignore  (  3.2 Ko)
+|   |-- [F] chess_ICEA_main.py  (  1.2 Ko)
+|   |-- [F] config.json  (  1.3 Ko)
+|   \-- [F] README.md  (  1.3 Ko)
+|-- [F] project_analyzer.php  (  5.4 Ko)
+|-- [F] project_report.json  ( 11.7 Ko)
+|-- [F] README.md  (  5.4 Ko)
+\-- [F] todo.md  (  1.3 Ko)

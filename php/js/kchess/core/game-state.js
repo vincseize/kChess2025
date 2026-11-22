@@ -1,7 +1,8 @@
 /**
  * Gère l'état logique de la partie d'échecs.
  *
- * v1.1.0 :
+ * v1.1.1 :
+ *   - Initialise `boardFlipped = false` dans `reset()`
  *   - switchPlayer ne notifie le timer que si `enabled !== false`
  *     (protection en arène / stress test)
  */
@@ -91,6 +92,7 @@ class GameState {
 
     reset() {
         this.currentPlayer = 'white';
+        this.boardFlipped = false;
         this.moveHistory = [];
         this.gameActive = true;
         this.hasKingMoved = { white: false, black: false };
