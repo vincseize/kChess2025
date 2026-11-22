@@ -23,6 +23,17 @@ EXCLUDE_FILES = {
 
 OUTPUT_FILE = "arbo.txt"
 
+def format_size(size_bytes):
+    """Retourne la taille du fichier au format lisible : '  12 o', ' 1.4 Ko', '3.2 Mo', etc."""
+    if size_bytes < 1024:
+        return f"{size_bytes:>4} o"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:>5.1f} Ko"
+    elif size_bytes < 1024 * 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024):>5.1f} Mo"
+    else:
+        return f"{size_bytes / (1024 * 1024 * 1024):>5.1f} Go"
+
 def print_tree(directory, out_file, prefix=""):
     if os.path.islink(directory):
         return
@@ -48,7 +59,13 @@ def print_tree(directory, out_file, prefix=""):
             next_prefix = prefix + ("    " if is_last else "|   ")
             print_tree(path, out_file, next_prefix)
         else:
-            out_file.write(f"{prefix}{branch}[F] {entry}\n")
+            # ★ Patch : taille du fichier en Ko (avec fallback si inaccessible)
+            try:
+                size = os.path.getsize(path)
+                size_str = format_size(size)
+            except OSError:
+                size_str = "  ?  "
+            out_file.write(f"{prefix}{branch}[F] {entry}  ({size_str})\n")
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))

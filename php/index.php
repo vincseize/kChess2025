@@ -8,13 +8,12 @@ header("Pragma: no-cache");
 header("Expires: 0"); 
 
 require_once __DIR__ . '/config-loader.php'; 
+require_once __DIR__ . '/local-only.php';   // ★ V1.7.6 : détection localhost
 
 $config = loadGameConfig();
 $version = getVersion();
 
 // --- LOGIQUE D'AFFICHAGE DU SPLASHSCREEN ---
-// Le logo ne s'affiche qu'UNE fois par session : pas au retour du profil, d'une partie, etc.
-// (il revient quand le navigateur est fermé puis rouvert)
 $referer = $_SERVER['HTTP_REFERER'] ?? '';
 $isComingFromApp = (strpos($referer, 'app.php') !== false);
 
@@ -26,32 +25,16 @@ if ($showSplash) {
     $_SESSION['splash_seen'] = true;
 }
 
-// Nettoyage du marqueur de session après vérification pour permettre au Splash de revenir au prochain reload complet
 if ($isComingFromApp) {
     unset($_SESSION['from_app']);
 }
 
-// Gestion langue et reset
 if (isset($_GET['lang'])) {
     $_SESSION['lang'] = $_GET['lang'];
 }
 
-// ★ PATCH V1.7.6 : stress test uniquement en localhost
-// Helper inline (à remplacer par local-only.php quand fourni).
-if (!function_exists('kchess_is_local_host')) {
-    function kchess_is_local_host(): bool {
-        $host = $_SERVER['HTTP_HOST'] ?? '';
-        $hostname = strtolower(preg_replace('/:\d+$/', '', $host));
-        if (in_array($hostname, ['localhost', '127.0.0.1', '::1', '[::1]'], true)) {
-            return true;
-        }
-        if (preg_match('/^192\.168\.\d{1,3}\.\d{1,3}$/', $hostname)) return true;
-        if (preg_match('/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $hostname)) return true;
-        if (preg_match('/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/', $hostname)) return true;
-        return false;
-    }
-}
-$isLocalhost = kchess_is_local_host();
+// ★ V1.7.6 : stress test visible uniquement depuis cette machine
+$isLocalhost = kchess_is_local();
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($config['current_lang']); ?>">
@@ -78,7 +61,6 @@ $isLocalhost = kchess_is_local_host();
         #gameWrapper { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; padding: 20px 0; }
         .card-main-container { width: 100%; max-width: 1120px; background: transparent; }
         
-        /* Tags flottants */
         .stress-test-tag { position: fixed; bottom: 15px; right: 15px; z-index: 99999; }
     </style>
 </head>
@@ -94,7 +76,7 @@ $isLocalhost = kchess_is_local_host();
     }
 ?>
 
-    <?php if ($isLocalhost): // ★ PATCH V1.7.6 : visible seulement en localhost ?>
+    <?php if ($isLocalhost): ?>
     <div class="stress-test-tag d-none d-md-block">
         <a href="js/kchess/bots/unitTests/Bot_vs_Bot.php" 
            target="_blank" 

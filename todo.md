@@ -1,26 +1,50 @@
-# AGENTS.md — kChess2025
+bugs to fix
 
-## Checklist « mode dev app » — toujours vérifier
-
-Au début de chaque session (et avant chaque release), vérifier que ces éléments existent et sont à jour :
-
-1. **Version** — source unique : ds un json
-2. **README.md** — à jour : structure, fonctionnalités récentes, conventions (`<?php // /chemin` en tête de fichier).
-3. **Manifest PWA** — `manifest.php` (généré depuis `config/app.json`), référencé par
-   `includes/header.php` avec les icônes `assets/icon.svg` / `assets/icon-maskable.svg`.
-4. **.gitignore** — à jour 
-5. **_SANDBOX/** — au minimum `arbo.bat` (cf. les scripts existants du dossier), `.htaccess` interdisant l'accès web.
-6. **.htaccess** — racine (`Options -Indexes`, blocage des fichiers cachés, `DirectoryIndex`),
-   `_SANDBOX/.htaccess` « deny all », `db/.htaccess` « deny all ».
-7. **Audit sécurité** — `AUDIT_SECURITE.md` : à re-vérifier après toute évolution sensible
-   (auth, sessions, uploads, CSRF) et à re-dater à chaque version ; sinon le signaler comme périmé.
-8. **Doc chmod & déploiement** — `README.md` (droits fichiers/dossiers, URLs local/prod).
-9. **Lien GitHub** — ds readme
+https://vinc.kinneri.com/charlychess
 
 
-## Règles dures
+milestones
 
-- Ne **jamais** committer : `*.sqlite*`, `.env`, 
-- Garder la convention d'en-tête de fichier : `<?php // /chemin/du/fichier.php`.
+V1.7.5 ✅
 
+- ~~ajouter size en ko des fichier ds arbo.bat~~ *(→ à faire dans `arbo.py`, pas dans `arbo.bat`)*
+- ~~sur desktop, on voit pas icone random~~ ✅
+- ~~icone blc noir ok~~ ✅
+- ~~en haut a droite , un lettre R en rouge qui permet de reset les parties gagnées en noir blanc random~~ ✅
+- ~~si level avec ces 3 parties differentes gagnées, cela debloque le level suivant~~ ✅ *(déjà en place)*
 
+V1.7.6 ✅
+
+- ~~Sur home desktop et tablette, la partie gauche , avec
+"La Dame de Bellefontaine
+App Chess Club training
+Les échecs,
+progressivement.
+
+La durée de la partie, en minutes, correspond au niveau choisi. 
+" -> remonter tt le contenu au niveau du premier level de droite
+cette colonne reste fixe si on scroll pour voir les levels~~ ✅
+
+- ~~stress test n apparait que en localhost~~ ✅
+
+- ~~Sur Home , langues panel ouvert, texte en vert cf color bord div~~ ✅
+
+V1.8
+
+pour Desktop tablette, marquer les cases , dans les cases
+a b c d e f g h 1 2 3 4 5 6 7 8
+pour Mobile, marquer les cases , si possible dans les cases
+a b c d e f g h 1 2 3 4 5 6 7 8
+
+V1.8.1
+
+faire une estimation en elo, des levels 1 a 8
+
+V1.8.2
+
+idealement levels 0 pas de elo ?
+level 8 1400 elo !?
+
+V2
+
+Nom de domaine

@@ -48,7 +48,6 @@
     font-size: 1.1rem;
 }
 
-/* Numéro de version à côté du nom */
 .home-navbar-version {
     align-self: center;
     margin-left: -1px;
@@ -203,20 +202,13 @@
     outline: none;
 }
 
-/* ★ PATCH V1.7.6 : texte/emoji en vert quand le panel est ouvert
-   Le todo demande "texte en vert cf color bord div".
-   → tous les items prennent la couleur success (bordure) quand le dropdown est ouvert.
-   L'item actif garde son fond teinté + box-shadow. */
-.home-navbar-lang-dropdown:not([hidden]) .home-navbar-lang-item .lang-flag {
-    filter: drop-shadow(0 0 0.4px var(--success-color));
-}
-
+/* ★ V1.7.6 : texte/emoji en vert quand le panel est ouvert (cf. todo) */
 .home-navbar-lang-dropdown:not([hidden]) .home-navbar-lang-item {
     color: var(--success-color);
 }
 
-.home-navbar-lang-dropdown:not([hidden]) .home-navbar-lang-item.is-active {
-    color: var(--success-color);
+.home-navbar-lang-dropdown:not([hidden]) .home-navbar-lang-item .lang-flag {
+    filter: drop-shadow(0 0 0.4px var(--success-color));
 }
 
 .home-navbar-lang-item.is-active {
@@ -250,27 +242,24 @@
         var(--site-background);
 }
 
-/* ★ PATCH V1.7.6 : colonne gauche fixe
-   Le layout passe de "center / center" à "start / start" pour que
-   le contenu de gauche remonte au niveau du premier level de droite.
-   La colonne gauche devient sticky pour rester visible au scroll. */
+/* ★ V1.7.6 : colonne gauche fixe, alignée en haut */
 .new-game-layout {
     display: grid;
     grid-template-columns: minmax(0, 0.95fr) minmax(390px, 1.05fr);
-    align-items: start;                            /* ★ start au lieu de center */
+    align-items: start;
     gap: clamp(36px, 6vw, 82px);
     width: min(1120px, 100%);
     margin: auto;
-    padding-top: clamp(8px, 2vh, 20px);            /* ★ petit alignement haut */
+    padding-top: clamp(8px, 2vh, 20px);
 }
 
-/* ★ PATCH V1.7.6 : la colonne gauche devient sticky */
+/* ★ V1.7.6 : colonne gauche sticky */
 .new-game-intro {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     min-width: 0;
-    position: sticky;                              /* ★ reste en place au scroll */
+    position: sticky;
     top: clamp(8px, 2vh, 20px);
     align-self: start;
 }
@@ -455,7 +444,7 @@
     scrollbar-width: thin;
     scrollbar-color: var(--success-color) var(--site-surface-alt);
     position: relative;
-    align-self: start;                             /* ★ PATCH V1.7.6 : aligne en haut */
+    align-self: start;
 }
 
 .setup-header {
@@ -490,7 +479,6 @@
     position: relative;
 }
 
-/* ÉTAT VERROUILLÉ */
 .level-accordion.is-locked .game-mode-btn {
     opacity: 0.4;
     cursor: not-allowed;
@@ -521,7 +509,6 @@
     font-size: 1rem;
 }
 
-/* FLASH */
 @keyframes levelFlash {
     0%, 100% { background: transparent; }
     50% { background: color-mix(in srgb, #f85149 22%, transparent); }
@@ -712,7 +699,7 @@
     display: none;
 }
 
-/* ★ PATCH V1.7.5 : R en ROUGE permanent (visible dès qu'une victoire existe) */
+/* ★ V1.7.5 : R en ROUGE permanent */
 .level-reset-btn {
     display: inline-flex;
     align-items: center;
@@ -854,7 +841,7 @@
     pointer-events: none;
 }
 
-/* ★ PATCH V1.7.5 : icône random bien visible sur desktop */
+/* ★ V1.7.5 : icône random bien visible sur desktop */
 .inline-color-option.random i {
     color: var(--site-text);
     font-size: 1.6rem;
@@ -907,8 +894,7 @@
         max-width: 600px;
     }
 
-    /* ★ PATCH V1.7.6 : sur tablette/mobile la colonne gauche n'est plus sticky
-       (empilée au-dessus), donc on la remet en flux normal */
+    /* ★ V1.7.6 : colonne gauche en flux normal sur tablette/mobile */
     .new-game-intro {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
