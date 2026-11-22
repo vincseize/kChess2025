@@ -1,4 +1,5 @@
 <?php
+// /php/index.php
 session_start();
 
 // Désactiver le cache pour garantir la fraîcheur des données
@@ -34,6 +35,23 @@ if ($isComingFromApp) {
 if (isset($_GET['lang'])) {
     $_SESSION['lang'] = $_GET['lang'];
 }
+
+// ★ PATCH V1.7.6 : stress test uniquement en localhost
+// Helper inline (à remplacer par local-only.php quand fourni).
+if (!function_exists('kchess_is_local_host')) {
+    function kchess_is_local_host(): bool {
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        $hostname = strtolower(preg_replace('/:\d+$/', '', $host));
+        if (in_array($hostname, ['localhost', '127.0.0.1', '::1', '[::1]'], true)) {
+            return true;
+        }
+        if (preg_match('/^192\.168\.\d{1,3}\.\d{1,3}$/', $hostname)) return true;
+        if (preg_match('/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $hostname)) return true;
+        if (preg_match('/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/', $hostname)) return true;
+        return false;
+    }
+}
+$isLocalhost = kchess_is_local_host();
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($config['current_lang']); ?>">
@@ -76,6 +94,7 @@ if (isset($_GET['lang'])) {
     }
 ?>
 
+    <?php if ($isLocalhost): // ★ PATCH V1.7.6 : visible seulement en localhost ?>
     <div class="stress-test-tag d-none d-md-block">
         <a href="js/kchess/bots/unitTests/Bot_vs_Bot.php" 
            target="_blank" 
@@ -85,6 +104,7 @@ if (isset($_GET['lang'])) {
             <i class="bi bi-speedometer2 me-1"></i> Stress Test
         </a>
     </div>
+    <?php endif; ?>
 
     <div id="gameWrapper">
         <div class="card-main-container">

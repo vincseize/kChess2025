@@ -203,6 +203,22 @@
     outline: none;
 }
 
+/* ★ PATCH V1.7.6 : texte/emoji en vert quand le panel est ouvert
+   Le todo demande "texte en vert cf color bord div".
+   → tous les items prennent la couleur success (bordure) quand le dropdown est ouvert.
+   L'item actif garde son fond teinté + box-shadow. */
+.home-navbar-lang-dropdown:not([hidden]) .home-navbar-lang-item .lang-flag {
+    filter: drop-shadow(0 0 0.4px var(--success-color));
+}
+
+.home-navbar-lang-dropdown:not([hidden]) .home-navbar-lang-item {
+    color: var(--success-color);
+}
+
+.home-navbar-lang-dropdown:not([hidden]) .home-navbar-lang-item.is-active {
+    color: var(--success-color);
+}
+
 .home-navbar-lang-item.is-active {
     border-color: var(--success-color);
     background: color-mix(in srgb, var(--success-color) 14%, var(--site-surface));
@@ -234,20 +250,29 @@
         var(--site-background);
 }
 
+/* ★ PATCH V1.7.6 : colonne gauche fixe
+   Le layout passe de "center / center" à "start / start" pour que
+   le contenu de gauche remonte au niveau du premier level de droite.
+   La colonne gauche devient sticky pour rester visible au scroll. */
 .new-game-layout {
     display: grid;
     grid-template-columns: minmax(0, 0.95fr) minmax(390px, 1.05fr);
-    align-items: center;
+    align-items: start;                            /* ★ start au lieu de center */
     gap: clamp(36px, 6vw, 82px);
     width: min(1120px, 100%);
     margin: auto;
+    padding-top: clamp(8px, 2vh, 20px);            /* ★ petit alignement haut */
 }
 
+/* ★ PATCH V1.7.6 : la colonne gauche devient sticky */
 .new-game-intro {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     min-width: 0;
+    position: sticky;                              /* ★ reste en place au scroll */
+    top: clamp(8px, 2vh, 20px);
+    align-self: start;
 }
 
 .brand-lockup {
@@ -418,7 +443,6 @@
 
 .new-game-content {
     width: 100%;
-    /* Tous les levels visibles : c'est la page qui défile, plus le panneau */
     max-height: none;
     margin: 0;
     padding: clamp(22px, 3vw, 34px);
@@ -431,6 +455,7 @@
     scrollbar-width: thin;
     scrollbar-color: var(--success-color) var(--site-surface-alt);
     position: relative;
+    align-self: start;                             /* ★ PATCH V1.7.6 : aligne en haut */
 }
 
 .setup-header {
@@ -655,7 +680,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUT LEVEL : bouton reset "R" (remplace le point vert)
+   STATUT LEVEL : bouton reset "R"
    ═══════════════════════════════════════════════════════════════ */
 
 .level-status {
@@ -683,13 +708,11 @@
     opacity: 1;
 }
 
-/* Sur un level complété : le point vert disparaît, R prend sa place */
 .level-accordion.is-completed .level-complete-dot {
     display: none;
 }
 
-/* ★ PATCH V1.7.5 : R en ROUGE permanent (visible dès qu'une victoire existe)
-   Le todo demande "une lettre R en rouge qui permet de reset les parties gagnées" */
+/* ★ PATCH V1.7.5 : R en ROUGE permanent (visible dès qu'une victoire existe) */
 .level-reset-btn {
     display: inline-flex;
     align-items: center;
@@ -697,13 +720,13 @@
     width: 28px;
     height: 28px;
     padding: 0;
-    border: 1px solid #f85149;                     /* ★ rouge visible en permanence */
+    border: 1px solid #f85149;
     border-radius: 6px;
-    background: color-mix(in srgb, #f85149 14%, var(--site-surface)); /* ★ fond rouge léger */
-    color: #f85149;                                /* ★ texte rouge */
+    background: color-mix(in srgb, #f85149 14%, var(--site-surface));
+    color: #f85149;
     font: inherit;
     font-size: 0.85rem;
-    font-weight: 800;                              /* ★ un peu plus gras */
+    font-weight: 800;
     line-height: 1;
     cursor: pointer;
     transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
@@ -711,9 +734,9 @@
 
 .level-reset-btn:hover,
 .level-reset-btn:focus-visible {
-    border-color: #ff6b63;                         /* ★ rouge plus clair au hover */
+    border-color: #ff6b63;
     background: color-mix(in srgb, #f85149 28%, var(--site-surface));
-    color: #ffb3ad;                                /* ★ texte plus clair */
+    color: #ffb3ad;
     outline: none;
     transform: rotate(-45deg);
 }
@@ -726,7 +749,6 @@
     display: none;
 }
 
-/* Ancien check-icon : neutralisé pour ne pas interférer avec R / point vert */
 .check-icon {
     display: none;
 }
@@ -798,7 +820,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   PICKER COULEUR INLINE (AGRANDI)
+   PICKER COULEUR INLINE
    ═══════════════════════════════════════════════════════════════ */
 
 .inline-color-picker {
@@ -832,18 +854,16 @@
     pointer-events: none;
 }
 
-/* ★ PATCH V1.7.5 : icône random bien visible sur desktop
-   Avant : vert #10B981 sur fond #12383C → contraste quasi nul
-   Après : icône en couleur texte (quasi blanc) + accent vert au hover/selected */
+/* ★ PATCH V1.7.5 : icône random bien visible sur desktop */
 .inline-color-option.random i {
-    color: var(--site-text);                       /* ★ visible sur fond sombre */
+    color: var(--site-text);
     font-size: 1.6rem;
     transition: color 140ms ease, transform 140ms ease;
 }
 
 .inline-color-option.random:hover i,
 .inline-color-option.random.selected i {
-    color: var(--success-color);                   /* ★ vert seulement au hover/sélection */
+    color: var(--success-color);
 }
 
 .inline-color-option:hover {
@@ -887,10 +907,14 @@
         max-width: 600px;
     }
 
+    /* ★ PATCH V1.7.6 : sur tablette/mobile la colonne gauche n'est plus sticky
+       (empilée au-dessus), donc on la remet en flux normal */
     .new-game-intro {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         column-gap: 18px;
+        position: static;
+        top: auto;
     }
 
     .brand-lockup {
@@ -1155,7 +1179,7 @@
         animation: none;
     }
 }
-/* Message après reset d'un level */
+
 #levelToast {
     position: fixed;
     left: 50%;
@@ -1179,7 +1203,6 @@
     transform: translate(-50%, 0);
 }
 
-/* Barre de défilement bien visible : les levels 5, 6, 7, 8, 16... sont plus bas */
 .new-game-content::-webkit-scrollbar {
     width: 10px;
 }
