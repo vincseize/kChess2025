@@ -7,8 +7,9 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 |   |-- [F] BOTS_DECISION_FLOWS.md
 |   |-- [F] echecs_chapitre16.pdf
 |   |-- [F] echecs_structureDePions.jpg
-|   |-- [F] PARTIES_FAVORITES.md
-|   \-- [F] README.md
+|   \-- [F] PARTIES_FAVORITES.md
+|-- [D] install
+|   \-- [F] AGENTS.md
 |-- [D] php
 |   |-- [D] config
 |   |   |-- [F] clubs.json
@@ -179,6 +180,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 |   |   |   |   |-- [F] pgn-parser.js
 |   |   |   |   |-- [F] profile-clubs.js
 |   |   |   |   |-- [F] profile-core.js
+|   |   |   |   |-- [F] profile-games.js
 |   |   |   |   |-- [F] profile-me.js
 |   |   |   |   |-- [F] profile-players.js
 |   |   |   |   \-- [F] profile.js
@@ -209,6 +211,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 |   |-- [F] app.php
 |   |-- [F] cacert.pem
 |   |-- [F] cacert.pem.bak
+|   |-- [F] cleanup.php
 |   |-- [F] clock.php
 |   |-- [F] club.php
 |   |-- [F] config-loader.php
@@ -227,6 +230,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 |   |-- [F] header.php
 |   |-- [F] import_ffe.php
 |   |-- [F] index.php
+|   |-- [F] joueurs_api.php
 |   |-- [F] layoutMobile.php
 |   |-- [F] lib_ffe.php
 |   |-- [F] local-only.php
@@ -265,6 +269,6 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
 |   |-- [F] config.json
 |   \-- [F] README.md
 |-- [F] project_analyzer.php
-|-- [F] project_analyzer.phpCopy
 |-- [F] project_report.json
-\-- [F] README.md
+|-- [F] README.md
+\-- [F] todo.md

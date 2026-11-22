@@ -688,6 +688,8 @@
     display: none;
 }
 
+/* ★ PATCH V1.7.5 : R en ROUGE permanent (visible dès qu'une victoire existe)
+   Le todo demande "une lettre R en rouge qui permet de reset les parties gagnées" */
 .level-reset-btn {
     display: inline-flex;
     align-items: center;
@@ -695,13 +697,13 @@
     width: 28px;
     height: 28px;
     padding: 0;
-    border: 1px solid var(--site-border);
+    border: 1px solid #f85149;                     /* ★ rouge visible en permanence */
     border-radius: 6px;
-    background: var(--site-surface);
-    color: var(--site-text-muted);
+    background: color-mix(in srgb, #f85149 14%, var(--site-surface)); /* ★ fond rouge léger */
+    color: #f85149;                                /* ★ texte rouge */
     font: inherit;
     font-size: 0.85rem;
-    font-weight: 700;
+    font-weight: 800;                              /* ★ un peu plus gras */
     line-height: 1;
     cursor: pointer;
     transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
@@ -709,9 +711,9 @@
 
 .level-reset-btn:hover,
 .level-reset-btn:focus-visible {
-    border-color: #f85149;
-    background: color-mix(in srgb, #f85149 12%, var(--site-surface));
-    color: #f85149;
+    border-color: #ff6b63;                         /* ★ rouge plus clair au hover */
+    background: color-mix(in srgb, #f85149 28%, var(--site-surface));
+    color: #ffb3ad;                                /* ★ texte plus clair */
     outline: none;
     transform: rotate(-45deg);
 }
@@ -830,9 +832,18 @@
     pointer-events: none;
 }
 
+/* ★ PATCH V1.7.5 : icône random bien visible sur desktop
+   Avant : vert #10B981 sur fond #12383C → contraste quasi nul
+   Après : icône en couleur texte (quasi blanc) + accent vert au hover/selected */
 .inline-color-option.random i {
-    color: var(--success-color);
+    color: var(--site-text);                       /* ★ visible sur fond sombre */
     font-size: 1.6rem;
+    transition: color 140ms ease, transform 140ms ease;
+}
+
+.inline-color-option.random:hover i,
+.inline-color-option.random.selected i {
+    color: var(--success-color);                   /* ★ vert seulement au hover/sélection */
 }
 
 .inline-color-option:hover {
