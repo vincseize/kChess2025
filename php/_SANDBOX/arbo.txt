@@ -8,6 +8,8 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
   📄 README.md
   📄 echecs_chapitre16.pdf
   📄 echecs_structureDePions.jpg
+📁 install
+  📄 AGENTS.md
 📁 php
   📁 _SANDBOX
     📄 arbo.bat
@@ -16,9 +18,16 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
     📄 gen_icons.py
     📄 gen_icons_chrome.py
   📄 app.php
+  📁 cache
+    📁 fide
+      📄 0e917c7374809c33523a3ba335887c86.json
+      📄 9d7268c0754db2b28edfd0885c570cb0.json
+      📄 bd72798b7cb5ee4e200aa027e28cccde.json
   📄 clock.php
   📁 config
+    📄 clubs.json
     📄 game-config.json
+    📄 parties.json
   📄 config-loader.php
   📄 content.php
   📄 content_mobile.php
@@ -56,6 +65,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
       📄 preset6.css
     📄 responsive.css
   📄 engine-scripts.php
+  📄 fide.php
   📄 footer.php
   📄 header.php
   📁 img
@@ -196,6 +206,7 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
         📄 chess-game-ui-styles.js
         📄 chess-game-ui-timer.js
         📄 new-game-handler.js
+        📄 pgn-parser.js
         📄 profile.js
       📁 validators
         📄 move-executor.js
@@ -220,8 +231,10 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
     📄 wow.min.js
     📄 zone_navbar.js
   📄 layoutMobile.php
+  📄 local-only.php
   📄 manifest.json
   📄 newGame.php
+  📄 parties_save.php
   📄 profile.php
   📄 project_flow_mapper.php
   📁 sounds
@@ -260,3 +273,4 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
     📄 chess.png
     📄 chess_logo.ico
     📄 icon.png
+📄 todo.md
