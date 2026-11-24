@@ -154,10 +154,10 @@ class ChessBoard {
         // Logique de placement des labels selon l'orientation
         if (isFlipped) {
             if (row === 0) hLabel = letters[col];
-            if (col === 7) vLabel = numbers[row];
+            if (col === 0) vLabel = numbers[row]; // chiffres a droite (colonne h) - mode retourne
         } else {
             if (row === 7) hLabel = letters[col];
-            if (col === 0) vLabel = numbers[row];
+            if (col === 7) vLabel = numbers[row]; // chiffres a droite (colonne h) - position normale
         }
 
         if (hLabel) squareElement.dataset.coordHorizontal = hLabel;
@@ -176,7 +176,9 @@ class ChessBoard {
         pieceElement.className = `chess-piece ${piece.color}`;
         
         // On récupère le chemin depuis la config globale
-        const basePath = (window.appConfig && window.appConfig.piece_path) ? window.appConfig.piece_path : '';
+        let basePath = (window.appConfig && window.appConfig.piece_path) ? window.appConfig.piece_path : '';
+        // Repli par defaut : les images Wikipedia du projet
+        if (!basePath) basePath = "img/chesspieces/wikipedia/";
         
         // Si on veut utiliser des images (ex: wP.png)
         // Note: Cette logique dépend de si votre pieceManager renvoie du texte ou si vous voulez forcer l'image

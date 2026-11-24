@@ -1,29 +1,101 @@
-/* chess-board-coordinates.css - Styles des coordonnées */
-.chess-square[data-coordinate-h="true"]::after {
+/* chess-board-coordinates.css - Coordonnées a-h / 1-8
+   Requis : votre chess-board.js actuel (addCoordinatesLabels) qui pose
+   data-coord-horizontal (a-h, rangée du bas) et data-coord-vertical (1-8,
+   colonne de gauche) UNIQUEMENT sur les cases du bord.
+
+   Comportement :
+   - Mobile (< 768px)      : aux coins, À L'INTÉRIEUR des cases
+                             (chiffre en haut à gauche, lettre en bas à droite), blancs.
+   - Tablette/Desktop      : À L'EXTÉRIEUR du plateau
+                             (lettres au-dessous de la rangée du bas,
+                              chiffres à droite de la colonne... voir plus bas), blancs.
+*/
+
+/* ==========================================================
+   MOBILE : à l'intérieur, aux coins
+   ========================================================== */
+
+.chess-square[data-coord-horizontal]::after {
     content: attr(data-coord-horizontal);
     position: absolute;
     bottom: 2px;
     right: 3px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    font-size: 0.5rem;
+    font-weight: 700;
     pointer-events: none;
-    color: rgba(0, 0, 0, 0.6);
+    color: #168B8D;          /* sur cases claires : couleur des foncées */
     z-index: 1;
 }
 
-.chess-square[data-coordinate-v="true"]::before {
+.chess-square[data-coord-vertical]::before {
     content: attr(data-coord-vertical);
     position: absolute;
     top: 2px;
-    left: 3px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    right: 3px;   /* en haut à droite de la case */
+    left: auto;
+    font-size: 0.5rem;
+    font-weight: 700;
     pointer-events: none;
-    color: rgba(0, 0, 0, 0.6);
+    color: #168B8D;          /* sur cases claires : couleur des foncées */
     z-index: 1;
 }
 
-.chess-square.black[data-coordinate-h="true"]::after,
-.chess-square.black[data-coordinate-v="true"]::before {
-    color: rgba(255, 255, 255, 0.7);
+/* Sur les cases foncées : blanc + ombre portée */
+.chess-square.black[data-coord-horizontal]::after,
+.chess-square.black[data-coord-vertical]::before {
+    color: #FFFFFF;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* ==========================================================
+   TABLETTE / DESKTOP (>= 768px) : à l'extérieur du plateau
+   Lettres a-h en bas           : sous la rangée du bas
+   Chiffres 1-8 à gauche        : à gauche de la colonne... non,
+   chiffres à DROITE (col marquée data-coord-vertical est col 0 ;
+   votre JS place aussi le label sur col 7 en mode retourné).
+   Pour rester correct dans les deux orientations, on centre
+   les chiffres au milieu du bord SANS croiser : gauche en
+   position noir normal, et si vous préférez la droite,
+   remplacez `left/right` entre les deux blocs commentés.
+   ========================================================== */
+
+@media (min-width: 768px) {
+
+    /* Chiffres 1-8 à droite, à l'extérieur du plateau, en blanc.
+       Requiert le chess-board.js patché (labels chiffres posés sur la colonne h). */
+    .chess-square[data-coord-vertical]::before {
+        top: 50%;
+        right: -20px;
+        left: auto;
+        transform: translateY(-50%);
+        font-size: 0.85rem;
+    }
+
+    /* Lettres a-h en bas, à l'extérieur */
+    .chess-square[data-coord-horizontal]::after {
+        bottom: -20px;
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.85rem;
+    }
+}
+
+/* ==========================================================
+   Communs
+   ========================================================== */
+
+/* Le plateau laisse déborder les labels extérieurs */
+.chess-board {
+    overflow: visible;
+}
+
+/* Les labels ne bloquent pas les clics sur cases, héritent des états */
+.chess-square.selected::after,
+.chess-square.selected::before,
+.chess-square.last-move-source::after,
+.chess-square.last-move-source::before,
+.chess-square.last-move-dest::after,
+.chess-square.last-move-dest::before {
+    font-weight: 700;
 }
