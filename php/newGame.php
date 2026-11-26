@@ -13,8 +13,14 @@ $currentLang = $config['current_lang'] ?? 'fr';
 $translations = $config['lang'][$currentLang] ?? [];
 $assetVersion = $version ?? getVersion();
 $operaGameAlt = $translations['opera_game_alt'] ?? "Partie de l'Opera de Paul Morphy, 1858";
-$langFlags = ['fr' => '🇫🇷', 'en' => '🇬🇧', 'es' => '🇪🇸', 'de' => '🇩🇪'];
-$langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' => 'Deutsch'];
+
+// ★ V1.8.1 : flags + noms depuis lang_meta (centralisé dans game-config.json)
+$langFlags = [];
+$langNames = [];
+foreach ($config['lang_meta'] ?? [] as $code => $meta) {
+    $langFlags[$code] = $meta['flag'] ?? '';
+    $langNames[$code] = $meta['name'] ?? strtoupper($code);
+}
 ?>
 
 <link rel="stylesheet" href="css/kchess/newGame.css?v=<?php echo htmlspecialchars((string)$assetVersion); ?>">
@@ -27,7 +33,7 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
 <nav class="home-navbar" aria-label="Navigation principale">
     <a href="index.php" class="home-navbar-brand">
         <i class="bi bi-chess-queen" aria-hidden="true"></i>
-        <span>CharlyChess</span>
+        <span><?php echo htmlspecialchars($config['app_name'] ?? 'CharlyChess'); ?></span>
         <small class="home-navbar-version" title="Version"><?php echo htmlspecialchars('v' . ($config['version'] ?? '')); ?></small>
     </a>
 
@@ -330,7 +336,6 @@ $langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' =
 document.addEventListener('DOMContentLoaded', function() {
     const params = new URLSearchParams(window.location.search);
 
-    // ★ CORRECTION : ?new ne doit JAMAIS effacer la progression des levels
     if (params.has('new')) {
         try {
             const PROGRESS_FALLBACK_KEY = 'kchess_training_progress';
@@ -353,7 +358,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             keptLabEntries.forEach(([key, value]) => localStorage.setItem(key, value));
             if (savedBotLevel) localStorage.setItem('kchess.selectedBotLevel', savedBotLevel);
-            // ★ On restaure la progression sous la clé réellement utilisée
             if (savedTrainingProgress) localStorage.setItem(progressKey, savedTrainingProgress);
         } catch (error) {
             console.warn('Impossible de réinitialiser les préférences locales.', error);
@@ -369,38 +373,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ★ Lang selector
 document.addEventListener('DOMContentLoaded', function() {
     const picker = document.getElementById('homeLangPicker');
     const trigger = document.getElementById('langTrigger');
     const dropdown = document.getElementById('langDropdown');
     if (!picker || !trigger || !dropdown) return;
 
-    const close = () => {
-        dropdown.hidden = true;
-        trigger.setAttribute('aria-expanded', 'false');
-    };
-    const open = () => {
-        dropdown.hidden = false;
-        trigger.setAttribute('aria-expanded', 'true');
-    };
+    const close = () => { dropdown.hidden = true; trigger.setAttribute('aria-expanded', 'false'); };
+    const open  = () => { dropdown.hidden = false; trigger.setAttribute('aria-expanded', 'true'); };
 
     trigger.addEventListener('click', (e) => {
         e.stopPropagation();
         if (dropdown.hidden) open(); else close();
     });
-
     document.addEventListener('click', (e) => {
         if (!dropdown.hidden && !picker.contains(e.target)) close();
     });
-
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !dropdown.hidden) {
-            close();
-            trigger.focus();
-        }
+        if (e.key === 'Escape' && !dropdown.hidden) { close(); trigger.focus(); }
     });
-
     dropdown.querySelectorAll('.home-navbar-lang-item').forEach(item => {
         item.addEventListener('click', () => close());
     });

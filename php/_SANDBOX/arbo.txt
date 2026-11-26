@@ -245,7 +245,6 @@ Arborescence du dossier : C:\xampp\htdocs\kChess2025
     📄 splashscreen1.php
   📄 sw.js
 📄 project_analyzer.php
-📄 project_analyzer.phpCopy
 📄 project_report.json
 📁 python
   📄 .gitattributes

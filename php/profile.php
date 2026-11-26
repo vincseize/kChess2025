@@ -7,8 +7,14 @@ $config = loadGameConfig();
 $currentLang = $config['current_lang'] ?? 'fr';
 $translations = $config['lang'][$currentLang] ?? [];
 $assetVersion = $version ?? getVersion();
-$langFlags = ['fr' => '🇫🇷', 'en' => '🇬🇧', 'es' => '🇪🇸', 'de' => '🇩🇪'];
-$langNames = ['fr' => 'Français', 'en' => 'English', 'es' => 'Español', 'de' => 'Deutsch'];
+
+// ★ V1.8.1 : flags + noms depuis lang_meta (centralisé dans game-config.json)
+$langFlags = [];
+$langNames = [];
+foreach ($config['lang_meta'] ?? [] as $code => $meta) {
+    $langFlags[$code] = $meta['flag'] ?? '';
+    $langNames[$code] = $meta['name'] ?? strtoupper($code);
+}
 ?>
 <?php
 // Accès direct à profile.php : on ajoute la page HTML autour (comme le fait index.php pour newGame.php)
@@ -41,7 +47,7 @@ if ($profileStandalone):
 <nav class="home-navbar" aria-label="Navigation principale">
     <a href="index.php" class="home-navbar-brand">
         <i class="bi bi-chess-queen" aria-hidden="true"></i>
-        <span>CharlyChess</span>
+        <span><?php echo htmlspecialchars($config['app_name'] ?? 'CharlyChess'); ?></span>
         <small class="home-navbar-version" title="Version"><?php echo htmlspecialchars('v' . ($config['version'] ?? '')); ?></small>
     </a>
 

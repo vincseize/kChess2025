@@ -712,7 +712,10 @@ button.profile-club-player:focus-visible { border-color: var(--success-color); o
 /* ── Responsive ── */
 @media (max-width: 860px) {
     .profile-layout { align-items: stretch; }
-    .profile-board-preview { margin-top: 18px; }
+    /* Parties d'exemple : jamais sur mobile (plateau, zoom, liste demo, ajout) */
+    .profile-board-preview { display: none; }
+    /* Accroche "La Dame de Bellefontaine / App Chess Club training" masquee sur mobile */
+    .hero-kicker { display: none; }
 }
 
 @media (max-width: 520px) {

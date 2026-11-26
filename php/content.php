@@ -1,12 +1,14 @@
 <?php
 // content.php - Layout avec menu à gauche - Synchronisé JSON v0.99
 require_once __DIR__ . '/config-loader.php';
+require_once __DIR__ . '/local-only.php';   // ★ V1.7.6 : masquer outils dev hors localhost
 $config = loadGameConfig();
 
 $lang = $config['current_lang'] ?? 'fr';
 $translations = $config['lang'][$lang];
 // On récupère la config des horloges pour l'affichage initial
 $botsClock = $config['bots_clock'] ?? [];
+$isLocalhost = kchess_is_local();           // ★ V1.7.6
 ?>
 
 <main class="container-fluid py-3 game-page">
@@ -17,6 +19,7 @@ $botsClock = $config['bots_clock'] ?? [];
                     <div class="card-body p-2">
                         <div id="menuContent" class="d-md-block">
                             <div class="d-grid gap-2 game-actions">
+                                <?php if ($isLocalhost): // ★ V1.7.6 : outils dev visibles uniquement en localhost ?>
                                 <a href="js/kchess/bots/unitTests/Bot_vs_Bot.php" 
                                    target="_blank" 
                                    class="btn btn-outline-danger btn-sm d-none d-md-block shadow-sm">
@@ -28,6 +31,7 @@ $botsClock = $config['bots_clock'] ?? [];
                                    class="btn btn-outline-info btn-sm d-none d-md-block shadow-sm">
                                     <i class="bi bi-diagram-3 me-1"></i> Process Bots
                                 </a>
+                                <?php endif; ?>
 
                                 <a href="index.php" class="btn btn-primary btn-sm">
                                     <i class="bi bi-house-door me-1" aria-hidden="true"></i> <span><?php echo htmlspecialchars($translations['accueil']); ?></span>
@@ -141,7 +145,7 @@ $botsClock = $config['bots_clock'] ?? [];
 
 <footer class="bg-dark py-3 mt-auto">
     <div class="container text-center text-white-50">
-        <small><?php echo htmlspecialchars($translations['app_name']); ?> v<?php echo $config['version']; ?> | 2025 - <?php echo date('Y'); ?></small>
+        <small><?php echo htmlspecialchars($config['app_name'] ?? 'CharlyChess'); ?> v<?php echo htmlspecialchars($config['version'] ?? ''); ?> | 2025 - <?php echo date('Y'); ?></small>
     </div>
 </footer>
 

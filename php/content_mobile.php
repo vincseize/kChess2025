@@ -124,7 +124,7 @@ $translations = $config['lang'][$lang];
     <div class="container text-center text-md-start">
         <div class="row align-items-center">
             <div class="col-md-6 text-white-50 small">
-                <?php echo htmlspecialchars($translations['app_name']); ?> v<?php echo htmlspecialchars($config['version']); ?>
+                <?php echo htmlspecialchars($config['app_name'] ?? 'CharlyChess'); ?> v<?php echo htmlspecialchars($config['version'] ?? ''); ?>
             </div>
             <div class="col-md-6 text-md-end text-white-50 small">
                 <?php echo $translations['footer_copyright']; ?><?php echo date('Y'); ?>
